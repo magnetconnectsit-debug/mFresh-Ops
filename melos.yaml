@@ -1,0 +1,32 @@
+name: magnet_connects
+
+packages:
+  - packages/apps/**
+  - packages/shared/**
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  clean:
+    run: melos clean
+    description: Clean all packages in the monorepo.
+    
+  bs:
+    run: melos bootstrap
+    description: Bootstrap all packages in the monorepo.
+
+  analyze:
+    run: melos analyze
+    description: Analyze all packages in the monorepo.
+
+  test:
+    run: melos test
+    description: Run tests in all packages.
+
+  rebuild:
+    run: |
+      melos clean
+      melos bootstrap
+    description: Clean and bootstrap the workspace.

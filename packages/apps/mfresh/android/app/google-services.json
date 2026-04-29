@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1024763940880",
+    "project_id": "mfresh-b87c2",
+    "storage_bucket": "mfresh-b87c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1024763940880:android:5e847f97f315455c43ba95",
+        "android_client_info": {
+          "package_name": "com.mFresh"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmTBX9YlWCu-Oyn38s_i172M17rovS5-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1024763940880:android:36bb6416e3bcd2e343ba95",
+        "android_client_info": {
+          "package_name": "com.mFreshOps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmTBX9YlWCu-Oyn38s_i172M17rovS5-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

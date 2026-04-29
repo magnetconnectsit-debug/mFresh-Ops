@@ -1,0 +1,9 @@
+# melos_managed_dependency_overrides: core,models,services,archive
+dependency_overrides:
+  core:
+    path: ..\\..\\shared\\core
+  models:
+    path: ..\\..\\shared\\models
+  services:
+    path: ..\\..\\shared\\services
+  archive: ^4.0.0

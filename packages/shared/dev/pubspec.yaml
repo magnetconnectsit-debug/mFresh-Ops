@@ -1,0 +1,22 @@
+name: dev
+description: "Developer tools and settings for Magnet Connects."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.7.3
+  flutter_screenutil: ^5.9.3
+  pinput: ^5.0.0
+  share_plus: ^10.1.4
+  core:
+    path: ../core
+  services:
+    path: ../services
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "mfresh (Debug)",
+      "request": "launch",
+      "type": "dart",
+      "program": "packages/apps/mfresh/lib/main.dart"
+    },
+    {
+      "name": "mfresh_ops (Debug)",
+      "request": "launch",
+      "type": "dart",
+      "program": "packages/apps/mfresh_ops/lib/main.dart"
+    },
+    {
+      "name": "Melos: Bootstrap",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}",
+      "program": "packages/apps/mfresh/lib/main.dart",
+      "toolArgs": [
+        "run",
+        "melos",
+        "bootstrap"
+      ]
+    },
+    {
+      "name": "Melos: Clean",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}",
+      "program": "packages/apps/mfresh/lib/main.dart",
+      "toolArgs": [
+        "run",
+        "melos",
+        "clean"
+      ]
+    }
+  ]
+}

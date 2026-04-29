@@ -1,0 +1,26 @@
+abstract class AppRoutes {
+  static const splash = '/';
+  static const login = '/login';
+  static const home = '/home';
+  static const allTasks = '/all-tasks';
+  static const dailyTasks = '/daily-tasks';
+  static const supportTickets = '/support-tickets';
+  static const supportDashboard = '/support-dashboard';
+  static const supportCategory = '/support-category';
+  static const supportSubCategory = '/support-subcategory';
+  static const supportProjects = '/support-projects';
+  static const createTask = '/create-task';
+  static const createSupportTicket = '/create-support-ticket';
+  static const ticketDetails = '/ticket-details';
+  static const taskReview = '/task-review';
+  static const editTicket = '/edit-ticket';
+  static const storeInventory = '/store-inventory';
+  static const unitInventory = '/unit-inventory';
+  static const allConsumption = '/all-consumption';
+  static const allotments = '/allotments';
+  static const measurements = '/measurements';
+  static const items = '/items';
+  static const storeRooms = '/store-rooms';
+  static const profile = '/profile';
+  static const notifications = '/notifications';
+}

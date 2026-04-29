@@ -1,0 +1,161 @@
+import 'package:core/constants/app_colors.dart';
+import 'package:core/constants/app_images.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_common_textfield.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/modules/authentication/controllers/login_controller.dart';
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.put(LoginController());
+
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          Positioned(
+            bottom: -125.h,
+            right: -125.w,
+            child: Opacity(
+              opacity: 0.2,
+              child: Image.asset(
+                AppImages.appLogo,
+                width: 345.w,
+                height: 345.w,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          
+          // Main Content
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: GestureDetector(
+                      onTap: controller.handleLogoTap,
+                      child: Image.asset(
+                        AppImages.appLogo,
+                        width: 200.w,
+                        height: 200.w,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'Login',
+                    style: AppTextStyle.style_22_600(color: AppColors.black),
+                  ),
+                  SizedBox(height: 12.h),
+                  // Username Field
+                  AppCommonTextField(
+                    controller: controller.usernameController,
+                    titleText: 'Username',
+                    hintText: 'Enter your username',
+                    keyboardType: TextInputType.text,
+                  ),
+                  
+                  SizedBox(height: 8.h),
+                  
+                  // Password Field
+                  Obx(() => AppCommonTextField(
+                    controller: controller.passwordController,
+                    titleText: 'Password',
+                    hintText: 'Enter your password',
+                    obscureText: controller.obscurePassword.value,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        controller.obscurePassword.value 
+                            ? Icons.visibility_off_outlined 
+                            : Icons.visibility_outlined,
+                        color: AppColors.grey400,
+                        size: 20.sp,
+                      ),
+                      onPressed: controller.togglePasswordVisibility,
+                    ),
+                  )),
+                  
+                  SizedBox(height: 8.h),
+                  
+                  // Remember Me & Forget Password
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 20.w,
+                            height: 20.w,
+                            child: Obx(() => Checkbox(
+                              value: controller.rememberMe.value,
+                              onChanged: controller.toggleRememberMe,
+                              activeColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                            )),
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Remember Me',
+                            style: AppTextStyle.style_12_400(color: AppColors.grey400),
+                          ),
+                        ],
+                      ),
+                      InkWell(
+                        onTap: () {},
+                        child: Text(
+                          'Forget Password',
+                          style: AppTextStyle.style_12_600(color: AppColors.primary),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  SizedBox(height: 12.h),
+                  
+                  // Login Button
+                  Obx(() => AppCommonButton(
+                    text: 'Login',
+                    isLoading: controller.isLoading.value,
+                    onPressed: controller.login,
+                  )),
+                  
+                  SizedBox(height: 24.h),
+                  
+                  // mFresh Ops
+                  Center(
+                    child: Text(
+                      'mFresh Ops',
+                      style: AppTextStyle.style_20_600(color: AppColors.primary),
+                    ),
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Footer
+                  Center(
+                    child: Text(
+                      '© 2024 ALL RIGHTS RESERVED',
+                      style: AppTextStyle.style_12_400(color: AppColors.grey400),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
