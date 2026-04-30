@@ -6,7 +6,7 @@ import 'package:services/storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
-// endregion
+import 'package:core/utils/app_common_toast_message.dart';// endregion
 
 // region DioClient
 class DioClient {
@@ -82,6 +82,23 @@ class AuthInterceptor extends Interceptor {
       );
     }
     return super.onRequest(options, handler);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.response?.statusCode == 401) {
+      debugPrint('AuthInterceptor: 401 Unauthorized detected. Logging out...');
+      AppCommonToastMessage.show(
+        message: 'Session expired, logging out...',
+        type: ToastType.warning,
+      );
+      await _storageService.clearAllStorage();
+      // Using a small delay to ensure the UI can handle the transition
+      Future.delayed(const Duration(milliseconds: 100), () {
+        Get.offAllNamed('/login');
+      });
+    }
+    return super.onError(err, handler);
   }
 }
 // endregion

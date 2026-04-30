@@ -53,7 +53,11 @@ class StoreRoomController extends GetxController {
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Store Rooms Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Store Rooms Report',
+      columns: const ["SI No", "Store Name"],
+      rows: filteredStores.map((store) => [store.siNo, store.storeName]).toList(),
+    );
     isExportingPdf.value = false;
   }
 

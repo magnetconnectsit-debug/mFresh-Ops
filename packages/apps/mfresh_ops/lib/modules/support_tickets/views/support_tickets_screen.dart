@@ -5,7 +5,6 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:core/widgets/app_common_drop_down.dart';
@@ -137,6 +136,8 @@ class SupportTicketsScreen extends StatelessWidget {
         children: [
           _buildFilterGrid(controller),
           SizedBox(height: 12.h),
+          _buildActiveFilters(controller),
+          SizedBox(height: 12.h),
           Center(
             child: Wrap(
               spacing: 10.w,
@@ -147,6 +148,67 @@ class SupportTicketsScreen extends StatelessWidget {
                 _buildFilterButton('Save Filter', AppColors.success, onTap: () {}),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFilters(SupportTicketsController controller) {
+    return Obx(() {
+      final List<dynamic> allSelected = [
+        ...controller.selectedAssignees,
+        if (controller.selectedPriority.value != null) controller.selectedPriority.value,
+        ...controller.selectedCategories,
+        if (controller.selectedSubCategory.value != null) controller.selectedSubCategory.value,
+        ...controller.selectedUnits,
+        ...controller.selectedStatuses,
+        ...controller.selectedProjects,
+      ];
+
+      if (allSelected.isEmpty) return const SizedBox.shrink();
+
+      return Wrap(
+        spacing: 8.w,
+        runSpacing: 4.h,
+        children: allSelected.map((item) {
+          String label = '';
+          if (item is SupportCategory) {
+            label = item.categoryName;
+          } else if (item is SupportSubCategory) {
+            label = item.subCategoryName;
+          } else if (item is SupportProject) {
+            label = item.projectName;
+          } else if (item is SupportUnit) {
+            label = item.unitName;
+          } else if (item is AssigneeModel) {
+            label = item.name;
+          } else if (item is String) {
+            label = item;
+          }
+
+          return _buildChip(label, () => controller.removeFilter(item));
+        }).toList(),
+      );
+    });
+  }
+
+  Widget _buildChip(String label, VoidCallback onDelete) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AppTextStyle.style_10_600(color: AppColors.primary)),
+          SizedBox(width: 4.w),
+          GestureDetector(
+            onTap: onDelete,
+            child: Icon(Icons.close, size: 12.r, color: AppColors.primary),
           ),
         ],
       ),
@@ -165,60 +227,73 @@ class SupportTicketsScreen extends StatelessWidget {
         AppCommonDropdown<AssigneeModel>(
           title: 'Assignee',
           hintText: 'Select',
-          value: controller.selectedAssignee.value,
-          items: controller.assignees.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(),
-          onChanged: (v) => controller.selectedAssignee.value = v,
+          isMultiSelect: true,
+          selectedValues: controller.selectedAssignees,
+          options: controller.assigneeOptions,
+          onMultiSelectChanged: (v) => controller.selectedAssignees.assignAll(v),
           height: 32.h,
         ),
         AppCommonDropdown<String>(
           title: 'Priority',
           hintText: 'Select',
+          isMultiSelect: false,
           value: controller.selectedPriority.value,
-          items: controller.priorities.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          options: controller.priorityOptions,
           onChanged: (v) => controller.selectedPriority.value = v,
           height: 32.h,
         ),
         AppCommonDropdown<SupportCategory>(
           title: 'Category',
           hintText: 'Select',
-          value: controller.selectedCategory.value,
-          items: controller.categories.map((e) => DropdownMenuItem(value: e, child: Text(e.categoryName))).toList(),
-          onChanged: (v) {
-            controller.selectedCategory.value = v;
-            if (v != null) controller.fetchSubCategories(v.categoryId);
+          isMultiSelect: true,
+          selectedValues: controller.selectedCategories,
+          options: controller.categoryOptions,
+          onMultiSelectChanged: (v) {
+            controller.selectedCategories.assignAll(v);
+            if (v.isNotEmpty) {
+              // Fetch subcategories for the last selected category for now
+              controller.fetchSubCategories(v.last.categoryId);
+            } else {
+              controller.subCategories.clear();
+              controller.selectedSubCategory.value = null;
+            }
           },
           height: 32.h,
         ),
         AppCommonDropdown<SupportSubCategory>(
           title: 'Sub Cat',
           hintText: 'Select',
+          isMultiSelect: false,
           value: controller.selectedSubCategory.value,
-          items: controller.subCategories.map((e) => DropdownMenuItem(value: e, child: Text(e.subCategoryName))).toList(),
+          options: controller.subCategoryOptions,
           onChanged: (v) => controller.selectedSubCategory.value = v,
           height: 32.h,
         ),
         AppCommonDropdown<SupportUnit>(
           title: 'Unit',
           hintText: 'Select',
-          value: controller.selectedUnit.value,
-          items: controller.units.map((e) => DropdownMenuItem(value: e, child: Text(e.unitName))).toList(),
-          onChanged: (v) => controller.selectedUnit.value = v,
+          isMultiSelect: true,
+          selectedValues: controller.selectedUnits,
+          options: controller.unitOptions,
+          onMultiSelectChanged: (v) => controller.selectedUnits.assignAll(v),
           height: 32.h,
         ),
         AppCommonDropdown<String>(
           title: 'Status',
           hintText: 'Select',
-          value: controller.selectedStatus.value,
-          items: controller.statuses.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (v) => controller.selectedStatus.value = v,
+          isMultiSelect: true,
+          selectedValues: controller.selectedStatuses,
+          options: controller.statusOptions,
+          onMultiSelectChanged: (v) => controller.selectedStatuses.assignAll(v),
           height: 32.h,
         ),
         AppCommonDropdown<SupportProject>(
           title: 'Project',
           hintText: 'Select',
-          value: controller.selectedProject.value,
-          items: controller.projects.map((e) => DropdownMenuItem(value: e, child: Text(e.projectName))).toList(),
-          onChanged: (v) => controller.selectedProject.value = v,
+          isMultiSelect: true,
+          selectedValues: controller.selectedProjects,
+          options: controller.projectOptions,
+          onMultiSelectChanged: (v) => controller.selectedProjects.assignAll(v),
           height: 32.h,
         ),
       ],

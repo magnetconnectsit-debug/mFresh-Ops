@@ -42,6 +42,20 @@ class AppConstants {
   static const String editSupportTicket = '/edit-support-ticket';
   static const String updateSupportTicket = '/update-support-ticket';
   static const String allSupportTickets = '/all-supporttickets';
+
+  // Task Scheduler
+  static const String taskProjectList = '/task-project-list';
+  static const String taskGroupList = '/task-group-list';
+  static const String taskCreate = '/task-create';
+  static const String taskIndex = '/task-index';
+  static const String dailyTasks = '/daily-tasks';
+  static const String taskSubmit = '/task-submit';
+  static const String saveTask = '/save-task';
+  static const String approveTask = '/approve-task';
+  static const String rejectTask = '/reject-task';
+  static const String editTask = '/edit-task';
+  static const String updateTask = '/update-task';
+  static const String deleteTask = '/delete-Task';
   // endregion
 
   // region Hive Keys

@@ -1,32 +1,31 @@
+import 'package:core/widgets/app_common_drop_down.dart';
+import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:models/models.dart';
 
 class CreateTaskScreen extends GetView<TasksController> {
   const CreateTaskScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final TaskModel? task = Get.arguments;
+    final TaskItem? task = Get.arguments;
     final isEdit = task != null;
 
     if (isEdit) {
       controller.titleController.text = task.title;
-      controller.descriptionController.clear();
-      controller.securityGroupController.text = 'Samir Prasad Padhy';
+      controller.descriptionController.text = task.description;
     } else {
-      controller.titleController.clear();
-      controller.descriptionController.clear();
-      controller.securityGroupController.clear();
+      controller.resetForm();
     }
     
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
@@ -37,207 +36,240 @@ class CreateTaskScreen extends GetView<TasksController> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppCommonTextField(
-              controller: controller.titleController,
-              hintText: 'Task Title',
-              titleText: 'Task Title',
-            ),
-            SizedBox(height: 16.h),
-            AppCommonTextField(
-              controller: controller.descriptionController,
-              hintText: 'Description',
-              titleText: 'Description',
-              maxLines: 4,
-              height: 100.h,
-            ),
-            SizedBox(height: 16.h),
-            
-            Row(
-              children: [
-                Expanded(child: _buildDropdownField(label: 'Project', value: isEdit ? 'mFresh Operations' : null)),
-                SizedBox(width: 12.w),
-                Expanded(child: _buildDropdownField(label: 'Store (Unit)', value: isEdit ? 'Units_Puri' : null)),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: AppCommonTextField(
-                    controller: controller.securityGroupController,
-                    hintText: 'Security Group',
-                    titleText: 'Security Group',
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(child: _buildDropdownField(label: 'Assignee')),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Start Date', style: AppTextStyle.style_11_600(color: AppColors.grey300)),
-                      SizedBox(height: 4.h),
-                      _buildDateTimeField(label: 'Date', icon: Icons.calendar_today, value: isEdit ? '12-Sep-25' : 'Select Date'),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Start Time', style: AppTextStyle.style_11_600(color: AppColors.grey300)),
-                      SizedBox(height: 4.h),
-                      _buildDateTimeField(label: 'Time', value: isEdit ? '08:00 AM' : 'Select Time'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('End Date', style: AppTextStyle.style_11_600(color: AppColors.grey300)),
-                      SizedBox(height: 4.h),
-                      _buildDateTimeField(label: 'Date', value: isEdit ? '12-Sep-25' : 'Select Date'),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('End Time', style: AppTextStyle.style_11_600(color: AppColors.grey300)),
-                      SizedBox(height: 4.h),
-                      _buildDateTimeField(label: 'Time', value: isEdit ? '09:00 AM' : 'Select Time'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
-            
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Photo Required', style: AppTextStyle.style_13_600(color: AppColors.black)),
-                Row(
-                  children: [
-                    Obx(() => _buildSwitch(
-                      controller.photoRequired.value, 
-                      (val) => controller.photoRequired.value = val
+        child: Container(
+          padding: EdgeInsets.all(20.r),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTextField(
+                controller: controller.titleController,
+                hintText: 'Task Title',
+              ),
+              SizedBox(height: 12.h),
+              _buildTextField(
+                controller: controller.descriptionController,
+                hintText: 'Description',
+                maxLines: 3,
+              ),
+              SizedBox(height: 12.h),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: Obx(() => AppCommonDropdown<TaskProject>(
+                      hintText: 'Project',
+                      options: controller.projects.map((e) => DropdownOption(value: e, label: e.projectName)).toList(),
+                      value: controller.selectedProjectForCreate.value,
+                      onChanged: (val) => controller.selectedProjectForCreate.value = val,
+                      height: 38.h,
                     )),
-                    SizedBox(width: 12.w),
-                    _buildRecurringTask(),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Completion approval required', style: AppTextStyle.style_13_600(color: AppColors.black)),
-                Obx(() => _buildSwitch(
-                  controller.approvalRequired.value, 
-                  (val) => controller.approvalRequired.value = val
-                )),
-              ],
-            ),
-            SizedBox(height: 20.h),
-            
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Approver Name/ Team', style: AppTextStyle.style_14_500(color: AppColors.black300)),
-                SizedBox(height: 8.h),
-                _buildDropdownField(label: 'Approver Name/ Team', value: isEdit ? 'Operations Manager' : null),
-              ],
-            ),
-            SizedBox(height: 32.h),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Get.back(),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.grey100),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                    ),
-                    child: Text('Cancel', style: AppTextStyle.style_15_600(color: AppColors.black)),
                   ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Get.back(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isEdit ? AppColors.info : AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      isEdit ? 'Submit' : 'Create Task', 
-                      style: AppTextStyle.style_15_600(color: AppColors.white),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Obx(() => AppCommonDropdown<SupportUnit>(
+                      hintText: 'Store (Unit)',
+                      options: controller.units.map((e) => DropdownOption(value: e, label: e.unitName)).toList(),
+                      value: controller.selectedUnitForCreate.value,
+                      onChanged: (val) => controller.selectedUnitForCreate.value = val,
+                      height: 38.h,
+                    )),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: Obx(() => AppCommonDropdown<TaskGroup>(
+                      hintText: 'Security Group',
+                      options: controller.groups.map((e) => DropdownOption(value: e, label: e.roleName)).toList(),
+                      value: controller.selectedGroupForCreate.value,
+                      onChanged: (val) => controller.selectedGroupForCreate.value = val,
+                      height: 38.h,
+                    )),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Obx(() => AppCommonDropdown<AssigneeModel>(
+                      hintText: 'Assignee',
+                      options: controller.assignees.map((e) => DropdownOption(value: e, label: e.name)).toList(),
+                      value: controller.selectedAssigneeForCreate.value,
+                      onChanged: (val) => controller.selectedAssigneeForCreate.value = val,
+                      height: 38.h,
+                    )),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDateTimeField(
+                      label: 'Start Date', 
+                      icon: Icons.calendar_today_outlined, 
+                      value: controller.selectedStartDate.value != null 
+                        ? "${controller.selectedStartDate.value!.day}-${controller.selectedStartDate.value!.month}-${controller.selectedStartDate.value!.year}"
+                        : null,
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
-          ],
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: _buildDateTimeField(
+                      label: 'Time', 
+                      icon: Icons.keyboard_arrow_down,
+                      value: controller.selectedStartTime.value?.format(context),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildDateTimeField(
+                      label: 'End Date', 
+                      value: controller.selectedEndDate.value != null 
+                        ? "${controller.selectedEndDate.value!.day}-${controller.selectedEndDate.value!.month}-${controller.selectedEndDate.value!.year}"
+                        : null,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: _buildDateTimeField(
+                      label: 'Time', 
+                      icon: Icons.keyboard_arrow_down,
+                      value: controller.selectedEndTime.value?.format(context),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Photo Required', style: AppTextStyle.style_13_600(color: AppColors.black)),
+                  Row(
+                    children: [
+                      Obx(() => _buildSwitch(
+                        controller.photoRequired.value, 
+                        (val) => controller.photoRequired.value = val
+                      )),
+                      SizedBox(width: 24.w),
+                      _buildRecurringTask(),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Completion approval required', style: AppTextStyle.style_13_600(color: AppColors.black)),
+                  Obx(() => _buildSwitch(
+                    controller.approvalRequired.value, 
+                    (val) => controller.approvalRequired.value = val
+                  )),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              
+              Obx(() => AppCommonDropdown<AssigneeModel>(
+                hintText: 'Approver Name/ Team',
+                options: controller.assignees.map((e) => DropdownOption(value: e, label: e.name)).toList(),
+                value: controller.selectedApproverForCreate.value,
+                onChanged: (val) => controller.selectedApproverForCreate.value = val,
+                height: 38.h,
+              )),
+              SizedBox(height: 24.h),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    width: 100.w,
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.grey100),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                      ),
+                      child: Text('Cancel', style: AppTextStyle.style_14_600(color: AppColors.black)),
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  SizedBox(
+                    width: 130.w,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final data = {
+                          "title": controller.titleController.text,
+                          "description": controller.descriptionController.text,
+                          "project_id": controller.selectedProjectForCreate.value?.projectId,
+                          "unit_id": controller.selectedUnitForCreate.value?.unitId,
+                          "group_id": controller.selectedGroupForCreate.value?.id,
+                          "assignee_id": controller.selectedAssigneeForCreate.value?.id,
+                          "approver_id": controller.selectedApproverForCreate.value?.id,
+                          "photo_required": controller.photoRequired.value ? 1 : 0,
+                          "approval_required": controller.approvalRequired.value ? 1 : 0,
+                          "is_recurring": controller.isRecurring.value ? 1 : 0,
+                        };
+                        controller.createTask(data);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isEdit ? AppColors.info : AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        isEdit ? 'Submit' : 'Create Task', 
+                        style: AppTextStyle.style_14_600(color: AppColors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDropdownField({required String label, String? value}) {
+  Widget _buildTextField({required TextEditingController controller, required String hintText, int maxLines = 1}) {
     return Container(
-      height: 44.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: AppColors.grey50),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              value ?? label,
-              style: AppTextStyle.style_14_500(color: value != null ? AppColors.black : AppColors.grey300),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Icon(Icons.keyboard_arrow_down, color: AppColors.grey300, size: 24.r),
-        ],
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: maxLines > 1 ? 12.h : 0),
+          border: InputBorder.none,
+          isDense: true,
+        ),
+        style: AppTextStyle.style_14_500(color: AppColors.black),
       ),
     );
   }
 
   Widget _buildDateTimeField({required String label, IconData? icon, String? value}) {
     return Container(
-      height: 44.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      height: 38.h,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: AppColors.grey50),
@@ -248,10 +280,10 @@ class CreateTaskScreen extends GetView<TasksController> {
           Expanded(
             child: Text(
               value ?? label,
-              style: AppTextStyle.style_14_500(color: value != null ? AppColors.black : AppColors.grey300),
+              style: AppTextStyle.style_12_500(color: value != null ? AppColors.black : AppColors.grey300),
             ),
           ),
-          Icon(icon ?? Icons.keyboard_arrow_down, color: AppColors.grey300, size: 20.r),
+          if (icon != null) Icon(icon, color: AppColors.grey300, size: 18.r),
         ],
       ),
     );
@@ -259,7 +291,7 @@ class CreateTaskScreen extends GetView<TasksController> {
 
   Widget _buildSwitch(bool value, Function(bool) onChanged) {
     return Transform.scale(
-      scale: 0.8,
+      scale: 0.7,
       child: Switch(
         value: value,
         onChanged: onChanged,
@@ -279,13 +311,13 @@ class CreateTaskScreen extends GetView<TasksController> {
         children: [
           Icon(
             Icons.sync, 
-            size: 20.r, 
+            size: 18.r, 
             color: controller.isRecurring.value ? AppColors.primary : AppColors.grey300
           ),
           SizedBox(width: 4.w),
           Text(
             'Recurring Task', 
-            style: AppTextStyle.style_12_600(
+            style: AppTextStyle.style_11_600(
               color: controller.isRecurring.value ? AppColors.black : AppColors.grey300
             ),
           ),

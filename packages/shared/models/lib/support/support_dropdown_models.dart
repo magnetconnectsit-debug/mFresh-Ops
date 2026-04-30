@@ -10,6 +10,14 @@ class SupportUnit {
       unitName: json['unitname'],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SupportUnit && runtimeType == other.runtimeType && unitId == other.unitId;
+
+  @override
+  int get hashCode => unitId.hashCode;
 }
 
 class SupportCategory {
@@ -24,6 +32,16 @@ class SupportCategory {
       categoryName: json['categoryname'],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SupportCategory &&
+          runtimeType == other.runtimeType &&
+          categoryId == other.categoryId;
+
+  @override
+  int get hashCode => categoryId.hashCode;
 }
 
 class SupportProject {
@@ -38,6 +56,16 @@ class SupportProject {
       projectName: json['projectname'],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SupportProject &&
+          runtimeType == other.runtimeType &&
+          projectId == other.projectId;
+
+  @override
+  int get hashCode => projectId.hashCode;
 }
 
 class SupportSubCategory {
@@ -52,4 +80,14 @@ class SupportSubCategory {
       subCategoryName: json['subcategoryname'],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SupportSubCategory &&
+          runtimeType == other.runtimeType &&
+          subCategoryId == other.subCategoryId;
+
+  @override
+  int get hashCode => subCategoryId.hashCode;
 }

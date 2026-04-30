@@ -49,7 +49,7 @@ class HomeGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 16.r,
         mainAxisSpacing: 16.r,
-        childAspectRatio: 0.9,
+        childAspectRatio: 0.85,
       ),
       itemBuilder: (context, index) {
         return _buildGridCard(items[index]);
@@ -123,7 +123,7 @@ class HomeGrid extends StatelessWidget {
                         size: 28.r,
                       ),
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: 8.h),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

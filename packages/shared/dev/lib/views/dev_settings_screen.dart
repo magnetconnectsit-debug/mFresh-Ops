@@ -84,7 +84,7 @@ class DevSettingsScreen extends GetView<DevSettingsController> {
       subtitle: Text(sub, style: AppTextStyle.style_12_400(color: AppColors.grey300)),
       value: controller.settingsService.showLogger.value,
       onChanged: controller.toggleLogger,
-      activeColor: AppColors.primary,
+      activeThumbColor: AppColors.primary,
     ));
   }
 }

@@ -1,14 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:csv/csv.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:core/constants/app_colors.dart';
 import 'package:services/services.dart';
-import 'package:services/repositories/support_repository.dart';
 import 'package:models/models.dart';
 import 'package:core/utils/app_export_utils.dart';
+import 'package:core/widgets/app_common_dropdown_page.dart';
 
 class SupportTicketsController extends GetxController {
   final SupportRepository _supportRepository = Get.find<SupportRepository>();
@@ -33,13 +28,35 @@ class SupportTicketsController extends GetxController {
   final statuses = ['New', 'WIP', 'Hold', 'Awaited', 'Resolved', 'Closed'].obs;
 
   // Selected Filters
-  final selectedCategory = Rxn<SupportCategory>();
+  final selectedCategories = <SupportCategory>[].obs;
   final selectedSubCategory = Rxn<SupportSubCategory>();
-  final selectedProject = Rxn<SupportProject>();
-  final selectedUnit = Rxn<SupportUnit>();
-  final selectedAssignee = Rxn<AssigneeModel>();
+  final selectedProjects = <SupportProject>[].obs;
+  final selectedUnits = <SupportUnit>[].obs;
+  final selectedAssignees = <AssigneeModel>[].obs;
   final selectedPriority = Rxn<String>();
-  final selectedStatus = Rxn<String>();
+  final selectedStatuses = <String>[].obs;
+
+  // Dropdown Options
+  List<DropdownOption<SupportCategory>> get categoryOptions => 
+    categories.map((e) => DropdownOption(value: e, label: e.categoryName)).toList();
+  
+  List<DropdownOption<SupportSubCategory>> get subCategoryOptions => 
+    subCategories.map((e) => DropdownOption(value: e, label: e.subCategoryName)).toList();
+  
+  List<DropdownOption<SupportProject>> get projectOptions => 
+    projects.map((e) => DropdownOption(value: e, label: e.projectName)).toList();
+  
+  List<DropdownOption<SupportUnit>> get unitOptions => 
+    units.map((e) => DropdownOption(value: e, label: e.unitName)).toList();
+  
+  List<DropdownOption<AssigneeModel>> get assigneeOptions => 
+    assignees.map((e) => DropdownOption(value: e, label: e.name)).toList();
+  
+  List<DropdownOption<String>> get priorityOptions => 
+    priorities.map((e) => DropdownOption(value: e, label: e)).toList();
+  
+  List<DropdownOption<String>> get statusOptions => 
+    statuses.map((e) => DropdownOption(value: e, label: e)).toList();
 
   @override
   void onInit() {
@@ -110,15 +127,36 @@ class SupportTicketsController extends GetxController {
   }
 
   void resetFilters() {
-    selectedCategory.value = null;
+    selectedCategories.clear();
     selectedSubCategory.value = null;
-    selectedProject.value = null;
-    selectedUnit.value = null;
-    selectedAssignee.value = null;
+    selectedProjects.clear();
+    selectedUnits.clear();
+    selectedAssignees.clear();
     selectedPriority.value = null;
-    selectedStatus.value = null;
+    selectedStatuses.clear();
     subCategories.clear();
     fetchTickets();
+  }
+
+  void removeFilter(dynamic item) {
+    if (item is SupportCategory) {
+      selectedCategories.remove(item);
+      if (selectedCategories.isEmpty) {
+        subCategories.clear();
+        selectedSubCategory.value = null;
+      }
+    } else if (item is SupportSubCategory) {
+      selectedSubCategory.value = null;
+    } else if (item is SupportProject) {
+      selectedProjects.remove(item);
+    } else if (item is SupportUnit) {
+      selectedUnits.remove(item);
+    } else if (item is AssigneeModel) {
+      selectedAssignees.remove(item);
+    } else if (item is String) {
+      if (selectedPriority.value == item) selectedPriority.value = null;
+      selectedStatuses.remove(item);
+    }
   }
 
   void applyFilters() {
@@ -130,12 +168,12 @@ class SupportTicketsController extends GetxController {
       isLoading.value = true;
       final response = await _supportRepository.getAllSupportTickets(
         globalSearch: searchController.text,
-        mcatIds: selectedCategory.value != null ? [selectedCategory.value!.categoryId] : [],
+        mcatIds: selectedCategories.map((e) => e.categoryId).toList(),
         subMcatIds: selectedSubCategory.value != null ? [selectedSubCategory.value!.subCategoryId] : [],
-        projectIds: selectedProject.value != null ? [selectedProject.value!.projectId] : [],
-        unitIds: selectedUnit.value != null ? [selectedUnit.value!.unitId] : [],
+        projectIds: selectedProjects.map((e) => e.projectId).toList(),
+        unitIds: selectedUnits.map((e) => e.unitId).toList(),
         statusIds: [], // Need mapping if numeric
-        assigneeIds: selectedAssignee.value != null ? [selectedAssignee.value!.id] : [],
+        assigneeIds: selectedAssignees.map((e) => e.id).toList(),
       );
       if (response != null) {
         tickets.assignAll(response.data);
@@ -168,14 +206,7 @@ class SupportTicketsController extends GetxController {
 
   Future<void> exportTickets({bool isPdf = false}) async {
     try {
-      if (isPdf) {
-        await AppExportUtils.exportToPdf(
-          title: "Support Tickets",
-        );
-        return;
-      }
-
-      // Prepare Data for Excel
+      // Prepare Data
       List<String> columns = [
         "Ticket ID",
         "Unit No.",
@@ -202,11 +233,19 @@ class SupportTicketsController extends GetxController {
         ticket.postedDate ?? '',
       ]).toList();
 
-      await AppExportUtils.exportToExcel(
-        title: "Support Tickets",
-        columns: columns,
-        rows: rows,
-      );
+      if (isPdf) {
+        await AppExportUtils.exportToPdf(
+          title: "Support Tickets",
+          columns: columns,
+          rows: rows,
+        );
+      } else {
+        await AppExportUtils.exportToExcel(
+          title: "Support Tickets",
+          columns: columns,
+          rows: rows,
+        );
+      }
     } catch (e) {
       Get.snackbar('Error', 'Failed to export tickets: $e');
     }

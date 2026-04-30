@@ -13,6 +13,7 @@ export 'repositories/auth_repository.dart';
 export 'repositories/user_repository.dart';
 export 'repositories/common_repository.dart';
 export 'repositories/support_repository.dart';
+export 'repositories/task_repository.dart';
 
 
 

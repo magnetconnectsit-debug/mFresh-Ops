@@ -1,10 +1,10 @@
+import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
-import 'package:services/repositories/support_repository.dart';
 import 'package:dev/views/widgets/floating_logger_button.dart';
 
 void main() async {
@@ -14,26 +14,27 @@ void main() async {
 }
 
 Future<void> initServices() async {
-  // 1. Initialize LoggerService (No dependencies)
+  // Initialize LoggerService (No dependencies)
   Get.put(LoggerService());
 
-  // 2. Initialize StorageService (Hive-based)
+  // Initialize StorageService (Hive-based)
   await Get.putAsync(() => StorageService().init());
 
-  // 3. Initialize SettingsService (Depends on StorageService)
+  // Initialize SettingsService (Depends on StorageService)
   Get.put(SettingsService());
 
-  // 4. Initialize DioClient (Depends on StorageService & LoggerService)
+  // Initialize DioClient (Depends on StorageService & LoggerService)
   await Get.putAsync(() => DioClient().init());
 
-  // 5. Initialize API Service
+  // Initialize API Service
   Get.put(ApiService());
 
-  // 6. Initialize Repositories
+  // Initialize Repositories
   Get.put(AuthRepository());
   Get.put(UserRepository());
   Get.put(CommonRepository());
   Get.put(SupportRepository());
+  Get.put(TaskRepository());
 }
 
 
@@ -48,7 +49,7 @@ class OpsApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'mFresh Ops',
         theme: ThemeData(
-          primaryColor: Colors.orange,
+          primaryColor: AppColors.primary,
         ),
         builder: (context, child) {
           return Stack(

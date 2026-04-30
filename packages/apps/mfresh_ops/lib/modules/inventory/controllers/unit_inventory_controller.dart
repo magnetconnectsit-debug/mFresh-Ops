@@ -99,7 +99,11 @@ class UnitInventoryController extends GetxController {
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Unit Inventory Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Unit Inventory Report',
+      columns: const ["Unit Name", "Item Name", "Opening Balance", "Receipt", "Consumption", "Closing Balance"],
+      rows: unitInventoryItems.map((item) => [item.unitName, item.itemName, item.openingBalance, item.receipt, item.consumption, item.closingBalance]).toList(),
+    );
     isExportingPdf.value = false;
   }
 

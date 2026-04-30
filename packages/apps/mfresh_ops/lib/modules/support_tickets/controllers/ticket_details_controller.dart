@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:services/services.dart';
-import 'package:services/repositories/support_repository.dart';
 import 'package:models/models.dart';
 import 'package:dio/dio.dart' as dio;
 

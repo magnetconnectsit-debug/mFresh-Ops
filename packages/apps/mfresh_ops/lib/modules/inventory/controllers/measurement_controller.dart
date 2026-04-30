@@ -47,7 +47,11 @@ class MeasurementController extends GetxController {
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Measurements Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Measurements Report',
+      columns: const ["SI No", "Measurement Name"],
+      rows: measurements.asMap().entries.map((e) => [e.key + 1, e.value]).toList(),
+    );
     isExportingPdf.value = false;
   }
 

@@ -137,7 +137,11 @@ class AllotmentController extends GetxController {
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Allotment Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Allotment Report',
+      columns: const ["Date Of Allotment", "Item Name", "Source", "Destination", "Quantity", "M_Unit", "Allotment By"],
+      rows: allotmentItems.map((item) => [item.dateOfAllotment, item.itemName, item.source, item.destination, item.quantity, item.unit, item.allotmentBy]).toList(),
+    );
     isExportingPdf.value = false;
   }
 

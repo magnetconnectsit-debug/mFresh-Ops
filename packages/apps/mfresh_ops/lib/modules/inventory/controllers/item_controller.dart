@@ -70,7 +70,11 @@ class ItemController extends GetxController {
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Items Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Items Report',
+      columns: const ["SI No", "Item Name", "Item Id", "Measurement"],
+      rows: filteredItems.map((item) => [item.siNo, item.itemName, item.itemId, item.measurement]).toList(),
+    );
     isExportingPdf.value = false;
   }
 

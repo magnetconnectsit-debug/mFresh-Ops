@@ -151,7 +151,11 @@ class ConsumptionController extends GetxController {
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Consumption Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Consumption Report',
+      columns: const ["Consumed On", "State", "District", "Source Type", "Source", "Category", "Item", "Quantity"],
+      rows: consumptionItems.map((item) => [item.consumedOn, item.state, item.district, item.sourceType, item.source, item.category, item.item, item.quantity]).toList(),
+    );
     isExportingPdf.value = false;
   }
 
