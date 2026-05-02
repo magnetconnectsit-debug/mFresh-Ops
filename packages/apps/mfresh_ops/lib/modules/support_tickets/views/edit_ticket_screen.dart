@@ -6,7 +6,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/widgets/app_common_drop_down.dart';
 
 class EditTicketScreen extends StatelessWidget {

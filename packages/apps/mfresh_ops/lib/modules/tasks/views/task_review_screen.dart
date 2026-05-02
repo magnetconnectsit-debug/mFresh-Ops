@@ -8,7 +8,7 @@ import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class TaskReviewScreen extends GetView<TasksController> {
   const TaskReviewScreen({super.key});

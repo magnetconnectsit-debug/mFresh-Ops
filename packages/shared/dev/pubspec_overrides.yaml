@@ -1,8 +1,0 @@
-# melos_managed_dependency_overrides: core,models,services
-dependency_overrides:
-  core:
-    path: ..\\core
-  models:
-    path: ..\\models
-  services:
-    path: ..\\services

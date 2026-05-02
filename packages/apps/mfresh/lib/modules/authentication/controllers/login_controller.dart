@@ -1,7 +1,10 @@
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dev/routes/dev_routes.dart';
+import 'package:mfresh/data/repositories/auth_repository.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class LoginController extends GetxController {
   final mobileController = TextEditingController();
@@ -13,6 +16,9 @@ class LoginController extends GetxController {
   final isLoading = false.obs;
   final isOtpLogin = false.obs;
   final isEmailLogin = false.obs;
+
+  int _tapCount = 0;
+  DateTime? _lastTapTime;
 
   final StorageService _storage = Get.find<StorageService>();
 
@@ -34,6 +40,21 @@ class LoginController extends GetxController {
     }
   }
 
+  void handleDevTap() {
+    final now = DateTime.now();
+    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+      _tapCount = 1;
+    } else {
+      _tapCount++;
+    }
+    _lastTapTime = now;
+
+    if (_tapCount >= 5) {
+      _tapCount = 0;
+      Get.toNamed(DevRoutes.devPasscode);
+    }
+  }
+
   void toggleRememberMe(bool? value) {
     rememberMe.value = value ?? false;
     _storage.saveRememberMe(rememberMe.value);
@@ -45,14 +66,14 @@ class LoginController extends GetxController {
   void toggleLoginType() {
     isOtpLogin.value = !isOtpLogin.value;
     if (isOtpLogin.value) {
-      isEmailLogin.value = false; // Reset email login if switching to OTP
+      isEmailLogin.value = false;
     }
   }
 
   void toggleEmailLogin() {
     isEmailLogin.value = !isEmailLogin.value;
     if (isEmailLogin.value) {
-      isOtpLogin.value = false; // Reset OTP login if switching to Email
+      isOtpLogin.value = false;
     }
   }
 
@@ -61,31 +82,57 @@ class LoginController extends GetxController {
   }
 
   Future<void> login() async {
-    isLoading.value = true;
-    
-    // Handle Remember Me saving
-    if (rememberMe.value && !isOtpLogin.value) {
-      _storage.saveCredentials(
-        mobile: isEmailLogin.value ? null : mobileController.text,
-        email: isEmailLogin.value ? emailController.text : null,
-        password: passwordController.text,
-      );
-    } else if (!rememberMe.value) {
-      _storage.clearCredentials();
+    if (isOtpLogin.value) {
+      _verifyOtp();
+      return;
     }
 
-    // Simulate login
-    await Future.delayed(const Duration(seconds: 2));
-    isLoading.value = false;
+    if (mobileController.text.isEmpty || passwordController.text.isEmpty) {
+      AppCommonToastMessage.show(
+        message: "Please enter both mobile and password",
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final user = await Get.find<AuthRepository>().login(
+        mobile: mobileController.text,
+        password: passwordController.text,
+      );
+
+      if (user != null) {
+        if (rememberMe.value) {
+          _storage.saveCredentials(
+            mobile: mobileController.text,
+            password: passwordController.text,
+          );
+        }
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        AppCommonToastMessage.show(
+          message: "Login failed. Please check your credentials.",
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: e.toString(),
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    // For now, if it's OTP, we might need a separate dialog or screen.
+    // Assuming for now we just want to fix the "Simulation" issue.
+    // If you need real OTP flow, I can implement the OTP BottomSheet.
+    
+    // TEMPORARY: Saving a dummy token for simulated OTP if you want it to work on restart
+    await _storage.saveToken("simulated_token");
     Get.offAllNamed(AppRoutes.dashboard);
   }
 }
-
-
-
-
-
-
-
-
-

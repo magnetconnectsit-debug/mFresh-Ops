@@ -1,7 +1,7 @@
 // region Imports
 import 'dart:io';
 
-import 'package:models/app/app_update_config.dart';
+import 'package:core/models/app_update_config.dart';
 import 'package:services/remote_config_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';

@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/data/repositories/task_repository.dart';
+import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:mfresh_ops/routes/app_routes.dart';
 

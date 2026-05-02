@@ -8,7 +8,7 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_c
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:core/widgets/app_common_drop_down.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class SupportTicketsScreen extends StatelessWidget {
   const SupportTicketsScreen({super.key});

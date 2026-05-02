@@ -15,8 +15,6 @@ dependencies:
     path: ../../shared/core
   services:
     path: ../../shared/services
-  models:
-    path: ../../shared/models
   dev:
     path: ../../shared/dev
 
@@ -28,6 +26,11 @@ dependencies:
   path_provider: ^2.1.3
   open_filex: ^4.5.0
   dio: ^5.9.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  intl: ^0.20.2
+  flutter_animate: ^4.5.0
+  envied: ^1.3.4
 
 dependency_overrides:
   archive: ^4.0.0
@@ -37,6 +40,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  envied_generator: ^1.3.4
+  build_runner: ^2.4.15
 
 flutter:
   uses-material-design: true

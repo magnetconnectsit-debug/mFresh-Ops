@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class CreateTaskDialog extends GetView<TasksController> {
   final TaskItem? task;

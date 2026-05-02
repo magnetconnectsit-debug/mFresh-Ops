@@ -1,7 +1,5 @@
 // region Imports
-import 'package:core/constants/app_constants.dart';
-import 'package:models/auth/user.dart';
-import 'package:models/notification/app_notification.dart';
+import 'package:core/models/app_notification.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -24,7 +22,7 @@ class StorageService extends GetxService {
       'has_shown_dashboard_tutorial_v2';
 
   late final Box<dynamic> _authBox;
-  late final Box<User> _userBox;
+  late final Box<dynamic> _userBox;
   late final Box<dynamic> _settingsBox;
   late final Box<dynamic> _notificationBox;
 
@@ -40,12 +38,10 @@ class StorageService extends GetxService {
       await Hive.initFlutter();
     }
 
-    if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
-      Hive.registerAdapter(UserAdapter());
-    }
+    // Register UserAdapter in each app's main() before calling initServices()
 
     _authBox = await _safeOpenBox<dynamic>(_authBoxName);
-    _userBox = await _safeOpenBox<User>(_userBoxName);
+    _userBox = await _safeOpenBox<dynamic>(_userBoxName);
     _settingsBox = await _safeOpenBox<dynamic>(_settingsBoxName);
     _notificationBox = await _safeOpenBox<dynamic>(_notificationBoxName);
 
@@ -91,12 +87,12 @@ class StorageService extends GetxService {
   // endregion
 
   // region User Methods
-  Future<void> saveUser(User user) async {
+  Future<void> saveUser(dynamic user) async {
     debugPrint('StorageService: Saving user: ${user.toJson()}');
     await _userBox.put(_userKey, user);
   }
 
-  User? getUser() {
+  dynamic getUser() {
     final user = _userBox.get(_userKey);
     return user;
   }
@@ -115,7 +111,7 @@ class StorageService extends GetxService {
 
 
   String getBaseUrl() {
-    return _settingsBox.get(_baseUrlKey, defaultValue: AppConstants.baseUrl);
+    return _settingsBox.get(_baseUrlKey, defaultValue: '');
   }
 
   Future<void> saveShowLogger(bool show) async {

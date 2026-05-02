@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:services/services.dart';
-import 'package:core/core.dart' hide AppRoutes;
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:core/core.dart';
 
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});

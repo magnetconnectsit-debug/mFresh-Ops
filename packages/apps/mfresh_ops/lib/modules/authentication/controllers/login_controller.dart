@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 import 'package:flutter/foundation.dart';
 

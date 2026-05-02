@@ -1,4 +1,4 @@
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -18,7 +18,7 @@ class SignupController extends GetxController {
   Future<void> signup() async {
     isLoading.value = true;
     // Simulate signup
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
     isLoading.value = false;
     Get.offAllNamed(AppRoutes.home);
   }

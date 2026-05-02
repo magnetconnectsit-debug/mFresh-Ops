@@ -1,8 +1,12 @@
-// region Imports
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mfresh/data/models/user.dart';
+import 'package:mfresh/core/env/env.dart';
+import 'package:flutter/foundation.dart';
 import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_constants.dart';
+import 'package:mfresh/core/constants/app_constants.dart';
+import 'package:mfresh/core/config/app_config.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/routes/app_pages.dart';
 import 'package:services/api_services.dart';
 import 'package:services/app_update_service.dart';
@@ -14,7 +18,12 @@ import 'package:services/settings_service.dart';
 import 'package:services/storage_service.dart';
 import 'package:services/connectivity_service.dart';
 import 'package:services/log_service.dart';
-import 'package:services/repositories/auth_repository.dart';
+import 'package:services/plutus_service.dart';
+import 'package:services/phonepe_service.dart';
+import 'package:dev/views/widgets/floating_logger_button.dart';
+import 'package:mfresh/data/repositories/common_repository.dart';
+import 'package:mfresh/data/repositories/user_repository.dart';
+import 'package:mfresh/data/repositories/auth_repository.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -62,10 +71,17 @@ Future<void> initServices() async {
   await Get.putAsync(() => StorageService().init());
   final StorageService storageService = Get.find<StorageService>();
 
-  final RemoteConfigService remoteConfigService = await Get.putAsync(() => RemoteConfigService().init());
+  final String envName = AppConfig.envName;
+  final String activeUrl = AppConfig.baseUrl;
+  debugPrint('🚀 [mfresh] Initializing in $envName mode');
+  debugPrint('🔗 [mfresh] Active API: $activeUrl');
 
-  final String fetchedBaseUrl = AppConstants.isDevBuild 
-      ? AppConstants.devBaseUrl 
+  final RemoteConfigService remoteConfigService = await Get.putAsync(() => RemoteConfigService().init(
+    defaultBaseUrl: activeUrl,
+  ));
+
+  final String fetchedBaseUrl = AppConfig.isDev 
+      ? AppConfig.baseUrl 
       : remoteConfigService.getBaseUrl();
 
   await storageService.saveBaseUrl(fetchedBaseUrl);
@@ -75,10 +91,18 @@ Future<void> initServices() async {
   Get.put(ErrorHandler());
   Get.put(ConnectivityService());
 
-  await Get.putAsync(() => DioClient().init());
+  await Get.putAsync(() => DioClient().init(publicPaths: [
+    AppConstants.login,
+    AppConstants.sendOtp,
+    AppConstants.verifyOtp,
+  ]));
 
   Get.put(ApiService());
   Get.put(AuthRepository());
+  Get.put(UserRepository());
+  Get.put(CommonRepository());
+  Get.put(PlutusService());
+  Get.put(PhonePeService());
   await Get.putAsync(() => NotificationService().init());
   Get.put(AppUpdateService());
 
@@ -99,6 +123,8 @@ Future<void> initServices() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserAdapter());
   await initServices();
 
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -126,7 +152,6 @@ class MyApp extends StatelessWidget {
           textDirection: TextDirection.ltr,
           child: Obx(
             () => Stack(
-              alignment: Alignment.bottomRight,
               children: [
                 GetMaterialApp(
                   title: 'mFresh',
@@ -152,24 +177,12 @@ class MyApp extends StatelessWidget {
                   getPages: AppPages.routes,
                   defaultTransition: Transition.cupertino,
                 ),
-
-                if (settings.showLogger.value) _buildLoggerButton(),
+                if (settings.showLogger.value) const FloatingLoggerButton(),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildLoggerButton() {
-    return Padding(
-      padding: EdgeInsets.only(right: 30.w, bottom: 150.h),
-      child: FloatingActionButton(
-        onPressed: () => Get.toNamed(AppRoutes.logViewer),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.bug_report_rounded, color: AppColors.white),
-      ),
     );
   }
 }

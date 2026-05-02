@@ -23,7 +23,7 @@ class ApiService extends GetxService {
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {
     // region get
     try {
-      final response = await _dio.get(path, queryParameters: query);
+      final response = await _dio.get(_normalizePath(path), queryParameters: query);
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -39,7 +39,7 @@ class ApiService extends GetxService {
     // region post
     try {
       final response = await _dio.post(
-        path,
+        _normalizePath(path),
         data: data,
         queryParameters: query,
       );
@@ -57,7 +57,7 @@ class ApiService extends GetxService {
   }) async {
     // region put
     try {
-      final response = await _dio.put(path, data: data, queryParameters: query);
+      final response = await _dio.put(_normalizePath(path), data: data, queryParameters: query);
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -73,7 +73,7 @@ class ApiService extends GetxService {
     // region delete
     try {
       final response = await _dio.delete(
-        path,
+        _normalizePath(path),
         data: data,
         queryParameters: query,
       );
@@ -84,6 +84,14 @@ class ApiService extends GetxService {
     // endregion
   }
   // endregion
+
+  // region Helpers
+  String _normalizePath(String path) {
+    if (path.startsWith('/')) {
+      return path.substring(1);
+    }
+    return path;
+  }
 
   // region Helpers
   Exception _handleError(dynamic e) {

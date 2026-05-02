@@ -4,7 +4,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 
 class TaskSubmissionDialog extends StatelessWidget {

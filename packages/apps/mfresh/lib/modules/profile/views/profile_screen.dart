@@ -1,14 +1,68 @@
 import 'package:core/constants/app_colors.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  void _showEditNameDialog(BuildContext context, ProfileController controller) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Profile Name', style: AppTextStyle.style_16_600(color: AppColors.black)),
+        content: TextField(
+          controller: controller.nameController,
+          decoration: const InputDecoration(
+            hintText: 'Enter your name',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Cancel', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              controller.updateProfileName();
+              Get.back();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: Text('Save', style: AppTextStyle.style_14_400(color: AppColors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, ProfileController controller) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Logout', style: AppTextStyle.style_16_600(color: AppColors.black)),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('No', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              controller.logout();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: Text('Yes', style: AppTextStyle.style_14_400(color: AppColors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +71,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppCommonAppBar(
-        title: Text('Profile'),
+        title: const Text('Profile'),
         hasBackButton: false,
         backgroundColor: AppColors.background,
       ),
@@ -61,10 +115,24 @@ class ProfileScreen extends StatelessWidget {
                               width: 2,
                             ),
                           ),
-                          child: Icon(
-                            Icons.person,
-                            size: 40.sp,
-                            color: AppColors.grey50,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6.r),
+                            child: Obx(() => controller.userImage.isNotEmpty && controller.userImage != 'NA'
+                                ? CachedNetworkImage(
+                                    imageUrl: controller.userImage,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                    errorWidget: (context, url, error) => Icon(
+                                      Icons.person,
+                                      size: 40.sp,
+                                      color: AppColors.grey50,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.person,
+                                    size: 40.sp,
+                                    color: AppColors.grey50,
+                                  )),
                           ),
                         ),
                         SizedBox(width: 12.w),
@@ -73,12 +141,12 @@ class ProfileScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                controller.userName.value,
+                              Obx(() => Text(
+                                controller.userName,
                                 style: AppTextStyle.style_16_600(
                                   color: AppColors.white,
                                 ),
-                              ),
+                              )),
                               SizedBox(height: 4.h),
                               Row(
                                 children: [
@@ -88,12 +156,12 @@ class ProfileScreen extends StatelessWidget {
                                     color: AppColors.white,
                                   ),
                                   SizedBox(width: 4.w),
-                                  Text(
-                                    controller.userPhone.value,
+                                  Obx(() => Text(
+                                    controller.userPhone,
                                     style: AppTextStyle.style_12_400(
                                       color: AppColors.white,
                                     ),
-                                  ),
+                                  )),
                                 ],
                               ),
                               SizedBox(height: 2.h),
@@ -106,13 +174,13 @@ class ProfileScreen extends StatelessWidget {
                                   ),
                                   SizedBox(width: 4.w),
                                   Expanded(
-                                    child: Text(
-                                      controller.userEmail.value,
+                                    child: Obx(() => Text(
+                                      controller.userEmail,
                                       style: AppTextStyle.style_12_400(
                                         color: AppColors.white,
                                       ),
                                       overflow: TextOverflow.ellipsis,
-                                    ),
+                                    )),
                                   ),
                                 ],
                               ),
@@ -123,20 +191,23 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   // Edit Info
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.h),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Edit Info',
-                          style: AppTextStyle.style_12_600(
-                            color: AppColors.primary,
+                  GestureDetector(
+                    onTap: () => _showEditNameDialog(context, controller),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Edit Info',
+                            style: AppTextStyle.style_12_600(
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 4.w),
-                        Icon(Icons.edit, size: 14.sp, color: AppColors.primary),
-                      ],
+                          SizedBox(width: 4.w),
+                          Icon(Icons.edit, size: 14.sp, color: AppColors.primary),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -194,7 +265,7 @@ class ProfileScreen extends StatelessWidget {
 
             // Logout
             GestureDetector(
-              onTap: controller.logout,
+              onTap: () => _showLogoutDialog(context, controller),
               child: Container(
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),

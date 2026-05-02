@@ -3,9 +3,8 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ServiceDetailsScreen extends StatelessWidget {
   const ServiceDetailsScreen({super.key});
@@ -22,14 +21,27 @@ class ServiceDetailsScreen extends StatelessWidget {
             // Top Banner
             Container(
               width: double.infinity,
-              height: 80.h,
+              height: 120.h,
               color: AppColors.grey50,
               child: Stack(
                 children: [
-                  // Placeholder image
-                  Center(
-                    child: Icon(Icons.image, size: 40.sp, color: AppColors.grey200),
-                  ),
+                  // Unit Image
+                  Obx(() => controller.unitImage.value.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: controller.unitImage.value,
+                          width: double.infinity,
+                          height: 120.h,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Center(
+                            child: Icon(Icons.image, size: 40.sp, color: AppColors.grey200),
+                          ),
+                          errorWidget: (context, url, error) => Center(
+                            child: Icon(Icons.broken_image, size: 40.sp, color: AppColors.grey200),
+                          ),
+                        )
+                      : Center(
+                          child: Icon(Icons.image, size: 40.sp, color: AppColors.grey200),
+                        )),
                   // Dark overlay
                   Container(color: AppColors.black.withValues(alpha: 0.5)),
                   // Unit info
@@ -56,7 +68,11 @@ class ServiceDetailsScreen extends StatelessWidget {
                     bottom: 0,
                     child: GestureDetector(
                       onTap: () => Get.back(),
-                      child: Icon(Icons.arrow_back_ios, size: 18.sp, color: AppColors.white),
+                      child: Container(
+                        padding: EdgeInsets.all(8.w),
+                        color: Colors.transparent,
+                        child: Icon(Icons.arrow_back_ios, size: 18.sp, color: AppColors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -156,32 +172,53 @@ class ServiceDetailsScreen extends StatelessWidget {
 
             // Scrollable content
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Services Grid
-                    Obx(() => GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: controller.services.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12.w,
-                            mainAxisSpacing: 12.h,
-                            childAspectRatio: 1.5,
-                          ),
-                          itemBuilder: (context, index) {
-                            return _ServiceCard(
-                              controller: controller,
-                              index: index,
-                            );
-                          },
-                        )),
-                  ],
-                ),
-              ),
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (controller.services.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, size: 48.sp, color: AppColors.grey200),
+                        SizedBox(height: 12.h),
+                        Text(
+                          'No services available for this unit',
+                          style: AppTextStyle.style_14_600(color: AppColors.grey300),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Services Grid
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: controller.services.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12.w,
+                          mainAxisSpacing: 12.h,
+                          childAspectRatio: 1.5,
+                        ),
+                        itemBuilder: (context, index) {
+                          return _ServiceCard(
+                            controller: controller,
+                            index: index,
+                          );
+                        },
+                      ),
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -226,7 +263,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                             isShadow: false,
                           ),
                           child: TextField(
-                            onChanged: (val) => controller.mobileController.value = val,
+                            controller: controller.mobileController,
                             keyboardType: TextInputType.phone,
                             style: AppTextStyle.style_12_400(color: AppColors.black),
                             decoration: InputDecoration(
@@ -252,7 +289,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                             isShadow: false,
                           ),
                           child: TextField(
-                            onChanged: (val) => controller.nameController.value = val,
+                            controller: controller.nameController,
                             style: AppTextStyle.style_12_400(color: AppColors.black),
                             decoration: InputDecoration(
                               isDense: true,
@@ -269,6 +306,116 @@ class ServiceDetailsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+
+                  // Membership Verification Section
+                  Obx(() => !controller.isCustomer.value
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 12.h),
+                            Text(
+                              'Membership Verification',
+                              style: AppTextStyle.style_12_600(color: AppColors.primary),
+                            ),
+                            SizedBox(height: 6.h),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: AppColors.appCardDecoration(
+                                      borderColor: AppColors.grey50,
+                                      containerColor: AppColors.white,
+                                      borderRadius: 4,
+                                      isShadow: false,
+                                    ),
+                                    child: Stack(
+                                      alignment: Alignment.centerRight,
+                                      children: [
+                                        TextField(
+                                          controller: controller.memberMobileController,
+                                          keyboardType: TextInputType.phone,
+                                          maxLength: 10,
+                                          onChanged: (val) {
+                                            if (val.length == 10) {
+                                              controller.verifyMemberPhone(val);
+                                            }
+                                          },
+                                          style: AppTextStyle.style_12_400(color: AppColors.black),
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            counterText: "",
+                                            hintText: 'Member Mobile Number',
+                                            hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                            border: InputBorder.none,
+                                            contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 10.w,
+                                              vertical: 8.h,
+                                            ),
+                                          ),
+                                        ),
+                                        if (controller.isVerifyingMember.value)
+                                          Padding(
+                                            padding: EdgeInsets.only(right: 8.w),
+                                            child: SizedBox(
+                                              width: 12.w,
+                                              height: 12.w,
+                                              child: const CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (controller.isOtpSent.value && !controller.isOtpVerified.value) ...[
+                                  SizedBox(width: 8.w),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: AppColors.appCardDecoration(
+                                        borderColor: AppColors.grey50,
+                                        containerColor: AppColors.white,
+                                        borderRadius: 4,
+                                        isShadow: false,
+                                      ),
+                                      child: TextField(
+                                        controller: controller.otpController,
+                                        keyboardType: TextInputType.number,
+                                        style: AppTextStyle.style_12_400(color: AppColors.black),
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          hintText: 'Enter OTP',
+                                          hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10.w,
+                                            vertical: 8.h,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (controller.isOtpSent.value && !controller.isOtpVerified.value)
+                              Padding(
+                                padding: EdgeInsets.only(top: 8.h),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: controller.verifyMemberOtp,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryVariant,
+                                      padding: EdgeInsets.symmetric(vertical: 4.h),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text('Verify OTP', style: AppTextStyle.style_10_600(color: AppColors.white)),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      : const SizedBox.shrink()),
 
                   SizedBox(height: 12.h),
 
@@ -304,7 +451,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () => controller.initiateBooking(isExternalQr: false),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.blue,
                               foregroundColor: AppColors.white,
@@ -315,7 +462,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                               elevation: 0,
                             ),
                             child: Text(
-                              'Pay via PhonePe',
+                              controller.isOnline.value ? 'Pay via PhonePe' : 'Pay Cash',
                               textAlign: TextAlign.center,
                               style: AppTextStyle.style_12_600(color: AppColors.white),
                             ),
@@ -335,62 +482,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: () async {
-                              final result = await Get.toNamed(AppRoutes.qrScanner);
-                              if (result != null) {
-                                String scanData = result.toString().trim();
-                                debugPrint("RAW SCAN RESULT: '$scanData'");
-                                
-                                Uri? uri = Uri.tryParse(scanData);
-
-                                if (uri != null && uri.scheme.isEmpty && scanData.contains('@')) {
-                                  scanData = 'upi://pay?pa=$scanData';
-                                  uri = Uri.tryParse(scanData);
-                                }
-
-                                if (uri != null && (uri.scheme == 'upi' || scanData.startsWith('upi://'))) {
-                                  try {
-                                    // Try with externalNonBrowserApplication first as it's more specific
-                                    bool launched = await launchUrl(
-                                      uri,
-                                      mode: LaunchMode.externalNonBrowserApplication,
-                                    );
-                                    
-                                    if (!launched) {
-                                      // Fallback to externalApplication if the specific mode fails
-                                      launched = await launchUrl(
-                                        uri,
-                                        mode: LaunchMode.externalApplication,
-                                      );
-                                    }
-
-                                    if (!launched) {
-                                      Get.snackbar(
-                                        'Payment Error',
-                                        'No payment apps found. Please ensure PhonePe, GPay, or Paytm is installed.',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor: AppColors.red.withValues(alpha: 0.8),
-                                        colorText: AppColors.white,
-                                        duration: const Duration(seconds: 5),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    Get.snackbar(
-                                      'Launch Error',
-                                      'Error opening payment app: $e',
-                                      snackPosition: SnackPosition.BOTTOM,
-                                    );
-                                  }
-                                } else {
-                                  Get.defaultDialog(
-                                    title: 'Invalid QR',
-                                    middleText: 'Scanned data is not a valid UPI payment link:\n\n$scanData',
-                                    textConfirm: 'OK',
-                                    onConfirm: () => Get.back(),
-                                  );
-                                }
-                              }
-                            },
+                            onPressed: () => controller.initiateBooking(isExternalQr: true),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.grey300,
                               foregroundColor: AppColors.white,
@@ -447,8 +539,22 @@ class _ServiceCard extends StatelessWidget {
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Center(
-              child: Icon(Icons.wc, size: 28.sp, color: AppColors.white),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: service.image != null && service.image!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: service.image!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        child: Icon(Icons.image, color: AppColors.white, size: 20),
+                      ),
+                      errorWidget: (context, url, error) => const Center(
+                        child: Icon(Icons.image, color: AppColors.white, size: 28),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(Icons.image, size: 28, color: AppColors.white),
+                    ),
             ),
           ),
           SizedBox(width: 10.w),

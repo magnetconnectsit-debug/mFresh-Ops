@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/services.dart';
-import 'package:models/auth/user.dart';
+import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/repositories/user_repository.dart';
 
 class ProfileController extends GetxController {
   final UserRepository _userRepository = Get.find<UserRepository>();

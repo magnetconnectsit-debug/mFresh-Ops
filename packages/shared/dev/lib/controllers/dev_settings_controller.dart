@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_constants.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/dio_client.dart';
 import 'package:services/storage_service.dart';
@@ -19,9 +18,7 @@ class DevSettingsController extends GetxController {
   void onInit() {
     super.onInit();
     baseUrlController = TextEditingController(
-      text: _storageService.getBaseUrl().isNotEmpty
-          ? _storageService.getBaseUrl()
-          : AppConstants.defaultBaseUrl,
+      text: _storageService.getBaseUrl(),
     );
   }
 
@@ -49,7 +46,6 @@ class DevSettingsController extends GetxController {
       await _storageService.saveBaseUrl(newUrl);
       await _storageService.saveShowLogger(settingsService.showLogger.value);
 
-      AppConstants.baseUrl = newUrl;
       _dioClient.dio.options.baseUrl = newUrl;
 
       await Future.delayed(const Duration(milliseconds: 500));

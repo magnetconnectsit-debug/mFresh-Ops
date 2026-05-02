@@ -10,7 +10,7 @@ import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/tasks/widgets/create_task_dialog.dart';
 import 'package:mfresh_ops/modules/tasks/widgets/task_submission_dialog.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class DailyTasksScreen extends StatelessWidget {
   const DailyTasksScreen({super.key});

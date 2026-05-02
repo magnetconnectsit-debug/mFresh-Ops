@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/constants/app_colors.dart';
-import 'package:models/models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:dio/dio.dart' as dio;
 
 class CreateTicketController extends GetxController {

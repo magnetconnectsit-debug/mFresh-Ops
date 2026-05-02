@@ -1,6 +1,6 @@
 import 'package:core/constants/app_colors.dart';
 import 'package:core/constants/app_images.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
@@ -37,30 +37,35 @@ class LoginScreen extends StatelessWidget {
             ),
           ),
           SafeArea(
-            child: Column(
-              children: [
-                // Top Image
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16.r),
-                    child: Image.asset(
-                      AppImages.loginImage,
-                      width: double.infinity,
-                      height: 160.h,
-                      fit: BoxFit.cover,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Column(
+                children: [
+                  // Top Image
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
+                    child: GestureDetector(
+                      onTap: controller.handleDevTap,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16.r),
+                        child: Image.asset(
+                          AppImages.loginImage,
+                          width: double.infinity,
+                          height: 160.h,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
-                ),
 
-                Expanded(
-                  child: Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: 20.w,
                       vertical: 10.h,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           'Login your Account',
@@ -230,7 +235,7 @@ class LoginScreen extends StatelessWidget {
                           ),
                         ),
 
-                        const Spacer(),
+                        SizedBox(height: 40.h),
 
                         // Not Registered
                         Center(
@@ -267,12 +272,12 @@ class LoginScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 16.h),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

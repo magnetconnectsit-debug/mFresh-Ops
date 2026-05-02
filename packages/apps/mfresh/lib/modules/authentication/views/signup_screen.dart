@@ -7,7 +7,7 @@ import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_button.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/modules/authentication/controllers/signup_controller.dart';
 
 class SignupScreen extends StatelessWidget {
@@ -45,7 +45,7 @@ class SignupScreen extends StatelessWidget {
                   SizedBox(height: 30.h),
                   Text(
                     'Create your Account',
-                    style: AppTextStyle.style_22_600(color: AppColors.black9),
+                    style: AppTextStyle.style_22_600(color: AppColors.black),
                   ),
                   SizedBox(height: 22.h),
 

@@ -13,8 +13,6 @@ dependencies:
   # Internal Dependencies
   core:
     path: ../core
-  models:
-    path: ../models
 
   # External Dependencies
   get: ^4.7.3

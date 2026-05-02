@@ -1,0 +1,54 @@
+import 'package:flutter/foundation.dart';
+import 'package:mfresh_ops/core/env/env.dart';
+
+class AppConstants {
+  AppConstants._();
+
+  // region Base URL
+  static final String defaultBaseUrl = ProdEnv.baseUrl;
+  static final String devBaseUrl = DevEnv.baseUrl;
+  static String baseUrl = defaultBaseUrl;
+  static const bool isDevBuild = kDebugMode;
+  // endregion
+
+  // region API Endpoints
+  static const String login = '/login';
+  static const String profile = '/profile';
+  static const String logout = '/logout';
+  static const String passwordUpdate = '/password-update';
+  static const String profileUpdate = '/profile-update';
+  static const String allAssignee = '/all-assignee';
+  static const String sendOtp = '/customer/send-otp';
+  static const String verifyOtp = '/customer/login-with-otp';
+  
+  // Support Tickets
+  static const String supportUnits = '/support-units';
+  static const String supportCategory = '/support-category';
+  static const String supportProjects = '/support-projects';
+  static const String supportSubcategories = '/support-subcategories';
+  static const String createSupportTicket = '/create-support-ticket';
+  static const String viewSupportTicket = '/view-support-ticket';
+  static const String editSupportTicket = '/edit-support-ticket';
+  static const String updateSupportTicket = '/update-support-ticket';
+  static const String allSupportTickets = '/all-supporttickets';
+
+  // Task Scheduler
+  static const String taskProjectList = '/task-project-list';
+  static const String taskGroupList = '/task-group-list';
+  static const String taskCreate = '/task-create';
+  static const String taskIndex = '/task-index';
+  static const String dailyTasks = '/daily-tasks';
+  static const String taskSubmit = '/task-submit';
+  static const String saveTask = '/save-task';
+  static const String approveTask = '/approve-task';
+  static const String rejectTask = '/reject-task';
+  static const String editTask = '/edit-task';
+  static const String updateTask = '/update-task';
+  static const String deleteTask = '/delete-Task';
+  // endregion
+
+  // region Hive Keys
+  static const String userBoxName = 'userBox';
+  static const String userKey = 'currentUser';
+  // endregion
+}

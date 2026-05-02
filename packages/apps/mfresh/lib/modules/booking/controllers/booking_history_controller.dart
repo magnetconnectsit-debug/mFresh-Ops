@@ -1,49 +1,29 @@
 import 'package:get/get.dart';
+import 'package:mfresh/data/models/booking_history_model.dart';
+import 'package:mfresh/data/repositories/user_repository.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class BookingHistoryController extends GetxController {
-  // Placeholder booking data
-  final List<Map<String, String>> bookings = [
-    {
-      'bookingId': 'MM00001',
-      'date': '6 Dec 2023',
-      'time': '10:33AM',
-      'unitNo': 'MM20240001',
-      'amount': 'Rs 320.00',
-    },
-    {
-      'bookingId': 'MM00001',
-      'date': '6 Dec 2023',
-      'time': '10:33AM',
-      'unitNo': 'MM20240001',
-      'amount': 'Rs 320.00',
-    },
-    {
-      'bookingId': 'MM00001',
-      'date': '6 Dec 2023',
-      'time': '10:33AM',
-      'unitNo': 'MM20240001',
-      'amount': 'Rs 320.00',
-    },
-    {
-      'bookingId': 'MM00001',
-      'date': '6 Dec 2023',
-      'time': '10:33AM',
-      'unitNo': 'MM20240001',
-      'amount': 'Rs 320.00',
-    },
-    {
-      'bookingId': 'MM00001',
-      'date': '6 Dec 2023',
-      'time': '10:33AM',
-      'unitNo': 'MM20240001',
-      'amount': 'Rs 320.00',
-    },
-    {
-      'bookingId': 'MM00001',
-      'date': '6 Dec 2023',
-      'time': '10:33AM',
-      'unitNo': 'MM20240001',
-      'amount': 'Rs 320.00',
-    },
-  ];
+  final UserRepository _userRepository = Get.find<UserRepository>();
+
+  final bookings = <BookingHistoryModel>[].obs;
+  final isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchBookingHistory();
+  }
+
+  Future<void> fetchBookingHistory() async {
+    try {
+      isLoading.value = true;
+      final result = await _userRepository.getBookingHistory();
+      bookings.assignAll(result);
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to fetch booking history', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }
