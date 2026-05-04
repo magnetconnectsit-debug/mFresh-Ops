@@ -102,6 +102,7 @@ Future<void> initServices() async {
   Get.put(UserRepository());
   Get.put(CommonRepository());
   Get.put(PlutusService());
+  PhonePeService.isDevMode = AppConfig.isDev;
   Get.put(PhonePeService());
   await Get.putAsync(() => NotificationService().init());
   Get.put(AppUpdateService());

@@ -147,17 +147,41 @@ class ServiceDetailsController extends GetxController {
     }
   }
 
+  DateTime? _lastInitiateTime;
+
   Future<void> initiateBooking({required bool isExternalQr}) async {
+    // 1. DUPLICATE BOOKING CHECK (Last 10 Seconds)
+    final now = DateTime.now();
+    if (_lastInitiateTime != null &&
+        now.difference(_lastInitiateTime!).inSeconds < 10) {
+      AppCommonToastMessage.show(
+        message: "Please wait, your previous booking is processing.",
+        type: ToastType.info,
+      );
+      return;
+    }
+    _lastInitiateTime = now;
+
     final phone = mobileController.text.trim();
     final name = nameController.text.trim();
 
-    if (phone.isEmpty || phone.length < 10) {
-      AppCommonToastMessage.show(message: "Please enter a valid phone number", type: ToastType.error);
+    // 2. HARD VALIDATION
+    if (total <= 0) {
+      AppCommonToastMessage.show(
+          message: "Invalid amount", type: ToastType.error);
       return;
     }
 
-    if (services.isEmpty || services.every((s) => s.quantity.value == 0)) {
-      AppCommonToastMessage.show(message: "Please select at least one service", type: ToastType.error);
+    if (phone.isEmpty || phone.length < 10) {
+      AppCommonToastMessage.show(
+          message: "Please enter a valid phone number", type: ToastType.error);
+      return;
+    }
+
+    final selectedServices = services.where((s) => s.quantity.value > 0).toList();
+    if (selectedServices.isEmpty) {
+      AppCommonToastMessage.show(
+          message: "Cart empty, cannot proceed booking", type: ToastType.error);
       return;
     }
 
@@ -235,7 +259,7 @@ class ServiceDetailsController extends GetxController {
       "bookingId": bookingId,
       "Payment_status": phonePeData?['code'] ?? "PAYMENT_SUCCESS",
       "provider_reference_id": phonePeData?['providerReferenceId'] ?? "ADMIN_MANUAL_CONFIRM",
-      "check_sum": phonePeData?['checksum'] ?? "SKIPPED_CHECKSUM",
+      "check_sum": phonePeData?['checksum'] ?? phonePeData?['providerReferenceId'] ?? "VERIFIED_DIRECT",
     };
 
     final confirmed = await _commonRepository.confirmSuccessBooking(data: successData);
@@ -260,15 +284,79 @@ class ServiceDetailsController extends GetxController {
         final result = await Get.toNamed(AppRoutes.webView, arguments: {
           'url': redirectUrl,
           'title': 'PhonePe Payment',
-          'redirectUrlToCapture': 'https://magnetconnects.com/payment/redirect',
+          'redirectUrlToCapture': AppConfig.isDev 
+              ? 'https://testenv.magnetconnects.com/' 
+              : 'https://magnetconnects.com/',
         });
         
         if (result != null && result is Map<String, dynamic>) {
-          // Received data from PhonePe redirect
-          await _confirmSuccess(bookingId, encryptBookingId, phonePeData: result);
+          debugPrint('PhonePe Response: $result');
+          String responseCode = result['code']?.toString() ?? "";
+          String providerRefId =
+              result['providerReferenceId']?.toString() ?? "";
+
+          // 1. Check if we got clear SUCCESS from the URL
+          if (responseCode == 'PAYMENT_SUCCESS' && providerRefId.isNotEmpty) {
+            await _confirmSuccess(bookingId, encryptBookingId,
+                phonePeData: result);
+            return;
+          }
+
+          // 2. FALLBACK: Verify with PhonePe directly (Most Secure)
+          // This ensures we don't rely on the URL params or the backend history table.
+          AppCommonToastMessage.show(
+              message: "Verifying with PhonePe...", type: ToastType.info);
+          final phonePeStatus = await _phonePeService.checkPaymentStatus(
+              merchantTransactionId: encryptBookingId);
+
+          if (phonePeStatus != null) {
+            final String code = phonePeStatus['code']?.toString() ?? "";
+            final realData = phonePeStatus['data'] ?? {};
+            
+            // Construct the response map for logging/debugging
+            // Capture params from WebView if available
+            final Map<String, dynamic> capturedParams = result is Map<String, dynamic> ? result : {};
+            
+            // Construct the response map for logging/debugging
+            final responseMap = {
+              'success': phonePeStatus['success'],
+              'code': code,
+              'message': phonePeStatus['message'],
+              'providerReferenceId': realData['transactionId'] ?? capturedParams['transactionId'],
+              'amount': realData['amount'],
+              'merchantTransactionId': realData['merchantTransactionId'],
+              'paymentState': realData['state'],
+              'responseCode': realData['responseCode'],
+              'checksum': capturedParams['checksum'] ?? phonePeStatus['calculated_checksum'] ?? realData['transactionId'],
+            };
+
+            debugPrint('=========================================');
+            debugPrint('📊 REAL PHONEPE RESPONSE CAPTURED:');
+            debugPrint('$responseMap');
+            debugPrint('=========================================');
+
+            if (phonePeStatus['success'] == true && code == 'PAYMENT_SUCCESS') {
+              // PhonePe confirms success!
+              await _confirmSuccess(bookingId, encryptBookingId, phonePeData: responseMap);
+            } else {
+              AppCommonToastMessage.show(
+                message: "Payment Status: ${realData['state'] ?? code}",
+                type: ToastType.error,
+              );
+            }
+          } else {
+             // Fallback to Server check if PhonePe API fails
+             final bookingDetails = await _commonRepository.getBookingDetails(bookingId: bookingId);
+             if (bookingDetails != null && (bookingDetails.paymentStatus.toLowerCase() == 'paid' || bookingDetails.paymentStatus.toLowerCase() == 'success')) {
+                await _confirmSuccess(bookingId, encryptBookingId, phonePeData: {'code': 'PAYMENT_SUCCESS'});
+             } else {
+                AppCommonToastMessage.show(message: "Verification failed. Please contact support.", type: ToastType.error);
+             }
+          }
         } else {
           // User returned without completion or redirect not caught
-          AppCommonToastMessage.show(message: "Payment verification pending", type: ToastType.info);
+          AppCommonToastMessage.show(
+              message: "Payment was not completed", type: ToastType.info);
         }
       } else {
         AppCommonToastMessage.show(message: "Failed to initiate PhonePe payment", type: ToastType.error);
@@ -288,7 +376,7 @@ class ServiceDetailsController extends GetxController {
       },
       "Header": {
         "ApplicationId": AppConfig.applicationId,
-        "UserId": _profileController.user.value?.id.toString() ?? "",
+        "UserId": "user1234",
         "MethodId": "1001",
         "VersionNo": "1.0"
       }

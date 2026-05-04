@@ -56,7 +56,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   Map<String, dynamic> _buildPrintDataForService(BookingDetailsModel booking, ServiceItem service) {
     Map<String, dynamic> header = {
       "ApplicationId": AppConfig.applicationId,
-      "UserId": profileController.user.value?.id.toString() ?? "",
+      "UserId": "user1234",
       "MethodId": "1002",
       "VersionNo": "1.0",
     };

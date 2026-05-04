@@ -574,6 +574,17 @@ class AppTextStyle {
     );
   }
   //endregion
+
+  //region style_8_600
+  static TextStyle style_8_600({Color? color, double? spacing}) {
+    return GoogleFonts.poppins(
+      fontSize: 8.sp,
+      fontWeight: FontWeight.w600,
+      color: color ?? AppColors.grey400,
+      letterSpacing: spacing,
+    );
+  }
+  //endregion
 }
 
 

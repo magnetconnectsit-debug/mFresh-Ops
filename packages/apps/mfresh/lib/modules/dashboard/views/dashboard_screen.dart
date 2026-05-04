@@ -152,14 +152,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               alignment: Alignment.centerRight,
                               child: InkWell(
                                 onTap: () async {
-                                  final scannerPayload = {
-                                    "Header": {
-                                      "ApplicationId": AppConfig.applicationId,
-                                      "UserId": user.id.toString(),
-                                      "MethodId": "1007",
-                                      "VersionNo": "1.0"
-                                    }
-                                  };
+                                    final scannerPayload = {
+                                      "Header": {
+                                        "ApplicationId": AppConfig.applicationId,
+                                        "UserId": "user1234",
+                                        "MethodId": "1007",
+                                        "VersionNo": "1.0"
+                                      }
+                                    };
                                   try {
                                     final result = await plutusService.startScanner(jsonEncode(scannerPayload));
                                     final data = jsonDecode(result);

@@ -1,12 +1,7 @@
-import 'package:core/constants/app_colors.dart';
-import 'package:services/connectivity_service.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:mfresh/widgets/no_internet_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebViewPage extends StatefulWidget {
@@ -15,11 +10,11 @@ class WebViewPage extends StatefulWidget {
   final String? redirectUrlToCapture;
 
   const WebViewPage({
-    super.key,
+    Key? key,
     this.url,
     this.title,
     this.redirectUrlToCapture,
-  });
+  }) : super(key: key);
 
   @override
   State<WebViewPage> createState() => _WebViewPageState();
@@ -27,65 +22,102 @@ class WebViewPage extends StatefulWidget {
 
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _controller;
-  final RxDouble _progress = 0.0.obs;
+  bool _isLoading = true;
   String _url = '';
-  String _title = '';
+  String _title = 'Browser';
   String? _redirectUrlToCapture;
+  bool _isRedirected = false;
 
   @override
   void initState() {
     super.initState();
-    
     final args = Get.arguments as Map<String, dynamic>?;
     _url = widget.url ?? args?['url'] ?? '';
     _title = widget.title ?? args?['title'] ?? 'Browser';
     _redirectUrlToCapture = widget.redirectUrlToCapture ?? args?['redirectUrlToCapture'];
 
-    // Initialize controller
-    _controller = WebViewController();
-    
-    // Configure controller
-    _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
-    _controller.setBackgroundColor(AppColors.white);
-    
-    // Set standard User Agent to avoid ORB blocks
-    _controller.setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36");
+    // Desktop User Agent to force Simulator buttons to show
+    const String desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+    const String mobileUserAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 
-    _controller.setNavigationDelegate(
-      NavigationDelegate(
-        onProgress: (int progress) {
-          _progress.value = progress / 100;
-        },
-        onPageStarted: (String url) {
-          _checkRedirect(url);
-        },
-        onPageFinished: (String url) {
-          _checkRedirect(url);
-        },
-        onWebResourceError: (WebResourceError error) {
-          debugPrint('WebView Error: ${error.description}');
-        },
-        onNavigationRequest: (NavigationRequest request) {
-          if (_checkRedirect(request.url)) {
-            return NavigationDecision.prevent;
-          }
-          
-          if (!request.url.startsWith('http')) {
-            _launchDeepLink(request.url);
-            return NavigationDecision.prevent;
-          }
-          
-          return NavigationDecision.navigate;
-        },
-      ),
-    );
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.white)
+      // If it's a simulator URL, use Desktop Agent to show buttons
+      ..setUserAgent(_url.contains('simulator') ? desktopUserAgent : mobileUserAgent)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() => _isLoading = true);
+            debugPrint("WebView Page Started: $url");
+            
+            // Auto-switch User Agent if we navigate to simulator
+            if (url.contains('simulator')) {
+               _controller.setUserAgent(desktopUserAgent);
+            }
+
+            _controller.runJavaScript("""
+              if (!Array.prototype.at) {
+                Array.prototype.at = function(n) {
+                  n = Math.trunc(n) || 0;
+                  if (n < 0) n += this.length;
+                  if (n < 0 || n >= this.length) return undefined;
+                  return this[n];
+                };
+              }
+              if (!String.prototype.at) {
+                String.prototype.at = function(n) {
+                  n = Math.trunc(n) || 0;
+                  if (n < 0) n += this.length;
+                  if (n < 0 || n >= this.length) return undefined;
+                  return this[n];
+                };
+              }
+            """);
+            
+            _checkRedirect(url);
+          },
+          onPageFinished: (String url) {
+            setState(() => _isLoading = false);
+            debugPrint("WebView Page Finished: $url");
+            _checkRedirect(url);
+          },
+          onUrlChange: (UrlChange change) {
+            if (change.url != null) {
+               _checkRedirect(change.url!);
+            }
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint("WebView Error: ${error.description} for ${error.url}");
+          },
+          onNavigationRequest: (NavigationRequest request) {
+            final url = request.url;
+            
+            if (_checkRedirect(url)) {
+              return NavigationDecision.prevent;
+            }
+
+            if (url.startsWith('ppesim://') || 
+                url.startsWith('phonepe://') || 
+                url.startsWith('upi://') || 
+                url.startsWith('paytmmp://') || 
+                url.startsWith('gpay://')) {
+              debugPrint("External Scheme Detected: $url");
+              _launchExternalApp(url);
+              return NavigationDecision.prevent;
+            }
+
+            return NavigationDecision.navigate;
+          },
+        ),
+      );
+
+    if (_controller.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+      (_controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
+    }
 
     if (_url.isNotEmpty) {
-      if (!_url.startsWith('http')) {
-        _url = 'https://$_url';
-      }
-      
-      // Load request with headers for whitelisting
       _controller.loadRequest(
         Uri.parse(_url),
         headers: {
@@ -96,86 +128,77 @@ class _WebViewPageState extends State<WebViewPage> {
     }
   }
 
-  bool _checkRedirect(String url) {
-    if (_redirectUrlToCapture != null && url.contains(_redirectUrlToCapture!)) {
-      final uri = Uri.parse(url);
-      Get.back(result: uri.queryParameters);
-      return true;
-    }
-    return false;
-  }
-
-  Future<void> _launchDeepLink(String url) async {
+  Future<void> _launchExternalApp(String url) async {
     try {
       final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
-      debugPrint("WebView DeepLink Error: $e");
+      debugPrint("Could not launch $url: $e");
     }
+  }
+
+  bool _checkRedirect(String url) {
+    if (_isRedirected) return false;
+    
+    if (_redirectUrlToCapture != null && url.startsWith(_redirectUrlToCapture!)) {
+      debugPrint("🎯 REDIRECT DETECTED: $url");
+      _isRedirected = true;
+      
+      Map<String, String> params = {};
+      
+      try {
+        final uri = Uri.parse(url);
+        params.addAll(uri.queryParameters);
+        
+        if (!params.containsKey('checksum')) {
+           final regExp = RegExp(r'[?&]checksum=([^&]+)');
+           final match = regExp.firstMatch(url);
+           if (match != null) {
+             params['checksum'] = Uri.decodeComponent(match.group(1)!);
+           }
+        }
+      } catch (e) {
+        debugPrint("Raw capture error: $e");
+      }
+
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+           Get.back(result: params);
+        }
+      });
+      return true;
+    }
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppCommonAppBar(
+      appBar: AppBar(
         title: Text(_title),
-        backgroundColor: AppColors.white,
-        elevation: 0.5,
-        hasBackButton: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () => Get.back(),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.open_in_browser, color: AppColors.black),
-            onPressed: () async {
-              if (_url.isNotEmpty) {
-                final uri = Uri.parse(_url);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.black),
-            onPressed: () => _controller.reload(),
-          ),
-          SizedBox(width: 8.w),
-        ],
-      ),
-      body: _url.isEmpty 
-          ? const Center(child: Text("Invalid URL"))
-          : Obx(() {
-        final connectivity = Get.find<ConnectivityService>();
-        if (!connectivity.isConnected.value) {
-          return NoInternetWidget(
-            onRetry: () {
-              if (connectivity.isConnected.value) {
-                _controller.reload();
-              }
-            },
-          );
-        }
-
-        return Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (_progress.value < 1.0)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: LinearProgressIndicator(
-                  value: _progress.value,
-                  color: AppColors.primary,
-                  backgroundColor: AppColors.grey50,
-                  minHeight: 3.0,
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
-          ],
-        );
-      }),
+            ),
+        ],
+      ),
+      body: WebViewWidget(controller: _controller),
     );
   }
 }

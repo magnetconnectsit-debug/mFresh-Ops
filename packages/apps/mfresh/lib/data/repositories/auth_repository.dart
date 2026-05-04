@@ -38,7 +38,7 @@ class AuthRepository extends GetxService {
   Future<bool> logout() async {
     try {
       final response = await _apiService.post(AppConstants.logout);
-      if (response != null && response['status'] == true) {
+      if (response != null && (response['status'] == 'success' || response['status'] == true)) {
         await _storageService.clearAllStorage();
         return true;
       }

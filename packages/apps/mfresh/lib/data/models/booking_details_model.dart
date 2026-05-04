@@ -9,6 +9,8 @@ class BookingDetailsModel {
   final List<ServiceItem> services;
   final int paymentMode;
 
+  final String paymentStatus;
+
   BookingDetailsModel({
     this.bookingId = '',
     this.unitNo = '',
@@ -19,6 +21,7 @@ class BookingDetailsModel {
     this.fullAddress = '',
     this.services = const [],
     this.paymentMode = 0,
+    this.paymentStatus = '',
   });
 
   factory BookingDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -36,6 +39,7 @@ class BookingDetailsModel {
             )
           : [],
       paymentMode: json['payment_mode'] ?? 0,
+      paymentStatus: json['payment_status'] ?? json['Payment_status'] ?? '',
     );
   }
 }
