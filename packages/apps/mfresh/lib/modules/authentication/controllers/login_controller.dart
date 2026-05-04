@@ -1,6 +1,7 @@
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:mfresh/data/repositories/auth_repository.dart';
@@ -26,6 +27,12 @@ class LoginController extends GetxController {
   void onInit() {
     super.onInit();
     _loadSavedCredentials();
+    
+    // Set default credentials in debug mode for easier testing
+    if (kDebugMode && mobileController.text.isEmpty && passwordController.text.isEmpty) {
+      mobileController.text = "6370658717";
+      passwordController.text = "1234";
+    }
   }
 
   void _loadSavedCredentials() {

@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
+import 'package:mfresh/core/config/app_config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
@@ -7,7 +9,6 @@ import 'package:services/plutus_service.dart';
 import 'package:services/phonepe_service.dart';
 import 'dart:convert';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:mfresh/routes/app_routes.dart';
 
 class ServiceItem {
   final String assignServiceId;
@@ -168,6 +169,16 @@ class ServiceDetailsController extends GetxController {
 
     try {
       isLoading.value = true;
+
+      // START: DUMMY DATA FOR PRINT TESTING
+      if (kDebugMode && (!isOnline.value || isExternalQr)) {
+        Get.toNamed(AppRoutes.bookingConfirmed, arguments: {
+          'bookingId': "DUMMY_${DateTime.now().millisecondsSinceEpoch}",
+          'encryptBookingId': "dummy_encrypt_id",
+        });
+        return;
+      }
+      // END: DUMMY DATA FOR PRINT TESTING
       
       String paymentMode = "1"; // Cash
       if (isOnline.value) paymentMode = "2"; // Online
@@ -276,7 +287,7 @@ class ServiceDetailsController extends GetxController {
         "TransactionType": "4001", // Example for Sale/Payment
       },
       "Header": {
-        "ApplicationId": "6458835ce3374a60af722c4d51f2ba8f",
+        "ApplicationId": AppConfig.applicationId,
         "UserId": _profileController.user.value?.id.toString() ?? "",
         "MethodId": "1001",
         "VersionNo": "1.0"

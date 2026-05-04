@@ -44,6 +44,7 @@
         <package android:name="com.phonepe.app" /> <!-- PhonePe -->
         <package android:name="net.one97.paytm" /> <!-- Paytm -->
         <package android:name="in.org.npci.upiapp" /> <!-- BHIM -->
+        <package android:name="com.pinelabs.masterapp" /> <!-- PineLabs MasterApp -->
         
         <intent>
             <action android:name="android.intent.action.VIEW"/>

@@ -1,0 +1,8 @@
+# melos_managed_dependency_overrides: core,dev,services
+dependency_overrides:
+  core:
+    path: ..\\..\\shared\\core
+  dev:
+    path: ..\\..\\shared\\dev
+  services:
+    path: ..\\..\\shared\\services

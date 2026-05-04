@@ -12,6 +12,21 @@ class BookingDetailsController extends GetxController {
   Future<void> fetchBookingDetails(String bookingId) async {
     try {
       isLoading.value = true;
+      
+      if (bookingId.startsWith("DUMMY")) {
+        bookingDetails.value = BookingDetailsModel(
+          bookingId: bookingId,
+          unitNo: "MM2500DEV",
+          bookingTimeDate: DateTime.now().toString(),
+          unitLocation: "Puri",
+          totalAmount: "1",
+          paymentMode: 1,
+          fullAddress: "Puri Beach Road",
+          services: [ServiceItem(servicesName: "Toilet - Male", quantity: "1")],
+        );
+        return;
+      }
+
       final result = await _commonRepository.getBookingDetails(bookingId: bookingId);
       if (result != null) {
         bookingDetails.value = result;

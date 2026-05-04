@@ -11,6 +11,7 @@ import 'package:mfresh/routes/app_routes.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:mfresh/data/models/unit_model.dart';
+import 'package:mfresh/core/config/app_config.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -153,7 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 onTap: () async {
                                   final scannerPayload = {
                                     "Header": {
-                                      "ApplicationId": "6458835ce3374a60af722c4d51f2ba8f",
+                                      "ApplicationId": AppConfig.applicationId,
                                       "UserId": user.id.toString(),
                                       "MethodId": "1007",
                                       "VersionNo": "1.0"
