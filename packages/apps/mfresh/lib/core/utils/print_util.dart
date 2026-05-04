@@ -4,6 +4,8 @@ import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:services/plutus_service.dart';
+import 'package:core/utils/app_common_toast_message.dart';
+import 'package:core/constants/app_colors.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
@@ -12,7 +14,7 @@ import 'package:mfresh/core/config/app_config.dart';
 class PrintUtil {
   static final PlutusService _plutusService = Get.find<PlutusService>();
 
-  /// Shows a simplified dialog for internal or external printing
+  /// Shows the selection dialog
   static void showPrintSelectionDialog({
     required BuildContext context,
     required BookingDetailsModel booking,
@@ -40,10 +42,12 @@ class PrintUtil {
               _buildPrintOption(
                 icon: Icons.print_rounded,
                 title: "Internal Printer",
-                subtitle: "PineLabs / Built-in Device",
+                subtitle: "Direct Device Printing (Silent)",
                 onTap: () {
                   Get.back();
-                  printInternal(booking, encryptedBookingId);
+                  for (var service in booking.services) {
+                    printInternal(booking, service, encryptedBookingId: encryptedBookingId);
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -68,82 +72,35 @@ class PrintUtil {
     );
   }
 
-  /// System Print Dialog (The Standard Android Method)
+  /// Silent/Direct Print for Internal Hardware
+  static Future<void> printInternal(BookingDetailsModel booking, ServiceItem service, {String? encryptedBookingId}) async {
+    try {
+      // Loop through quantity to print separate tickets (matching legacy behavior)
+      int repeatCount = int.tryParse(service.quantity.toString()) ?? 1;
+
+      for (int i = 0; i < repeatCount; i++) {
+        // Build dynamic print data for this ticket
+        Map<String, dynamic> printData = _buildPlutusPrintData(booking, service, encryptedBookingId);
+
+        // Call the Plutus print job
+        final result = await _plutusService.startPrintJob(jsonEncode(printData));
+        debugPrint("Internal Print Result (Ticket ${i + 1}): $result");
+
+        // Small delay to avoid sending multiple jobs too fast (matching legacy behavior)
+        if (repeatCount > 1) {
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      }
+    } catch (e) {
+      debugPrint("Internal Direct Print Error: $e");
+      AppCommonToastMessage.show(message: "Direct Print Error: $e", type: ToastType.error);
+    }
+  }
+
+  /// System Print Dialog
   static Future<void> printSystem(BookingDetailsModel booking, String? encryptedBookingId) async {
     try {
-      final doc = pw.Document();
-      // Use standard roll format with infinite height
-      const rollFormat = PdfPageFormat(58 * PdfPageFormat.mm, double.infinity, marginAll: 0);
-
-      doc.addPage(
-        pw.Page(
-          pageFormat: rollFormat,
-          build: (pw.Context context) {
-            return pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-              child: pw.Column(
-                mainAxisSize: pw.MainAxisSize.min,
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Center(
-                    child: pw.Text("MAGNET CONNECTS", 
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
-                  ),
-                  pw.Center(
-                    child: pw.Text("Booking Confirmation", 
-                      style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
-                  pw.SizedBox(height: 4),
-                  pw.Text("Booking ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                  pw.Text("Unit No: ${booking.unitNo}", style: const pw.TextStyle(fontSize: 9)),
-                  pw.Text("Date: ${_formatDate(booking.bookingTimeDate)}", style: const pw.TextStyle(fontSize: 8)),
-                  pw.SizedBox(height: 8),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text("TOTAL AMOUNT:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                      pw.Text("Rs. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                    ],
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
-                  pw.SizedBox(height: 4),
-                  pw.Text("SERVICES:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                  for (var s in booking.services)
-                     pw.Padding(
-                       padding: const pw.EdgeInsets.only(top: 2),
-                       child: pw.Text("- ${s.servicesName} x${s.quantity}", style: const pw.TextStyle(fontSize: 9)),
-                     ),
-                  pw.SizedBox(height: 4),
-                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
-                  pw.SizedBox(height: 12),
-                  pw.Center(child: pw.Text("SCAN QR AT UNIT", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
-                  pw.SizedBox(height: 6),
-                  pw.Center(
-                    child: pw.BarcodeWidget(
-                      barcode: pw.Barcode.qrCode(),
-                      data: jsonEncode({
-                        "BookingID": encryptedBookingId ?? booking.bookingId,
-                        "DeviceID": "NA",
-                        "AccessDate": _formatDateRaw(booking.bookingTimeDate),
-                      }),
-                      width: 110,
-                      height: 110,
-                    ),
-                  ),
-                  pw.SizedBox(height: 10),
-                  pw.Center(child: pw.Text("Thank You! Visit Again", style: const pw.TextStyle(fontSize: 9))),
-                  pw.SizedBox(height: 30),
-                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
-                ],
-              ),
-            );
-          },
-        ),
-      );
-
+      final doc = await _generateDocument(booking, encryptedBookingId);
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => doc.save(),
         name: 'receipt_${booking.bookingId}',
@@ -151,6 +108,150 @@ class PrintUtil {
     } catch (e) {
       debugPrint("System Print Error: $e");
     }
+  }
+
+  static Future<pw.Document> _generateDocument(BookingDetailsModel booking, String? encryptedBookingId) async {
+    final doc = pw.Document();
+    const rollFormat = PdfPageFormat(58 * PdfPageFormat.mm, double.infinity, marginAll: 0);
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: rollFormat,
+        build: (pw.Context context) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: pw.Column(
+              mainAxisSize: pw.MainAxisSize.min,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Center(child: pw.Text("MAGNET CONNECTS", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14))),
+                pw.Center(child: pw.Text("Booking Confirmation", style: const pw.TextStyle(fontSize: 9))),
+                pw.SizedBox(height: 8),
+                pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                pw.SizedBox(height: 4),
+                pw.Text("Booking ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                pw.Text("Unit No: ${booking.unitNo}", style: const pw.TextStyle(fontSize: 9)),
+                pw.Text("Date: ${_formatDate(booking.bookingTimeDate)}", style: const pw.TextStyle(fontSize: 8)),
+                pw.SizedBox(height: 8),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text("TOTAL AMOUNT:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    pw.Text("Rs. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                pw.SizedBox(height: 4),
+                pw.Text("SERVICES:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                for (var s in booking.services)
+                   pw.Padding(
+                     padding: const pw.EdgeInsets.only(top: 2),
+                     child: pw.Text("- ${s.servicesName} x${s.quantity}", style: const pw.TextStyle(fontSize: 9)),
+                   ),
+                pw.SizedBox(height: 4),
+                pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                pw.SizedBox(height: 12),
+                pw.Center(child: pw.Text("SCAN QR AT UNIT", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                pw.SizedBox(height: 6),
+                pw.Center(
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: jsonEncode({
+                      "BookingID": encryptedBookingId ?? booking.bookingId,
+                      "DeviceID": "NA",
+                      "AccessDate": _formatDateRaw(booking.bookingTimeDate),
+                    }),
+                    width: 110,
+                    height: 110,
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Center(child: pw.Text("Thank You! Visit Again", style: const pw.TextStyle(fontSize: 9))),
+                pw.SizedBox(height: 30),
+                pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    return doc;
+  }
+
+  static Map<String, dynamic> _buildPlutusPrintData(BookingDetailsModel booking, ServiceItem service, String? encryptedBookingId) {
+    List<Map<String, dynamic>> printItems = [];
+
+    // Title
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Booking Confirmation", "ImagePath": "0", "ImageData": "0"});
+
+    // Booking ID
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Booking ID: ${booking.bookingId}", "ImagePath": "0", "ImageData": "0"});
+
+    // Unit No.
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Unit No.: ${booking.unitNo}", "ImagePath": "0", "ImageData": "0"});
+
+    // Amount Paid
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Amount Paid: Rs. ${booking.totalAmount}", "ImagePath": "0", "ImageData": "0"});
+
+    // Date & Time
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Date & Time: ${_formatDate(booking.bookingTimeDate)}", "ImagePath": "0", "ImageData": "0"});
+
+    // Payment Mode
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Payment Mode: ${booking.paymentMode == 3 ? 'External QR' : booking.paymentMode == 2 ? 'Online' : 'Cash'}", "ImagePath": "0", "ImageData": "0"});
+
+    // Separator
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "------------------------", "ImagePath": "0", "ImageData": "0"});
+
+    // Service Name
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Service: ${service.servicesName} x1", "ImagePath": "0", "ImageData": "0"});
+
+    // Location
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Location: ${booking.fullAddress}", "ImagePath": "0", "ImageData": "0"});
+
+    // QR Section Title
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Scan QR at Unit", "ImagePath": "0", "ImageData": "0"});
+
+    // QR Code
+    printItems.add({
+      "PrintDataType": "4",
+      "PrinterWidth": 24,
+      "IsCenterAligned": true,
+      "DataToPrint": jsonEncode({
+        "BookingID": booking.bookingId, // Matches legacy code: uses raw bookingId
+        "DeviceID": "NA",
+        "AccessDate": _formatDateRaw(booking.bookingTimeDate),
+      }),
+      "ImagePath": "",
+      "ImageData": ""
+    });
+
+    // Spacing
+    for (int i = 0; i < 2; i++) {
+      printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": " ", "ImagePath": "0", "ImageData": "0"});
+    }
+
+    // Thank You
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Thank You!", "ImagePath": "0", "ImageData": "0"});
+
+    // Extra Feed for tear space
+    for (int i = 0; i < 4; i++) {
+      printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": " ", "ImagePath": "0", "ImageData": "0"});
+    }
+
+    return {
+      "Header": {
+        "ApplicationId": "6458835ce3374a60af722c4d51f2ba8f", // Hardcoded LIVE ID matching legacy project
+        "UserId": "user1234",
+        "MethodId": "1002",
+        "VersionNo": "1.0"
+      },
+      "Detail": {
+        "PrintRefNo": booking.bookingId,
+        "SavePrintData": false,
+        "Data": printItems
+      }
+    };
   }
 
   static Widget _buildPrintOption({
@@ -193,58 +294,6 @@ class PrintUtil {
         ),
       ),
     );
-  }
-
-  static Future<void> printInternal(BookingDetailsModel booking, String? encryptedBookingId) async {
-    try {
-      for (var service in booking.services) {
-        int repeatCount = int.tryParse(service.quantity) ?? 1;
-        for (int i = 0; i < repeatCount; i++) {
-          final printData = _buildPlutusPrintData(booking, service, encryptedBookingId);
-          await _plutusService.startPrintJob(jsonEncode(printData));
-          await Future.delayed(const Duration(seconds: 2));
-        }
-      }
-    } catch (e) {
-      debugPrint("PineLabs Print Error: $e");
-    }
-  }
-
-  static Map<String, dynamic> _buildPlutusPrintData(BookingDetailsModel booking, ServiceItem service, String? encryptedBookingId) {
-    List<Map<String, dynamic>> printItems = [];
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Booking Confirmation"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Booking ID: ${booking.bookingId}"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Unit No.: ${booking.unitNo}"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Amount: Rs. ${booking.totalAmount}"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Date: ${_formatDate(booking.bookingTimeDate)}"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "------------------------"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Service: ${service.servicesName} x${service.quantity}"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Scan QR at Unit"});
-    printItems.add({
-      "PrintDataType": "4",
-      "PrinterWidth": 24,
-      "IsCenterAligned": true,
-      "DataToPrint": jsonEncode({
-        "BookingID": encryptedBookingId ?? booking.bookingId,
-        "DeviceID": "NA",
-        "AccessDate": _formatDateRaw(booking.bookingTimeDate),
-      }),
-    });
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "\nThank You!\n\n\n\n"});
-
-    return {
-      "Header": {
-        "ApplicationId": AppConfig.applicationId,
-        "UserId": "user1234",
-        "MethodId": "1002",
-        "VersionNo": "1.0",
-      },
-      "Detail": {
-        "PrintRefNo": booking.bookingId,
-        "SavePrintData": false,
-        "Data": printItems
-      }
-    };
   }
 
   static String _formatDate(String dateString) {
