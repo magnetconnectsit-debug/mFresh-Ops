@@ -194,15 +194,6 @@ class ServiceDetailsController extends GetxController {
     try {
       isLoading.value = true;
 
-      // START: DUMMY DATA FOR PRINT TESTING
-      if (kDebugMode && (!isOnline.value || isExternalQr)) {
-        Get.toNamed(AppRoutes.bookingConfirmed, arguments: {
-          'bookingId': "DUMMY_${DateTime.now().millisecondsSinceEpoch}",
-          'encryptBookingId': "dummy_encrypt_id",
-        });
-        return;
-      }
-      // END: DUMMY DATA FOR PRINT TESTING
       
       String paymentMode = "1"; // Cash
       if (isOnline.value) paymentMode = "2"; // Online
