@@ -39,8 +39,10 @@ class ServiceDetailsScreen extends StatelessWidget {
                             width: double.infinity,
                             height: 120.h,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(), // Falls back to decoration
-                            errorWidget: (context, url, error) => Container(), // Falls back to decoration
+                            placeholder: (context, url) =>
+                                Container(), // Falls back to decoration
+                            errorWidget: (context, url, error) =>
+                                Container(), // Falls back to decoration
                           )
                         : const SizedBox.shrink(),
                   ),
@@ -239,7 +241,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                           crossAxisCount: 2,
                           crossAxisSpacing: 12.w,
                           mainAxisSpacing: 12.h,
-                          childAspectRatio: 2.1,
+                          childAspectRatio: 1.9,
                         ),
                         itemBuilder: (context, index) {
                           return _ServiceCard(
@@ -539,49 +541,14 @@ class ServiceDetailsScreen extends StatelessWidget {
                                 ),
                               ],
                             ),
-                              child: ElevatedButton(
-                                onPressed: () => controller.initiateBooking(
-                                  isExternalQr: false,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: controller.isOnline.value
-                                      ? AppColors.blue
-                                      : AppColors.green,
-                                  foregroundColor: AppColors.white,
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  'PAY',
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyle.style_12_600(
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ),
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.black.withValues(alpha: 0.2),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
                             child: ElevatedButton(
                               onPressed: () => controller.initiateBooking(
-                                isExternalQr: true,
+                                isExternalQr: false,
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.grey300,
+                                backgroundColor: controller.isOnline.value
+                                    ? AppColors.blue
+                                    : AppColors.green,
                                 foregroundColor: AppColors.white,
                                 padding: EdgeInsets.symmetric(vertical: 10.h),
                                 shape: RoundedRectangleBorder(
@@ -590,7 +557,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                                 elevation: 0,
                               ),
                               child: Text(
-                                'External QR Payment',
+                                'PAY',
                                 textAlign: TextAlign.center,
                                 style: AppTextStyle.style_12_600(
                                   color: AppColors.white,
@@ -599,6 +566,43 @@ class ServiceDetailsScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (controller.isOnline.value) ...[
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.black.withValues(alpha: 0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () => controller.initiateBooking(
+                                  isExternalQr: true,
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.grey300,
+                                  foregroundColor: AppColors.white,
+                                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  'External QR Payment',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyle.style_12_600(
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],

@@ -13,6 +13,7 @@ import 'package:services/plutus_service.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh/core/config/app_config.dart';
 import 'package:mfresh/routes/app_routes.dart';
+import 'package:mfresh/core/utils/print_util.dart';
 
 class BookingConfirmedScreen extends StatefulWidget {
   const BookingConfirmedScreen({super.key});
@@ -37,20 +38,11 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   }
 
   Future<void> _handlePrint(BookingDetailsModel booking) async {
-    try {
-      for (var service in booking.services) {
-        int repeatCount = int.tryParse(service.quantity) ?? 1;
-
-        for (int i = 0; i < repeatCount; i++) {
-          Map<String, dynamic> printDataForService = _buildPrintDataForService(booking, service);
-          final printDataJson = jsonEncode(printDataForService);
-          await plutusService.startPrintJob(printDataJson);
-          await Future.delayed(const Duration(seconds: 2));
-        }
-      }
-    } catch (e) {
-      AppCommonToastMessage.show(message: 'Printing failed: $e', type: ToastType.error);
-    }
+    PrintUtil.showPrintSelectionDialog(
+      context: context,
+      booking: booking,
+      encryptedBookingId: Get.arguments?['encryptBookingId'],
+    );
   }
 
   Map<String, dynamic> _buildPrintDataForService(BookingDetailsModel booking, ServiceItem service) {
