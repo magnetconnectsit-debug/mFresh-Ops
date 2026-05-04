@@ -72,41 +72,73 @@ class PrintUtil {
   static Future<void> printSystem(BookingDetailsModel booking, String? encryptedBookingId) async {
     try {
       final doc = pw.Document();
+      // Use standard roll format with infinite height
+      const rollFormat = PdfPageFormat(58 * PdfPageFormat.mm, double.infinity, marginAll: 0);
+
       doc.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.roll57,
+          pageFormat: rollFormat,
           build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(child: pw.Text("MAGNET CONNECTS", style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                pw.Center(child: pw.Text("Booking Confirmation")),
-                pw.Divider(),
-                pw.Text("Booking ID: ${booking.bookingId}"),
-                pw.Text("Unit No: ${booking.unitNo}"),
-                pw.Text("Date: ${_formatDate(booking.bookingTimeDate)}"),
-                pw.Text("Total: Rs. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                pw.Divider(),
-                pw.Text("SERVICES:"),
-                for (var s in booking.services)
-                   pw.Text("- ${s.servicesName} x${s.quantity}"),
-                pw.Divider(),
-                pw.Center(child: pw.Text("Scan QR at Unit")),
-                pw.Center(
-                  child: pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: jsonEncode({
-                      "BookingID": encryptedBookingId ?? booking.bookingId,
-                      "DeviceID": "NA",
-                      "AccessDate": _formatDateRaw(booking.bookingTimeDate),
-                    }),
-                    width: 100,
-                    height: 100,
+            return pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+              child: pw.Column(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Center(
+                    child: pw.Text("MAGNET CONNECTS", 
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
                   ),
-                ),
-                pw.SizedBox(height: 20),
-                pw.Center(child: pw.Text("Thank You!")),
-              ],
+                  pw.Center(
+                    child: pw.Text("Booking Confirmation", 
+                      style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 4),
+                  pw.Text("Booking ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  pw.Text("Unit No: ${booking.unitNo}", style: const pw.TextStyle(fontSize: 9)),
+                  pw.Text("Date: ${_formatDate(booking.bookingTimeDate)}", style: const pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text("TOTAL AMOUNT:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      pw.Text("Rs. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 4),
+                  pw.Text("SERVICES:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  for (var s in booking.services)
+                     pw.Padding(
+                       padding: const pw.EdgeInsets.only(top: 2),
+                       child: pw.Text("- ${s.servicesName} x${s.quantity}", style: const pw.TextStyle(fontSize: 9)),
+                     ),
+                  pw.SizedBox(height: 4),
+                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 12),
+                  pw.Center(child: pw.Text("SCAN QR AT UNIT", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
+                  pw.SizedBox(height: 6),
+                  pw.Center(
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: jsonEncode({
+                        "BookingID": encryptedBookingId ?? booking.bookingId,
+                        "DeviceID": "NA",
+                        "AccessDate": _formatDateRaw(booking.bookingTimeDate),
+                      }),
+                      width: 110,
+                      height: 110,
+                    ),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Center(child: pw.Text("Thank You! Visit Again", style: const pw.TextStyle(fontSize: 9))),
+                  pw.SizedBox(height: 30),
+                  pw.Text("-------------------------------------------------", style: const pw.TextStyle(fontSize: 8)),
+                ],
+              ),
             );
           },
         ),
@@ -114,7 +146,7 @@ class PrintUtil {
 
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => doc.save(),
-        name: 'booking_receipt_${booking.bookingId}',
+        name: 'receipt_${booking.bookingId}',
       );
     } catch (e) {
       debugPrint("System Print Error: $e");
