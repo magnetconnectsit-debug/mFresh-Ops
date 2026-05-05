@@ -1,42 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import '../models/support_subcategory_model.dart';
+import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/data/repositories/support_repository.dart';
 
 class SupportSubCategoryController extends GetxController {
+  final SupportRepository _supportRepository = Get.find<SupportRepository>();
+
   final isSearching = false.obs;
+  final isLoading = false.obs;
   final searchController = TextEditingController();
   final subCategoryNameController = TextEditingController();
-  final selectedCategory = Rxn<String>();
 
-  final categories = <String>[
-    'IT',
-    'Maintenance',
-    'Cleaning',
-    'Design',
-    'Advertisement',
-  ].obs;
-
-  final allSubCategories = <SupportSubCategoryModel>[
-    SupportSubCategoryModel(siNo: 1, category: 'IT', subCategory: 'LED Screens'),
-    SupportSubCategoryModel(siNo: 2, category: 'IT', subCategory: 'CCTV Camera'),
-    SupportSubCategoryModel(siNo: 3, category: 'IT', subCategory: 'Access Control'),
-    SupportSubCategoryModel(siNo: 4, category: 'IT', subCategory: 'Billing'),
-    SupportSubCategoryModel(siNo: 5, category: 'IT', subCategory: 'Internet'),
-    SupportSubCategoryModel(siNo: 6, category: 'Maintenance', subCategory: 'Plumbing'),
-    SupportSubCategoryModel(siNo: 7, category: 'Maintenance', subCategory: 'Electricals'),
-    SupportSubCategoryModel(siNo: 8, category: 'Maintenance', subCategory: 'Fabrication'),
-    SupportSubCategoryModel(siNo: 9, category: 'IT', subCategory: 'Web&App'),
-    SupportSubCategoryModel(siNo: 10, category: 'Maintenance', subCategory: 'AC'),
-  ].obs;
-
+  final allSubCategories = <SupportSubCategoryModel>[].obs;
   final filteredSubCategories = <SupportSubCategoryModel>[].obs;
+  final categories = <SupportCategoryModel>[].obs;
+  final selectedCategory = Rxn<SupportCategoryModel>();
 
   @override
   void onInit() {
     super.onInit();
-    filteredSubCategories.assignAll(allSubCategories);
+    fetchAllData();
     searchController.addListener(applyFilters);
+  }
+
+  Future<void> fetchAllData() async {
+    try {
+      isLoading.value = true;
+      await Future.wait([
+        fetchCategories(),
+        fetchSubCategories(),
+      ]);
+    } catch (e) {
+      debugPrint('Error fetching subcategory data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      final result = await _supportRepository.fetchAllCategories();
+      categories.assignAll(result);
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+    }
+  }
+
+  Future<void> fetchSubCategories() async {
+    try {
+      final result = await _supportRepository.fetchAllSubCategories();
+      allSubCategories.assignAll(result);
+      applyFilters();
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: "Failed to fetch subcategories: $e",
+        type: ToastType.error,
+      );
+    }
   }
 
   void toggleSearch() {
@@ -51,29 +72,37 @@ class SupportSubCategoryController extends GetxController {
     final query = searchController.text.toLowerCase();
     filteredSubCategories.assignAll(
       allSubCategories.where((sub) {
-        return query.isEmpty ||
-            sub.subCategory.toLowerCase().contains(query) ||
-            sub.category.toLowerCase().contains(query);
+        return query.isEmpty || sub.subCategory.toLowerCase().contains(query);
       }).toList(),
     );
   }
 
-  void addSubCategory() {
-    if (selectedCategory.value != null && subCategoryNameController.text.trim().isNotEmpty) {
-      final newSub = SupportSubCategoryModel(
-        siNo: allSubCategories.length + 1,
-        category: selectedCategory.value!,
-        subCategory: subCategoryNameController.text.trim(),
-      );
-      allSubCategories.add(newSub);
-      applyFilters();
-      subCategoryNameController.clear();
-      selectedCategory.value = null;
-      Get.back();
-      AppCommonToastMessage.show(
-        message: "Sub-Category added successfully!",
-        type: ToastType.success,
-      );
+  Future<void> addSubCategory() async {
+    if (subCategoryNameController.text.trim().isNotEmpty && selectedCategory.value != null) {
+      try {
+        isLoading.value = true;
+        final success = await _supportRepository.addSubCategory(
+          selectedCategory.value!.id,
+          subCategoryNameController.text.trim(),
+        );
+        if (success) {
+          fetchSubCategories();
+          subCategoryNameController.clear();
+          selectedCategory.value = null;
+          Get.back();
+          AppCommonToastMessage.show(
+            message: "Sub-category added successfully!",
+            type: ToastType.success,
+          );
+        }
+      } catch (e) {
+        AppCommonToastMessage.show(
+          message: "Failed to add sub-category: $e",
+          type: ToastType.error,
+        );
+      } finally {
+        isLoading.value = false;
+      }
     } else {
       AppCommonToastMessage.show(
         message: "Please fill all fields",
@@ -82,44 +111,56 @@ class SupportSubCategoryController extends GetxController {
     }
   }
 
-  void editSubCategory(int index, String category, String subName) {
-    if (category.isNotEmpty && subName.trim().isNotEmpty) {
-      final actualIndex = allSubCategories.indexWhere((sub) => sub.siNo == filteredSubCategories[index].siNo);
-      if (actualIndex != -1) {
-        allSubCategories[actualIndex] = SupportSubCategoryModel(
-          siNo: allSubCategories[actualIndex].siNo,
-          category: category,
-          subCategory: subName.trim(),
+  Future<void> editSubCategory(int index, int catId, String newName) async {
+    if (newName.trim().isNotEmpty) {
+      try {
+        isLoading.value = true;
+        final sub = filteredSubCategories[index];
+        final success = await _supportRepository.updateSubCategory(
+          sub.id,
+          catId,
+          newName.trim(),
         );
-        applyFilters();
-        subCategoryNameController.clear();
-        selectedCategory.value = null;
-        Get.back();
+        if (success) {
+          fetchSubCategories();
+          subCategoryNameController.clear();
+          selectedCategory.value = null;
+          Get.back();
+          AppCommonToastMessage.show(
+            message: "Sub-category updated successfully!",
+            type: ToastType.success,
+          );
+        }
+      } catch (e) {
         AppCommonToastMessage.show(
-          message: "Sub-Category updated successfully!",
-          type: ToastType.success,
+          message: "Failed to update sub-category: $e",
+          type: ToastType.error,
         );
+      } finally {
+        isLoading.value = false;
       }
     }
   }
 
-  void deleteSubCategory(int index) {
-    final actualIndex = allSubCategories.indexWhere((sub) => sub.siNo == filteredSubCategories[index].siNo);
-    if (actualIndex != -1) {
-      allSubCategories.removeAt(actualIndex);
-      // Re-assign SI numbers for consistency in mock view
-      for (int i = 0; i < allSubCategories.length; i++) {
-        allSubCategories[i] = SupportSubCategoryModel(
-          siNo: i + 1,
-          category: allSubCategories[i].category,
-          subCategory: allSubCategories[i].subCategory,
+  Future<void> deleteSubCategory(int index) async {
+    try {
+      isLoading.value = true;
+      final sub = filteredSubCategories[index];
+      final success = await _supportRepository.deleteSubCategory(sub.id);
+      if (success) {
+        fetchSubCategories();
+        AppCommonToastMessage.show(
+          message: "Sub-category deleted successfully!",
+          type: ToastType.success,
         );
       }
-      applyFilters();
+    } catch (e) {
       AppCommonToastMessage.show(
-        message: "Sub-Category deleted successfully!",
-        type: ToastType.success,
+        message: "Failed to delete sub-category: $e",
+        type: ToastType.error,
       );
+    } finally {
+      isLoading.value = false;
     }
   }
 

@@ -39,9 +39,7 @@ Future<void> initServices() async {
   debugPrint('🚀 [mfresh_ops] Initializing in $envName mode');
   debugPrint('🔗 [mfresh_ops] Active API: $activeUrl');
 
-  if (storageService.getBaseUrl().isEmpty) {
-    await storageService.saveBaseUrl(activeUrl);
-  }
+  await storageService.saveBaseUrl(activeUrl);
 
   // Initialize SettingsService (Depends on StorageService)
   Get.put(SettingsService());

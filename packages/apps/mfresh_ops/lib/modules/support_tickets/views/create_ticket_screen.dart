@@ -1,252 +1,489 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
-import 'package:core/widgets/app_common_drop_down.dart';
 
 class CreateTicketScreen extends StatelessWidget {
   const CreateTicketScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(CreateTicketController());
+    final controller = Get.find<CreateTicketController>();
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.grey[200],
       appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: Colors.white,
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Create Ticket',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
+        hasBackButton: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildFormGrid(context, controller),
-              SizedBox(height: 16.h),
-              _buildLabel('Subject'),
-              SizedBox(height: 8.h),
-              AppCommonTextField(
-                controller: controller.subjectController,
-                hintText: 'Subject Line',
-                height: 44.h,
+        child: Center(
+          child: Container(
+            width: Get.width * 0.95,
+            margin: EdgeInsets.symmetric(vertical: 20.h),
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Create Ticket",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close, color: Colors.black54, size: 20),
+                      )
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+
+                  _buildFormGrid(context, controller),
+                  SizedBox(height: 12.h),
+
+                  const Text("Subject*",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  SizedBox(height: 4.h),
+                  _buildTextField(controller.subjectController, "Subject Line", maxLines: 2),
+
+                  SizedBox(height: 8.h),
+
+                  const Text("Description",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  SizedBox(height: 4.h),
+                  _buildTextField(controller.descriptionController, "Description here", maxLines: 4),
+
+                  SizedBox(height: 12.h),
+
+                  const Text("Attach Files",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  SizedBox(height: 8.h),
+                  _buildAttachmentSection(controller),
+
+                  SizedBox(height: 20.h),
+
+                  _buildBottomActions(controller),
+                ],
               ),
-              SizedBox(height: 16.h),
-              _buildLabel('Description'),
-              SizedBox(height: 8.h),
-              AppCommonTextField(
-                controller: controller.descriptionController,
-                hintText: 'Description here',
-                maxLines: 4,
-                height: 100.h,
-              ),
-              SizedBox(height: 20.h),
-              _buildLabel('Attachments'),
-              SizedBox(height: 12.h),
-              _buildAttachmentsSection(controller),
-              SizedBox(height: 40.h),
-              _buildBottomActions(controller),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLabel(String label) {
-    return Text(
-      label,
-      style: AppTextStyle.style_14_700(color: AppColors.black),
-    );
-  }
-
   Widget _buildFormGrid(BuildContext context, CreateTicketController controller) {
-    return Obx(() => GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 16.h,
-      crossAxisSpacing: 20.w,
-      childAspectRatio: 2.0, // Adjusted for dropdown title
+    return Obx(() => Column(
       children: [
-        _buildDateFormField(context, controller),
-        AppCommonDropdown<SupportUnit>(
-          title: 'Unit No.',
-          hintText: 'Select Unit',
-          value: controller.selectedUnit.value,
-          items: controller.units.map((e) => DropdownMenuItem(value: e, child: Text(e.unitName))).toList(),
-          onChanged: (val) => controller.selectedUnit.value = val,
-          height: 36.h,
+        _twoFieldRow(
+          leftLabel: "Occurred*",
+          leftChild: _buildOccurredField(context, controller),
+          rightLabel: "Unit*",
+          rightChild: _buildDropdown<SupportUnit>(
+            controller.selectedUnit.value,
+            controller.units,
+            (v) => controller.selectedUnit.value = v,
+            (item) => item.unitName,
+          ),
         ),
-        AppCommonDropdown<SupportCategory>(
-          title: 'Category',
-          hintText: 'Select Category',
-          value: controller.selectedCategory.value,
-          items: controller.categories.map((e) => DropdownMenuItem(value: e, child: Text(e.categoryName))).toList(),
-          onChanged: (val) => controller.onCategorySelected(val),
-          height: 36.h,
+        SizedBox(height: 5.h),
+        _twoFieldRow(
+          leftLabel: "Category*",
+          leftChild: _buildDropdown<SupportCategory>(
+            controller.selectedCategory.value,
+            controller.categories,
+            (v) => controller.onCategorySelected(v),
+            (item) => item.categoryName,
+          ),
+          rightLabel: "S-Category",
+          rightChild: _buildDropdown<SupportSubCategory>(
+            controller.selectedSubCategory.value,
+            controller.subCategories,
+            (v) => controller.selectedSubCategory.value = v,
+            (item) => item.subCategoryName,
+          ),
         ),
-        AppCommonDropdown<SupportSubCategory>(
-          title: 'Sub-Category',
-          hintText: 'Select Sub-Category',
-          value: controller.selectedSubCategory.value,
-          items: controller.subCategories.map((e) => DropdownMenuItem(value: e, child: Text(e.subCategoryName))).toList(),
-          onChanged: (val) => controller.selectedSubCategory.value = val,
-          height: 36.h,
+        SizedBox(height: 5.h),
+        _twoFieldRow(
+          leftLabel: "Priority",
+          leftChild: _buildDropdown<String>(
+            controller.selectedPriority.value,
+            controller.priorities,
+            (v) => controller.selectedPriority.value = v,
+            (item) => item,
+          ),
+          rightLabel: "Project*",
+          rightChild: _buildDropdown<SupportProject>(
+            controller.selectedProject.value,
+            controller.projects,
+            (v) => controller.selectedProject.value = v,
+            (item) => item.projectName,
+          ),
         ),
-        AppCommonDropdown<String>(
-          title: 'Priority',
-          hintText: 'Select Priority',
-          value: controller.selectedPriority.value,
-          items: controller.priorities.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (val) => controller.selectedPriority.value = val,
-          height: 36.h,
-        ),
-        AppCommonDropdown<SupportProject>(
-          title: 'Project',
-          hintText: 'Select Project',
-          value: controller.selectedProject.value,
-          items: controller.projects.map((e) => DropdownMenuItem(value: e, child: Text(e.projectName))).toList(),
-          onChanged: (val) => controller.selectedProject.value = val,
-          height: 36.h,
-        ),
-        AppCommonDropdown<AssigneeModel>(
-          title: 'Assignee',
-          hintText: 'Select Assignee',
-          value: controller.selectedAssignee.value,
-          items: controller.assignees.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(),
-          onChanged: (val) => controller.selectedAssignee.value = val,
-          height: 36.h,
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Reminder', style: AppTextStyle.style_12_500(color: AppColors.black300)),
-            SizedBox(height: 8.h),
-            AppCommonTextField(
-              controller: controller.reminderController,
-              hintText: 'Reminder',
-              height: 36.h,
-            ),
-          ],
+        SizedBox(height: 5.h),
+        _twoFieldRow(
+          leftLabel: "Assignee*",
+          leftChild: _buildDropdown<AssigneeModel>(
+            controller.selectedAssignee.value,
+            controller.assignees,
+            (v) => controller.selectedAssignee.value = v,
+            (item) => item.name,
+          ),
+          rightLabel: "Reminder",
+          rightChild: _buildReminderField(context, controller),
         ),
       ],
     ));
   }
 
-  Widget _buildDateFormField(BuildContext context, CreateTicketController controller) {
-    return Column(
+  Widget _twoFieldRow({
+    required String leftLabel,
+    required Widget leftChild,
+    required String rightLabel,
+    required Widget rightChild,
+  }) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Occurred', style: AppTextStyle.style_12_500(color: AppColors.black300)),
-        SizedBox(height: 8.h),
-        GestureDetector(
-          onTap: () => controller.selectDate(context),
-          child: Container(
-            height: 36.h,
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.grey100, width: 1.5),
-              borderRadius: BorderRadius.circular(8.r),
-              color: AppColors.white,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${controller.occurredDate.value.day}/${controller.occurredDate.value.month}/${controller.occurredDate.value.year}',
-                  style: AppTextStyle.style_12_400(color: AppColors.black1),
-                ),
-                Icon(Icons.calendar_today_outlined, size: 16.r, color: AppColors.grey300),
-              ],
-            ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(leftLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              SizedBox(height: 4.h),
+              SizedBox(width: double.infinity, child: leftChild),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(rightLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              SizedBox(height: 4.h),
+              SizedBox(width: double.infinity, child: rightChild),
+            ],
           ),
         ),
       ],
     );
   }
 
-
-  Widget _buildAttachmentsSection(CreateTicketController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Obx(() => controller.selectedImages.isEmpty 
-          ? _buildUploadPlaceholder(controller)
-          : SizedBox(
-              height: 100.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: controller.selectedImages.length + 1,
-                separatorBuilder: (_, __) => SizedBox(width: 12.w),
-                itemBuilder: (context, index) {
-                  if (index == 0) return _buildUploadPlaceholder(controller, compact: true);
-                  final imageIndex = index - 1;
-                  return Stack(
-                    children: [
-                      Container(
-                        width: 90.w,
-                        height: 90.h,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.r),
-                          image: DecorationImage(
-                            image: FileImage(File(controller.selectedImages[imageIndex].path)),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 4.r,
-                        right: 4.r,
-                        child: GestureDetector(
-                          onTap: () => controller.removeImage(imageIndex),
-                          child: CircleAvatar(
-                            radius: 10.r,
-                            backgroundColor: AppColors.black.withValues(alpha: 0.5),
-                            child: Icon(Icons.close, size: 12.r, color: AppColors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            )),
-      ],
-    );
-  }
-
-  Widget _buildUploadPlaceholder(CreateTicketController controller, {bool compact = false}) {
-    return GestureDetector(
-      onTap: () => _showImageSourceOptions(controller),
+  Widget _buildOccurredField(BuildContext context, CreateTicketController controller) {
+    return InkWell(
+      onTap: () => controller.selectDate(context),
       child: Container(
-        width: compact ? 90.w : double.infinity,
-        height: 90.h,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.grey50, style: BorderStyle.solid),
+          color: const Color(0xffF5F5F5),
+          borderRadius: BorderRadius.circular(10.r),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(Icons.add_a_photo_outlined, size: compact ? 24.r : 32.r, color: AppColors.grey300),
-            SizedBox(height: 4.h),
-            Text('Add Photos', style: AppTextStyle.style_11_600(color: AppColors.grey300)),
+            Obx(() => Text(
+              DateFormat("dd/MM/yyyy").format(controller.occurredDate.value),
+              style: const TextStyle(fontSize: 12),
+            )),
+            const Icon(Icons.calendar_today_outlined, size: 16),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildReminderField(BuildContext context, CreateTicketController controller) {
+    return InkWell(
+      onTap: () => _showReminderDialog(context, controller),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xffF5F5F5),
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Obx(() => Expanded(
+              child: Text(
+                controller.displayReminder.value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: controller.displayReminder.value == 'Reminder' ? Colors.grey : Colors.black,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            )),
+            const Icon(Icons.calendar_today_outlined, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReminderDialog(BuildContext context, CreateTicketController controller) {
+    DateTime tempDate = controller.reminderDate.value ?? DateTime.now();
+    TimeOfDay tempTime = controller.reminderTime.value ?? const TimeOfDay(hour: 9, minute: 0);
+    bool tempWhatsApp = controller.whatsappNotification.value;
+    bool tempApp = controller.appNotification.value;
+
+    Get.dialog(
+      StatefulBuilder(builder: (context, setModalState) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.r)),
+          backgroundColor: const Color(0xFFF7F2EE),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Flexible(
+                        child: Text("Reminder/ Notifications",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      ),
+                      IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  const Text("Notification Type:",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Icon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 20),
+                      Checkbox(
+                        value: tempWhatsApp,
+                        activeColor: const Color(0xffF15A24),
+                        onChanged: (v) => setModalState(() => tempWhatsApp = v!),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.notifications_active, color: Colors.black, size: 20),
+                      Checkbox(
+                        value: tempApp,
+                        activeColor: const Color(0xffF15A24),
+                        onChanged: (v) => setModalState(() => tempApp = v!),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _modalPickerBox(
+                            text: DateFormat("dd/MM/yyyy").format(tempDate),
+                            icon: Icons.calendar_today,
+                            onTap: () async {
+                              final p = await showDatePicker(
+                                  context: context,
+                                  initialDate: tempDate,
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime(2100));
+                              if (p != null) setModalState(() => tempDate = p);
+                            }),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _modalPickerBox(
+                            text: tempTime.format(context),
+                            icon: Icons.arrow_drop_down,
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                  context: context, initialTime: tempTime);
+                              if (t != null) setModalState(() => tempTime = t);
+                            }),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 30.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade400,
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          onPressed: () => Get.back(),
+                          child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xff4CAF50),
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          onPressed: () {
+                            controller.reminderDate.value = tempDate;
+                            controller.reminderTime.value = tempTime;
+                            controller.whatsappNotification.value = tempWhatsApp;
+                            controller.appNotification.value = tempApp;
+                            controller.displayReminder.value = 
+                              "${DateFormat("dd MMM").format(tempDate)} ${tempTime.format(context)}";
+                            Get.back();
+                          },
+                          child: const Text("Apply", style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _modalPickerBox({required String text, required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+            Icon(icon, size: 14, color: Colors.black54),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown<T>(T? value, List<T> options, Function(T?) onChanged, String Function(T) labelBuilder) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      isExpanded: true,
+      icon: const SizedBox.shrink(),
+      decoration: _inputDecoration("Select"),
+      items: options.map((e) => DropdownMenuItem(value: e, child: Text(labelBuilder(e), style: const TextStyle(fontSize: 12)))).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 12),
+      filled: true,
+      fillColor: const Color(0xffF5F5F5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: BorderSide.none,
+      ),
+      isDense: true,
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      style: const TextStyle(fontSize: 12),
+      decoration: _inputDecoration(hint),
+    );
+  }
+
+  Widget _buildAttachmentSection(CreateTicketController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => _showImageSourceOptions(controller),
+              icon: const Icon(Icons.attach_file, size: 16),
+              label: const Text("Choose files", style: TextStyle(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xffF5F5F5),
+                foregroundColor: Colors.black87,
+                elevation: 0,
+                side: BorderSide(color: Colors.grey.shade300),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Obx(() => Expanded(
+              child: Text(
+                controller.selectedImages.isEmpty ? "No file chosen" : "${controller.selectedImages.length} file(s) selected",
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                overflow: TextOverflow.ellipsis,
+              ),
+            )),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Obx(() => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: controller.selectedImages.asMap().entries.map((entry) {
+            int index = entry.key;
+            String fileName = entry.value.name;
+            return Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  margin: const EdgeInsets.only(top: 4, right: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
+                    child: Text(fileName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: InkWell(
+                    onTap: () => controller.removeImage(index),
+                    child: const CircleAvatar(
+                      radius: 7,
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.close, size: 8, color: Colors.white),
+                    ),
+                  ),
+                )
+              ],
+            );
+          }).toList(),
+        )),
+      ],
     );
   }
 
@@ -255,7 +492,7 @@ class CreateTicketScreen extends StatelessWidget {
       Container(
         padding: EdgeInsets.all(20.r),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
         ),
         child: Column(
@@ -285,30 +522,26 @@ class CreateTicketScreen extends StatelessWidget {
 
   Widget _buildBottomActions(CreateTicketController controller) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Get.back(),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              side: BorderSide(color: AppColors.grey50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-            ),
-            child: Text('Cancel', style: AppTextStyle.style_14_600(color: AppColors.black)),
+        TextButton(
+          onPressed: () => Get.back(),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r), side: BorderSide(color: Colors.grey.shade300)),
           ),
+          child: const Text("Cancel", style: TextStyle(color: Colors.black, fontSize: 14)),
         ),
-        SizedBox(width: 16.w),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => controller.createTicket(),
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-              elevation: 0,
-            ),
-            child: Text('Create', style: AppTextStyle.style_14_600(color: AppColors.white)),
+        const SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: () => controller.createTicket(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xffF15A24),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
           ),
+          child: const Text("Submit", style: TextStyle(fontSize: 14)),
         ),
       ],
     );

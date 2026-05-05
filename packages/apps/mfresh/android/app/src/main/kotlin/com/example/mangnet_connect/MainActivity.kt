@@ -1,4 +1,4 @@
-package com.mFresh
+package com.example.mangnet_connect
 
 import android.content.ComponentName
 import android.content.Context
@@ -71,8 +71,8 @@ class MainActivity : FlutterActivity() {
             }
             val success = bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
             if (success) {
-                Log.d("MainActivity", "Service Binding Success")
-                result.success("SUCCESS")
+                Log.d("MainActivity", "Service Bindind Success")
+                result.success("SUCCESS") // Return "SUCCESS" instead of "BINDING SUCCESS."
             } else {
                 Log.e("MainActivity", "Failed to bind to service")
                 result.error("FAILED", "Failed to initiate service binding", null)
@@ -91,7 +91,7 @@ class MainActivity : FlutterActivity() {
             val intent = Intent("com.pinelabs.masterapp.HYBRID_REQUEST").apply {
                 setPackage(PLUTUS_SMART_PACKAGE)
                 putExtra("REQUEST_DATA", transactionData)
-                putExtra("packageName", "com.mFresh")
+                putExtra("packageName", "com.example.magnet_connect")
             }
             startActivityForResult(intent, 1001)
         } catch (e: Exception) {
@@ -108,7 +108,7 @@ class MainActivity : FlutterActivity() {
             val intent = Intent("com.pinelabs.masterapp.HYBRID_REQUEST").apply {
                 setPackage(PLUTUS_SMART_PACKAGE)
                 putExtra("REQUEST_DATA", printData)
-                putExtra("packageName", "com.mFresh")
+                putExtra("packageName", "com.example.magnet_connect")
             }
             startActivityForResult(intent, 1002)
         } catch (e: Exception) {

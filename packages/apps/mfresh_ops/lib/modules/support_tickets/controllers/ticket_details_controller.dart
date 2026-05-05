@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart' as dio;
 
 class TicketDetailsController extends GetxController {
@@ -34,6 +36,14 @@ class TicketDetailsController extends GetxController {
   final selectedAssignee = Rxn<AssigneeModel>();
   final selectedProject = Rxn<SupportProject>();
   final selectedUnit = Rxn<SupportUnit>();
+  
+  // Reminder Logic for Edit
+  final reminderDate = Rxn<DateTime>();
+  final reminderTime = Rxn<TimeOfDay>();
+  final whatsappNotification = true.obs;
+  final appNotification = true.obs;
+  final displayReminder = 'Reminder'.obs;
+  final followUpDate = Rxn<DateTime>();
 
   // Options for dropdowns
   final statusOptions = ['New', 'WIP', 'Hold', 'Awaited', 'Resolved', 'Closed'];
@@ -60,17 +70,21 @@ class TicketDetailsController extends GetxController {
   Future<void> fetchAllData() async {
     try {
       isLoading.value = true;
-      await Future.wait([
-        fetchTicketDetails(),
+      // Fetch core details first to show the screen
+      await fetchTicketDetails();
+      
+      // Fetch metadata in background
+      Future.wait([
         fetchUnits(),
         fetchCategories(),
         fetchProjects(),
         fetchAssignees(),
-      ]);
-      // After fetching details and categories, fetch subcategories
-      if (selectedCategory.value != null) {
-        await fetchSubCategories(selectedCategory.value!.categoryId);
-      }
+      ]).then((_) async {
+         // After fetching categories, fetch subcategories if we have a ticket category
+         if (selectedCategory.value != null) {
+           await fetchSubCategories(selectedCategory.value!.categoryId);
+         }
+      });
     } catch (e) {
       debugPrint('Error fetching all data: $e');
     } finally {
@@ -91,6 +105,16 @@ class TicketDetailsController extends GetxController {
     try {
       final result = await _supportRepository.getSupportCategories();
       categories.assignAll(result);
+      
+      // If we have a ticket, match the category object
+      if (ticketDetail.value?.categoryId != null) {
+        selectedCategory.value = categories.firstWhereOrNull(
+          (c) => c.categoryId == ticketDetail.value!.categoryId
+        );
+        if (selectedCategory.value != null) {
+          fetchSubCategories(selectedCategory.value!.categoryId);
+        }
+      }
     } catch (e) {
       debugPrint('Error fetching categories: $e');
     }
@@ -109,6 +133,13 @@ class TicketDetailsController extends GetxController {
     try {
       final result = await _supportRepository.getSupportSubCategories(categoryId);
       subCategories.assignAll(result);
+      
+      // If we have a ticket, match the subcategory object
+      if (ticketDetail.value?.subcategoryId != null) {
+        selectedSubCategory.value = subCategories.firstWhereOrNull(
+          (sc) => sc.subCategoryId == ticketDetail.value!.subcategoryId
+        );
+      }
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
     }
@@ -160,6 +191,34 @@ class TicketDetailsController extends GetxController {
             action: l['action'] ?? '',
           )).toList());
         }
+        // Map Reminder
+        if (response.reminder != null) {
+          final r = response.reminder!;
+          if (r.reminderDate != null) {
+            reminderDate.value = DateTime.tryParse(r.reminderDate!);
+          }
+          if (r.reminderTime != null) {
+             final timeParts = r.reminderTime?.split(":");
+             if (timeParts != null && timeParts.length >= 2) {
+               int hour = int.parse(timeParts[0]);
+               int minute = int.parse(timeParts[1]);
+               String period = r.timeType ?? "AM";
+               if (period == "PM" && hour != 12) hour += 12;
+               if (period == "AM" && hour == 12) hour = 0;
+               reminderTime.value = TimeOfDay(hour: hour, minute: minute);
+             }
+          }
+          whatsappNotification.value = r.whatsappNotification == "1";
+          appNotification.value = r.appNotification == "1";
+          
+          if (reminderDate.value != null && reminderTime.value != null) {
+             displayReminder.value = "${DateFormat("dd MMM").format(reminderDate.value!)} ${reminderTime.value!.format(Get.context!)}";
+          }
+        }
+
+        if (response.followUp != null && response.followUp!.isNotEmpty) {
+          followUpDate.value = DateTime.tryParse(response.followUp!);
+        }
       }
 
       // Also fetch edit data to get IDs for dropdowns
@@ -191,14 +250,6 @@ class TicketDetailsController extends GetxController {
     selectedImages.removeAt(index);
   }
 
-  void addComment() {
-    if (commentController.text.isNotEmpty || selectedImages.isNotEmpty) {
-      // Add comment logic
-      commentController.clear();
-      selectedImages.clear();
-      Get.snackbar('Success', 'Comment added');
-    }
-  }
 
   Future<void> saveTicket() async {
     if (ticketId.value == null) return;
@@ -259,6 +310,128 @@ class TicketDetailsController extends GetxController {
       case 'High': return '3';
       case 'Top Priority': return '6';
       default: return '2';
+    }
+  }
+
+  Future<void> addComment() async {
+    final text = commentController.text.trim();
+    if (text.isEmpty && selectedImages.isEmpty) {
+      Get.snackbar('Error', 'Please enter a comment or attach an image');
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      final storage = Get.find<StorageService>();
+      final user = storage.getUser();
+      if (user == null) return;
+
+      final Map<String, dynamic> data = {
+        'ticket_id': ticketId.value.toString(),
+        'comment': text,
+        'is_internal': isInternal.value ? '1' : '0',
+        'user_id': user.id.toString(),
+        'folder_path': 'uploads/tickets',
+      };
+
+      final formData = dio.FormData.fromMap(data);
+      for (var file in selectedImages) {
+        formData.files.add(MapEntry(
+          'ticket_images[]',
+          await dio.MultipartFile.fromFile(file.path),
+        ));
+      }
+
+      final response = await _supportRepository.addComment(formData);
+      if (response != null && response['status'] == true) {
+        commentController.clear();
+        selectedImages.clear();
+        isInternal.value = false;
+        Get.snackbar('Success', 'Comment added successfully');
+        fetchTicketDetails();
+      } else {
+        Get.snackbar('Error', response?['message'] ?? 'Failed to add comment');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to add comment: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> updateStatus(String statusName) async {
+    final ticket = ticketDetail.value;
+    if (ticket == null) return;
+
+    // Map label to ID
+    String statusId = "0";
+    switch (statusName) {
+      case "New": statusId = "0"; break;
+      case "WIP": statusId = "1"; break;
+      case "Resolved": statusId = "2"; break;
+      case "Closed": statusId = "3"; break;
+      case "Hold": statusId = "4"; break;
+      case "Awaited": statusId = "5"; break;
+    }
+
+    try {
+      isLoading.value = true;
+      final storage = Get.find<StorageService>();
+      final user = storage.getUser();
+      if (user == null) return;
+
+      final success = await _supportRepository.updateTicketStatus(
+        ticketId: ticket.id,
+        status: statusId,
+        projectId: ticket.projectId ?? 0,
+        userId: user.id,
+        unitId: ticket.unitId ?? 0,
+        assigneeId: ticket.assignedToId ?? 0,
+        creatorId: ticket.createdById ?? 0,
+        categoryId: ticket.categoryId ?? 0,
+        subCategoryId: ticket.subcategoryId,
+        priority: ticket.priorityId ?? "1",
+        subject: ticket.subject ?? "",
+        description: ticket.description ?? "",
+        followUpDate: ticket.followUp ?? "",
+      );
+
+      if (success) {
+        Get.snackbar('Success', 'Status updated to $statusName');
+        fetchTicketDetails();
+      } else {
+        Get.snackbar('Error', 'Failed to update status');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update status: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void shareToWhatsApp() async {
+    final ticket = ticketDetail.value;
+    if (ticket == null) return;
+
+    final String ticketNo = ticket.caseId ?? ticket.id.toString();
+    final String category = ticket.category ?? '-';
+    final String subject = ticket.subject ?? '-';
+    final String unit = ticket.unitNo ?? '-';
+
+    final message = "Ticket Number: $ticketNo\n"
+        "Category: $category\n"
+        "Subject: $subject\n"
+        "Unit: $unit\n"
+        "Link: https://mfreshops.magnetconnects.com/view-ticket/${ticket.id}";
+
+    final url = "whatsapp://send?text=${Uri.encodeComponent(message)}";
+    
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      // Fallback to web link
+      final webUrl = "https://wa.me/?text=${Uri.encodeComponent(message)}";
+      await launchUrl(Uri.parse(webUrl), mode: LaunchMode.externalApplication);
     }
   }
 }

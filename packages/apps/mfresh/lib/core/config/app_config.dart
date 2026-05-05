@@ -17,6 +17,9 @@ class AppConfig {
   static String get envName => isDev ? 'DEVELOPMENT' : 'PRODUCTION';
 
   static String get applicationId => isDev
-      ? '71c39b94aad8435c96f81b1f5324c9c7'
+      ? '6458835ce3374a60af722c4d51f2ba8f'
       : '6458835ce3374a60af722c4d51f2ba8f';
+
+  // PhonePe Environment Toggle - Set to true for Production, false for UAT
+  static const bool isPhonePeProduction = false; 
 }

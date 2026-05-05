@@ -991,7 +991,7 @@ packages:
     source: hosted
     version: "7.0.2"
   pinput:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: pinput
       sha256: c41f42ee301505ae2375ec32871c985d3717bf8aee845620465b286e0140aad2

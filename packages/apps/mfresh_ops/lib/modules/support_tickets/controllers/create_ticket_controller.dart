@@ -6,6 +6,7 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:dio/dio.dart' as dio;
 
 class CreateTicketController extends GetxController {
@@ -31,6 +32,13 @@ class CreateTicketController extends GetxController {
   final projects = <SupportProject>[].obs;
   final assignees = <AssigneeModel>[].obs;
   final selectedAssignee = Rxn<AssigneeModel>();
+  
+  // Reminder Logic
+  final reminderDate = Rxn<DateTime>();
+  final reminderTime = Rxn<TimeOfDay>();
+  final whatsappNotification = true.obs;
+  final appNotification = true.obs;
+  final displayReminder = 'Reminder'.obs;
 
   @override
   void onInit() {
@@ -205,6 +213,10 @@ class CreateTicketController extends GetxController {
           backgroundColor: AppColors.success,
           colorText: AppColors.white,
         );
+        // Refresh ticket list
+        if (Get.isRegistered<SupportTicketsController>()) {
+          Get.find<SupportTicketsController>().fetchTickets();
+        }
       } else {
         Get.snackbar('Error', response?['message'] ?? 'Failed to create ticket');
       }

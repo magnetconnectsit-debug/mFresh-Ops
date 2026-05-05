@@ -1,33 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import '../models/support_category_model.dart';
+import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/data/repositories/support_repository.dart';
 
 class SupportCategoryController extends GetxController {
+  final SupportRepository _supportRepository = Get.find<SupportRepository>();
+  
   final isSearching = false.obs;
+  final isLoading = false.obs;
   final searchController = TextEditingController();
   final categoryNameController = TextEditingController();
 
-  final allCategories = <SupportCategoryModel>[
-    SupportCategoryModel(siNo: 1, name: 'Cleaning'),
-    SupportCategoryModel(siNo: 2, name: 'IT'),
-    SupportCategoryModel(siNo: 3, name: 'Others'),
-    SupportCategoryModel(siNo: 4, name: 'Design'),
-    SupportCategoryModel(siNo: 5, name: 'Advertisement'),
-    SupportCategoryModel(siNo: 6, name: 'Marketing'),
-    SupportCategoryModel(siNo: 7, name: 'Manufacturing'),
-    SupportCategoryModel(siNo: 8, name: 'Implementation'),
-    SupportCategoryModel(siNo: 9, name: 'Construction'),
-    SupportCategoryModel(siNo: 10, name: 'Maintenance'),
-  ].obs;
-
+  final allCategories = <SupportCategoryModel>[].obs;
   final filteredCategories = <SupportCategoryModel>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    filteredCategories.assignAll(allCategories);
+    fetchCategories();
     searchController.addListener(applyFilters);
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      isLoading.value = true;
+      final result = await _supportRepository.fetchAllCategories();
+      allCategories.assignAll(result);
+      applyFilters();
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: "Failed to fetch categories: $e",
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void toggleSearch() {
@@ -42,25 +50,30 @@ class SupportCategoryController extends GetxController {
     final query = searchController.text.toLowerCase();
     filteredCategories.assignAll(
       allCategories.where((cat) {
-        return query.isEmpty || cat.name.toLowerCase().contains(query);
+        return query.isEmpty || cat.categoryName.toLowerCase().contains(query);
       }).toList(),
     );
   }
 
-  void addCategory() {
+  Future<void> addCategory() async {
     if (categoryNameController.text.trim().isNotEmpty) {
-      final newCat = SupportCategoryModel(
-        siNo: allCategories.length + 1,
-        name: categoryNameController.text.trim(),
-      );
-      allCategories.add(newCat);
-      applyFilters();
-      categoryNameController.clear();
-      Get.back();
-      AppCommonToastMessage.show(
-        message: "Category added successfully!",
-        type: ToastType.success,
-      );
+      try {
+        final success = await _supportRepository.addCategory(categoryNameController.text.trim());
+        if (success) {
+          fetchCategories();
+          categoryNameController.clear();
+          Get.back();
+          AppCommonToastMessage.show(
+            message: "Category added successfully!",
+            type: ToastType.success,
+          );
+        }
+      } catch (e) {
+        AppCommonToastMessage.show(
+          message: "Failed to add category: $e",
+          type: ToastType.error,
+        );
+      }
     } else {
       AppCommonToastMessage.show(
         message: "Please enter category name",
@@ -69,37 +82,44 @@ class SupportCategoryController extends GetxController {
     }
   }
 
-  void editCategory(int index, String newName) {
+  Future<void> editCategory(int index, String newName) async {
     if (newName.trim().isNotEmpty) {
-      final actualIndex = allCategories.indexWhere((cat) => cat.siNo == filteredCategories[index].siNo);
-      if (actualIndex != -1) {
-        allCategories[actualIndex] = SupportCategoryModel(
-          siNo: allCategories[actualIndex].siNo,
-          name: newName.trim(),
-        );
-        applyFilters();
-        categoryNameController.clear();
-        Get.back();
+      try {
+        final category = filteredCategories[index];
+        final success = await _supportRepository.updateCategory(category.id, newName.trim());
+        if (success) {
+          fetchCategories();
+          categoryNameController.clear();
+          Get.back();
+          AppCommonToastMessage.show(
+            message: "Category updated successfully!",
+            type: ToastType.success,
+          );
+        }
+      } catch (e) {
         AppCommonToastMessage.show(
-          message: "Category updated successfully!",
-          type: ToastType.success,
+          message: "Failed to update category: $e",
+          type: ToastType.error,
         );
       }
     }
   }
 
-  void deleteCategory(int index) {
-    final actualIndex = allCategories.indexWhere((cat) => cat.siNo == filteredCategories[index].siNo);
-    if (actualIndex != -1) {
-      allCategories.removeAt(actualIndex);
-      // Re-assign SI numbers for consistency in mock view
-      for (int i = 0; i < allCategories.length; i++) {
-        allCategories[i] = SupportCategoryModel(siNo: i + 1, name: allCategories[i].name);
+  Future<void> deleteCategory(int index) async {
+    try {
+      final category = filteredCategories[index];
+      final success = await _supportRepository.deleteCategory(category.id);
+      if (success) {
+        fetchCategories();
+        AppCommonToastMessage.show(
+          message: "Category deleted successfully!",
+          type: ToastType.success,
+        );
       }
-      applyFilters();
+    } catch (e) {
       AppCommonToastMessage.show(
-        message: "Category deleted successfully!",
-        type: ToastType.success,
+        message: "Failed to delete category: $e",
+        type: ToastType.error,
       );
     }
   }

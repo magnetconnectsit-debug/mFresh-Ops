@@ -17,6 +17,9 @@ class SupportTicketListItem {
   final String? project;
   final String? unitNo;
   final String? assignedTo;
+  final String? comment;
+  final String? followUp;
+  final String? district;
 
   SupportTicketListItem({
     required this.id,
@@ -37,6 +40,9 @@ class SupportTicketListItem {
     this.project,
     this.unitNo,
     this.assignedTo,
+    this.comment,
+    this.followUp,
+    this.district,
   });
 
   factory SupportTicketListItem.fromJson(Map<String, dynamic> json) {
@@ -59,6 +65,9 @@ class SupportTicketListItem {
       project: json['project'],
       unitNo: json['qrcodeId']?.toString(),
       assignedTo: json['assigned_to']?.toString(),
+      comment: json['comment'],
+      followUp: json['follow_up'],
+      district: json['district'],
     );
   }
 }
@@ -73,16 +82,27 @@ class SupportTicketDetail {
   final String? project;
   final String? unitNo;
   final int? createdBy;
+  final String? userName;
   final String? subject;
   final String? description;
   final List<dynamic>? cashierImages;
+  final List<String>? attachments;
   final String? followUp;
   final String? assignedTo;
+  final String? assignedToName;
   final String? createdOn;
   final String? modifiedOn;
+  final String? resolvedOn;
   final String? tktAge;
   final List<dynamic>? comments;
   final List<dynamic>? logs;
+  final int? projectId;
+  final int? unitId;
+  final int? categoryId;
+  final int? subcategoryId;
+  final String? priorityId;
+  final int? assignedToId;
+  final int? createdById;
   final dynamic reminderData;
 
   SupportTicketDetail({
@@ -95,18 +115,39 @@ class SupportTicketDetail {
     this.project,
     this.unitNo,
     this.createdBy,
+    this.userName,
     this.subject,
     this.description,
     this.cashierImages,
+    this.attachments,
     this.followUp,
     this.assignedTo,
+    this.assignedToName,
     this.createdOn,
     this.modifiedOn,
+    this.resolvedOn,
     this.tktAge,
     this.comments,
     this.logs,
+    this.projectId,
+    this.unitId,
+    this.categoryId,
+    this.subcategoryId,
+    this.priorityId,
+    this.assignedToId,
+    this.createdById,
     this.reminderData,
   });
+
+  // Convenience getters to match view
+  int get ticketId => id;
+  String? get categoryName => category;
+  String? get subCategoryName => subcategory;
+  String? get projectName => project;
+  String? get createdAt => createdOn;
+  String? get updatedAt => modifiedOn;
+  String? get ticketAge => tktAge;
+  SupportReminder? get reminder => reminderData as SupportReminder?;
 
   factory SupportTicketDetail.fromJson(Map<String, dynamic> json) {
     return SupportTicketDetail(
@@ -119,16 +160,27 @@ class SupportTicketDetail {
       project: json['project'],
       unitNo: json['unit_no'],
       createdBy: json['created_by'],
+      userName: json['user_name'],
       subject: json['subject'],
       description: json['description'],
       cashierImages: json['cashier_images'],
+      attachments: json['attachments'] != null ? List<String>.from(json['attachments']) : [],
       followUp: json['follow_up'],
       assignedTo: json['assigned_to']?.toString(),
+      assignedToName: json['assigned_to_name'],
       createdOn: json['created_on'],
       modifiedOn: json['modified_on'],
+      resolvedOn: json['resolved_on'],
       tktAge: json['tkt_age'],
       comments: json['comments'],
       logs: json['logs'],
+      projectId: json['projectid'],
+      unitId: json['unit_id'],
+      categoryId: json['categoryid'],
+      subcategoryId: json['subcategoryid'],
+      priorityId: json['priorityid']?.toString(),
+      assignedToId: json['assigned_to'],
+      createdById: json['created_by'],
       reminderData: json['reminderdata'] != null
           ? SupportReminder.fromJson(json['reminderdata'])
           : null,

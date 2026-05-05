@@ -13,8 +13,8 @@ class AppConfig {
   static AppEnvironment get environment => isDev ? AppEnvironment.dev : AppEnvironment.prod;
 
   static String get baseUrl => isDev 
-      ? 'https://testapis.magnetconnects.com/public/api/' 
-      : 'https://apis.magnetconnects.com/public/api/';
+      ? DevEnv.baseUrl 
+      : ProdEnv.baseUrl;
 
   static String get envName => isDev ? 'DEVELOPMENT' : 'PRODUCTION';
 }

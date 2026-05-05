@@ -51,16 +51,19 @@ Future<void> initServices() async {
   debugPrint('Initializing services...');
 
   try {
-    await Firebase.initializeApp();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    String? token = await FirebaseMessaging.instance.getToken();
-    debugPrint("========================================");
-    debugPrint("FCM TOKEN: $token");
-    debugPrint("========================================");
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      String? token = await FirebaseMessaging.instance.getToken();
+      debugPrint("FCM TOKEN: $token");
+    } catch (e) {
+      debugPrint("Firebase/Messaging not available: $e");
+    }
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
-    debugPrint("Ensure google-services.json is present in android/app/ and plugins are configured.");
+    debugPrint(
+      "Ensure google-services.json is present in android/app/ and plugins are configured.",
+    );
   }
 
   await SystemChrome.setPreferredOrientations([
@@ -76,12 +79,12 @@ Future<void> initServices() async {
   debugPrint('🚀 [mfresh] Initializing in $envName mode');
   debugPrint('🔗 [mfresh] Active API: $activeUrl');
 
-  final RemoteConfigService remoteConfigService = await Get.putAsync(() => RemoteConfigService().init(
-    defaultBaseUrl: activeUrl,
-  ));
+  final RemoteConfigService remoteConfigService = await Get.putAsync(
+    () => RemoteConfigService().init(defaultBaseUrl: activeUrl),
+  );
 
-  final String fetchedBaseUrl = AppConfig.isDev 
-      ? AppConfig.baseUrl 
+  final String fetchedBaseUrl = AppConfig.isDev
+      ? AppConfig.baseUrl
       : remoteConfigService.getBaseUrl();
 
   await storageService.saveBaseUrl(fetchedBaseUrl);
@@ -91,18 +94,22 @@ Future<void> initServices() async {
   Get.put(ErrorHandler());
   Get.put(ConnectivityService());
 
-  await Get.putAsync(() => DioClient().init(publicPaths: [
-    AppConstants.login,
-    AppConstants.sendOtp,
-    AppConstants.verifyOtp,
-  ]));
+  await Get.putAsync(
+    () => DioClient().init(
+      publicPaths: [
+        AppConstants.login,
+        AppConstants.sendOtp,
+        AppConstants.verifyOtp,
+      ],
+    ),
+  );
 
   Get.put(ApiService());
   Get.put(AuthRepository());
   Get.put(UserRepository());
   Get.put(CommonRepository());
   Get.put(PlutusService());
-  PhonePeService.isDevMode = AppConfig.isDev;
+  PhonePeService.init(isProduction: AppConfig.isPhonePeProduction);
   Get.put(PhonePeService());
   await Get.putAsync(() => NotificationService().init());
   Get.put(AppUpdateService());
@@ -199,12 +206,3 @@ class AppCommonErrorWidget extends StatelessWidget {
   }
 }
 // endregion
-
-
-
-
-
-
-
-
-

@@ -67,14 +67,14 @@ class ServiceDetailsController extends GetxController {
       location.value = args['location']?.toString() ?? '';
       unitImage.value = args['unitImage']?.toString() ?? '';
     }
-    
+
     // Pre-fill user info
     final user = _profileController.user.value;
     if (user != null) {
       nameController.text = user.name ?? '';
       mobileController.text = user.mob ?? '';
     }
-    
+
     fetchServices();
   }
 
@@ -92,15 +92,20 @@ class ServiceDetailsController extends GetxController {
       );
 
       services.assignAll(
-        fetchedServices.map((s) => ServiceItem(
-              assignServiceId: s.assignServiceId,
-              name: s.serviceName,
-              price: s.price.toInt(),
-              image: s.imagePath,
-            )),
+        fetchedServices.map(
+          (s) => ServiceItem(
+            assignServiceId: s.assignServiceId,
+            name: s.serviceName,
+            price: s.price.toInt(),
+            image: s.imagePath,
+          ),
+        ),
       );
     } catch (e) {
-      AppCommonToastMessage.show(message: "Failed to fetch services: $e", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Failed to fetch services: $e",
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -108,7 +113,7 @@ class ServiceDetailsController extends GetxController {
 
   Future<void> verifyMemberPhone(String phone) async {
     if (phone.length != 10) return;
-    
+
     try {
       isVerifyingMember.value = true;
       final isValid = await _commonRepository.validateMemberPhone(phone: phone);
@@ -116,10 +121,16 @@ class ServiceDetailsController extends GetxController {
         final sent = await _commonRepository.sendMemberOtp(phone: phone);
         isOtpSent.value = sent;
         if (sent) {
-          AppCommonToastMessage.show(message: "OTP sent successfully", type: ToastType.success);
+          AppCommonToastMessage.show(
+            message: "OTP sent successfully",
+            type: ToastType.success,
+          );
         }
       } else {
-        AppCommonToastMessage.show(message: "Member phone number not found", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: "Member phone number not found",
+          type: ToastType.error,
+        );
       }
     } finally {
       isVerifyingMember.value = false;
@@ -138,9 +149,15 @@ class ServiceDetailsController extends GetxController {
       );
       isOtpVerified.value = verified;
       if (verified) {
-        AppCommonToastMessage.show(message: "OTP verified successfully", type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: "OTP verified successfully",
+          type: ToastType.success,
+        );
       } else {
-        AppCommonToastMessage.show(message: "Invalid OTP", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: "Invalid OTP",
+          type: ToastType.error,
+        );
       }
     } finally {
       isLoading.value = false;
@@ -168,52 +185,66 @@ class ServiceDetailsController extends GetxController {
     // 2. HARD VALIDATION
     if (total <= 0) {
       AppCommonToastMessage.show(
-          message: "Invalid amount", type: ToastType.error);
+        message: "Invalid amount",
+        type: ToastType.error,
+      );
       return;
     }
 
     if (phone.isEmpty || phone.length < 10) {
       AppCommonToastMessage.show(
-          message: "Please enter a valid phone number", type: ToastType.error);
+        message: "Please enter a valid phone number",
+        type: ToastType.error,
+      );
       return;
     }
 
-    final selectedServices = services.where((s) => s.quantity.value > 0).toList();
+    final selectedServices = services
+        .where((s) => s.quantity.value > 0)
+        .toList();
     if (selectedServices.isEmpty) {
       AppCommonToastMessage.show(
-          message: "Cart empty, cannot proceed booking", type: ToastType.error);
+        message: "Cart empty, cannot proceed booking",
+        type: ToastType.error,
+      );
       return;
     }
 
     // Member validation
     if (!isCustomer.value && !isOtpVerified.value) {
-      AppCommonToastMessage.show(message: "Please verify membership OTP first", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Please verify membership OTP first",
+        type: ToastType.error,
+      );
       return;
     }
 
     try {
       isLoading.value = true;
 
-      
       String paymentMode = "1"; // Cash
       if (isOnline.value) paymentMode = "2"; // Online
       if (isExternalQr) paymentMode = "3"; // External QR
 
       final cartItems = services
           .where((s) => s.quantity.value > 0)
-          .map((s) => {
-                "Assign_Service_Id": s.assignServiceId,
-                "service_quantity": s.quantity.value.toString(),
-                "Price": s.price.toString(),
-                "Total_price": (s.price * s.quantity.value).toString(),
-              })
+          .map(
+            (s) => {
+              "Assign_Service_Id": s.assignServiceId,
+              "service_quantity": s.quantity.value.toString(),
+              "Price": s.price.toString(),
+              "Total_price": (s.price * s.quantity.value).toString(),
+            },
+          )
           .toList();
 
       final body = {
         "Unit_no": unitNo.value,
         "User_Id": _profileController.user.value?.id.toString() ?? "",
         "phone_no": phone,
-        "Add_phone_no": !isCustomer.value ? memberMobileController.text.trim() : "",
+        "Add_phone_no": !isCustomer.value
+            ? memberMobileController.text.trim()
+            : "",
         "User_name": name,
         "total_amount": total.toString(),
         "Payment_status": "Pending",
@@ -226,43 +257,73 @@ class ServiceDetailsController extends GetxController {
       if (response != null) {
         final bookingId = response['booking_id'];
         final encryptBookingId = response['encrypt_booking_id'];
-        
-        AppCommonToastMessage.show(message: "Booking initiated successfully", type: ToastType.success);
+
+        AppCommonToastMessage.show(
+          message: "Booking initiated successfully",
+          type: ToastType.success,
+        );
 
         // Handle Admin/Cash or External QR auto-success if role is 3
-        if (_profileController.user.value?.role == "3" && (!isOnline.value || isExternalQr)) {
+        if (_profileController.user.value?.role == "3" &&
+            (!isOnline.value || isExternalQr)) {
           await _confirmSuccess(bookingId, encryptBookingId);
         } else if (isOnline.value && !isExternalQr) {
           // Handle PhonePe Payment
-          await _handlePhonePePayment(bookingId, encryptBookingId, total.toDouble(), phone);
+          await _handlePhonePePayment(
+            bookingId,
+            encryptBookingId,
+            total.toDouble(),
+            phone,
+          );
         }
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: "Booking failed: $e", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Booking failed: $e",
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> _confirmSuccess(String bookingId, String encryptBookingId, {Map<String, dynamic>? phonePeData}) async {
+  Future<void> _confirmSuccess(
+    String bookingId,
+    String encryptBookingId, {
+    Map<String, dynamic>? phonePeData,
+  }) async {
     final successData = {
       "userId": _profileController.user.value?.id.toString() ?? "",
       "bookingId": bookingId,
       "Payment_status": phonePeData?['code'] ?? "PAYMENT_SUCCESS",
-      "provider_reference_id": phonePeData?['providerReferenceId'] ?? "ADMIN_MANUAL_CONFIRM",
-      "check_sum": phonePeData?['checksum'] ?? phonePeData?['providerReferenceId'] ?? "VERIFIED_DIRECT",
+      "provider_reference_id":
+          phonePeData?['providerReferenceId'] ?? "ADMIN_MANUAL_CONFIRM",
+      "check_sum":
+          phonePeData?['checksum'] ??
+          phonePeData?['providerReferenceId'] ??
+          "VERIFIED_DIRECT",
     };
 
-    final confirmed = await _commonRepository.confirmSuccessBooking(data: successData);
+    final confirmed = await _commonRepository.confirmSuccessBooking(
+      data: successData,
+    );
     if (confirmed) {
-      Get.toNamed(AppRoutes.bookingConfirmed, arguments: {
-        'bookingId': bookingId,
-        'encryptBookingId': encryptBookingId,
-      });
+      Get.toNamed(
+        AppRoutes.bookingConfirmed,
+        arguments: {
+          'bookingId': bookingId,
+          'encryptBookingId': encryptBookingId,
+        },
+      );
     }
   }
 
-  Future<void> _handlePhonePePayment(String bookingId, String encryptBookingId, double amount, String phone) async {
+  Future<void> _handlePhonePePayment(
+    String bookingId,
+    String encryptBookingId,
+    double amount,
+    String phone,
+  ) async {
     try {
       final redirectUrl = await _phonePeService.initiatePayment(
         bookingId: bookingId,
@@ -272,14 +333,17 @@ class ServiceDetailsController extends GetxController {
       );
 
       if (redirectUrl != null) {
-        final result = await Get.toNamed(AppRoutes.webView, arguments: {
-          'url': redirectUrl,
-          'title': 'PhonePe Payment',
-          'redirectUrlToCapture': AppConfig.isDev 
-              ? 'https://testenv.magnetconnects.com/' 
-              : 'https://magnetconnects.com/',
-        });
-        
+        final result = await Get.toNamed(
+          AppRoutes.webView,
+          arguments: {
+            'url': redirectUrl,
+            'title': 'PhonePe Payment',
+            'redirectUrlToCapture': AppConfig.isDev
+                ? 'https://testenv.magnetconnects.com/'
+                : 'https://magnetconnects.com/',
+          },
+        );
+
         if (result != null && result is Map<String, dynamic>) {
           debugPrint('PhonePe Response: $result');
           String responseCode = result['code']?.toString() ?? "";
@@ -288,37 +352,48 @@ class ServiceDetailsController extends GetxController {
 
           // 1. Check if we got clear SUCCESS from the URL
           if (responseCode == 'PAYMENT_SUCCESS' && providerRefId.isNotEmpty) {
-            await _confirmSuccess(bookingId, encryptBookingId,
-                phonePeData: result);
+            await _confirmSuccess(
+              bookingId,
+              encryptBookingId,
+              phonePeData: result,
+            );
             return;
           }
 
           // 2. FALLBACK: Verify with PhonePe directly (Most Secure)
           // This ensures we don't rely on the URL params or the backend history table.
           AppCommonToastMessage.show(
-              message: "Verifying with PhonePe...", type: ToastType.info);
+            message: "Verifying with PhonePe...",
+            type: ToastType.info,
+          );
           final phonePeStatus = await _phonePeService.checkPaymentStatus(
-              merchantTransactionId: encryptBookingId);
+            merchantTransactionId: encryptBookingId,
+          );
 
           if (phonePeStatus != null) {
             final String code = phonePeStatus['code']?.toString() ?? "";
             final realData = phonePeStatus['data'] ?? {};
-            
+
             // Construct the response map for logging/debugging
             // Capture params from WebView if available
-            final Map<String, dynamic> capturedParams = result is Map<String, dynamic> ? result : {};
-            
+            final Map<String, dynamic> capturedParams =
+                result is Map<String, dynamic> ? result : {};
+
             // Construct the response map for logging/debugging
             final responseMap = {
               'success': phonePeStatus['success'],
               'code': code,
               'message': phonePeStatus['message'],
-              'providerReferenceId': realData['transactionId'] ?? capturedParams['transactionId'],
+              'providerReferenceId':
+                  realData['transactionId'] ?? capturedParams['transactionId'],
               'amount': realData['amount'],
               'merchantTransactionId': realData['merchantTransactionId'],
               'paymentState': realData['state'],
               'responseCode': realData['responseCode'],
-              'checksum': capturedParams['checksum'] ?? phonePeStatus['calculated_checksum'] ?? realData['transactionId'],
+              'checksum':
+                  capturedParams['checksum'] ??
+                  phonePeStatus['calculated_checksum'] ??
+                  realData['transactionId'],
             };
 
             debugPrint('=========================================');
@@ -328,7 +403,11 @@ class ServiceDetailsController extends GetxController {
 
             if (phonePeStatus['success'] == true && code == 'PAYMENT_SUCCESS') {
               // PhonePe confirms success!
-              await _confirmSuccess(bookingId, encryptBookingId, phonePeData: responseMap);
+              await _confirmSuccess(
+                bookingId,
+                encryptBookingId,
+                phonePeData: responseMap,
+              );
             } else {
               AppCommonToastMessage.show(
                 message: "Payment Status: ${realData['state'] ?? code}",
@@ -336,29 +415,51 @@ class ServiceDetailsController extends GetxController {
               );
             }
           } else {
-             // Fallback to Server check if PhonePe API fails
-             final bookingDetails = await _commonRepository.getBookingDetails(bookingId: bookingId);
-             if (bookingDetails != null && (bookingDetails.paymentStatus.toLowerCase() == 'paid' || bookingDetails.paymentStatus.toLowerCase() == 'success')) {
-                await _confirmSuccess(bookingId, encryptBookingId, phonePeData: {'code': 'PAYMENT_SUCCESS'});
-             } else {
-                AppCommonToastMessage.show(message: "Verification failed. Please contact support.", type: ToastType.error);
-             }
+            // Fallback to Server check if PhonePe API fails
+            final bookingDetails = await _commonRepository.getBookingDetails(
+              bookingId: bookingId,
+            );
+            if (bookingDetails != null &&
+                (bookingDetails.paymentStatus.toLowerCase() == 'paid' ||
+                    bookingDetails.paymentStatus.toLowerCase() == 'success')) {
+              await _confirmSuccess(
+                bookingId,
+                encryptBookingId,
+                phonePeData: {'code': 'PAYMENT_SUCCESS'},
+              );
+            } else {
+              AppCommonToastMessage.show(
+                message: "Verification failed. Please contact support.",
+                type: ToastType.error,
+              );
+            }
           }
         } else {
           // User returned without completion or redirect not caught
           AppCommonToastMessage.show(
-              message: "Payment was not completed", type: ToastType.info);
+            message: "Payment was not completed",
+            type: ToastType.info,
+          );
         }
       } else {
-        AppCommonToastMessage.show(message: "Failed to initiate PhonePe payment", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: "Failed to initiate PhonePe payment",
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: "Payment Error: $e", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Payment Error: $e",
+        type: ToastType.error,
+      );
     }
   }
 
-
-  Future<void> _handlePlutusTransaction(String bookingId, String encryptBookingId, int amount) async {
+  Future<void> _handlePlutusTransaction(
+    String bookingId,
+    String encryptBookingId,
+    int amount,
+  ) async {
     final payload = {
       "Detail": {
         "BillingRefNo": bookingId,
@@ -369,8 +470,8 @@ class ServiceDetailsController extends GetxController {
         "ApplicationId": AppConfig.applicationId,
         "UserId": "user1234",
         "MethodId": "1001",
-        "VersionNo": "1.0"
-      }
+        "VersionNo": "1.0",
+      },
     };
 
     try {
@@ -382,12 +483,21 @@ class ServiceDetailsController extends GetxController {
         await _confirmSuccess(bookingId, encryptBookingId);
       } else if (responseMsg == 'TRANSACTION INITIATED CHECK GET STATUS') {
         // Navigate to status check screen if implemented
-        AppCommonToastMessage.show(message: "Transaction initiated. Please check status.", type: ToastType.info);
+        AppCommonToastMessage.show(
+          message: "Transaction initiated. Please check status.",
+          type: ToastType.info,
+        );
       } else {
-        AppCommonToastMessage.show(message: "Transaction failed: $responseMsg", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: "Transaction failed: $responseMsg",
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: "Transaction Error: $e", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Transaction Error: $e",
+        type: ToastType.error,
+      );
     }
   }
 

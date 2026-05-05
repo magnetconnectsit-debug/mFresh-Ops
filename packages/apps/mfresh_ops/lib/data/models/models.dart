@@ -2,4 +2,7 @@ export 'assignee_model.dart';
 export 'user.dart';
 export 'support/support_dropdown_models.dart';
 export 'support/support_ticket_model.dart';
+export 'support/support_category_model.dart';
+export 'support/support_project_model.dart';
+export 'support/support_subcategory_model.dart';
 export 'tasks/task_models.dart';

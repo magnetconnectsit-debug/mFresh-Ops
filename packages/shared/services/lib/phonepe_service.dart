@@ -6,9 +6,13 @@ import 'package:get/get.dart' hide Response;
 
 class PhonePeService extends GetxService {
   final Dio _dio = Dio();
-  
-  static bool isDevMode = true;
-  bool get _isProduction => !isDevMode;
+
+  static bool _isDevMode = true;
+  bool get _isProduction => !_isDevMode;
+
+  static void init({required bool isProduction}) {
+    _isDevMode = !isProduction;
+  }
 
   // Production Credentials
   static const String _prodSaltKey = 'dae92370-2265-4768-8c5b-e8fb8e2f6797';
@@ -21,17 +25,22 @@ class PhonePeService extends GetxService {
   static const String _uatSaltKey = '14fa5465-f8a7-443f-8477-f986b8fcfde9';
   static const String _uatSaltIndex = '1';
   static const String _uatMerchantId = 'PGTESTPAYUAT77';
-  static const String _uatApiBaseUrl = 'https://api-preprod.phonepe.com/apis/pg-sandbox';
-  static const String _uatRedirectUrl = 'https://testenv.magnetconnects.com/payment/redirect';
-  static const String _uatCallbackUrl = 'https://testenv.magnetconnects.com/payment/callback';
+  static const String _uatApiBaseUrl =
+      'https://api-preprod.phonepe.com/apis/pg-sandbox';
+  static const String _uatRedirectUrl =
+      'https://testenv.magnetconnects.com/payment/redirect';
+  static const String _uatCallbackUrl =
+      'https://testenv.magnetconnects.com/payment/callback';
 
   // Dynamic getters
   String get _saltKey => _isProduction ? _prodSaltKey : _uatSaltKey;
   String get _saltIndex => _isProduction ? _prodSaltIndex : _uatSaltIndex;
   String get _merchantId => _isProduction ? _prodMerchantId : _uatMerchantId;
   String get _apiBaseUrl => _isProduction ? _prodApiBaseUrl : _uatApiBaseUrl;
-  String get _redirectUrl => _isProduction ? _prodWhiteListedDomain : _uatRedirectUrl;
-  String get _callbackUrl => _isProduction ? _prodWhiteListedDomain : _uatCallbackUrl;
+  String get _redirectUrl =>
+      _isProduction ? _prodWhiteListedDomain : _uatRedirectUrl;
+  String get _callbackUrl =>
+      _isProduction ? _prodWhiteListedDomain : _uatCallbackUrl;
 
   Future<String?> initiatePayment({
     required String bookingId,
@@ -53,7 +62,7 @@ class PhonePeService extends GetxService {
         "redirectMode": "POST",
         "callbackUrl": _callbackUrl,
         "mobileNumber": phone,
-        "paymentInstrument": {"type": "PAY_PAGE"}
+        "paymentInstrument": {"type": "PAY_PAGE"},
       };
 
       String payloadJson = jsonEncode(payload);
@@ -61,7 +70,7 @@ class PhonePeService extends GetxService {
 
       // Standard path for checksum is always /pg/v1/pay
       String apiPath = "/pg/v1/pay";
-      
+
       String checksumStr = "$encodedPayload$apiPath$_saltKey";
       var bytes = utf8.encode(checksumStr);
       var digest = sha256.convert(bytes);
@@ -73,10 +82,7 @@ class PhonePeService extends GetxService {
         "$_apiBaseUrl/pg/v1/pay",
         data: {"request": encodedPayload},
         options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'X-VERIFY': xVerify,
-          },
+          headers: {'Content-Type': 'application/json', 'X-VERIFY': xVerify},
         ),
       );
 
@@ -91,8 +97,8 @@ class PhonePeService extends GetxService {
       return null;
     } catch (e) {
       if (e is DioException) {
-         debugPrint("PhonePe Error Status: ${e.response?.statusCode}");
-         debugPrint("PhonePe Error Body: ${e.response?.data}");
+        debugPrint("PhonePe Error Status: ${e.response?.statusCode}");
+        debugPrint("PhonePe Error Body: ${e.response?.data}");
       }
       debugPrint("PhonePe Initiation Failed: $e");
       return null;
@@ -122,7 +128,9 @@ class PhonePeService extends GetxService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(response.data);
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          response.data,
+        );
         result['calculated_checksum'] = xVerify;
         return result;
       }

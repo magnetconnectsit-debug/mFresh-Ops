@@ -31,6 +31,12 @@ import 'package:mfresh_ops/modules/inventory/views/item_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_room_screen.dart';
 import 'package:mfresh_ops/modules/home/views/notification_screen.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_category_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_subcategory_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_projects_controller.dart';
 
 class AppPages {
   static final pages = [
@@ -58,16 +64,19 @@ class AppPages {
     GetPage(
       name: AppRoutes.supportTickets,
       page: () => const SupportTicketsScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => SupportTicketsController())),
     ),
     GetPage(name: AppRoutes.createTask, page: () => const CreateTaskScreen()),
     GetPage(name: AppRoutes.taskReview, page: () => const TaskReviewScreen()),
     GetPage(
       name: AppRoutes.createSupportTicket,
       page: () => const CreateTicketScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => CreateTicketController())),
     ),
     GetPage(
       name: AppRoutes.ticketDetails,
       page: () => const TicketDetailsScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TicketDetailsController())),
     ),
     GetPage(
       name: AppRoutes.supportDashboard,
@@ -76,17 +85,24 @@ class AppPages {
     GetPage(
       name: AppRoutes.supportCategory,
       page: () => const SupportCategoryScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => SupportCategoryController())),
     ),
     GetPage(
       name: AppRoutes.supportSubCategory,
       page: () => const SupportSubCategoryScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => SupportSubCategoryController())),
     ),
     GetPage(
       name: AppRoutes.supportProjects,
       page: () => const SupportProjectsScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => SupportProjectsController())),
     ),
     GetPage(name: AppRoutes.profile, page: () => const ProfileScreen()),
-    GetPage(name: AppRoutes.editTicket, page: () => const EditTicketScreen()),
+    GetPage(
+      name: AppRoutes.editTicket,
+      page: () => const EditTicketScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TicketDetailsController())),
+    ),
     GetPage(
       name: AppRoutes.storeInventory,
       page: () => const StoreInventoryScreen(),

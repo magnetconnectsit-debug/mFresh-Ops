@@ -100,11 +100,52 @@ class SupportRepository extends GetxService {
       final response = await _apiService.post(
         AppConstants.viewSupportTicket,
         data: {"main_id": mainId.toString()},
+        options: dio.Options(contentType: dio.Headers.jsonContentType),
       );
       if (response != null && response['status'] == true) {
         return SupportTicketDetail.fromJson(response['data']);
       }
       return null;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updateTicketStatus({
+    required int ticketId,
+    required String status,
+    required int projectId,
+    required int userId,
+    required int unitId,
+    required int assigneeId,
+    required int creatorId,
+    required int categoryId,
+    required int? subCategoryId,
+    required String priority,
+    required String subject,
+    required String description,
+    required String followUpDate,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.updateSupportTicket,
+        data: {
+          "unit": unitId.toString(),
+          "ticket_id": ticketId.toString(),
+          "categoryid": categoryId.toString(),
+          "subcategoryid": subCategoryId.toString(),
+          "projectid": projectId.toString(),
+          "priority": priority,
+          "resolved_status": status,
+          "subject": subject,
+          "description": description,
+          "assigned_to": assigneeId.toString(),
+          "created_by": creatorId.toString(),
+          "userid": userId.toString(),
+          "follow_up": followUpDate,
+        },
+      );
+      return response != null && response['status'] == true;
     } catch (e) {
       rethrow;
     }
@@ -142,6 +183,193 @@ class SupportRepository extends GetxService {
       final response = await _apiService.post(
         AppConstants.updateSupportTicket,
         data: formData,
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Comments
+  Future<bool> addTicketComment(dio.FormData formData) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.createSupportTicketComment,
+        data: formData,
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updateTicketComment(dio.FormData formData) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.updateSupportTicketComment,
+        data: formData,
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Category Management
+  Future<List<SupportCategoryModel>> fetchAllCategories() async {
+    try {
+      final response = await _apiService.post(AppConstants.categoryList);
+      if (response != null && response['status'] == true) {
+        final List data = response['data'] ?? [];
+        return data.map((e) => SupportCategoryModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> addCategory(String name) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.categoryStore,
+        data: {'m_category': name},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updateCategory(int id, String name) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.categoryUpdate,
+        data: {'id': id, 'm_category': name},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteCategory(int id) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.categoryDelete,
+        data: {'id': id},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Project Management
+  Future<List<SupportProjectModel>> fetchAllProjects() async {
+    try {
+      final response = await _apiService.post(AppConstants.projectList);
+      if (response != null && response['status'] == true) {
+        final List data = response['data'] ?? [];
+        return data.map((e) => SupportProjectModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> addProject(String name) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.projectStore,
+        data: {'project': name},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updateProject(int id, String name) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.projectUpdate,
+        data: {'id': id, 'project': name},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteProject(int id) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.projectDelete,
+        data: {'id': id},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Subcategory Management
+  Future<List<SupportSubCategoryModel>> fetchAllSubCategories() async {
+    try {
+      final response = await _apiService.post(AppConstants.subcategoryList);
+      if (response != null && response['status'] == true) {
+        final List data = response['data'] ?? [];
+        return data.map((e) => SupportSubCategoryModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> addSubCategory(int catId, String name) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.subcategoryStore,
+        data: {'cat_id': catId, 'sub_cat': name},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updateSubCategory(int id, int catId, String name) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.subcategoryUpdate,
+        data: {'id': id, 'cat_id': catId, 'sub_cat': name},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteSubCategory(int id) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.subcategoryDelete,
+        data: {'id': id},
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> addComment(dio.FormData data) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.createSupportTicketComment,
+        data: data,
       );
       return response;
     } catch (e) {

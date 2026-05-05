@@ -8,7 +8,7 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import '../controllers/support_projects_controller.dart';
-import '../models/support_project_model.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class SupportProjectsScreen extends StatelessWidget {
   const SupportProjectsScreen({super.key});
@@ -40,14 +40,16 @@ class SupportProjectsScreen extends StatelessWidget {
       ),
       drawer: const CommonSidebar(),
       body: Obx(
-        () => ListView.builder(
-          padding: EdgeInsets.all(16.r),
-          itemCount: controller.allProjects.length,
-          itemBuilder: (context, index) {
-            final project = controller.allProjects[index];
-            return _buildProjectCard(context, controller, project, index);
-          },
-        ),
+        () => controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                padding: EdgeInsets.all(16.r),
+                itemCount: controller.filteredProjects.length,
+                itemBuilder: (context, index) {
+                  final project = controller.filteredProjects[index];
+                  return _buildProjectCard(context, controller, project, index);
+                },
+              ),
       ),
     );
   }
@@ -81,14 +83,14 @@ class SupportProjectsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: Text(
-              project.siNo.toString(),
+              project.id.toString(),
               style: AppTextStyle.style_12_700(color: AppColors.primary),
             ),
           ),
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              project.name,
+              project.project,
               style: AppTextStyle.style_14_600(color: AppColors.black),
             ),
           ),
@@ -144,7 +146,7 @@ class SupportProjectsScreen extends StatelessWidget {
     SupportProjectModel project,
     int index,
   ) {
-    controller.projectNameController.text = project.name;
+    controller.projectNameController.text = project.project;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

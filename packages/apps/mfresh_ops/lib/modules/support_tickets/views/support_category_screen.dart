@@ -8,7 +8,7 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import '../controllers/support_category_controller.dart';
-import '../models/support_category_model.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class SupportCategoryScreen extends StatelessWidget {
   const SupportCategoryScreen({super.key});
@@ -40,14 +40,16 @@ class SupportCategoryScreen extends StatelessWidget {
       ),
       drawer: const CommonSidebar(),
       body: Obx(
-        () => ListView.builder(
-          padding: EdgeInsets.all(16.r),
-          itemCount: controller.filteredCategories.length,
-          itemBuilder: (context, index) {
-            final category = controller.filteredCategories[index];
-            return _buildCategoryCard(context, controller, category, index);
-          },
-        ),
+        () => controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                padding: EdgeInsets.all(16.r),
+                itemCount: controller.filteredCategories.length,
+                itemBuilder: (context, index) {
+                  final category = controller.filteredCategories[index];
+                  return _buildCategoryCard(context, controller, category, index);
+                },
+              ),
       ),
     );
   }
@@ -81,14 +83,14 @@ class SupportCategoryScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: Text(
-              category.siNo.toString(),
+              category.id.toString(),
               style: AppTextStyle.style_12_700(color: AppColors.primary),
             ),
           ),
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              category.name,
+              category.categoryName,
               style: AppTextStyle.style_14_600(color: AppColors.black),
             ),
           ),
@@ -154,7 +156,7 @@ class SupportCategoryScreen extends StatelessWidget {
     SupportCategoryModel category,
     int index,
   ) {
-    controller.categoryNameController.text = category.name;
+    controller.categoryNameController.text = category.categoryName;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
-import 'package:core/widgets/app_common_drop_down.dart';
 
 class EditTicketScreen extends StatelessWidget {
   const EditTicketScreen({super.key});
@@ -17,410 +15,498 @@ class EditTicketScreen extends StatelessWidget {
     final controller = Get.find<TicketDetailsController>();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.grey[200],
       appBar: AppCommonAppBar(
-        title: Text(
-          'Edit Ticket #101',
-          style: AppTextStyle.style_18_700(color: AppColors.primary),
-        ),
-        elevation: 0.5,
-        backgroundColor: AppColors.white,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Obx(() => Text(
+          "Update Ticket #${controller.ticketDetail.value?.caseId ?? controller.ticketDetail.value?.ticketId ?? ''}",
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        )),
+        hasBackButton: true,
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('TICKET INFORMATION'),
-                    _buildInformationCard(controller),
-                    SizedBox(height: 20.h),
-                    _buildSectionHeader('TICKET DETAILS'),
-                    _buildDetailsCard(controller),
-                    SizedBox(height: 20.h),
-                    _buildSectionHeader('ATTACHMENTS'),
-                    _buildAttachmentsCard(controller),
-                    SizedBox(height: 24.h),
-                  ],
-                ),
+        child: Center(
+          child: Container(
+            width: Get.width * 0.95,
+            margin: EdgeInsets.symmetric(vertical: 20.h),
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Update Ticket",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close, color: Colors.black54, size: 20),
+                      )
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+
+                  _buildFormGrid(context, controller),
+                  SizedBox(height: 12.h),
+
+                  const Text("Subject",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  SizedBox(height: 4.h),
+                  _buildTextField(controller.subjectController, "Subject Line", maxLines: 2),
+
+                  SizedBox(height: 12.h),
+
+                  const Text("Description",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  SizedBox(height: 4.h),
+                  _buildTextField(controller.descriptionController, "Description here", maxLines: 4),
+
+                  SizedBox(height: 20.h),
+
+                  _buildBottomActions(controller),
+                ],
               ),
             ),
-            _buildBottomActionButton(controller),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: EdgeInsets.only(left: 4.w, bottom: 8.h),
-      child: Text(
-        title,
-        style: AppTextStyle.style_10_700(color: AppColors.grey200),
-      ),
-    );
+  Widget _buildFormGrid(BuildContext context, TicketDetailsController controller) {
+    return Obx(() => Column(
+      children: [
+        /// Row 1: Status & Created By
+        _twoFieldRow(
+          leftLabel: "Status",
+          leftChild: _buildDropdown<String>(
+            controller.selectedStatus.value,
+            controller.statusOptions,
+            (v) => controller.selectedStatus.value = v,
+            (item) => item,
+          ),
+          rightLabel: "Created By",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.userName ?? "N/A", Icons.person_outline),
+        ),
+        SizedBox(height: 5.h),
+
+        /// Row 2: Priority & Created Date
+        _twoFieldRow(
+          leftLabel: "Priority",
+          leftChild: _buildDropdown<String>(
+            controller.selectedPriority.value,
+            controller.priorityOptions,
+            (v) => controller.selectedPriority.value = v,
+            (item) => item,
+          ),
+          rightLabel: "Created Date",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.createdAt ?? "N/A", Icons.calendar_today),
+        ),
+        SizedBox(height: 5.h),
+
+        /// Row 3: Category & Modified Date
+        _twoFieldRow(
+          leftLabel: "Category",
+          leftChild: _buildDropdown<SupportCategory>(
+            controller.selectedCategory.value,
+            controller.categories,
+            (v) {
+              controller.selectedCategory.value = v;
+              if (v != null) controller.fetchSubCategories(v.categoryId);
+            },
+            (item) => item.categoryName,
+          ),
+          rightLabel: "Modified Date",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.updatedAt ?? "N/A", Icons.edit_calendar),
+        ),
+        SizedBox(height: 5.h),
+
+        /// Row 4: Sub Category & Resolved Date
+        _twoFieldRow(
+          leftLabel: "Sub Category",
+          leftChild: _buildDropdown<SupportSubCategory>(
+            controller.selectedSubCategory.value,
+            controller.subCategories,
+            (v) => controller.selectedSubCategory.value = v,
+            (item) => item.subCategoryName,
+          ),
+          rightLabel: "Resolved Date",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.resolvedOn ?? "N/A", Icons.check_circle_outline),
+        ),
+        SizedBox(height: 5.h),
+
+        /// Row 5: Assigned To & Follow Up Date
+        _twoFieldRow(
+          leftLabel: "Assigned To",
+          leftChild: _buildDropdown<AssigneeModel>(
+            controller.selectedAssignee.value,
+            controller.assignees,
+            (v) => controller.selectedAssignee.value = v,
+            (item) => item.name,
+          ),
+          rightLabel: "Follow Up Date",
+          rightChild: _buildDatePickerField(context, controller),
+        ),
+        SizedBox(height: 5.h),
+
+        /// Row 6: Unit & Reminder
+        _twoFieldRow(
+          leftLabel: "Unit",
+          leftChild: _buildDropdown<SupportUnit>(
+            controller.selectedUnit.value,
+            controller.units,
+            (v) => controller.selectedUnit.value = v,
+            (item) => item.unitName,
+          ),
+          rightLabel: "Reminder",
+          rightChild: _buildReminderField(context, controller),
+        ),
+        SizedBox(height: 5.h),
+
+        /// Row 7: Project & Linked Ticket
+        _twoFieldRow(
+          leftLabel: "Project",
+          leftChild: _buildDropdown<SupportProject>(
+            controller.selectedProject.value,
+            controller.projects,
+            (v) => controller.selectedProject.value = v,
+            (item) => item.projectName,
+          ),
+          rightLabel: "Linked Ticket",
+          rightChild: _buildTextField(TextEditingController(text: "NA"), "Enter Ticket #"),
+        ),
+      ],
+    ));
   }
 
-  Widget _buildInformationCard(TicketDetailsController controller) {
-    return Obx(() {
-      final detail = controller.ticketDetail.value;
-      return Container(
-        padding: EdgeInsets.all(12.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          boxShadow: [
-            BoxShadow(color: AppColors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildRow(
-              AppCommonDropdown<String>(
-                title: 'Status',
-                hintText: 'Select',
-                value: controller.selectedStatus.value,
-                items: controller.statusOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (v) => controller.selectedStatus.value = v,
-                height: 36.h,
-              ),
-              _buildReadOnlyField('Created By', detail?.createdBy.toString() ?? '-'),
-            ),
-            SizedBox(height: 12.h),
-            _buildRow(
-              AppCommonDropdown<String>(
-                title: 'Priority',
-                hintText: 'Select',
-                value: controller.selectedPriority.value,
-                items: controller.priorityOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (v) => controller.selectedPriority.value = v,
-                height: 36.h,
-              ),
-              _buildReadOnlyField('Created On', detail?.createdOn ?? '-'),
-            ),
-            SizedBox(height: 12.h),
-            _buildRow(
-              AppCommonDropdown<SupportCategory>(
-                title: 'Category',
-                hintText: 'Select',
-                value: controller.selectedCategory.value,
-                items: controller.categories.map((e) => DropdownMenuItem(value: e, child: Text(e.categoryName))).toList(),
-                onChanged: (v) {
-                  controller.selectedCategory.value = v;
-                  if (v != null) controller.fetchSubCategories(v.categoryId);
-                },
-                height: 36.h,
-              ),
-              _buildReadOnlyField('Modified On', detail?.modifiedOn ?? '-'),
-            ),
-            SizedBox(height: 12.h),
-            _buildRow(
-              AppCommonDropdown<SupportSubCategory>(
-                title: 'Sub Category',
-                hintText: 'Select',
-                value: controller.selectedSubCategory.value,
-                items: controller.subCategories.map((e) => DropdownMenuItem(value: e, child: Text(e.subCategoryName))).toList(),
-                onChanged: (v) => controller.selectedSubCategory.value = v,
-                height: 36.h,
-              ),
-              _buildReadOnlyField('Resolved Status', detail?.status ?? '-'),
-            ),
-            SizedBox(height: 12.h),
-            _buildRow(
-              AppCommonDropdown<AssigneeModel>(
-                title: 'Assignee',
-                hintText: 'Select',
-                value: controller.selectedAssignee.value,
-                items: controller.assignees.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(),
-                onChanged: (v) => controller.selectedAssignee.value = v,
-                height: 36.h,
-              ),
-              _buildReadOnlyField('Follow-up', detail?.followUp ?? '-'),
-            ),
-            SizedBox(height: 12.h),
-            _buildRow(
-              AppCommonDropdown<SupportUnit>(
-                title: 'Unit',
-                hintText: 'Select',
-                value: controller.selectedUnit.value,
-                items: controller.units.map((e) => DropdownMenuItem(value: e, child: Text(e.unitName))).toList(),
-                onChanged: (v) => controller.selectedUnit.value = v,
-                height: 36.h,
-              ),
-              _buildReadOnlyField('Ticket Age', detail?.tktAge ?? '-'),
-            ),
-            SizedBox(height: 12.h),
-            _buildRow(
-              AppCommonDropdown<SupportProject>(
-                title: 'Project',
-                hintText: 'Select',
-                value: controller.selectedProject.value,
-                items: controller.projects.map((e) => DropdownMenuItem(value: e, child: Text(e.projectName))).toList(),
-                onChanged: (v) => controller.selectedProject.value = v,
-                height: 36.h,
-              ),
-              _buildInputField('Link Ticket', TextEditingController()),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildRow(Widget left, Widget right) {
+  Widget _twoFieldRow({
+    required String leftLabel,
+    required Widget leftChild,
+    required String rightLabel,
+    required Widget rightChild,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: left),
-        SizedBox(width: 12.w),
-        Expanded(child: right),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(leftLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              SizedBox(height: 4.h),
+              SizedBox(width: double.infinity, child: leftChild),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(rightLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              SizedBox(height: 4.h),
+              SizedBox(width: double.infinity, child: rightChild),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDetailsCard(TicketDetailsController controller) {
+  Widget _readOnlyBox(String text, IconData icon) {
     return Container(
-      padding: EdgeInsets.all(12.r),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(color: AppColors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        color: const Color(0xffF5F5F5),
+        borderRadius: BorderRadius.circular(10.r),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildInputField('Subject', controller.subjectController),
-          SizedBox(height: 12.h),
-          _buildInputField('Description', controller.descriptionController, maxLines: 5),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: Colors.black87), overflow: TextOverflow.ellipsis)),
+          Icon(icon, size: 16, color: Colors.black54),
         ],
       ),
     );
   }
 
-  Widget _buildAttachmentsCard(TicketDetailsController controller) {
-    return Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(color: AppColors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Obx(() => Wrap(
-            spacing: 8.w,
-            runSpacing: 8.h,
-            children: controller.selectedImages.asMap().entries.map((entry) {
-              return _buildAttachmentItem(
-                entry.value.path.split('/').last, 
-                onDelete: () => controller.removeImage(entry.key),
-              );
-            }).toList(),
-          )),
-          Obx(() => controller.selectedImages.isNotEmpty ? SizedBox(height: 12.h) : const SizedBox.shrink()),
-          OutlinedButton.icon(
-            onPressed: () => _showImagePickerOptions(controller),
-            icon: Icon(Icons.add_photo_alternate, size: 18.r, color: AppColors.primary),
-            label: Text('Add More Attachments', style: AppTextStyle.style_11_600(color: AppColors.primary)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showImagePickerOptions(TicketDetailsController controller) {
-    Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.all(20.r),
+  Widget _buildDatePickerField(BuildContext context, TicketDetailsController controller) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: controller.followUpDate.value ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) {
+           final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+           if (time != null) {
+              controller.followUpDate.value = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+           }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          color: const Color(0xffF5F5F5),
+          borderRadius: BorderRadius.circular(10.r),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              width: 32.w,
-              height: 3.h,
-              decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(10.r)),
-            ),
-            SizedBox(height: 20.h),
-            Text('Upload Attachment', style: AppTextStyle.style_16_700(color: AppColors.black)),
-            SizedBox(height: 24.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildPickerOption(Icons.camera_alt_rounded, 'Camera', () {
-                  Get.back();
-                  controller.captureImage();
-                }),
-                _buildPickerOption(Icons.photo_library_rounded, 'Gallery', () {
-                  Get.back();
-                  controller.pickImages();
-                }),
-              ],
-            ),
-            SizedBox(height: 24.h),
+            Obx(() => Text(
+              controller.followUpDate.value != null 
+                ? DateFormat("dd/MM/yyyy HH:mm").format(controller.followUpDate.value!) 
+                : "Follow Up Date & Time",
+              style: const TextStyle(fontSize: 12),
+            )),
+            const Icon(Icons.calendar_today_outlined, size: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPickerOption(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
+  Widget _buildReminderField(BuildContext context, TicketDetailsController controller) {
+    return InkWell(
+      onTap: () => _showReminderDialog(context, controller),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xffF5F5F5),
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Obx(() => Expanded(
+              child: Text(
+                controller.displayReminder.value,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: controller.displayReminder.value == 'Reminder' ? Colors.grey : Colors.black,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            )),
+            const Icon(Icons.calendar_today_outlined, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReminderDialog(BuildContext context, TicketDetailsController controller) {
+    DateTime tempDate = controller.reminderDate.value ?? DateTime.now();
+    TimeOfDay tempTime = controller.reminderTime.value ?? const TimeOfDay(hour: 9, minute: 0);
+    bool tempWhatsApp = controller.whatsappNotification.value;
+    bool tempApp = controller.appNotification.value;
+
+    Get.dialog(
+      StatefulBuilder(builder: (context, setModalState) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.r)),
+          backgroundColor: const Color(0xFFF7F2EE),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Flexible(
+                        child: Text("Reminder/ Notifications",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      ),
+                      IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  const Text("Notification Type:",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Icon(FontAwesomeIcons.whatsapp, color: Colors.green, size: 20),
+                      Checkbox(
+                        value: tempWhatsApp,
+                        activeColor: const Color(0xffF15A24),
+                        onChanged: (v) => setModalState(() => tempWhatsApp = v!),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.notifications_active, color: Colors.black, size: 20),
+                      Checkbox(
+                        value: tempApp,
+                        activeColor: const Color(0xffF15A24),
+                        onChanged: (v) => setModalState(() => tempApp = v!),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _modalPickerBox(
+                            text: DateFormat("dd/MM/yyyy").format(tempDate),
+                            icon: Icons.calendar_today,
+                            onTap: () async {
+                              final p = await showDatePicker(
+                                  context: context,
+                                  initialDate: tempDate,
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime(2100));
+                              if (p != null) setModalState(() => tempDate = p);
+                            }),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _modalPickerBox(
+                            text: tempTime.format(context),
+                            icon: Icons.arrow_drop_down,
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                  context: context, initialTime: tempTime);
+                              if (t != null) setModalState(() => tempTime = t);
+                            }),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 30.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade400,
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          onPressed: () => Get.back(),
+                          child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xff4CAF50),
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          onPressed: () {
+                            controller.reminderDate.value = tempDate;
+                            controller.reminderTime.value = tempTime;
+                            controller.whatsappNotification.value = tempWhatsApp;
+                            controller.appNotification.value = tempApp;
+                            controller.displayReminder.value = 
+                              "${DateFormat("dd MMM").format(tempDate)} ${tempTime.format(context)}";
+                            Get.back();
+                          },
+                          child: const Text("Apply", style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _modalPickerBox({required String text, required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(16.r),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 28.r, color: AppColors.primary),
-          ),
-          SizedBox(height: 10.h),
-          Text(label, style: AppTextStyle.style_12_600(color: AppColors.black)),
-        ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+            Icon(icon, size: 14, color: Colors.black54),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAttachmentItem(String name, {required VoidCallback onDelete}) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(6.r),
-        border: Border.all(color: AppColors.borderColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.link, size: 12.r, color: AppColors.primary),
-          SizedBox(width: 6.w),
-          Flexible(
-            child: Text(
-              name, 
-              style: AppTextStyle.style_9_400(color: AppColors.black),
-              overflow: TextOverflow.visible,
-            ),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: onDelete,
-            child: Icon(Icons.close, size: 14.r, color: AppColors.red),
-          ),
-        ],
-      ),
+  Widget _buildDropdown<T>(T? value, List<T> options, Function(T?) onChanged, String Function(T) labelBuilder) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      isExpanded: true,
+      icon: const SizedBox.shrink(),
+      decoration: _inputDecoration("Select"),
+      items: options.map((e) => DropdownMenuItem(value: e, child: Text(labelBuilder(e), style: const TextStyle(fontSize: 12)))).toList(),
+      onChanged: onChanged,
     );
   }
 
-  Widget _buildFieldLabel(String label) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 6.h),
-      child: Text(
-        label,
-        style: AppTextStyle.style_11_500(color: AppColors.black300),
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 12),
+      filled: true,
+      fillColor: const Color(0xffF5F5F5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: BorderSide.none,
       ),
+      isDense: true,
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController ctrl, {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      style: const TextStyle(fontSize: 12),
+      decoration: _inputDecoration(hint),
+    );
+  }
+
+  Widget _buildBottomActions(TicketDetailsController controller) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _buildFieldLabel(label),
-        AppCommonTextField(
-          controller: ctrl,
-          hintText: 'Enter $label',
-          maxLines: maxLines,
-          height: maxLines > 1 ? null : 36.h,
-          style: AppTextStyle.style_11_400(color: AppColors.black1),
+        TextButton(
+          onPressed: () => Get.back(),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r), side: BorderSide(color: Colors.grey.shade300)),
+          ),
+          child: const Text("Cancel", style: TextStyle(color: Colors.black, fontSize: 14)),
+        ),
+        const SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: () => controller.saveTicket(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xffF15A24),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+          ),
+          child: const Text("Update", style: TextStyle(fontSize: 14)),
         ),
       ],
-    );
-  }
-
-  Widget _buildReadOnlyField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildFieldLabel(label),
-        Container(
-          width: double.infinity,
-          height: 36.h,
-          alignment: Alignment.centerLeft,
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.borderColor),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Text(
-              value,
-              style: AppTextStyle.style_11_400(color: AppColors.grey400),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  Widget _buildBottomActionButton(TicketDetailsController controller) {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(color: AppColors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Get.back(),
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
-                side: const BorderSide(color: AppColors.black12),
-              ),
-              child: Text('Cancel', style: AppTextStyle.style_12_600(color: AppColors.black)),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => controller.saveTicket(),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                backgroundColor: AppColors.success,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
-                elevation: 0,
-              ),
-              child: Text('Update Ticket', style: AppTextStyle.style_12_600(color: AppColors.white)),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

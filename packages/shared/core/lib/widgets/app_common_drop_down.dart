@@ -28,6 +28,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
   final List<T>? selectedValues;
   final List<DropdownOption<T>>? options;
   final Function(List<T>)? onMultiSelectChanged;
+  final bool showChips;
 
   // endregion
 
@@ -50,6 +51,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
     this.selectedValues,
     this.options,
     this.onMultiSelectChanged,
+    this.showChips = true,
   });
 
   // endregion
@@ -78,49 +80,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
             ),
           ),
         
-        if (isMultiSelect && selectedValues != null && selectedValues!.isNotEmpty && options != null)
-          Padding(
-            padding: EdgeInsets.only(bottom: 8.h),
-            child: Wrap(
-              spacing: 6.w,
-              runSpacing: 6.h,
-              children: selectedValues!.map((val) {
-                final label = options!.firstWhereOrNull((opt) => opt.value == val)?.label ?? '';
-                if (label.isEmpty) return const SizedBox.shrink();
-                return Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4.r),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          label,
-                          style: AppTextStyle.style_10_600(color: AppColors.primary),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(width: 4.w),
-                      GestureDetector(
-                        onTap: () {
-                          final newList = List<T>.from(selectedValues!)..remove(val);
-                          if (onMultiSelectChanged != null) {
-                            onMultiSelectChanged!(newList);
-                          }
-                        },
-                        child: Icon(Icons.close, size: 12.r, color: AppColors.primary),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        
+
         options != null ? _buildPageSelect(context) : _buildSingleSelect(),
       ],
     );
@@ -213,7 +173,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: isMultiSelect && selectedValues != null && selectedValues!.isNotEmpty
+              child: isMultiSelect && selectedValues != null && selectedValues!.isNotEmpty && showChips
                   ? Wrap(
                       spacing: 4.w,
                       runSpacing: 4.h,

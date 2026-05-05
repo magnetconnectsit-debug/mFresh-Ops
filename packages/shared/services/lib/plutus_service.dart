@@ -4,6 +4,12 @@ import 'package:get/get.dart';
 class PlutusService extends GetxService {
   static const MethodChannel _channel = MethodChannel('PLUTUS-API');
 
+  @override
+  void onInit() {
+    super.onInit();
+    bindToService();
+  }
+
   Future<String> bindToService() async {
     try {
       final result = await _channel.invokeMethod('bindToService');

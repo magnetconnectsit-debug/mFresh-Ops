@@ -30,7 +30,6 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   @override
   void initState() {
     super.initState();
-    // Assuming bookingId is passed via Get.arguments or parameters
     final String? bookingId = Get.arguments?['bookingId'] ?? Get.parameters['bookingId'];
     if (bookingId != null) {
       controller.fetchBookingDetails(bookingId);

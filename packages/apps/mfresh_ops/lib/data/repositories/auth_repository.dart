@@ -13,7 +13,7 @@ class AuthRepository extends GetxService {
       final response = await _apiService.post(
         AppConstants.login,
         data: {
-          'mob': mobile,
+          'mobile': mobile,
           'password': password,
         },
       );

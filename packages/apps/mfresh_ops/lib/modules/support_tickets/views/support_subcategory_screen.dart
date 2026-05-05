@@ -8,8 +8,8 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_drop_down.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import '../controllers/support_subcategory_controller.dart';
-import '../models/support_subcategory_model.dart';
 
 class SupportSubCategoryScreen extends StatelessWidget {
   const SupportSubCategoryScreen({super.key});
@@ -41,14 +41,16 @@ class SupportSubCategoryScreen extends StatelessWidget {
       ),
       drawer: const CommonSidebar(),
       body: Obx(
-        () => ListView.builder(
-          padding: EdgeInsets.all(16.r),
-          itemCount: controller.filteredSubCategories.length,
-          itemBuilder: (context, index) {
-            final sub = controller.filteredSubCategories[index];
-            return _buildSubCategoryCard(context, controller, sub, index);
-          },
-        ),
+        () => controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                padding: EdgeInsets.all(16.r),
+                itemCount: controller.filteredSubCategories.length,
+                itemBuilder: (context, index) {
+                  final sub = controller.filteredSubCategories[index];
+                  return _buildSubCategoryCard(context, controller, sub, index);
+                },
+              ),
       ),
     );
   }
@@ -59,6 +61,7 @@ class SupportSubCategoryScreen extends StatelessWidget {
     SupportSubCategoryModel sub,
     int index,
   ) {
+    final category = controller.categories.firstWhereOrNull((SupportCategoryModel c) => c.id == sub.catId);
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(12.r),
@@ -82,7 +85,7 @@ class SupportSubCategoryScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: Text(
-              sub.siNo.toString(),
+              sub.id.toString(),
               style: AppTextStyle.style_12_700(color: AppColors.primary),
             ),
           ),
@@ -97,7 +100,7 @@ class SupportSubCategoryScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'Category: ${sub.category}',
+                  'Category: ${category?.categoryName ?? 'Unknown'}',
                   style: AppTextStyle.style_11_400(color: AppColors.grey300),
                 ),
               ],
@@ -134,14 +137,14 @@ class SupportSubCategoryScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Obx(
-              () => AppCommonDropdown<String>(
+              () => AppCommonDropdown<SupportCategoryModel>(
                 title: 'Category',
                 hintText: 'Select Category',
                 items: controller.categories
                     .map(
                       (cat) => DropdownMenuItem(
                         value: cat,
-                        child: Text(cat, style: AppTextStyle.style_14_400()),
+                        child: Text(cat.categoryName, style: AppTextStyle.style_14_400()),
                       ),
                     )
                     .toList(),
@@ -183,7 +186,7 @@ class SupportSubCategoryScreen extends StatelessWidget {
     int index,
   ) {
     controller.subCategoryNameController.text = sub.subCategory;
-    controller.selectedCategory.value = sub.category;
+    controller.selectedCategory.value = controller.categories.firstWhereOrNull((c) => c.id == sub.catId);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -195,14 +198,14 @@ class SupportSubCategoryScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Obx(
-              () => AppCommonDropdown<String>(
+              () => AppCommonDropdown<SupportCategoryModel>(
                 title: 'Category',
                 hintText: 'Select Category',
                 items: controller.categories
                     .map(
                       (cat) => DropdownMenuItem(
                         value: cat,
-                        child: Text(cat, style: AppTextStyle.style_14_400()),
+                        child: Text(cat.categoryName, style: AppTextStyle.style_14_400()),
                       ),
                     )
                     .toList(),
@@ -230,7 +233,7 @@ class SupportSubCategoryScreen extends StatelessWidget {
             text: 'Update',
             onPressed: () => controller.editSubCategory(
               index,
-              controller.selectedCategory.value ?? '',
+              controller.selectedCategory.value?.id ?? 0,
               controller.subCategoryNameController.text,
             ),
             width: 90.w,

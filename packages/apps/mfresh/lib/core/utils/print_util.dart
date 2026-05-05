@@ -75,6 +75,9 @@ class PrintUtil {
   /// Silent/Direct Print for Internal Hardware
   static Future<void> printInternal(BookingDetailsModel booking, ServiceItem service, {String? encryptedBookingId}) async {
     try {
+      // Ensure service is bound before printing
+      await _plutusService.bindToService();
+
       // Loop through quantity to print separate tickets (matching legacy behavior)
       int repeatCount = int.tryParse(service.quantity.toString()) ?? 1;
 
@@ -241,7 +244,7 @@ class PrintUtil {
 
     return {
       "Header": {
-        "ApplicationId": "6458835ce3374a60af722c4d51f2ba8f", // Hardcoded LIVE ID matching legacy project
+        "ApplicationId": AppConfig.applicationId,
         "UserId": "user1234",
         "MethodId": "1002",
         "VersionNo": "1.0"

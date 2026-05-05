@@ -6,8 +6,10 @@ class SupportUnit {
 
   factory SupportUnit.fromJson(Map<String, dynamic> json) {
     return SupportUnit(
-      unitId: json['unitid'],
-      unitName: json['unitname'],
+      unitId: json['unitid'] is int 
+          ? json['unitid'] 
+          : int.tryParse(json['unitid']?.toString() ?? '') ?? 0,
+      unitName: json['unitname']?.toString() ?? '',
     );
   }
 
@@ -28,8 +30,10 @@ class SupportCategory {
 
   factory SupportCategory.fromJson(Map<String, dynamic> json) {
     return SupportCategory(
-      categoryId: json['categoryid'],
-      categoryName: json['categoryname'],
+      categoryId: json['categoryid'] is int 
+          ? json['categoryid'] 
+          : int.tryParse(json['categoryid']?.toString() ?? '') ?? 0,
+      categoryName: json['categoryname']?.toString() ?? '',
     );
   }
 
@@ -52,8 +56,10 @@ class SupportProject {
 
   factory SupportProject.fromJson(Map<String, dynamic> json) {
     return SupportProject(
-      projectId: json['projectid'],
-      projectName: json['projectname'],
+      projectId: json['projectid'] is int 
+          ? json['projectid'] 
+          : int.tryParse(json['projectid']?.toString() ?? '') ?? 0,
+      projectName: json['projectname']?.toString() ?? '',
     );
   }
 
@@ -76,8 +82,10 @@ class SupportSubCategory {
 
   factory SupportSubCategory.fromJson(Map<String, dynamic> json) {
     return SupportSubCategory(
-      subCategoryId: json['subcategoryid'],
-      subCategoryName: json['subcategoryname'],
+      subCategoryId: json['subcategoryid'] is int 
+          ? json['subcategoryid'] 
+          : int.tryParse(json['subcategoryid']?.toString() ?? '') ?? 0,
+      subCategoryName: json['subcategoryname']?.toString() ?? '',
     );
   }
 
