@@ -32,15 +32,15 @@ Future<void> initServices() async {
   // Initialize StorageService (Hive-based)
   final storageService = await Get.putAsync(() => StorageService().init());
   
+  // Initialize SettingsService (Depends on StorageService)
+  Get.put(SettingsService());
+
   final String envName = AppConfig.envName;
   final String activeUrl = AppConfig.baseUrl;
   debugPrint('🚀 [mfresh_ops] Initializing in $envName mode');
   debugPrint('🔗 [mfresh_ops] Active API: $activeUrl');
 
   await storageService.saveBaseUrl(activeUrl);
-
-  // Initialize SettingsService (Depends on StorageService)
-  Get.put(SettingsService());
 
   // Initialize DioClient (Depends on StorageService & LoggerService)
   await Get.putAsync(() => DioClient().init(publicPaths: [AppConstants.login]));

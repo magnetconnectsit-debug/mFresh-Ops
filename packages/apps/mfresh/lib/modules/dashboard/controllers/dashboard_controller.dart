@@ -26,7 +26,10 @@ class DashboardController extends GetxController {
       final units = await _commonRepository.getAllUnits();
       allUnitsList.assignAll(units);
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to load units', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to load units',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }

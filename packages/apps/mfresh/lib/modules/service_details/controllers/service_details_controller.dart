@@ -90,16 +90,20 @@ class ServiceDetailsController extends GetxController {
         serviceMode: isOnline.value ? '2' : '1',
       );
 
-      services.assignAll(
-        fetchedServices.map(
-          (s) => ServiceItem(
+      // Deduplicate by assignServiceId to avoid duplicates in UI/Cart
+      final Map<String, ServiceItem> uniqueServices = {};
+      for (var s in fetchedServices) {
+        if (!uniqueServices.containsKey(s.assignServiceId)) {
+          uniqueServices[s.assignServiceId] = ServiceItem(
             assignServiceId: s.assignServiceId,
             name: s.serviceName,
             price: s.price.toInt(),
             image: s.imagePath,
-          ),
-        ),
-      );
+          );
+        }
+      }
+
+      services.assignAll(uniqueServices.values.toList());
     } catch (e) {
       AppCommonToastMessage.show(
         message: "Failed to fetch services: $e",
@@ -338,7 +342,7 @@ class ServiceDetailsController extends GetxController {
             'url': redirectUrl,
             'title': 'PhonePe Payment',
             'redirectUrlToCapture': AppConfig.isDev
-                ? 'https://testenv.magnetconnects.com/'
+                ? 'https://magnetconnects.com/booking-success'
                 : 'https://magnetconnects.com/',
           },
         );
@@ -452,8 +456,6 @@ class ServiceDetailsController extends GetxController {
       );
     }
   }
-
-
 
   void increment(int index) {
     services[index].quantity.value++;

@@ -16,6 +16,7 @@ import 'package:get/get.dart';
 import 'package:mfresh/core/config/app_config.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
+import 'package:services/storage_service.dart';
 
 class PrintUtil {
   static final PlutusService _plutusService = Get.find<PlutusService>();
@@ -27,6 +28,7 @@ class PrintUtil {
     required BookingDetailsModel booking,
     String? encryptedBookingId,
   }) {
+    final lastPrinterName = Get.find<StorageService>().getLastPrinterName();
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -61,7 +63,9 @@ class PrintUtil {
               _buildPrintOption(
                 icon: Icons.bluetooth_audio_rounded,
                 title: "External Printer",
-                subtitle: "BT / USB / WiFi Printer",
+                subtitle: lastPrinterName != null 
+                    ? "Last used: $lastPrinterName" 
+                    : "BT / USB / WiFi Printer",
                 onTap: () {
                   Get.back();
                   _handleExternalPrint(context, booking);
@@ -151,7 +155,19 @@ class PrintUtil {
 
         subscription?.cancel();
         subscription = _printerPlugin.devicesStream.listen((printers) {
-          discoveredPrinters.assignAll(printers);
+          final lastAddress = Get.find<StorageService>().getLastPrinterAddress();
+          if (lastAddress != null) {
+            // Sort to put last connected printer at the top
+            final sortedList = List<Printer>.from(printers);
+            sortedList.sort((a, b) {
+              if (a.address == lastAddress) return -1;
+              if (b.address == lastAddress) return 1;
+              return 0;
+            });
+            discoveredPrinters.assignAll(sortedList);
+          } else {
+            discoveredPrinters.assignAll(printers);
+          }
         });
 
         await _printerPlugin.getPrinters(
@@ -218,48 +234,77 @@ class PrintUtil {
               const Text("Detected Printers (BT/USB/WiFi)", style: TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 8),
 
-              Obx(() => discoveredPrinters.isEmpty 
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Text("No printers found. Tap Refresh.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  )
-                : ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 300),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: discoveredPrinters.length,
-                      itemBuilder: (context, index) {
-                        final Printer printer = discoveredPrinters[index];
-                        IconData icon;
-                        switch (printer.connectionType) {
-                          case ConnectionType.USB: icon = Icons.usb; break;
-                          case ConnectionType.NETWORK: icon = Icons.wifi; break;
-                          default: icon = Icons.bluetooth;
-                        }
-
-                        return ListTile(
+              Obx(() {
+                final lastAddress = Get.find<StorageService>().getLastPrinterAddress();
+                final lastUsedName = Get.find<StorageService>().getLastPrinterName();
+                
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 350),
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      // Last Used Section
+                      if (lastAddress != null) ...[
+                        const Text("LAST USED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFF15A22))),
+                        ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: Icon(icon, size: 20, color: const Color(0xFFF15A22)),
-                          title: Text(printer.name ?? "Unknown Printer", style: const TextStyle(fontSize: 13)),
-                          subtitle: Text("${printer.connectionType?.name} - ${printer.address ?? 'No Address'}", style: const TextStyle(fontSize: 10)),
-                          onTap: () async {
-                          Get.back(); // Close dialog
-                          
-                          // Stop any active scanning before connecting
-                          isScanning.value = false;
-                          subscription?.cancel();
-                          
-                          // Wait a moment to let the BT stack settle (prevents 133 error)
-                          AppCommonToastMessage.show(message: "Connecting...", type: ToastType.info);
-                          await Future.delayed(const Duration(seconds: 1));
-                          
-                          _printToExternal(booking, printer);
-                        },
-                        );
-                      },
-                    ),
-                  )
-              ),
+                          leading: const Icon(Icons.history, size: 20, color: Color(0xFFF15A22)),
+                          title: Text(lastUsedName ?? "Unknown Printer", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          subtitle: Text(lastAddress, style: const TextStyle(fontSize: 10)),
+                          onTap: () {
+                            Get.back();
+                            // Attempt to connect to this address specifically if possible, 
+                            // but our plugin usually needs the Printer object.
+                            // So we search for it in the discovered list first.
+                            final printer = discoveredPrinters.firstWhereOrNull((p) => p.address == lastAddress);
+                            if (printer != null) {
+                              _printToExternal(booking, printer);
+                            } else {
+                              AppCommonToastMessage.show(message: "Printer not found in scan. Please wait or refresh.", type: ToastType.warning);
+                            }
+                          },
+                        ),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                      ],
+
+                      // Discovered List
+                      if (discoveredPrinters.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: Text("Scanning for printers...", style: TextStyle(fontSize: 12, color: Colors.grey))),
+                        )
+                      else
+                        ...discoveredPrinters.map((printer) {
+                          // Skip if it's the last used (already shown at top)
+                          if (printer.address == lastAddress) return const SizedBox.shrink();
+
+                          IconData icon;
+                          switch (printer.connectionType) {
+                            case ConnectionType.USB: icon = Icons.usb; break;
+                            case ConnectionType.NETWORK: icon = Icons.wifi; break;
+                            default: icon = Icons.bluetooth;
+                          }
+
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(icon, size: 20, color: const Color(0xFFF15A22)),
+                            title: Text(printer.name ?? "Unknown Printer", style: const TextStyle(fontSize: 13)),
+                            subtitle: Text("${printer.connectionType?.name} - ${printer.address ?? 'No Address'}", style: const TextStyle(fontSize: 10)),
+                            onTap: () async {
+                              Get.back();
+                              isScanning.value = false;
+                              subscription?.cancel();
+                              AppCommonToastMessage.show(message: "Connecting...", type: ToastType.info);
+                              await Future.delayed(const Duration(seconds: 1));
+                              _printToExternal(booking, printer);
+                            },
+                          );
+                        }),
+                    ],
+                  ),
+                );
+              }),
               
               const SizedBox(height: 16),
               TextButton(
@@ -304,7 +349,18 @@ class PrintUtil {
       bool connected = false;
       for (int i = 0; i < 2; i++) {
         connected = await _printerPlugin.connect(printer);
-        if (connected) break;
+        if (connected) {
+          if (printer.address != null) {
+            final displayName = printer.name != null && printer.name!.isNotEmpty
+                ? printer.name!
+                : "${printer.connectionType?.name ?? 'BT'} Printer (${printer.address?.split(':').last ?? '...' })";
+            Get.find<StorageService>().saveLastPrinter(
+              printer.address!,
+              displayName,
+            );
+          }
+          break;
+        }
         await Future.delayed(const Duration(seconds: 2));
       }
 
@@ -317,14 +373,16 @@ class PrintUtil {
         return;
       }
 
-      // 2. Generate ESC/POS bytes
-      final bytes = await _generateEscPosBytes(booking);
+      // 2. Print each service separately
+      for (var service in booking.services) {
+        final bytes = await _generateEscPosBytes(booking, service);
+        await _printerPlugin.printData(printer, bytes);
+        // Small delay between prints to allow the hardware to process the cut and next feed
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
       
-      // 3. Print
-      await _printerPlugin.printData(printer, bytes);
-      
-      // 4. Disconnect
-      await Future.delayed(const Duration(seconds: 2));
+      // 3. Disconnect
+      await Future.delayed(const Duration(seconds: 1));
       await _printerPlugin.disconnect(printer);
       
       while (Get.isDialogOpen ?? false) {
@@ -341,7 +399,7 @@ class PrintUtil {
     }
   }
 
-  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking) async {
+  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service) async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
     List<int> bytes = [];
@@ -354,29 +412,31 @@ class PrintUtil {
       final Uint8List imgBytes = data.buffer.asUint8List();
       final img.Image? logo = img.decodeImage(imgBytes);
       if (logo != null) {
-        // Prepare image for thermal printing (Increased size to ~320 for 58mm paper)
-        img.Image processedLogo = img.copyResize(logo, width: 320);
+        // Balanced logo size
+        img.Image processedLogo = img.copyResize(logo, width: 280);
         processedLogo = img.grayscale(processedLogo);
         
-        // imageRaster is often faster on some thermal printers
         bytes += generator.imageRaster(processedLogo, align: PosAlign.center);
       } else {
-        bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2));
+        bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true));
       }
     } catch (e) {
       debugPrint("Logo load error: $e");
-      bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2));
+      bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true));
     }
 
-    bytes += generator.feed(1);
-    
-    // 2. Unit & Location
-    bytes += generator.text("Unit No.: ${booking.unitNo}", styles: const PosStyles(bold: true));
+    // 2. Unit & Location with slight character spacing
+    bytes += [27, 32, 2]; // Set character spacing to 2 dots
+    bytes += generator.text("Unit No.: ${booking.unitNo}");
+    bytes += [27, 32, 0]; // Reset
     bytes += generator.text("Location: ${booking.fullAddress}");
     bytes += generator.text("--------------------------------");
 
     // 3. Booking Info
-    bytes += generator.text("Booking ID: ${booking.bookingId}", styles: const PosStyles(bold: true));
+    String originalId = booking.bookingId;
+    bytes += [27, 32, 1]; // Set character spacing to 1 dot
+    bytes += generator.text("Booking ID: $originalId");
+    bytes += [27, 32, 0]; // Reset
     bytes += generator.text("Date & Time: ${_formatDate(booking.bookingTimeDate)}");
     
     // Payment Mode
@@ -387,33 +447,25 @@ class PrintUtil {
       case "3": paymentModeStr = "External QR"; break;
     }
     bytes += generator.text("Payment Mode: $paymentModeStr");
-    bytes += generator.feed(1);
 
-    // 4. Services
+    // 4. Single Service for this print
     bytes += generator.text("Services:", styles: const PosStyles(bold: true));
-    int count = 1;
-    for (var s in booking.services) {
-      bytes += generator.text("$count. ${s.servicesName} (x${s.quantity})");
-      count++;
-    }
-    bytes += generator.feed(1);
+    bytes += generator.text("1. ${service.servicesName} (x${service.quantity})");
 
     // 5. Total
     bytes += generator.text("--------------------------------");
-    bytes += generator.text("Total Paid: Rs. ${booking.totalAmount}", styles: const PosStyles(bold: true, height: PosTextSize.size1));
+    bytes += generator.text("Total Paid: Rs. ${booking.totalAmount}", styles: const PosStyles(bold: true));
     bytes += generator.text("--------------------------------");
 
     // 6. Footer & QR
     bytes += generator.text("Thank you!", styles: const PosStyles(align: PosAlign.center, bold: true));
-    bytes += generator.feed(1);
     
     bytes += generator.qrcode(jsonEncode({
       "BookingID": booking.bookingId,
       "DeviceID": "NA",
       "AccessDate": _formatDateRaw(booking.bookingTimeDate),
-    }), size: QRSize.size8); // Increased QR size
+    }), size: QRSize.size6);
 
-    bytes += generator.feed(3);
     bytes += generator.cut();
 
     return bytes;

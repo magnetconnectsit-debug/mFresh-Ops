@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:services/settings_service.dart';
 import 'package:mfresh_ops/core/env/env.dart';
 
 enum AppEnvironment { dev, prod }
@@ -6,13 +8,12 @@ enum AppEnvironment { dev, prod }
 class AppConfig {
   AppConfig._();
 
-  /// To switch environments, simply replace 'dev' with 'prod' below.
+  /// To switch environments, use the "Dev Mode" toggle in Developer Settings.
   /// 1. Debug Mode + 'dev' -> All TEST
   /// 2. Release Mode + 'dev' -> PROD Base URL, TEST Payment/AppID
   /// 3. Release Mode + 'prod' -> All PROD
-  static const String _env = 'dev'; // dev or prod
   
-  static bool get isDevToggle => _env == 'dev';
+  static bool get isDevToggle => Get.find<SettingsService>().isDevMode.value;
 
   // Base URL: PROD in Release Mode OR if toggle is 'prod'
   static String get baseUrl => (kReleaseMode || !isDevToggle)

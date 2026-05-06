@@ -237,7 +237,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                               SizedBox(height: 12.h),
                               _buildDetailRow('Booking ID', booking.bookingId),
                               _buildDetailRow('Booking Date & Time', formatBookingDate(booking.bookingTimeDate).toUpperCase()),
-                              _buildDetailRow('Payment method', booking.paymentMode == 2 ? 'UPI' : 'CASH'),
+                              _buildDetailRow('Payment method', booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'EXTERNAL QR'),
                               
                               SizedBox(height: 16.h),
                               

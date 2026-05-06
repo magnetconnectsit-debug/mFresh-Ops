@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mfresh/data/models/user.dart';
 import 'package:core/constants/app_colors.dart';
@@ -70,6 +71,7 @@ Future<void> initServices() async {
   ]);
 
   await Get.putAsync(() => StorageService().init());
+  Get.put(SettingsService());
   final StorageService storageService = Get.find<StorageService>();
 
   final String envName = AppConfig.envName;
@@ -88,7 +90,6 @@ Future<void> initServices() async {
   await storageService.saveBaseUrl(fetchedBaseUrl);
 
   Get.put(LoggerService());
-  Get.put(SettingsService());
   Get.put(ErrorHandler());
   Get.put(ConnectivityService());
 
@@ -183,7 +184,7 @@ class MyApp extends StatelessWidget {
                   getPages: AppPages.routes,
                   defaultTransition: Transition.cupertino,
                 ),
-                if (settings.showLogger.value) const FloatingLoggerButton(),
+                if (settings.showLogger.value || settings.isDevMode.value || kDebugMode) const FloatingLoggerButton(),
               ],
             ),
           ),

@@ -18,8 +18,11 @@ class StorageService extends GetxService {
   static const String _userKey = 'current_user';
   static const String _baseUrlKey = 'base_url';
   static const String _showLoggerKey = 'show_logger';
+  static const String _isDevModeKey = 'is_dev_mode';
   static const String _hasShownOnboardingKey =
       'has_shown_dashboard_tutorial_v2';
+  static const String _lastPrinterAddressKey = 'last_printer_address';
+  static const String _lastPrinterNameKey = 'last_printer_name';
 
   late final Box<dynamic> _authBox;
   late final Box<dynamic> _userBox;
@@ -120,6 +123,14 @@ class StorageService extends GetxService {
 
   bool getShowLogger() {
     return _settingsBox.get(_showLoggerKey, defaultValue: false);
+  }
+
+  Future<void> saveIsDevMode(bool isDev) async {
+    await _settingsBox.put(_isDevModeKey, isDev);
+  }
+
+  bool getIsDevMode() {
+    return _settingsBox.get(_isDevModeKey, defaultValue: true); // Default to true for dev safety
   }
 
   Future<void> saveRememberMe(bool remember) async {
@@ -239,6 +250,22 @@ class StorageService extends GetxService {
     await clearNotifications();
   }
 
+  // endregion
+
+  // region Printer Methods
+  Future<void> saveLastPrinter(String address, String name) async {
+    debugPrint('StorageService: Saving last printer: $name ($address)');
+    await _settingsBox.put(_lastPrinterAddressKey, address);
+    await _settingsBox.put(_lastPrinterNameKey, name);
+  }
+
+  String? getLastPrinterAddress() {
+    return _settingsBox.get(_lastPrinterAddressKey) as String?;
+  }
+
+  String? getLastPrinterName() {
+    return _settingsBox.get(_lastPrinterNameKey) as String?;
+  }
   // endregion
 }
 

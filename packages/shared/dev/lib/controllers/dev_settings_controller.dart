@@ -45,6 +45,7 @@ class DevSettingsController extends GetxController {
     try {
       await _storageService.saveBaseUrl(newUrl);
       await _storageService.saveShowLogger(settingsService.showLogger.value);
+      await _storageService.saveIsDevMode(settingsService.isDevMode.value);
 
       _dioClient.dio.options.baseUrl = newUrl;
 
@@ -69,6 +70,10 @@ class DevSettingsController extends GetxController {
 
   void toggleLogger(bool value) {
     settingsService.showLogger.value = value;
+  }
+
+  void toggleDevMode(bool value) {
+    settingsService.isDevMode.value = value;
   }
 
   void goToLogViewer() {

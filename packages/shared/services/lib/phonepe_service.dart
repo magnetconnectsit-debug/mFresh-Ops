@@ -28,9 +28,9 @@ class PhonePeService extends GetxService {
   static const String _uatApiBaseUrl =
       'https://api-preprod.phonepe.com/apis/pg-sandbox';
   static const String _uatRedirectUrl =
-      'https://testenv.magnetconnects.com/payment/redirect';
+      'https://magnetconnects.com/booking-success';
   static const String _uatCallbackUrl =
-      'https://testenv.magnetconnects.com/payment/callback';
+      'https://magnetconnects.com/payment/callback';
 
   // Dynamic getters
   String get _saltKey => _isProduction ? _prodSaltKey : _uatSaltKey;

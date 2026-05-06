@@ -26,6 +26,7 @@ class _WebViewPageState extends State<WebViewPage> {
   String _url = '';
   String _title = 'Browser';
   String? _redirectUrlToCapture;
+  final RxDouble _progress = 0.0.obs;
   bool _isRedirected = false;
 
   @override
@@ -34,28 +35,29 @@ class _WebViewPageState extends State<WebViewPage> {
     final args = Get.arguments as Map<String, dynamic>?;
     _url = widget.url ?? args?['url'] ?? '';
     _title = widget.title ?? args?['title'] ?? 'Browser';
-    _redirectUrlToCapture = widget.redirectUrlToCapture ?? args?['redirectUrlToCapture'];
+    _redirectUrlToCapture =
+        widget.redirectUrlToCapture ?? args?['redirectUrlToCapture'];
 
     // Desktop User Agent to force Simulator buttons to show
-    const String desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-    const String mobileUserAgent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
-
+    const String desktopUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+    const String mobileUserAgent =
+        "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
-      // If it's a simulator URL, use Desktop Agent to show buttons
-      ..setUserAgent(_url.contains('simulator') ? desktopUserAgent : mobileUserAgent)
+      ..setUserAgent(
+        _url.contains('simulator') ? desktopUserAgent : mobileUserAgent,
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
+          onProgress: (int progress) {
+            _progress.value = progress / 100.0;
+          },
           onPageStarted: (String url) {
             setState(() => _isLoading = true);
             debugPrint("WebView Page Started: $url");
-            
-            // Auto-switch User Agent if we navigate to simulator
-            if (url.contains('simulator')) {
-               _controller.setUserAgent(desktopUserAgent);
-            }
-
+            _checkRedirect(url);
             _controller.runJavaScript("""
               if (!Array.prototype.at) {
                 Array.prototype.at = function(n) {
@@ -74,7 +76,7 @@ class _WebViewPageState extends State<WebViewPage> {
                 };
               }
             """);
-            
+
             _checkRedirect(url);
           },
           onPageFinished: (String url) {
@@ -84,7 +86,7 @@ class _WebViewPageState extends State<WebViewPage> {
           },
           onUrlChange: (UrlChange change) {
             if (change.url != null) {
-               _checkRedirect(change.url!);
+              _checkRedirect(change.url!);
             }
           },
           onWebResourceError: (WebResourceError error) {
@@ -92,15 +94,15 @@ class _WebViewPageState extends State<WebViewPage> {
           },
           onNavigationRequest: (NavigationRequest request) {
             final url = request.url;
-            
+
             if (_checkRedirect(url)) {
               return NavigationDecision.prevent;
             }
 
-            if (url.startsWith('ppesim://') || 
-                url.startsWith('phonepe://') || 
-                url.startsWith('upi://') || 
-                url.startsWith('paytmmp://') || 
+            if (url.startsWith('ppesim://') ||
+                url.startsWith('phonepe://') ||
+                url.startsWith('upi://') ||
+                url.startsWith('paytmmp://') ||
                 url.startsWith('gpay://')) {
               debugPrint("External Scheme Detected: $url");
               _launchExternalApp(url);
@@ -114,10 +116,19 @@ class _WebViewPageState extends State<WebViewPage> {
 
     if (_controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
-      (_controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
+      (_controller.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
     }
 
+    _controller.clearCache();
+    _controller.clearLocalStorage();
+
     if (_url.isNotEmpty) {
+      if (!_url.startsWith('http')) {
+        _url = 'https://$_url';
+      }
+
+      // Load request with mandatory headers for production whitelisting
       _controller.loadRequest(
         Uri.parse(_url),
         headers: {
@@ -141,31 +152,23 @@ class _WebViewPageState extends State<WebViewPage> {
 
   bool _checkRedirect(String url) {
     if (_isRedirected) return false;
-    
-    if (_redirectUrlToCapture != null && url.startsWith(_redirectUrlToCapture!)) {
-      debugPrint("🎯 REDIRECT DETECTED: $url");
-      _isRedirected = true;
-      
-      Map<String, String> params = {};
-      
-      try {
-        final uri = Uri.parse(url);
-        params.addAll(uri.queryParameters);
-        
-        if (!params.containsKey('checksum')) {
-           final regExp = RegExp(r'[?&]checksum=([^&]+)');
-           final match = regExp.firstMatch(url);
-           if (match != null) {
-             params['checksum'] = Uri.decodeComponent(match.group(1)!);
-           }
-        }
-      } catch (e) {
-        debugPrint("Raw capture error: $e");
-      }
 
+    final bool matchesRedirect =
+        _redirectUrlToCapture != null && url.contains(_redirectUrlToCapture!);
+    final bool containsSuccess = url.contains('booking-success') ||
+        url.contains('PAYMENT_SUCCESS') ||
+        url.contains('status=SUCCESS') ||
+        url.contains('payment_status=success');
+
+    if (matchesRedirect || containsSuccess) {
+      debugPrint("🎯 SUCCESS REDIRECT DETECTED: $url");
+      _isRedirected = true;
+      final uri = Uri.parse(url);
+      
+      // Delay slightly to ensure user sees the success state if it's a page
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
-           Get.back(result: params);
+          Get.back(result: uri.queryParameters);
         }
       });
       return true;

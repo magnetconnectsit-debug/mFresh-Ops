@@ -24,7 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final dashboardController = Get.put(DashboardController());
   final profileController = Get.put(ProfileController());
   final plutusService = Get.find<PlutusService>();
-  
+
   DateTime? _lastPressedTime;
 
   @override
@@ -50,12 +50,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<bool> _onWillPop() async {
     final currentTime = DateTime.now();
-    final isBackPressed = _lastPressedTime == null ||
+    final isBackPressed =
+        _lastPressedTime == null ||
         currentTime.difference(_lastPressedTime!) > const Duration(seconds: 2);
 
     if (isBackPressed) {
       _lastPressedTime = currentTime;
-      AppCommonToastMessage.show(message: 'Press back again to exit', type: ToastType.info);
+      AppCommonToastMessage.show(
+        message: 'Press back again to exit',
+        type: ToastType.info,
+      );
       return false;
     } else {
       return true;
@@ -152,32 +156,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               alignment: Alignment.centerRight,
                               child: InkWell(
                                 onTap: () async {
-                                    final scannerPayload = {
-                                      "Header": {
-                                        "ApplicationId": AppConfig.applicationId,
-                                        "UserId": "user1234",
-                                        "MethodId": "1007",
-                                        "VersionNo": "1.0"
-                                      }
-                                    };
+                                  final scannerPayload = {
+                                    "Header": {
+                                      "ApplicationId": AppConfig.applicationId,
+                                      "UserId": "user1234",
+                                      "MethodId": "1007",
+                                      "VersionNo": "1.0",
+                                    },
+                                  };
                                   try {
-                                    final result = await plutusService.startScanner(jsonEncode(scannerPayload));
+                                    final result = await plutusService
+                                        .startScanner(
+                                          jsonEncode(scannerPayload),
+                                        );
                                     final data = jsonDecode(result);
-                                    if (data['Response']?['ScannedValue'] != null) {
-                                      String scannedUnitId = data['Response']['ScannedValue'];
+                                    if (data['Response']?['ScannedValue'] !=
+                                        null) {
+                                      String scannedUnitId =
+                                          data['Response']['ScannedValue'];
                                       // Find the unit in the list to get its location
-                                      final unit = dashboardController.allUnitsList.firstWhere(
-                                        (u) => u.unitId == scannedUnitId,
-                                        orElse: () => UnitModel(id: 0, unitId: scannedUnitId, unitImage: '', unitLocation: 'Scanned Location', timing: ''),
+                                      final unit = dashboardController
+                                          .allUnitsList
+                                          .firstWhere(
+                                            (u) => u.unitId == scannedUnitId,
+                                            orElse: () => UnitModel(
+                                              id: 0,
+                                              unitId: scannedUnitId,
+                                              unitImage: '',
+                                              unitLocation: 'Scanned Location',
+                                              timing: '',
+                                            ),
+                                          );
+
+                                      Get.toNamed(
+                                        AppRoutes.serviceDetails,
+                                        arguments: {
+                                          'unitNo': unit.unitId,
+                                          'location': unit.unitLocation,
+                                          'unitImage': unit.unitImage,
+                                        },
                                       );
-                                      
-                                      Get.toNamed(AppRoutes.serviceDetails, arguments: {
-                                        'unitNo': unit.unitId,
-                                        'location': unit.unitLocation,
-                                        'unitImage': unit.unitImage,
-                                      });
                                     } else {
-                                      AppCommonToastMessage.show(message: "Scanner: No value scanned", type: ToastType.info);
+                                      AppCommonToastMessage.show(
+                                        message: "Scanner: No value scanned",
+                                        type: ToastType.info,
+                                      );
                                     }
                                   } catch (e) {
                                     debugPrint("Scanner Error: $e");
@@ -190,7 +213,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 0.2),
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         blurRadius: 5,
                                         spreadRadius: 1,
                                         offset: const Offset(0, 2),
@@ -262,11 +287,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             image: unit.unitImage,
                             date: unit.timing,
                             onTap: () {
-                              Get.toNamed(AppRoutes.serviceDetails, arguments: {
-                                'unitNo': unit.unitId,
-                                'location': unit.unitLocation,
-                                'unitImage': unit.unitImage,
-                              });
+                              Get.toNamed(
+                                AppRoutes.serviceDetails,
+                                arguments: {
+                                  'unitNo': unit.unitId,
+                                  'location': unit.unitLocation,
+                                  'unitImage': unit.unitImage,
+                                },
+                              );
                             },
                           );
                         },

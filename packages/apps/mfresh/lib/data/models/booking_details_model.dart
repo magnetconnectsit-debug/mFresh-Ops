@@ -38,7 +38,7 @@ class BookingDetailsModel {
               json['services'].map((service) => ServiceItem.fromJson(service)),
             )
           : [],
-      paymentMode: json['payment_mode'] ?? 0,
+      paymentMode: int.tryParse(json['payment_mode']?.toString() ?? '') ?? 0,
       paymentStatus: json['payment_status'] ?? json['Payment_status'] ?? '',
     );
   }

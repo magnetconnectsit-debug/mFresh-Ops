@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:services/settings_service.dart';
@@ -18,17 +19,17 @@ class _FloatingLoggerButtonState extends State<FloatingLoggerButton> {
   @override
   void initState() {
     super.initState();
-    ever(settings.showLogger, (bool show) {
-      if (show) {
+    everAll([settings.showLogger, settings.isDevMode], (_) {
+      if (settings.showLogger.value || settings.isDevMode.value || kDebugMode) {
         _showOverlay();
       } else {
         _hideOverlay();
       }
     });
 
-    // Show initially if enabled
+    // Show initially if enabled, in dev mode, or in debug mode
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (settings.showLogger.value) {
+      if (settings.showLogger.value || settings.isDevMode.value || kDebugMode) {
         _showOverlay();
       }
     });
