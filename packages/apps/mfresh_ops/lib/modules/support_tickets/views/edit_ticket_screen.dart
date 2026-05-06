@@ -247,8 +247,9 @@ class EditTicketScreen extends StatelessWidget {
           lastDate: DateTime(2100),
         );
         if (picked != null) {
-           final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-           if (time != null) {
+          if (!context.mounted) return;
+          final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+          if (time != null) {
               controller.followUpDate.value = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
            }
         }

@@ -4,8 +4,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
-import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:services/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 class TicketDetailsScreen extends GetView<TicketDetailsController> {
   const TicketDetailsScreen({super.key});
@@ -64,7 +65,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
 
                 // Attachments
                 if (ticket.attachments != null && ticket.attachments!.isNotEmpty) ...[
-                  _buildImageSection("Attachments", ticket.attachments!),
+                  _buildImageSection(context, "Attachments", ticket.attachments!),
                   const SizedBox(height: 16),
                 ],
 
@@ -77,11 +78,15 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 const SizedBox(height: 24),
 
                 // Comment history
-                _buildCommentHistory(ticket.comments ?? []),
+                _buildCommentHistory(controller, ticket.comments ?? []),
                 const SizedBox(height: 16),
 
                 // History table
                 _buildHistoryTable(ticket.logs ?? []),
+                const SizedBox(height: 16),
+
+                // Cashier images section
+                _buildImageSection(context, "Attachments", ticket.cashierImages?.map((e) => e.toString()).toList() ?? []),
               ],
             ),
           ),
@@ -143,7 +148,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           boxShadow: [
             if (!isSecondary)
               BoxShadow(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -173,9 +178,9 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: primaryOrange.withOpacity(0.1),
+        color: primaryOrange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryOrange.withOpacity(0.3)),
+        border: Border.all(color: primaryOrange.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -318,13 +323,33 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     Color? bgColor;
 
     switch (statusValue) {
-      case "0": textColor = Colors.red; bgColor = Colors.red.withOpacity(0.1); break;
-      case "1": textColor = Colors.black; bgColor = Colors.grey.withOpacity(0.2); break;
-      case "5": textColor = Colors.black; bgColor = const Color(0x9496F1EF); break;
-      case "4": textColor = Colors.black; bgColor = const Color(0x9607B8FF); break;
-      case "2": textColor = Colors.black; bgColor = Colors.green.withOpacity(0.2); break;
-      case "3": textColor = Colors.black; bgColor = Colors.grey.withOpacity(0.3); break;
-      default: textColor = Colors.black; bgColor = Colors.grey.withOpacity(0.1);
+      case "0": // New
+        textColor = Colors.red;
+        bgColor = Colors.red.withValues(alpha: 0.1);
+        break;
+      case "1": // WIP
+        textColor = Colors.black;
+        bgColor = Colors.grey.withValues(alpha: 0.2);
+        break;
+      case "5": // Awaited
+        textColor = Colors.black;
+        bgColor = const Color(0x9496F1EF);
+        break;
+      case "4": // Hold
+        textColor = Colors.black;
+        bgColor = const Color(0x9607B8FF);
+        break;
+      case "2": // Resolved
+        textColor = Colors.black;
+        bgColor = Colors.green.withValues(alpha: 0.2);
+        break;
+      case "3": // Closed
+        textColor = Colors.black;
+        bgColor = Colors.grey.withValues(alpha: 0.3);
+        break;
+      default:
+        textColor = Colors.black;
+        bgColor = Colors.grey.withValues(alpha: 0.1);
     }
 
     return Container(
@@ -332,7 +357,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: textColor.withOpacity(0.5), width: 0.5),
+        border: Border.all(color: textColor.withValues(alpha: 0.5), width: 0.5),
       ),
       child: Text(
         label,
@@ -516,20 +541,31 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   }
 
   // --- Comment History ---
-  Widget _buildCommentHistory(List comments) {
+  Widget _buildCommentHistory(TicketDetailsController controller, List comments) {
     if (comments.isEmpty) return const SizedBox();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Comment History", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         const SizedBox(height: 12),
-        ...comments.map((c) => _buildCommentItem(c)),
+        ...comments.map((c) {
+          final int commentId = c['id'] ?? 0;
+          return Obx(() => controller.editingCommentIds.contains(commentId)
+              ? _buildCommentEditForm(controller, c)
+              : _buildCommentItem(controller, c));
+        }),
       ],
     );
   }
 
-  Widget _buildCommentItem(dynamic c) {
+  Widget _buildCommentItem(TicketDetailsController controller, dynamic c) {
     final bool isInternal = c['is_internal'] == "1";
+    final int commentId = c['id'] ?? 0;
+    final List images = c['ticket_images'] ?? [];
+    final storage = Get.find<StorageService>();
+    final user = storage.getUser();
+    final bool isOwner = c['user_id']?.toString() == user?.id?.toString();
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Stack(
@@ -550,11 +586,48 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(c['user_name'] ?? "Unknown", style: const TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 13)),
-                    if (isInternal) _buildInternalBadge(),
+                    Row(
+                      children: [
+                        if (isInternal) _buildInternalBadge(),
+                        if (isOwner)
+                          PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.more_vert, size: 16),
+                            onSelected: (val) {
+                              if (val == 'edit') {
+                                controller.toggleEditComment(commentId);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(fontSize: 12))),
+                            ],
+                          ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Text(c['comment'] ?? "", style: const TextStyle(fontSize: 12, height: 1.3)),
+                if (images.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: images.map((img) => InkWell(
+                      onTap: () => _showImagePreview(Get.context!, img.toString()),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(
+                          img.toString(),
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(width: 60, height: 60, color: Colors.grey[200], child: const Icon(Icons.broken_image, size: 20)),
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text("Updated On : ${c['created_at']}", style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w600)),
               ],
@@ -575,6 +648,137 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCommentEditForm(TicketDetailsController controller, dynamic c) {
+    final int commentId = c['id'] ?? 0;
+    final String initialComment = c['comment'] ?? '';
+    final List initialImages = c['ticket_images'] ?? [];
+    final bool initialInternal = c['is_internal'] == "1";
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        final TextEditingController editController = TextEditingController(text: initialComment);
+        List<File> newImages = [];
+        List<String> existingImages = List<String>.from(initialImages.map((e) => e.toString()));
+        bool isInternal = initialInternal;
+
+        return Container(
+          margin: const EdgeInsets.only(left: 10, bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: webBlueBorder, width: 1.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('Edit Comment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Spacer(),
+                  Checkbox(
+                    value: isInternal,
+                    onChanged: (val) => setState(() => isInternal = val!),
+                  ),
+                  const Text('Internal', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: () => controller.editComment(
+                      commentId: commentId,
+                      comment: editController.text,
+                      newImages: newImages,
+                      internal: isInternal,
+                    ),
+                    child: const Text('Save', style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: () => controller.toggleEditComment(commentId),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: editController,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: 'Enter comment...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.all(10),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (existingImages.isNotEmpty) ...[
+                const Text('Current Images:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: existingImages.map((url) => Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(url, width: 60, height: 60, fit: BoxFit.cover),
+                      ),
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                          onPressed: () => setState(() => existingImages.remove(url)),
+                        ),
+                      ),
+                    ],
+                  )).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (newImages.isNotEmpty) ...[
+                const Text('New Images:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: newImages.map((file) => Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(file, width: 60, height: 60, fit: BoxFit.cover),
+                      ),
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                          onPressed: () => setState(() => newImages.remove(file)),
+                        ),
+                      ),
+                    ],
+                  )).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+              InkWell(
+                onTap: () async {
+                  final picked = await ImagePicker().pickMultiImage();
+                  setState(() => newImages.addAll(picked.map((e) => File(e.path))));
+                },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.attachment_rounded, color: primaryOrange, size: 18),
+                    SizedBox(width: 4),
+                    Text("Attach Images", style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -620,11 +824,28 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   }
 
   Widget _historyRowTable(dynamic log) {
+    String dateStr = log['created_at'] ?? "-";
+    String datePart = "-";
+    String timePart = "-";
+    try {
+      final dt = DateTime.parse(dateStr);
+      datePart = DateFormat("dd-MM-yy").format(dt);
+      timePart = DateFormat("HH:mm").format(dt);
+    } catch (_) {}
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(log['created_at'] ?? "-", style: const TextStyle(fontSize: 11))),
+          Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(datePart, style: const TextStyle(fontSize: 11)),
+                  Text(timePart, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              )),
           Expanded(flex: 3, child: Text(log['user_name'] ?? "-", style: const TextStyle(fontSize: 11))),
           Expanded(flex: 4, child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,7 +860,8 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   }
 
   // --- Image Section ---
-  Widget _buildImageSection(String title, List<String> images) {
+  Widget _buildImageSection(BuildContext context, String title, List<String> images) {
+    if (images.isEmpty) return const SizedBox();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -652,12 +874,55 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: images.map((img) => ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(img, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.white, child: const Icon(Icons.broken_image, color: Colors.grey))),
+            children: images.map((img) => InkWell(
+              onTap: () => _showImagePreview(context, img),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(img, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.white, child: const Icon(Icons.broken_image, color: Colors.grey))),
+              ),
             )).toList(),
           )
         ],
+      ),
+    );
+  }
+
+  void _showImagePreview(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(20),
+                    child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,7 +5,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:services/plutus_service.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/constants/app_colors.dart';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
@@ -52,12 +53,12 @@ class PrintUtil {
               ),
               const SizedBox(height: 16),
               _buildPrintOption(
-                icon: Icons.settings_suggest_rounded,
+                icon: Icons.bluetooth_audio_rounded,
                 title: "External Printer",
-                subtitle: "Standard Android Print Dialog",
+                subtitle: "Bluetooth Thermal Printer",
                 onTap: () {
                   Get.back();
-                  printSystem(booking, encryptedBookingId);
+                  _handleBluetoothPrint(context, booking);
                 },
               ),
               const SizedBox(height: 16),
@@ -101,6 +102,123 @@ class PrintUtil {
   }
 
   /// System Print Dialog
+  static Future<void> _handleBluetoothPrint(BuildContext context, BookingDetailsModel booking) async {
+    // Request Permissions
+    final status = await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ].request();
+
+    if (status[Permission.bluetoothConnect]?.isGranted != true) {
+      AppCommonToastMessage.show(message: "Bluetooth permissions required", type: ToastType.error);
+      return;
+    }
+
+    final bool isEnabled = await PrintBluetoothThermal.bluetoothEnabled;
+    if (!isEnabled) {
+      AppCommonToastMessage.show(message: "Please turn on Bluetooth", type: ToastType.error);
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    // Show Scanning Dialog
+    _showBluetoothDeviceSelector(context, booking);
+  }
+
+  static void _showBluetoothDeviceSelector(BuildContext context, BookingDetailsModel booking) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Select Printer", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              FutureBuilder<List<BluetoothInfo>>(
+                future: PrintBluetoothThermal.pairedBluetooths,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Text("No paired devices found");
+                  }
+                  return SizedBox(
+                    height: 300,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        final device = snapshot.data![index];
+                        return ListTile(
+                          leading: const Icon(Icons.print_outlined),
+                          title: Text(device.name),
+                          subtitle: Text(device.macAdress),
+                          onTap: () async {
+                            Get.back();
+                            _printViaBluetooth(booking, device.macAdress);
+                          },
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              TextButton(onPressed: () => Get.back(), child: const Text("Close")),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _printViaBluetooth(BookingDetailsModel booking, String mac) async {
+    try {
+      final bool connected = await PrintBluetoothThermal.connect(macPrinterAddress: mac);
+      if (!connected) {
+        AppCommonToastMessage.show(message: "Connection failed", type: ToastType.error);
+        return;
+      }
+
+      final List<int> bytes = [];
+      bytes.addAll([0x1B, 0x40]); // Initialize
+      bytes.addAll([0x1B, 0x61, 0x01]); // Align Center
+      bytes.addAll(utf8.encode("MAGNET CONNECTS\n"));
+      bytes.addAll(utf8.encode("Booking Confirmation\n\n"));
+      
+      bytes.addAll([0x1B, 0x61, 0x00]); // Align Left
+      bytes.addAll(utf8.encode("Booking ID: ${booking.bookingId}\n"));
+      bytes.addAll(utf8.encode("Unit No: ${booking.unitNo}\n"));
+      bytes.addAll(utf8.encode("Amount: Rs. ${booking.totalAmount}\n"));
+      bytes.addAll(utf8.encode("Date: ${_formatDate(booking.bookingTimeDate)}\n"));
+      bytes.addAll(utf8.encode("--------------------------------\n"));
+      
+      bytes.addAll(utf8.encode("SERVICES:\n"));
+      for (var s in booking.services) {
+        bytes.addAll(utf8.encode("- ${s.servicesName} x${s.quantity}\n"));
+      }
+      bytes.addAll(utf8.encode("--------------------------------\n"));
+      bytes.addAll(utf8.encode("\n\nThank You!\n\n\n\n"));
+
+      final bool result = await PrintBluetoothThermal.writeBytes(bytes);
+      if (result) {
+        AppCommonToastMessage.show(message: "Printing success", type: ToastType.success);
+      } else {
+        AppCommonToastMessage.show(message: "Printing failed", type: ToastType.error);
+      }
+      
+      await PrintBluetoothThermal.disconnect;
+    } catch (e) {
+      AppCommonToastMessage.show(message: "Bluetooth Error: $e", type: ToastType.error);
+    }
+  }
+
   static Future<void> printSystem(BookingDetailsModel booking, String? encryptedBookingId) async {
     try {
       final doc = await _generateDocument(booking, encryptedBookingId);

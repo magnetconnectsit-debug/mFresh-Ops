@@ -19,15 +19,15 @@ class TicketDetailsController extends GetxController {
   final ImagePicker _picker = ImagePicker();
   final selectedImages = <File>[].obs;
   final isLoading = false.obs;
-  
+
   final ticketId = Rxn<int>();
   final ticketDetail = Rxn<SupportTicketDetail>();
-  
+
   // Controllers for editing ticket
   final subjectController = TextEditingController();
   final descriptionController = TextEditingController();
   final unitController = TextEditingController();
-  
+
   // Selected values for dropdowns
   final selectedStatus = Rxn<String>();
   final selectedPriority = Rxn<String>();
@@ -36,7 +36,7 @@ class TicketDetailsController extends GetxController {
   final selectedAssignee = Rxn<AssigneeModel>();
   final selectedProject = Rxn<SupportProject>();
   final selectedUnit = Rxn<SupportUnit>();
-  
+
   // Reminder Logic for Edit
   final reminderDate = Rxn<DateTime>();
   final reminderTime = Rxn<TimeOfDay>();
@@ -57,6 +57,7 @@ class TicketDetailsController extends GetxController {
   // For timeline and history
   final activities = <ActivityModel>[].obs;
   final history = <HistoryModel>[].obs;
+  final editingCommentIds = <int>{}.obs;
 
   @override
   void onInit() {
@@ -72,7 +73,7 @@ class TicketDetailsController extends GetxController {
       isLoading.value = true;
       // Fetch core details first to show the screen
       await fetchTicketDetails();
-      
+
       // Fetch metadata in background
       Future.wait([
         fetchUnits(),
@@ -80,10 +81,10 @@ class TicketDetailsController extends GetxController {
         fetchProjects(),
         fetchAssignees(),
       ]).then((_) async {
-         // After fetching categories, fetch subcategories if we have a ticket category
-         if (selectedCategory.value != null) {
-           await fetchSubCategories(selectedCategory.value!.categoryId);
-         }
+        // After fetching categories, fetch subcategories if we have a ticket category
+        if (selectedCategory.value != null) {
+          await fetchSubCategories(selectedCategory.value!.categoryId);
+        }
       });
     } catch (e) {
       debugPrint('Error fetching all data: $e');
@@ -105,11 +106,11 @@ class TicketDetailsController extends GetxController {
     try {
       final result = await _supportRepository.getSupportCategories();
       categories.assignAll(result);
-      
+
       // If we have a ticket, match the category object
       if (ticketDetail.value?.categoryId != null) {
         selectedCategory.value = categories.firstWhereOrNull(
-          (c) => c.categoryId == ticketDetail.value!.categoryId
+          (c) => c.categoryId == ticketDetail.value!.categoryId,
         );
         if (selectedCategory.value != null) {
           fetchSubCategories(selectedCategory.value!.categoryId);
@@ -131,13 +132,15 @@ class TicketDetailsController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
-      final result = await _supportRepository.getSupportSubCategories(categoryId);
+      final result = await _supportRepository.getSupportSubCategories(
+        categoryId,
+      );
       subCategories.assignAll(result);
-      
+
       // If we have a ticket, match the subcategory object
       if (ticketDetail.value?.subcategoryId != null) {
         selectedSubCategory.value = subCategories.firstWhereOrNull(
-          (sc) => sc.subCategoryId == ticketDetail.value!.subcategoryId
+          (sc) => sc.subCategoryId == ticketDetail.value!.subcategoryId,
         );
       }
     } catch (e) {
@@ -150,7 +153,9 @@ class TicketDetailsController extends GetxController {
       final storage = Get.find<StorageService>();
       final user = storage.getUser();
       if (user == null) return;
-      final result = await Get.find<CommonRepository>().getAllAssignees(mainId: user.id.toString());
+      final result = await Get.find<CommonRepository>().getAllAssignees(
+        mainId: user.id.toString(),
+      );
       assignees.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching assignees: $e');
@@ -160,36 +165,50 @@ class TicketDetailsController extends GetxController {
   Future<void> fetchTicketDetails() async {
     if (ticketId.value == null) return;
     try {
-      final response = await _supportRepository.viewSupportTicket(ticketId.value!);
+      final response = await _supportRepository.viewSupportTicket(
+        ticketId.value!,
+      );
       if (response != null) {
         ticketDetail.value = response;
-        
+
         // Map fields to controllers for editing
         subjectController.text = response.subject ?? '';
         descriptionController.text = response.description ?? '';
         unitController.text = response.unitNo ?? '';
-        
+
         // Map labels to options (In a real app, you'd match by ID from an edit API)
         selectedStatus.value = response.status;
         selectedPriority.value = response.priority;
-        
+
         // Map logs and comments to UI models
         if (response.comments != null) {
-          activities.assignAll(response.comments!.map((c) => ActivityModel(
-            user: c['commented_by'] ?? 'User',
-            action: 'commented',
-            comment: c['comment'] ?? '',
-            timestamp: c['created_at'] ?? '',
-            color: AppColors.primary,
-          )).toList());
+          activities.assignAll(
+            response.comments!
+                .map(
+                  (c) => ActivityModel(
+                    user: c['commented_by'] ?? 'User',
+                    action: 'commented',
+                    comment: c['comment'] ?? '',
+                    timestamp: c['created_at'] ?? '',
+                    color: AppColors.primary,
+                  ),
+                )
+                .toList(),
+          );
         }
 
         if (response.logs != null) {
-          history.assignAll(response.logs!.map((l) => HistoryModel(
-            date: l['created_at'] ?? '',
-            user: l['user_name'] ?? 'System',
-            action: l['action'] ?? '',
-          )).toList());
+          history.assignAll(
+            response.logs!
+                .map(
+                  (l) => HistoryModel(
+                    date: l['created_at'] ?? '',
+                    user: l['user_name'] ?? 'System',
+                    action: l['action'] ?? '',
+                  ),
+                )
+                .toList(),
+          );
         }
         // Map Reminder
         if (response.reminder != null) {
@@ -198,21 +217,22 @@ class TicketDetailsController extends GetxController {
             reminderDate.value = DateTime.tryParse(r.reminderDate!);
           }
           if (r.reminderTime != null) {
-             final timeParts = r.reminderTime?.split(":");
-             if (timeParts != null && timeParts.length >= 2) {
-               int hour = int.parse(timeParts[0]);
-               int minute = int.parse(timeParts[1]);
-               String period = r.timeType ?? "AM";
-               if (period == "PM" && hour != 12) hour += 12;
-               if (period == "AM" && hour == 12) hour = 0;
-               reminderTime.value = TimeOfDay(hour: hour, minute: minute);
-             }
+            final timeParts = r.reminderTime?.split(":");
+            if (timeParts != null && timeParts.length >= 2) {
+              int hour = int.parse(timeParts[0]);
+              int minute = int.parse(timeParts[1]);
+              String period = r.timeType ?? "AM";
+              if (period == "PM" && hour != 12) hour += 12;
+              if (period == "AM" && hour == 12) hour = 0;
+              reminderTime.value = TimeOfDay(hour: hour, minute: minute);
+            }
           }
           whatsappNotification.value = r.whatsappNotification == "1";
           appNotification.value = r.appNotification == "1";
-          
+
           if (reminderDate.value != null && reminderTime.value != null) {
-             displayReminder.value = "${DateFormat("dd MMM").format(reminderDate.value!)} ${reminderTime.value!.format(Get.context!)}";
+            displayReminder.value =
+                "${DateFormat("dd MMM").format(reminderDate.value!)} ${reminderTime.value!.format(Get.context!)}";
           }
         }
 
@@ -222,7 +242,9 @@ class TicketDetailsController extends GetxController {
       }
 
       // Also fetch edit data to get IDs for dropdowns
-      final editData = await _supportRepository.editSupportTicket(ticketId.value!);
+      final editData = await _supportRepository.editSupportTicket(
+        ticketId.value!,
+      );
       if (editData != null) {
         // Here we can set the selected models based on IDs
         // This requires the models to be fetched first (handled in fetchAllData)
@@ -250,14 +272,13 @@ class TicketDetailsController extends GetxController {
     selectedImages.removeAt(index);
   }
 
-
   Future<void> saveTicket() async {
     if (ticketId.value == null) return;
     try {
       isLoading.value = true;
       final storage = Get.find<StorageService>();
       final user = storage.getUser();
-      
+
       final Map<String, dynamic> data = {
         'ticket_id': ticketId.value.toString(),
         'unit': selectedUnit.value?.unitId.toString() ?? '',
@@ -280,21 +301,31 @@ class TicketDetailsController extends GetxController {
 
       // Add attachments
       for (var file in selectedImages) {
-        formData.files.add(MapEntry(
-          'attachments[]',
-          await dio.MultipartFile.fromFile(file.path),
-        ));
+        formData.files.add(
+          MapEntry(
+            'attachments[]',
+            await dio.MultipartFile.fromFile(file.path),
+          ),
+        );
       }
 
       final response = await _supportRepository.updateSupportTicket(formData);
-      
+
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar('Success', 'Ticket updated successfully', backgroundColor: AppColors.success, colorText: AppColors.white);
+        Get.snackbar(
+          'Success',
+          'Ticket updated successfully',
+          backgroundColor: AppColors.success,
+          colorText: AppColors.white,
+        );
         // Refresh details
         fetchTicketDetails();
       } else {
-        Get.snackbar('Error', response?['message'] ?? 'Failed to update ticket');
+        Get.snackbar(
+          'Error',
+          response?['message'] ?? 'Failed to update ticket',
+        );
       }
     } catch (e) {
       Get.snackbar('Error', 'An error occurred: $e');
@@ -305,11 +336,16 @@ class TicketDetailsController extends GetxController {
 
   String _getPriorityId(String? priority) {
     switch (priority) {
-      case 'Low': return '1';
-      case 'Medium': return '2';
-      case 'High': return '3';
-      case 'Top Priority': return '6';
-      default: return '2';
+      case 'Low':
+        return '1';
+      case 'Medium':
+        return '2';
+      case 'High':
+        return '3';
+      case 'Top Priority':
+        return '6';
+      default:
+        return '2';
     }
   }
 
@@ -336,10 +372,12 @@ class TicketDetailsController extends GetxController {
 
       final formData = dio.FormData.fromMap(data);
       for (var file in selectedImages) {
-        formData.files.add(MapEntry(
-          'ticket_images[]',
-          await dio.MultipartFile.fromFile(file.path),
-        ));
+        formData.files.add(
+          MapEntry(
+            'ticket_images[]',
+            await dio.MultipartFile.fromFile(file.path),
+          ),
+        );
       }
 
       final response = await _supportRepository.addComment(formData);
@@ -366,12 +404,24 @@ class TicketDetailsController extends GetxController {
     // Map label to ID
     String statusId = "0";
     switch (statusName) {
-      case "New": statusId = "0"; break;
-      case "WIP": statusId = "1"; break;
-      case "Resolved": statusId = "2"; break;
-      case "Closed": statusId = "3"; break;
-      case "Hold": statusId = "4"; break;
-      case "Awaited": statusId = "5"; break;
+      case "New":
+        statusId = "0";
+        break;
+      case "WIP":
+        statusId = "1";
+        break;
+      case "Resolved":
+        statusId = "2";
+        break;
+      case "Closed":
+        statusId = "3";
+        break;
+      case "Hold":
+        statusId = "4";
+        break;
+      case "Awaited":
+        statusId = "5";
+        break;
     }
 
     try {
@@ -409,6 +459,60 @@ class TicketDetailsController extends GetxController {
     }
   }
 
+  Future<void> editComment({
+    required int commentId,
+    required String comment,
+    required List<File> newImages,
+    required bool internal,
+  }) async {
+    try {
+      isLoading.value = true;
+      final storage = Get.find<StorageService>();
+      final user = storage.getUser();
+      if (user == null) return;
+
+      final Map<String, dynamic> data = {
+        'comment_id': commentId.toString(),
+        'comment': comment,
+        'is_internal': internal ? '1' : '0',
+        'user_id': user.id.toString(),
+      };
+
+      final formData = dio.FormData.fromMap(data);
+      if (newImages.isNotEmpty) {
+        for (var file in newImages) {
+          formData.files.add(
+            MapEntry(
+              'ticket_images[]',
+              await dio.MultipartFile.fromFile(file.path),
+            ),
+          );
+        }
+      }
+
+      final success = await _supportRepository.updateTicketComment(formData);
+      if (success) {
+        editingCommentIds.remove(commentId);
+        Get.snackbar('Success', 'Comment updated successfully');
+        fetchTicketDetails();
+      } else {
+        Get.snackbar('Error', 'Failed to update comment');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update comment: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void toggleEditComment(int commentId) {
+    if (editingCommentIds.contains(commentId)) {
+      editingCommentIds.remove(commentId);
+    } else {
+      editingCommentIds.add(commentId);
+    }
+  }
+
   void shareToWhatsApp() async {
     final ticket = ticketDetail.value;
     if (ticket == null) return;
@@ -418,14 +522,15 @@ class TicketDetailsController extends GetxController {
     final String subject = ticket.subject ?? '-';
     final String unit = ticket.unitNo ?? '-';
 
-    final message = "Ticket Number: $ticketNo\n"
+    final message =
+        "Ticket Number: $ticketNo\n"
         "Category: $category\n"
         "Subject: $subject\n"
         "Unit: $unit\n"
         "Link: https://mfreshops.magnetconnects.com/view-ticket/${ticket.id}";
 
     final url = "whatsapp://send?text=${Uri.encodeComponent(message)}";
-    
+
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     } else {
@@ -459,9 +564,5 @@ class HistoryModel {
   final String user;
   final String action;
 
-  HistoryModel({
-    required this.date,
-    required this.user,
-    required this.action,
-  });
+  HistoryModel({required this.date, required this.user, required this.action});
 }

@@ -211,7 +211,7 @@ class TaskSubmissionDialog extends StatelessWidget {
   }
 
   Widget _buildButton(String text, Color color, VoidCallback onTap, {bool loading = false}) {
-    return Container(
+    return SizedBox(
       height: 34.h,
       child: ElevatedButton(
         onPressed: loading ? null : onTap,
@@ -236,7 +236,7 @@ class TaskSubmissionDialog extends StatelessWidget {
   }
 
   Widget _buildOutlinedButton(String text, VoidCallback onTap, {bool loading = false}) {
-    return Container(
+    return SizedBox(
       height: 34.h,
       child: OutlinedButton(
         onPressed: loading ? null : onTap,
