@@ -10,8 +10,6 @@ import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:services/plutus_service.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:mfresh/core/config/app_config.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/core/utils/print_util.dart';
 
@@ -42,72 +40,6 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       booking: booking,
       encryptedBookingId: Get.arguments?['encryptBookingId'],
     );
-  }
-
-  Map<String, dynamic> _buildPrintDataForService(BookingDetailsModel booking, ServiceItem service) {
-    Map<String, dynamic> header = {
-      "ApplicationId": AppConfig.applicationId,
-      "UserId": "user1234",
-      "MethodId": "1002",
-      "VersionNo": "1.0",
-    };
-
-    List<Map<String, dynamic>> printItems = [];
-
-    // Title
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Booking Confirmation", "ImagePath": "0", "ImageData": "0"});
-    // Booking ID
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Booking ID: ${booking.bookingId}", "ImagePath": "0", "ImageData": "0"});
-    // Unit No.
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Unit No.: ${booking.unitNo}", "ImagePath": "0", "ImageData": "0"});
-    // Amount Paid
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Amount Paid: Rs. ${booking.totalAmount}", "ImagePath": "0", "ImageData": "0"});
-    // Date & Time
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Date & Time: ${formatBookingDate(booking.bookingTimeDate)}", "ImagePath": "0", "ImageData": "0"});
-    // Payment Mode
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Payment Mode: ${booking.paymentMode == 3 ? 'External QR' : booking.paymentMode == 2 ? 'Online' : 'Cash'}", "ImagePath": "0", "ImageData": "0"});
-    // Separator
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "------------------------", "ImagePath": "0", "ImageData": "0"});
-    // Service Name
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Service: ${service.servicesName} x${service.quantity}", "ImagePath": "0", "ImageData": "0"});
-    // Location
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Location: ${booking.fullAddress}", "ImagePath": "0", "ImageData": "0"});
-    // QR Section Title
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Scan QR at Unit", "ImagePath": "0", "ImageData": "0"});
-
-    // QR Code
-    printItems.add({
-      "PrintDataType": "4",
-      "PrinterWidth": 24,
-      "IsCenterAligned": true,
-      "DataToPrint": jsonEncode({
-        "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
-        "DeviceID": "NA",
-        "AccessDate": formatDate(booking.bookingTimeDate),
-      }),
-      "ImagePath": "",
-      "ImageData": ""
-    });
-
-    for (int i = 0; i < 2; i++) {
-      printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": " ", "ImagePath": "0", "ImageData": "0"});
-    }
-
-    // Thank You
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Thank You!", "ImagePath": "0", "ImageData": "0"});
-
-    for (int i = 0; i < 4; i++) {
-      printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": " ", "ImagePath": "0", "ImageData": "0"});
-    }
-
-    return {
-      "Header": header,
-      "Detail": {
-        "PrintRefNo": booking.bookingId,
-        "SavePrintData": false,
-        "Data": printItems
-      }
-    };
   }
 
   String formatBookingDate(String dateString) {
@@ -197,7 +129,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                             style: AppTextStyle.style_11_400(color: AppColors.grey400),
                                           ),
                                           TextSpan(
-                                            text: '${service.quantity}',
+                                            text: service.quantity.toString(),
                                             style: AppTextStyle.style_11_700(color: AppColors.grey400),
                                           ),
                                         ],

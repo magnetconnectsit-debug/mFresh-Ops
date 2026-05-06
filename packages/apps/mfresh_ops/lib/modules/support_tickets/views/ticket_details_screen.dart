@@ -1,3 +1,4 @@
+import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -36,7 +37,9 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator(color: primaryOrange));
+          return const Center(
+            child: CircularProgressIndicator(color: primaryOrange),
+          );
         }
 
         final ticket = controller.ticketDetail.value;
@@ -64,8 +67,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 const SizedBox(height: 16),
 
                 // Attachments
-                if (ticket.attachments != null && ticket.attachments!.isNotEmpty) ...[
-                  _buildImageSection(context, "Attachments", ticket.attachments!),
+                if (ticket.attachments != null &&
+                    ticket.attachments!.isNotEmpty) ...[
+                  _buildImageSection(
+                    context,
+                    "Attachments",
+                    ticket.attachments!,
+                  ),
                   const SizedBox(height: 16),
                 ],
 
@@ -86,7 +94,11 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 const SizedBox(height: 16),
 
                 // Cashier images section
-                _buildImageSection(context, "Attachments", ticket.cashierImages?.map((e) => e.toString()).toList() ?? []),
+                _buildImageSection(
+                  context,
+                  "Attachments",
+                  ticket.cashierImages?.map((e) => e.toString()).toList() ?? [],
+                ),
               ],
             ),
           ),
@@ -114,7 +126,8 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             label: "Edit Ticket",
             icon: Icons.edit_note_rounded,
             color: primaryOrange,
-            onTap: () => Get.toNamed(AppRoutes.editTicket, arguments: ticket.id),
+            onTap: () =>
+                Get.toNamed(AppRoutes.editTicket, arguments: ticket.id),
           ),
         ),
         const SizedBox(width: 12),
@@ -198,10 +211,10 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           Expanded(
             child: Text(
               "#${ticket.caseId ?? ticket.id}",
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: Colors.black87,
+                color: AppColors.black.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -250,7 +263,10 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               _infoTile("Unit No", value: ticket.unitNo ?? "-"),
               _infoTile("Ticket Age", value: ticket.tktAge ?? "-"),
               _infoTile("Project", value: ticket.project ?? "-"),
-              _infoTile("Reminder", value: ticket.reminder?.reminderDate ?? "-"),
+              _infoTile(
+                "Reminder",
+                value: ticket.reminder?.reminderDate ?? "-",
+              ),
               _infoTile("Linked Tkt", value: "NA"),
             ],
           ),
@@ -307,10 +323,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         const SizedBox(width: 8),
         Expanded(
           flex: 2,
-          child: Text(
-            value,
-            style: const TextStyle(height: 1.4, fontSize: 12),
-          ),
+          child: Text(value, style: const TextStyle(height: 1.4, fontSize: 12)),
         ),
       ],
     );
@@ -361,7 +374,11 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       ),
       child: Text(
         label,
-        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 8),
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 8,
+        ),
       ),
     );
   }
@@ -372,11 +389,25 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     Color? bgColor;
 
     switch (priorityValue) {
-      case "1": textColor = Colors.black; bgColor = Colors.grey.shade200; break;
-      case "2": textColor = Colors.black; bgColor = const Color(0xFFFFC000); break;
-      case "3": textColor = Colors.white; bgColor = const Color(0xFFFF0000); break;
-      case "6": textColor = Colors.white; bgColor = const Color(0xFFC00000); break;
-      default: textColor = Colors.black; bgColor = Colors.grey.shade200;
+      case "1":
+        textColor = Colors.black;
+        bgColor = Colors.grey.shade200;
+        break;
+      case "2":
+        textColor = Colors.black;
+        bgColor = const Color(0xFFFFC000);
+        break;
+      case "3":
+        textColor = Colors.white;
+        bgColor = const Color(0xFFFF0000);
+        break;
+      case "6":
+        textColor = Colors.white;
+        bgColor = const Color(0xFFC00000);
+        break;
+      default:
+        textColor = Colors.black;
+        bgColor = Colors.grey.shade200;
     }
 
     return Container(
@@ -384,34 +415,52 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
-        border: bgColor == Colors.grey.shade200 ? Border.all(color: Colors.grey.shade400) : null,
+        border: bgColor == Colors.grey.shade200
+            ? Border.all(color: Colors.grey.shade400)
+            : null,
       ),
       child: Text(
         label,
-        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 8),
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 8,
+        ),
       ),
     );
   }
 
   String _getStatusLabel(String val) {
     switch (val) {
-      case "0": return "New";
-      case "1": return "WIP";
-      case "2": return "Resolved";
-      case "3": return "Closed";
-      case "4": return "Hold";
-      case "5": return "Awaited";
-      default: return "Unknown";
+      case "0":
+        return "New";
+      case "1":
+        return "WIP";
+      case "2":
+        return "Resolved";
+      case "3":
+        return "Closed";
+      case "4":
+        return "Hold";
+      case "5":
+        return "Awaited";
+      default:
+        return "Unknown";
     }
   }
 
   String _getPriorityLabel(String val) {
     switch (val) {
-      case "1": return "Low";
-      case "2": return "Medium";
-      case "3": return "High";
-      case "6": return "Top Priority";
-      default: return "Unknown";
+      case "1":
+        return "Low";
+      case "2":
+        return "Medium";
+      case "3":
+        return "High";
+      case "6":
+        return "Top Priority";
+      default:
+        return "Unknown";
     }
   }
 
@@ -419,11 +468,29 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   Widget _buildStatusActionButtons() {
     return Row(
       children: [
-        Expanded(child: _headerAction("Resolve", Icons.check_circle_outline, () => controller.updateStatus("Resolved"))),
+        Expanded(
+          child: _headerAction(
+            "Resolve",
+            Icons.check_circle_outline,
+            () => controller.updateStatus("Resolved"),
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _headerAction("Awaited", Icons.pause_circle_outline, () => controller.updateStatus("Awaited"))),
+        Expanded(
+          child: _headerAction(
+            "Awaited",
+            Icons.pause_circle_outline,
+            () => controller.updateStatus("Awaited"),
+          ),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _headerAction("Hold", Icons.stop_circle_outlined, () => controller.updateStatus("Hold"))),
+        Expanded(
+          child: _headerAction(
+            "Hold",
+            Icons.stop_circle_outlined,
+            () => controller.updateStatus("Hold"),
+          ),
+        ),
       ],
     );
   }
@@ -442,7 +509,14 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           children: [
             Icon(icon, color: Colors.white, size: 16),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -456,34 +530,49 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: webBlueBorder.withOpacity(0.5), width: 1),
+        border: Border.all(color: webBlueBorder.withValues(alpha: 0.5), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text("Comments", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const Text(
+                "Comments",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
               const Spacer(),
-              Obx(() => Row(
-                children: [
-                  Checkbox(
-                    value: controller.isInternal.value,
-                    activeColor: primaryOrange,
-                    onChanged: (val) => controller.isInternal.value = val!,
-                  ),
-                  const Text("Mark Internal", style: TextStyle(fontSize: 12, color: Colors.black54)),
-                ],
-              )),
+              Obx(
+                () => Row(
+                  children: [
+                    Checkbox(
+                      value: controller.isInternal.value,
+                      activeColor: primaryOrange,
+                      onChanged: (val) => controller.isInternal.value = val!,
+                    ),
+                    const Text(
+                      "Mark Internal",
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(width: 12),
               InkWell(
                 onTap: () => controller.addComment(),
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: primaryOrange, borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  decoration: BoxDecoration(
+                    color: primaryOrange,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.send_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -493,9 +582,15 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
               filled: true,
-              fillColor: lightGrey.withOpacity(0.3),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              fillColor: lightGrey.withValues(alpha: 0.3),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
               hintText: "Write comment...",
             ),
           ),
@@ -507,52 +602,83 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               children: [
                 Icon(Icons.attachment_rounded, color: primaryOrange, size: 18),
                 SizedBox(width: 4),
-                Text("Upload Images", style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                  "Upload Images",
+                  style: TextStyle(
+                    color: primaryOrange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
-          Obx(() => controller.selectedImages.isNotEmpty
-            ? Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Wrap(
-                  spacing: 8,
-                  children: controller.selectedImages.map((file) => Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(file.path), width: 60, height: 60, fit: BoxFit.cover),
-                      ),
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-                          onPressed: () => controller.selectedImages.remove(file),
-                        ),
-                      )
-                    ],
-                  )).toList(),
-                ),
-              )
-            : const SizedBox.shrink()),
+          Obx(
+            () => controller.selectedImages.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Wrap(
+                      spacing: 8,
+                      children: controller.selectedImages
+                          .map(
+                            (file) => Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    File(file.path),
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: -4,
+                                  right: -4,
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.cancel,
+                                      color: Colors.red,
+                                      size: 20,
+                                    ),
+                                    onPressed: () =>
+                                        controller.selectedImages.remove(file),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
   }
 
   // --- Comment History ---
-  Widget _buildCommentHistory(TicketDetailsController controller, List comments) {
+  Widget _buildCommentHistory(
+    TicketDetailsController controller,
+    List comments,
+  ) {
     if (comments.isEmpty) return const SizedBox();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Comment History", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text(
+          "Comment History",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         const SizedBox(height: 12),
         ...comments.map((c) {
           final int commentId = c['id'] ?? 0;
-          return Obx(() => controller.editingCommentIds.contains(commentId)
-              ? _buildCommentEditForm(controller, c)
-              : _buildCommentItem(controller, c));
+          return Obx(
+            () => controller.editingCommentIds.contains(commentId)
+                ? _buildCommentEditForm(controller, c)
+                : _buildCommentItem(controller, c),
+          );
         }),
       ],
     );
@@ -576,7 +702,10 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: isInternal ? const Color(0xFFFFF9C4) : Colors.white,
-              border: Border.all(color: isInternal ? Colors.orange : webBlueBorder, width: 1.2),
+              border: Border.all(
+                color: isInternal ? Colors.orange : webBlueBorder,
+                width: 1.2,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -585,7 +714,14 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(c['user_name'] ?? "Unknown", style: const TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      c['user_name'] ?? "Unknown",
+                      style: const TextStyle(
+                        color: primaryOrange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     Row(
                       children: [
                         if (isInternal) _buildInternalBadge(),
@@ -599,7 +735,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                               }
                             },
                             itemBuilder: (context) => [
-                              const PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(fontSize: 12))),
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text(
+                                  'Edit',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ],
                           ),
                       ],
@@ -607,29 +749,52 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(c['comment'] ?? "", style: const TextStyle(fontSize: 12, height: 1.3)),
+                Text(
+                  c['comment'] ?? "",
+                  style: const TextStyle(fontSize: 12, height: 1.3),
+                ),
                 if (images.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: images.map((img) => InkWell(
-                      onTap: () => _showImagePreview(Get.context!, img.toString()),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.network(
-                          img.toString(),
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(width: 60, height: 60, color: Colors.grey[200], child: const Icon(Icons.broken_image, size: 20)),
-                        ),
-                      ),
-                    )).toList(),
+                    children: images
+                        .map(
+                          (img) => InkWell(
+                            onTap: () =>
+                                _showImagePreview(Get.context!, img.toString()),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.network(
+                                img.toString(),
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 60,
+                                  height: 60,
+                                  color: Colors.grey[200],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ],
                 const SizedBox(height: 12),
-                Text("Updated On : ${c['created_at']}", style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w600)),
+                Text(
+                  "Updated On : ${c['created_at']}",
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -659,9 +824,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
 
     return StatefulBuilder(
       builder: (context, setState) {
-        final TextEditingController editController = TextEditingController(text: initialComment);
+        final TextEditingController editController = TextEditingController(
+          text: initialComment,
+        );
         List<File> newImages = [];
-        List<String> existingImages = List<String>.from(initialImages.map((e) => e.toString()));
+        List<String> existingImages = List<String>.from(
+          initialImages.map((e) => e.toString()),
+        );
         bool isInternal = initialInternal;
 
         return Container(
@@ -677,7 +846,10 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             children: [
               Row(
                 children: [
-                  const Text('Edit Comment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text(
+                    'Edit Comment',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   const Spacer(),
                   Checkbox(
                     value: isInternal,
@@ -692,12 +864,26 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       newImages: newImages,
                       internal: isInternal,
                     ),
-                    child: const Text('Save', style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 14)),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        color: primaryOrange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   InkWell(
                     onTap: () => controller.toggleEditComment(commentId),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -708,70 +894,119 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 style: const TextStyle(fontSize: 12),
                 decoration: InputDecoration(
                   hintText: 'Enter comment...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   contentPadding: const EdgeInsets.all(10),
                 ),
               ),
               const SizedBox(height: 12),
               if (existingImages.isNotEmpty) ...[
-                const Text('Current Images:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                const Text(
+                  'Current Images:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: existingImages.map((url) => Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(url, width: 60, height: 60, fit: BoxFit.cover),
-                      ),
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-                          onPressed: () => setState(() => existingImages.remove(url)),
+                  children: existingImages
+                      .map(
+                        (url) => Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                url,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    setState(() => existingImages.remove(url)),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  )).toList(),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 12),
               ],
               if (newImages.isNotEmpty) ...[
-                const Text('New Images:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                const Text(
+                  'New Images:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: newImages.map((file) => Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(file, width: 60, height: 60, fit: BoxFit.cover),
-                      ),
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
-                          onPressed: () => setState(() => newImages.remove(file)),
+                  children: newImages
+                      .map(
+                        (file) => Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                file,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    setState(() => newImages.remove(file)),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  )).toList(),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 12),
               ],
               InkWell(
                 onTap: () async {
                   final picked = await ImagePicker().pickMultiImage();
-                  setState(() => newImages.addAll(picked.map((e) => File(e.path))));
+                  setState(
+                    () => newImages.addAll(picked.map((e) => File(e.path))),
+                  );
                 },
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.attachment_rounded, color: primaryOrange, size: 18),
+                    Icon(
+                      Icons.attachment_rounded,
+                      color: primaryOrange,
+                      size: 18,
+                    ),
                     SizedBox(width: 4),
-                    Text("Attach Images", style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text(
+                      "Attach Images",
+                      style: TextStyle(
+                        color: primaryOrange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -785,8 +1020,18 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   Widget _buildInternalBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
-      child: const Text("INTERNAL", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: Colors.orange,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Text(
+        "INTERNAL",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -796,16 +1041,21 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Activity Log", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const Text(
+          "Activity Log",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         const SizedBox(height: 16),
         _historyHeaderTable(),
         const Divider(height: 1, color: Colors.black12),
-        ...logs.map((log) => Column(
-          children: [
-            _historyRowTable(log),
-            const Divider(height: 1, color: Colors.black12),
-          ],
-        )),
+        ...logs.map(
+          (log) => Column(
+            children: [
+              _historyRowTable(log),
+              const Divider(height: 1, color: Colors.black12),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -815,9 +1065,39 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text("Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54))),
-          Expanded(flex: 3, child: Text("User", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54))),
-          Expanded(flex: 4, child: Text("Action", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54))),
+          Expanded(
+            flex: 3,
+            child: Text(
+              "Date",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              "User",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              "Action",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -838,50 +1118,104 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       child: Row(
         children: [
           Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(datePart, style: const TextStyle(fontSize: 11)),
-                  Text(timePart, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                ],
-              )),
-          Expanded(flex: 3, child: Text(log['user_name'] ?? "-", style: const TextStyle(fontSize: 11))),
-          Expanded(flex: 4, child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Changed ${log['action']}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-              Text("From ${log['old_value']} to ${log['new_value']}", style: const TextStyle(fontSize: 10, color: Colors.black54)),
-            ],
-          )),
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(datePart, style: const TextStyle(fontSize: 11)),
+                Text(
+                  timePart,
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              log['user_name'] ?? "-",
+              style: const TextStyle(fontSize: 11),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Changed ${log['action']}",
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  "From ${log['old_value']} to ${log['new_value']}",
+                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   // --- Image Section ---
-  Widget _buildImageSection(BuildContext context, String title, List<String> images) {
+  Widget _buildImageSection(
+    BuildContext context,
+    String title,
+    List<String> images,
+  ) {
     if (images.isEmpty) return const SizedBox();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: secondaryOrange, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: secondaryOrange,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: primaryOrange, fontSize: 12)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: primaryOrange,
+              fontSize: 12,
+            ),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: images.map((img) => InkWell(
-              onTap: () => _showImagePreview(context, img),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(img, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 80, height: 80, color: Colors.white, child: const Icon(Icons.broken_image, color: Colors.grey))),
-              ),
-            )).toList(),
-          )
+            children: images
+                .map(
+                  (img) => InkWell(
+                    onTap: () => _showImagePreview(context, img),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        img,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 80,
+                          height: 80,
+                          color: Colors.white,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
         ],
       ),
     );
@@ -905,7 +1239,11 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                   errorBuilder: (_, __, ___) => Container(
                     color: Colors.white,
                     padding: const EdgeInsets.all(20),
-                    child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ),

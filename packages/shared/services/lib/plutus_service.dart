@@ -43,7 +43,9 @@ class PlutusService extends GetxService {
 
   Future<String> startScanner(String payload) async {
     try {
-      final result = await _channel.invokeMethod('startTransaction', payload);
+      final result = await _channel.invokeMethod('startTransaction', {
+        'transactionData': payload,
+      });
       return result;
     } catch (e) {
       throw Exception("Scanner failed: $e");

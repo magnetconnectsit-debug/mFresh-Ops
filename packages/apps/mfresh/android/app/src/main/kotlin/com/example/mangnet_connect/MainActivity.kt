@@ -91,7 +91,7 @@ class MainActivity : FlutterActivity() {
             val intent = Intent("com.pinelabs.masterapp.HYBRID_REQUEST").apply {
                 setPackage(PLUTUS_SMART_PACKAGE)
                 putExtra("REQUEST_DATA", transactionData)
-                putExtra("packageName", "com.example.magnet_connect")
+                putExtra("packageName", "com.example.mangnet_connect")
             }
             startActivityForResult(intent, 1001)
         } catch (e: Exception) {
@@ -108,7 +108,7 @@ class MainActivity : FlutterActivity() {
             val intent = Intent("com.pinelabs.masterapp.HYBRID_REQUEST").apply {
                 setPackage(PLUTUS_SMART_PACKAGE)
                 putExtra("REQUEST_DATA", printData)
-                putExtra("packageName", "com.example.magnet_connect")
+                putExtra("packageName", "com.example.mangnet_connect")
             }
             startActivityForResult(intent, 1002)
         } catch (e: Exception) {

@@ -1,7 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mfresh/data/models/user.dart';
-import 'package:mfresh/core/env/env.dart';
-import 'package:flutter/foundation.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:mfresh/core/constants/app_constants.dart';
 import 'package:mfresh/core/config/app_config.dart';

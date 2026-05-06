@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:core/constants/app_colors.dart';
+
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
@@ -323,7 +323,7 @@ class CreateTicketScreen extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade400,
+                            backgroundColor: Colors.black.withValues(alpha: 0.05),
                             padding: EdgeInsets.symmetric(vertical: 12.h),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                           ),

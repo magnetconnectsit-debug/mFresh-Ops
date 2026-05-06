@@ -19,10 +19,6 @@ class UnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    bool isTablet = screenWidth > 600;
-
     double fontSizeUnitNo = 12;
     double fontSizeDescription = 10;
     double fontSizeDate = 10;

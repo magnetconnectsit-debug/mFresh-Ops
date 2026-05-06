@@ -10,11 +10,11 @@ class WebViewPage extends StatefulWidget {
   final String? redirectUrlToCapture;
 
   const WebViewPage({
-    Key? key,
+    super.key,
     this.url,
     this.title,
     this.redirectUrlToCapture,
-  }) : super(key: key);
+  });
 
   @override
   State<WebViewPage> createState() => _WebViewPageState();

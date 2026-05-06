@@ -1,13 +1,12 @@
 import 'package:get/get.dart';
 import 'package:mfresh/core/config/app_config.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
-import 'package:services/plutus_service.dart';
+
 import 'package:services/phonepe_service.dart';
-import 'dart:convert';
 import 'package:core/utils/app_common_toast_message.dart';
 
 class ServiceItem {
@@ -29,7 +28,7 @@ class ServiceItem {
 class ServiceDetailsController extends GetxController {
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
   final ProfileController _profileController = Get.find<ProfileController>();
-  final PlutusService _plutusService = Get.find<PlutusService>();
+  // final PlutusService _plutusService = Get.find<PlutusService>();
   final PhonePeService _phonePeService = Get.find<PhonePeService>();
 
   // Unit info
@@ -376,8 +375,7 @@ class ServiceDetailsController extends GetxController {
 
             // Construct the response map for logging/debugging
             // Capture params from WebView if available
-            final Map<String, dynamic> capturedParams =
-                result is Map<String, dynamic> ? result : {};
+            final Map<String, dynamic> capturedParams = result;
 
             // Construct the response map for logging/debugging
             final responseMap = {
@@ -455,51 +453,7 @@ class ServiceDetailsController extends GetxController {
     }
   }
 
-  Future<void> _handlePlutusTransaction(
-    String bookingId,
-    String encryptBookingId,
-    int amount,
-  ) async {
-    final payload = {
-      "Detail": {
-        "BillingRefNo": bookingId,
-        "PaymentAmount": amount,
-        "TransactionType": "4001", // Example for Sale/Payment
-      },
-      "Header": {
-        "ApplicationId": AppConfig.applicationId,
-        "UserId": "user1234",
-        "MethodId": "1001",
-        "VersionNo": "1.0",
-      },
-    };
 
-    try {
-      final result = await _plutusService.startTransaction(jsonEncode(payload));
-      final data = jsonDecode(result);
-      final responseMsg = data['Response']?['ResponseMsg']?.toString();
-
-      if (responseMsg == 'APPROVED') {
-        await _confirmSuccess(bookingId, encryptBookingId);
-      } else if (responseMsg == 'TRANSACTION INITIATED CHECK GET STATUS') {
-        // Navigate to status check screen if implemented
-        AppCommonToastMessage.show(
-          message: "Transaction initiated. Please check status.",
-          type: ToastType.info,
-        );
-      } else {
-        AppCommonToastMessage.show(
-          message: "Transaction failed: $responseMsg",
-          type: ToastType.error,
-        );
-      }
-    } catch (e) {
-      AppCommonToastMessage.show(
-        message: "Transaction Error: $e",
-        type: ToastType.error,
-      );
-    }
-  }
 
   void increment(int index) {
     services[index].quantity.value++;
