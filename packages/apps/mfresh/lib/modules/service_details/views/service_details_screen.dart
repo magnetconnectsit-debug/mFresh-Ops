@@ -162,51 +162,50 @@ class ServiceDetailsScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   // Online toggle
+                  // Online toggle
                   Obx(
-                    () => AppConfig.isDevToggle 
-                      ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            controller.isOnline.value ? 'Online' : 'Offline',
-                            style: AppTextStyle.style_14_600(
+                    () => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          controller.isOnline.value ? 'Online' : 'Offline',
+                          style: AppTextStyle.style_14_600(
+                            color: controller.isOnline.value
+                                ? AppColors.green
+                                : AppColors.red,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        GestureDetector(
+                          onTap: controller.toggleOnline,
+                          child: Container(
+                            width: 50.w,
+                            height: 25.h,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12.5.r),
                               color: controller.isOnline.value
                                   ? AppColors.green
                                   : AppColors.red,
                             ),
-                          ),
-                          SizedBox(height: 2.h),
-                          GestureDetector(
-                            onTap: controller.toggleOnline,
-                            child: Container(
-                              width: 50.w,
-                              height: 25.h,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.5.r),
-                                color: controller.isOnline.value
-                                    ? AppColors.green
-                                    : AppColors.red,
-                              ),
-                              child: AnimatedAlign(
-                                duration: const Duration(milliseconds: 200),
-                                alignment: controller.isOnline.value
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  width: 20.w,
-                                  height: 20.h,
-                                  margin: EdgeInsets.symmetric(horizontal: 2.w),
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.white,
-                                  ),
+                            child: AnimatedAlign(
+                              duration: const Duration(milliseconds: 200),
+                              alignment: controller.isOnline.value
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Container(
+                                width: 20.w,
+                                height: 20.h,
+                                margin: EdgeInsets.symmetric(horizontal: 2.w),
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.white,
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      )
-                      : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -375,7 +374,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                         ],
                       ),
 
-                      // Membership Verification Section
+                      // Membership Verification (Hidden because it's now in a BottomSheet)
                       Obx(
                         () => !controller.isCustomer.value
                             ? Column(
@@ -383,148 +382,49 @@ class ServiceDetailsScreen extends StatelessWidget {
                                 children: [
                                   SizedBox(height: 6.h),
                                   Text(
-                                    'Membership Verification',
+                                    'Membership Details',
                                     style: AppTextStyle.style_12_600(
                                       color: AppColors.primary,
                                     ),
                                   ),
                                   SizedBox(height: 2.h),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          decoration:
-                                              AppColors.appCardDecoration(
-                                                borderColor: AppColors.grey50,
-                                                containerColor: AppColors.white,
-                                                borderRadius: 4,
-                                                isShadow: false,
-                                              ),
-                                          child: Stack(
-                                            alignment: Alignment.centerRight,
-                                            children: [
-                                              TextField(
-                                                controller: controller
-                                                    .memberMobileController,
-                                                keyboardType:
-                                                    TextInputType.phone,
-                                                maxLength: 10,
-                                                onChanged: (val) {
-                                                  if (val.length == 10) {
-                                                    controller
-                                                        .verifyMemberPhone(val);
-                                                  }
-                                                },
-                                                style:
-                                                    AppTextStyle.style_12_400(
-                                                      color: AppColors.black,
-                                                    ),
-                                                decoration: InputDecoration(
-                                                  isDense: true,
-                                                  counterText: "",
-                                                  hintText:
-                                                      'Member Mobile Number',
-                                                  hintStyle:
-                                                      AppTextStyle.style_10_400(
-                                                        color:
-                                                            AppColors.grey200,
-                                                      ),
-                                                  border: InputBorder.none,
-                                                  contentPadding:
-                                                      EdgeInsets.symmetric(
-                                                        horizontal: 10.w,
-                                                        vertical: 8.h,
-                                                      ),
-                                                ),
-                                              ),
-                                              if (controller
-                                                  .isVerifyingMember
-                                                  .value)
-                                                Padding(
-                                                  padding: EdgeInsets.only(
-                                                    right: 8.w,
-                                                  ),
-                                                  child: SizedBox(
-                                                    width: 12.w,
-                                                    height: 12.w,
-                                                    child:
-                                                        const CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
+                                  Container(
+                                    decoration:
+                                        AppColors.appCardDecoration(
+                                          borderColor: AppColors.grey50,
+                                          containerColor: AppColors.white,
+                                          borderRadius: 4,
+                                          isShadow: false,
                                         ),
-                                      ),
-                                      if (controller.isOtpSent.value &&
-                                          !controller.isOtpVerified.value) ...[
-                                        SizedBox(width: 8.w),
-                                        Expanded(
-                                          child: Container(
-                                            decoration:
-                                                AppColors.appCardDecoration(
-                                                  borderColor: AppColors.grey50,
-                                                  containerColor:
-                                                      AppColors.white,
-                                                  borderRadius: 4,
-                                                  isShadow: false,
-                                                ),
-                                            child: TextField(
-                                              controller:
-                                                  controller.otpController,
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              style: AppTextStyle.style_12_400(
-                                                color: AppColors.black,
-                                              ),
-                                              decoration: InputDecoration(
-                                                isDense: true,
-                                                hintText: 'Enter OTP',
-                                                hintStyle:
-                                                    AppTextStyle.style_10_400(
-                                                      color: AppColors.grey200,
-                                                    ),
-                                                border: InputBorder.none,
-                                                contentPadding:
-                                                    EdgeInsets.symmetric(
-                                                      horizontal: 10.w,
-                                                      vertical: 8.h,
-                                                    ),
-                                              ),
-                                            ),
+                                    child: TextField(
+                                      controller: controller
+                                          .memberMobileController,
+                                      keyboardType:
+                                          TextInputType.phone,
+                                      maxLength: 10,
+                                      style:
+                                          AppTextStyle.style_12_400(
+                                            color: AppColors.black,
                                           ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                  if (controller.isOtpSent.value &&
-                                      !controller.isOtpVerified.value)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 8.h),
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton(
-                                          onPressed: controller.verifyMemberOtp,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                AppColors.primaryVariant,
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: 4.h,
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        counterText: "",
+                                        hintText:
+                                            'Member Mobile Number',
+                                        hintStyle:
+                                            AppTextStyle.style_10_400(
+                                              color:
+                                                  AppColors.grey200,
                                             ),
-                                            minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize
-                                                .shrinkWrap,
-                                          ),
-                                          child: Text(
-                                            'Verify OTP',
-                                            style: AppTextStyle.style_10_600(
-                                              color: AppColors.white,
+                                        border: InputBorder.none,
+                                        contentPadding:
+                                            EdgeInsets.symmetric(
+                                              horizontal: 10.w,
+                                              vertical: 8.h,
                                             ),
-                                          ),
-                                        ),
                                       ),
                                     ),
+                                  ),
                                 ],
                               )
                             : const SizedBox.shrink(),

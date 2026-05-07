@@ -20,6 +20,8 @@ class PhonePeService extends GetxService {
   static const String _prodMerchantId = 'M22MA1RAEX7NC';
   static const String _prodApiBaseUrl = 'https://api.phonepe.com/apis/hermes';
   static const String _prodWhiteListedDomain = 'https://magnetconnects.com/';
+  static const String _prodRedirectUrl = 'https://magnetconnects.com/booking-success';
+  static const String _prodCallbackUrl = 'https://magnetconnects.com/payment/callback';
 
   // Sandbox (UAT) Credentials - Updated with your Salt Key
   static const String _uatSaltKey = '14fa5465-f8a7-443f-8477-f986b8fcfde9';
@@ -38,11 +40,11 @@ class PhonePeService extends GetxService {
   String get _merchantId => _isProduction ? _prodMerchantId : _uatMerchantId;
   String get _apiBaseUrl => _isProduction ? _prodApiBaseUrl : _uatApiBaseUrl;
   String get _redirectUrl =>
-      _isProduction ? _prodWhiteListedDomain : _uatRedirectUrl;
+      _isProduction ? _prodRedirectUrl : _uatRedirectUrl;
   String get _callbackUrl =>
-      _isProduction ? _prodWhiteListedDomain : _uatCallbackUrl;
+      _isProduction ? _prodCallbackUrl : _uatCallbackUrl;
 
-  Future<String?> initiatePayment({
+  Future<Map<String, String>?> initiatePayment({
     required String bookingId,
     required String encryptedBookingId,
     required double amount,
@@ -53,9 +55,12 @@ class PhonePeService extends GetxService {
       debugPrint("Mode: ${_isProduction ? 'PRODUCTION' : 'UAT/SANDBOX'}");
       debugPrint("Merchant ID: $_merchantId");
 
+      // Append a small timestamp for uniqueness to avoid INVALID_TRANSACTION_ID from re-runs
+      final uniqueTxnId = "${encryptedBookingId}_${DateTime.now().millisecondsSinceEpoch}";
+
       final payload = {
         "merchantId": _merchantId,
-        "merchantTransactionId": encryptedBookingId,
+        "merchantTransactionId": uniqueTxnId,
         "merchantUserId": bookingId,
         "amount": (amount * 100).toInt(),
         "redirectUrl": _redirectUrl,
@@ -64,6 +69,8 @@ class PhonePeService extends GetxService {
         "mobileNumber": phone,
         "paymentInstrument": {"type": "PAY_PAGE"},
       };
+
+      debugPrint("PhonePe Payload: ${jsonEncode(payload)}");
 
       String payloadJson = jsonEncode(payload);
       String encodedPayload = base64Encode(utf8.encode(payloadJson));
@@ -91,7 +98,10 @@ class PhonePeService extends GetxService {
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
         if (data['success'] == true) {
-          return data['data']['instrumentResponse']['redirectInfo']['url'];
+          return {
+            'url': data['data']['instrumentResponse']['redirectInfo']['url'],
+            'transactionId': uniqueTxnId,
+          };
         }
       }
       return null;

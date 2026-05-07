@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:mfresh/core/config/app_config.dart';
 import 'package:flutter/material.dart';
 
 import 'package:mfresh/data/repositories/common_repository.dart';
@@ -8,6 +7,10 @@ import 'package:mfresh/routes/app_routes.dart';
 
 import 'package:services/phonepe_service.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:pinput/pinput.dart';
 
 class ServiceItem {
   final String assignServiceId;
@@ -140,15 +143,16 @@ class ServiceDetailsController extends GetxController {
     }
   }
 
-  Future<void> verifyMemberOtp() async {
-    final otp = otpController.text.trim();
-    if (otp.isEmpty) return;
+  Future<bool> verifyMemberOtp({String? phone, String? otp, bool showLoading = true}) async {
+    debugPrint("verifyMemberOtp: phone=$phone, otp=$otp, showLoading=$showLoading");
+    final targetOtp = otp ?? otpController.text.trim();
+    if (targetOtp.isEmpty) return false;
 
     try {
-      isLoading.value = true;
+      if (showLoading) isLoading.value = true;
       final verified = await _commonRepository.verifyMemberOtp(
-        phone: memberMobileController.text.trim(),
-        otp: otp,
+        phone: phone ?? memberMobileController.text.trim(),
+        otp: targetOtp,
       );
       isOtpVerified.value = verified;
       if (verified) {
@@ -162,6 +166,7 @@ class ServiceDetailsController extends GetxController {
           type: ToastType.error,
         );
       }
+      return verified;
     } finally {
       isLoading.value = false;
     }
@@ -214,13 +219,49 @@ class ServiceDetailsController extends GetxController {
     }
 
     // Member validation
-    if (!isCustomer.value && !isOtpVerified.value) {
-      AppCommonToastMessage.show(
-        message: "Please verify membership OTP first",
-        type: ToastType.error,
-      );
-      return;
+    if (!isCustomer.value) {
+      final memberPhone = memberMobileController.text.trim();
+      if (memberPhone.isEmpty || memberPhone.length < 10) {
+        AppCommonToastMessage.show(
+          message: "Please enter a valid member phone number",
+          type: ToastType.error,
+        );
+        return;
+      }
+
+      // Automatically send OTP and show bottomsheet
+      try {
+        isVerifyingMember.value = true;
+        final isValid = await _commonRepository.validateMemberPhone(phone: memberPhone);
+        if (!isValid) {
+          AppCommonToastMessage.show(
+            message: "Member phone number not found",
+            type: ToastType.error,
+          );
+          return;
+        }
+
+        final sent = await _commonRepository.sendMemberOtp(phone: memberPhone);
+        isOtpSent.value = sent;
+        if (sent) {
+          debugPrint("OTP Sent, showing bottomsheet...");
+          final verified = await _showOtpBottomSheet(memberPhone);
+          debugPrint("BottomSheet Result: $verified");
+          if (!verified) return; // User cancelled or failed OTP
+        } else {
+          AppCommonToastMessage.show(
+            message: "Failed to send OTP",
+            type: ToastType.error,
+          );
+          return;
+        }
+      } finally {
+        isVerifyingMember.value = false;
+      }
     }
+
+    debugPrint("Proceeding to initiate booking logic...");
+    debugPrint("Payment Mode: ${isOnline.value ? 'Online' : 'Cash'}, External QR: $isExternalQr");
 
     try {
       isLoading.value = true;
@@ -256,6 +297,7 @@ class ServiceDetailsController extends GetxController {
       };
 
       final response = await _commonRepository.initiateBooking(data: body);
+      debugPrint("Initiate Booking Response: $response");
 
       if (response != null) {
         final bookingId = response['booking_id'];
@@ -266,9 +308,10 @@ class ServiceDetailsController extends GetxController {
           type: ToastType.success,
         );
 
-        // Handle Admin/Cash or External QR auto-success if role is 3
-        if (_profileController.user.value?.role == "3" &&
-            (!isOnline.value || isExternalQr)) {
+        // Handle Cash or External QR auto-success
+        debugPrint("User Role: ${_profileController.user.value?.role}");
+        if (!isOnline.value || isExternalQr) {
+          debugPrint("Calling _confirmSuccess for direct confirmation...");
           await _confirmSuccess(bookingId, encryptBookingId);
         } else if (isOnline.value && !isExternalQr) {
           // Handle PhonePe Payment
@@ -310,13 +353,20 @@ class ServiceDetailsController extends GetxController {
     final confirmed = await _commonRepository.confirmSuccessBooking(
       data: successData,
     );
+    debugPrint("Booking Confirmation API Result: $confirmed");
     if (confirmed) {
-      Get.toNamed(
+      debugPrint("Navigating to Booking Confirmed Screen...");
+      Get.offNamed(
         AppRoutes.bookingConfirmed,
         arguments: {
           'bookingId': bookingId,
           'encryptBookingId': encryptBookingId,
         },
+      );
+    } else {
+      AppCommonToastMessage.show(
+        message: "Failed to confirm booking on server",
+        type: ToastType.error,
       );
     }
   }
@@ -328,93 +378,70 @@ class ServiceDetailsController extends GetxController {
     String phone,
   ) async {
     try {
-      final redirectUrl = await _phonePeService.initiatePayment(
+      final paymentData = await _phonePeService.initiatePayment(
         bookingId: bookingId,
         encryptedBookingId: encryptBookingId,
         amount: amount,
         phone: phone,
       );
 
-      if (redirectUrl != null) {
+      if (paymentData != null) {
+        final redirectUrl = paymentData['url'];
+        final actualTxnId = paymentData['transactionId'] ?? encryptBookingId;
+
         final result = await Get.toNamed(
           AppRoutes.webView,
           arguments: {
             'url': redirectUrl,
             'title': 'PhonePe Payment',
-            'redirectUrlToCapture': AppConfig.isDev
-                ? 'https://magnetconnects.com/booking-success'
-                : 'https://magnetconnects.com/',
+            'redirectUrlToCapture': 'magnetconnects.com',
           },
         );
 
-        if (result != null && result is Map<String, dynamic>) {
-          debugPrint('PhonePe Response: $result');
-          String responseCode = result['code']?.toString() ?? "";
-          String providerRefId =
-              result['providerReferenceId']?.toString() ?? "";
-
-          // 1. Check if we got clear SUCCESS from the URL
-          if (responseCode == 'PAYMENT_SUCCESS' && providerRefId.isNotEmpty) {
-            await _confirmSuccess(
-              bookingId,
-              encryptBookingId,
-              phonePeData: result,
-            );
-            return;
-          }
-
-          // 2. FALLBACK: Verify with PhonePe directly (Most Secure)
-          // This ensures we don't rely on the URL params or the backend history table.
+        if (result != null) {
+          // Verification logic...
           AppCommonToastMessage.show(
-            message: "Verifying with PhonePe...",
+            message: "Verifying payment...",
             type: ToastType.info,
           );
           final phonePeStatus = await _phonePeService.checkPaymentStatus(
-            merchantTransactionId: encryptBookingId,
+            merchantTransactionId: actualTxnId,
           );
 
           if (phonePeStatus != null) {
             final String code = phonePeStatus['code']?.toString() ?? "";
             final realData = phonePeStatus['data'] ?? {};
 
-            // Construct the response map for logging/debugging
-            // Capture params from WebView if available
-            final Map<String, dynamic> capturedParams = result;
-
-            // Construct the response map for logging/debugging
-            final responseMap = {
-              'success': phonePeStatus['success'],
-              'code': code,
-              'message': phonePeStatus['message'],
-              'providerReferenceId':
-                  realData['transactionId'] ?? capturedParams['transactionId'],
-              'amount': realData['amount'],
-              'merchantTransactionId': realData['merchantTransactionId'],
-              'paymentState': realData['state'],
-              'responseCode': realData['responseCode'],
-              'checksum':
-                  capturedParams['checksum'] ??
-                  phonePeStatus['calculated_checksum'] ??
-                  realData['transactionId'],
-            };
-
-            debugPrint('=========================================');
-            debugPrint('📊 REAL PHONEPE RESPONSE CAPTURED:');
-            debugPrint('$responseMap');
-            debugPrint('=========================================');
-
             if (phonePeStatus['success'] == true && code == 'PAYMENT_SUCCESS') {
               // PhonePe confirms success!
               await _confirmSuccess(
                 bookingId,
                 encryptBookingId,
-                phonePeData: responseMap,
+                phonePeData: {
+                  ...phonePeStatus,
+                  'providerReferenceId': realData['transactionId'],
+                  'code': code,
+                },
               );
             } else {
-              AppCommonToastMessage.show(
-                message: "Payment Status: ${realData['state'] ?? code}",
-                type: ToastType.error,
+              // Fallback to Server check if PhonePe says pending/failed but user insists
+              final bookingDetails = await _commonRepository.getBookingDetails(
+                bookingId: bookingId,
               );
+              if (bookingDetails != null &&
+                  (bookingDetails.paymentStatus.toLowerCase() == 'paid' ||
+                      bookingDetails.paymentStatus.toLowerCase() == 'success')) {
+                await _confirmSuccess(
+                  bookingId,
+                  encryptBookingId,
+                  phonePeData: {'code': 'PAYMENT_SUCCESS'},
+                );
+              } else {
+                AppCommonToastMessage.show(
+                  message: "Payment Status: ${realData['state'] ?? code}",
+                  type: ToastType.error,
+                );
+              }
             }
           } else {
             // Fallback to Server check if PhonePe API fails
@@ -431,15 +458,15 @@ class ServiceDetailsController extends GetxController {
               );
             } else {
               AppCommonToastMessage.show(
-                message: "Verification failed. Please contact support.",
+                message: "Verification failed. Please try again or contact support.",
                 type: ToastType.error,
               );
             }
           }
         } else {
-          // User returned without completion or redirect not caught
+          // User cancelled verification
           AppCommonToastMessage.show(
-            message: "Payment was not completed",
+            message: "Verification was not completed",
             type: ToastType.info,
           );
         }
@@ -485,5 +512,157 @@ class ServiceDetailsController extends GetxController {
   void toggleOnline() {
     isOnline.value = !isOnline.value;
     fetchServices();
+  }
+  Future<bool> _showOtpBottomSheet(String phone) async {
+    final TextEditingController bottomOtpController = TextEditingController();
+    final RxBool isVerifying = false.obs;
+
+    final defaultPinTheme = PinTheme(
+      width: 45.w,
+      height: 50.h,
+      textStyle: AppTextStyle.style_20_600(color: AppColors.black),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.grey100),
+        borderRadius: BorderRadius.circular(8.r),
+        color: AppColors.grey50.withValues(alpha: 0.5),
+      ),
+    );
+
+    final focusedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        border: Border.all(color: AppColors.primary),
+        color: AppColors.white,
+      ),
+    );
+
+    final RxBool hasVerified = false.obs;
+
+    final result = await Get.bottomSheet<bool>(
+      Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20.r),
+            topRight: Radius.circular(20.r),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: AppColors.grey100,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              'Verify Membership',
+              style: AppTextStyle.style_18_600(color: AppColors.primary),
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              'Enter the 6-digit OTP sent to\n+91 $phone',
+              textAlign: TextAlign.center,
+              style: AppTextStyle.style_13_400(color: AppColors.grey300),
+            ),
+            SizedBox(height: 30.h),
+            Pinput(
+              length: 6,
+              controller: bottomOtpController,
+              defaultPinTheme: defaultPinTheme,
+              focusedPinTheme: focusedPinTheme,
+              onCompleted: (pin) async {
+                if (hasVerified.value) return;
+                
+                isVerifying.value = true;
+                final success = await verifyMemberOtp(
+                  phone: phone,
+                  otp: pin,
+                  showLoading: false,
+                );
+                isVerifying.value = false;
+                if (success) {
+                  hasVerified.value = true;
+                  debugPrint("OTP Verified in onCompleted. Closing via Navigator.pop...");
+                  Navigator.pop(Get.context!, true);
+                }
+              },
+            ),
+            SizedBox(height: 30.h),
+            Obx(
+              () => SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (isVerifying.value || hasVerified.value)
+                      ? null
+                      : () async {
+                          if (bottomOtpController.text.length < 6) {
+                            AppCommonToastMessage.show(
+                              message: "Please enter 6-digit OTP",
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          
+                          isVerifying.value = true;
+                          final success = await verifyMemberOtp(
+                            phone: phone,
+                            otp: bottomOtpController.text.trim(),
+                            showLoading: false,
+                          );
+                          isVerifying.value = false;
+                          if (success) {
+                            hasVerified.value = true;
+                            debugPrint("OTP Verified via button. Closing via Navigator.pop...");
+                            Navigator.pop(Get.context!, true);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: isVerifying.value
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: AppColors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'VERIFY & PROCEED',
+                          style: AppTextStyle.style_14_600(
+                            color: AppColors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            SizedBox(height: 10.h),
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: Text(
+                'Cancel',
+                style: AppTextStyle.style_12_600(color: AppColors.red),
+              ),
+            ),
+            SizedBox(height: 10.h),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      barrierColor: AppColors.black.withValues(alpha: 0.5),
+    );
+
+    return result ?? false;
   }
 }

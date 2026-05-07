@@ -11,6 +11,7 @@ import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:services/plutus_service.dart';
 import 'package:mfresh/routes/app_routes.dart';
+import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:mfresh/core/utils/print_util.dart';
 
 class BookingConfirmedScreen extends StatefulWidget {
@@ -74,271 +75,323 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
           onPressed: () => Get.offAllNamed(AppRoutes.dashboard),
         ),
       ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      body: Stack(
+        children: [
+          Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        final booking = controller.bookingDetails.value;
-        if (booking == null) {
-          return const Center(child: Text("No booking details available"));
-        }
+            final booking = controller.bookingDetails.value;
+            if (booking == null) {
+              return const Center(child: Text("No booking details available"));
+            }
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-          child: Column(
-            children: [
-              // Main Ticket Card
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20.w),
-                decoration: AppColors.appCardDecoration(
-                  borderColor: AppColors.grey50.withValues(alpha: 0.5),
-                  containerColor: AppColors.white,
-                  borderRadius: 24,
-                  isShadow: true,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Unit & Services Row
-                    Row(
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+              child: Column(
+                children: [
+                  // Main Ticket Card
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(20.w),
+                    decoration: AppColors.appCardDecoration(
+                      borderColor: AppColors.grey50.withValues(alpha: 0.5),
+                      containerColor: AppColors.white,
+                      borderRadius: 24,
+                      isShadow: true,
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Unit No.: ${booking.unitNo}',
-                                style: AppTextStyle.style_14_600(color: AppColors.grey400),
-                              ),
-                              SizedBox(height: 12.h),
-                              Text(
-                                'SERVICES:',
-                                style: AppTextStyle.style_10_600(color: AppColors.grey300),
-                              ),
-                              SizedBox(height: 4.h),
-                              ...booking.services.map((service) => Padding(
-                                    padding: EdgeInsets.only(bottom: 2.h),
-                                    child: RichText(
-                                      text: TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: '${service.servicesName} : ',
-                                            style: AppTextStyle.style_11_400(color: AppColors.grey400),
+                        // Unit & Services Row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Unit No.: ${booking.unitNo}',
+                                    style: AppTextStyle.style_14_600(color: AppColors.grey400),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  Text(
+                                    'SERVICES:',
+                                    style: AppTextStyle.style_10_600(color: AppColors.grey300),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  ...booking.services.map((service) => Padding(
+                                        padding: EdgeInsets.only(bottom: 2.h),
+                                        child: RichText(
+                                          text: TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: '${service.servicesName} : ',
+                                                style: AppTextStyle.style_11_400(color: AppColors.grey400),
+                                              ),
+                                              TextSpan(
+                                                text: service.quantity.toString(),
+                                                style: AppTextStyle.style_11_700(color: AppColors.grey400),
+                                              ),
+                                            ],
                                           ),
-                                          TextSpan(
-                                            text: service.quantity.toString(),
-                                            style: AppTextStyle.style_11_700(color: AppColors.grey400),
+                                        ),
+                                      )),
+                                ],
+                              ),
+                            ),
+                            // Orange Icon Box
+                            Container(
+                              width: 100.w,
+                              height: 100.w,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF15A22),
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/images/toilet.png',
+                                  width: 70.w,
+                                  height: 70.w,
+                                  color: AppColors.white,
+                                  errorBuilder: (context, error, stackTrace) => Icon(Icons.wc, size: 50.sp, color: AppColors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        // Location Section
+                        Text(
+                          'Location',
+                          style: AppTextStyle.style_10_400(color: AppColors.grey200),
+                        ),
+                        Text(
+                          booking.fullAddress,
+                          style: AppTextStyle.style_13_600(color: AppColors.black),
+                        ),
+                        SizedBox(height: 4.h),
+                        Row(
+                          children: [
+                            Text(
+                              'View Address',
+                              style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22)),
+                            ),
+                            SizedBox(width: 12.w),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.navigation, color: const Color(0xFFF15A22), size: 10.sp),
+                                SizedBox(width: 2.w),
+                                Text(
+                                  'Get Direction',
+                                  style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // Dashed Divider with text
+                        Row(
+                          children: [
+                            Expanded(child: _buildDashedLine()),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.w),
+                              child: Text(
+                                'SCAN QR AT UNIT',
+                                style: AppTextStyle.style_8_600(color: AppColors.grey200, spacing: 1),
+                              ),
+                            ),
+                            Expanded(child: _buildDashedLine()),
+                          ],
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // Bottom Section: Details & QR
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'Amount Paid : ',
+                                          style: AppTextStyle.style_12_400(color: AppColors.grey300),
+                                        ),
+                                        TextSpan(
+                                          text: '₹ ${booking.totalAmount}',
+                                          style: AppTextStyle.style_12_600(color: AppColors.grey400),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  _buildDetailRow('Booking ID', booking.bookingId),
+                                  _buildDetailRow('Booking Date & Time', formatBookingDate(booking.bookingTimeDate).toUpperCase()),
+                                  _buildDetailRow('Payment method', booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'EXTERNAL QR'),
+                                  
+                                  SizedBox(height: 16.h),
+                                  
+                                  // Footer links
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Payment details',
+                                        style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22), isUnderline: true),
+                                      ),
+                                      SizedBox(width: 12.w),
+                                      Text(
+                                        'T&C',
+                                        style: AppTextStyle.style_10_600(color: AppColors.grey300, isUnderline: true),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Icon(Icons.share, color: AppColors.grey300, size: 14.sp),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              children: [
+                            GestureDetector(
+                              onTap: () {
+                                Get.dialog(
+                                  Dialog(
+                                    backgroundColor: AppColors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(20.w),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Scan QR at Unit',
+                                            style: AppTextStyle.style_14_600(color: AppColors.black),
+                                          ),
+                                          SizedBox(height: 16.h),
+                                          QrImageView(
+                                            data: jsonEncode({
+                                              "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
+                                              "DeviceID": 'NA',
+                                              "AccessDate": formatDate(booking.bookingTimeDate),
+                                            }),
+                                            version: QrVersions.auto,
+                                            size: 250.w,
+                                          ),
+                                          SizedBox(height: 16.h),
+                                          TextButton(
+                                            onPressed: () => Get.back(),
+                                            child: Text(
+                                              'Close',
+                                              style: AppTextStyle.style_12_600(color: const Color(0xFFF15A22)),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  )),
-                            ],
-                          ),
-                        ),
-                        // Orange Icon Box
-                        Container(
-                          width: 100.w,
-                          height: 100.w,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF15A22),
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/toilet.png',
-                              width: 70.w,
-                              height: 70.w,
-                              color: AppColors.white,
-                              errorBuilder: (context, error, stackTrace) => Icon(Icons.wc, size: 50.sp, color: AppColors.white),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(4.w),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppColors.grey50),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: QrImageView(
+                                  data: jsonEncode({
+                                    "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
+                                    "DeviceID": 'NA',
+                                    "AccessDate": formatDate(booking.bookingTimeDate),
+                                  }),
+                                  version: QrVersions.auto,
+                                  size: 80.w,
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: 16.h),
-
-                    // Location Section
-                    Text(
-                      'Location',
-                      style: AppTextStyle.style_10_400(color: AppColors.grey200),
-                    ),
-                    Text(
-                      booking.fullAddress,
-                      style: AppTextStyle.style_13_600(color: AppColors.black),
-                    ),
-                    SizedBox(height: 4.h),
-                    Row(
-                      children: [
-                        Text(
-                          'View Address',
-                          style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22)),
-                        ),
-                        SizedBox(width: 12.w),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.navigation, color: const Color(0xFFF15A22), size: 10.sp),
-                            SizedBox(width: 2.w),
-                            Text(
-                              'Get Direction',
-                              style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22)),
+                                SizedBox(height: 4.h),
+                                GestureDetector(
+                                  onTap: () => _handlePrint(booking),
+                                  child: Text(
+                                    'Print',
+                                    style: AppTextStyle.style_10_600(color: const Color(0xFF1A9FD9), isUnderline: true),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ],
                     ),
+                  ),
+                  SizedBox(height: 40.h),
+                ],
+              ),
+            );
+          }),
 
-                    SizedBox(height: 24.h),
-
-                    // Dashed Divider with text
-                    Row(
-                      children: [
-                        Expanded(child: _buildDashedLine()),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w),
-                          child: Text(
-                            'SCAN QR AT UNIT',
-                            style: AppTextStyle.style_8_600(color: AppColors.grey200, spacing: 1),
-                          ),
-                        ),
-                        Expanded(child: _buildDashedLine()),
-                      ],
+          // Left-Center Back Arrow Button
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: () {
+                  final booking = controller.bookingDetails.value;
+                  // Force delete the old controller to ensure data resets
+                  Get.delete<ServiceDetailsController>(force: true);
+                  
+                  if (booking != null) {
+                    Get.offNamed(
+                      AppRoutes.serviceDetails,
+                      arguments: {
+                        'unitNo': booking.unitNo,
+                        'location': booking.unitLocation,
+                        'unitImage': booking.serviceIcon,
+                      },
+                    );
+                  } else {
+                    Get.back();
+                  }
+                },
+                child: Container(
+                  width: 40.w,
+                  height: 60.h,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF15A22).withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(30.r),
+                      bottomRight: Radius.circular(30.r),
                     ),
-
-                    SizedBox(height: 24.h),
-
-                    // Bottom Section: Details & QR
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Amount Paid : ',
-                                      style: AppTextStyle.style_12_400(color: AppColors.grey300),
-                                    ),
-                                    TextSpan(
-                                      text: '₹ ${booking.totalAmount}',
-                                      style: AppTextStyle.style_12_600(color: AppColors.grey400),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: 12.h),
-                              _buildDetailRow('Booking ID', booking.bookingId),
-                              _buildDetailRow('Booking Date & Time', formatBookingDate(booking.bookingTimeDate).toUpperCase()),
-                              _buildDetailRow('Payment method', booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'EXTERNAL QR'),
-                              
-                              SizedBox(height: 16.h),
-                              
-                              // Footer links
-                              Row(
-                                children: [
-                                  Text(
-                                    'Payment details',
-                                    style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22), isUnderline: true),
-                                  ),
-                                  SizedBox(width: 12.w),
-                                  Text(
-                                    'T&C',
-                                    style: AppTextStyle.style_10_600(color: AppColors.grey300, isUnderline: true),
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  Icon(Icons.share, color: AppColors.grey300, size: 14.sp),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          children: [
-                        GestureDetector(
-                          onTap: () {
-                            Get.dialog(
-                              Dialog(
-                                backgroundColor: AppColors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                                child: Padding(
-                                  padding: EdgeInsets.all(20.w),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Scan QR at Unit',
-                                        style: AppTextStyle.style_14_600(color: AppColors.black),
-                                      ),
-                                      SizedBox(height: 16.h),
-                                      QrImageView(
-                                        data: jsonEncode({
-                                          "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
-                                          "DeviceID": 'NA',
-                                          "AccessDate": formatDate(booking.bookingTimeDate),
-                                        }),
-                                        version: QrVersions.auto,
-                                        size: 250.w,
-                                      ),
-                                      SizedBox(height: 16.h),
-                                      TextButton(
-                                        onPressed: () => Get.back(),
-                                        child: Text(
-                                          'Close',
-                                          style: AppTextStyle.style_12_600(color: const Color(0xFFF15A22)),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(4.w),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: AppColors.grey50),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: QrImageView(
-                              data: jsonEncode({
-                                "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
-                                "DeviceID": 'NA',
-                                "AccessDate": formatDate(booking.bookingTimeDate),
-                              }),
-                              version: QrVersions.auto,
-                              size: 80.w,
-                              padding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                            SizedBox(height: 4.h),
-                            GestureDetector(
-                              onTap: () => _handlePrint(booking),
-                              child: Text(
-                                'Print',
-                                style: AppTextStyle.style_10_600(color: const Color(0xFF1A9FD9), isUnderline: true),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(2, 0),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
                 ),
               ),
-              SizedBox(height: 40.h),
-            ],
+            ),
           ),
-        );
-      }),
+        ],
+      ),
     );
   }
 

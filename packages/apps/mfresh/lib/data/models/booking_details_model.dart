@@ -24,6 +24,32 @@ class BookingDetailsModel {
     this.paymentStatus = '',
   });
 
+  BookingDetailsModel copyWith({
+    String? bookingId,
+    String? unitNo,
+    String? bookingTimeDate,
+    String? unitLocation,
+    String? totalAmount,
+    String? serviceIcon,
+    String? fullAddress,
+    List<ServiceItem>? services,
+    int? paymentMode,
+    String? paymentStatus,
+  }) {
+    return BookingDetailsModel(
+      bookingId: bookingId ?? this.bookingId,
+      unitNo: unitNo ?? this.unitNo,
+      bookingTimeDate: bookingTimeDate ?? this.bookingTimeDate,
+      unitLocation: unitLocation ?? this.unitLocation,
+      totalAmount: totalAmount ?? this.totalAmount,
+      serviceIcon: serviceIcon ?? this.serviceIcon,
+      fullAddress: fullAddress ?? this.fullAddress,
+      services: services ?? this.services,
+      paymentMode: paymentMode ?? this.paymentMode,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+    );
+  }
+
   factory BookingDetailsModel.fromJson(Map<String, dynamic> json) {
     return BookingDetailsModel(
       bookingId: json['booking_id'] ?? '',
@@ -47,16 +73,31 @@ class BookingDetailsModel {
 class ServiceItem {
   final String servicesName;
   final String quantity;
+  final String price;
 
   ServiceItem({
     this.servicesName = '',
     this.quantity = '',
+    this.price = '',
   });
+
+  ServiceItem copyWith({
+    String? servicesName,
+    String? quantity,
+    String? price,
+  }) {
+    return ServiceItem(
+      servicesName: servicesName ?? this.servicesName,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+    );
+  }
 
   factory ServiceItem.fromJson(Map<String, dynamic> json) {
     return ServiceItem(
-      servicesName: json['services_name'] ?? '',
-      quantity: json['quantity']?.toString() ?? '',
+      servicesName: (json['services_name'] ?? json['Service_Name'] ?? json['service_name'] ?? '').toString(),
+      quantity: (json['quantity'] ?? json['service_quantity'] ?? json['Quantity'] ?? json['service_qty'] ?? '1').toString(),
+      price: (json['price'] ?? json['Price'] ?? json['amount'] ?? json['Amount'] ?? json['service_price'] ?? json['Service_Price'] ?? json['Total_price'] ?? json['total_price'] ?? json['rate'] ?? json['Rate'] ?? '').toString(),
     );
   }
 }

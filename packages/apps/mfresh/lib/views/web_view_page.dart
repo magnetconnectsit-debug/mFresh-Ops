@@ -38,17 +38,14 @@ class _WebViewPageState extends State<WebViewPage> {
     _redirectUrlToCapture =
         widget.redirectUrlToCapture ?? args?['redirectUrlToCapture'];
 
-    // Desktop User Agent to force Simulator buttons to show
-    const String desktopUserAgent =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+    // Force Mobile User Agent for better scaling of QR
     const String mobileUserAgent =
         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
+    
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
-      ..setUserAgent(
-        _url.contains('simulator') ? desktopUserAgent : mobileUserAgent,
-      )
+      ..setUserAgent(mobileUserAgent)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -58,6 +55,13 @@ class _WebViewPageState extends State<WebViewPage> {
             setState(() => _isLoading = true);
             debugPrint("WebView Page Started: $url");
             _checkRedirect(url);
+            
+            // Inject CSS to scale down QR if too large (Tiny Scale)
+            _controller.runJavaScript("""
+              var style = document.createElement('style');
+              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.3) !important; transform-origin: top center !important; margin-bottom: -150px !important; }';
+              document.head.appendChild(style);
+            """);
             _controller.runJavaScript("""
               if (!Array.prototype.at) {
                 Array.prototype.at = function(n) {
@@ -83,6 +87,13 @@ class _WebViewPageState extends State<WebViewPage> {
             setState(() => _isLoading = false);
             debugPrint("WebView Page Finished: $url");
             _checkRedirect(url);
+            
+            // Re-apply tiny scaling after load
+            _controller.runJavaScript("""
+              var style = document.createElement('style');
+              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.3) !important; transform-origin: top center !important; margin-bottom: -150px !important; }';
+              document.head.appendChild(style);
+            """);
           },
           onUrlChange: (UrlChange change) {
             if (change.url != null) {

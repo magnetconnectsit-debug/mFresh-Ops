@@ -536,9 +536,16 @@ class PrintUtil {
     bytes += generator.text("Service: ${service.servicesName}", styles: const PosStyles(bold: true));
     bytes += generator.text("Quantity: 1", styles: const PosStyles(align: PosAlign.left));
 
-    // 5. Total
+    // 5. Price
     bytes += generator.text("-----------------------------------------------");
-    bytes += generator.text("Total Paid: Rs. ${booking.totalAmount}", styles: const PosStyles(bold: true, height: PosTextSize.size2, width: PosTextSize.size1));
+    
+    // Display raw price as provided by API (No calculation as requested)
+    // Fallback to total amount if price is missing or zero
+    String displayPrice = (service.price.isNotEmpty && service.price != '0' && service.price != '0.0' && service.price != '0.00') 
+        ? service.price 
+        : booking.totalAmount;
+    
+    bytes += generator.text("Price: Rs. $displayPrice", styles: const PosStyles(bold: true, height: PosTextSize.size2, width: PosTextSize.size1));
     bytes += generator.text("-----------------------------------------------");
 
     // 6. Footer & QR
@@ -611,7 +618,7 @@ class PrintUtil {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text("Total Paid:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    pw.Text("Price:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
                     pw.Text("Rs. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
                   ],
                 ),
@@ -659,7 +666,15 @@ class PrintUtil {
     printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "1. ${service.servicesName} (x${service.quantity})", "ImagePath": "0", "ImageData": "0"});
     
     printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "------------------------", "ImagePath": "0", "ImageData": "0"});
-    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Total Paid: Rs. ${booking.totalAmount}", "ImagePath": "0", "ImageData": "0"});
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "------------------------", "ImagePath": "0", "ImageData": "0"});
+    
+    // Display raw price as provided by API (No calculation as requested)
+    // Fallback to total amount if price is missing or zero
+    String displayPrice = (service.price.isNotEmpty && service.price != '0' && service.price != '0.0' && service.price != '0.00') 
+        ? service.price 
+        : booking.totalAmount;
+    
+    printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": false, "DataToPrint": "Price: Rs. $displayPrice", "ImagePath": "0", "ImageData": "0"});
     printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "------------------------", "ImagePath": "0", "ImageData": "0"});
     
     printItems.add({"PrintDataType": "0", "PrinterWidth": 24, "IsCenterAligned": true, "DataToPrint": "Thank you!", "ImagePath": "0", "ImageData": "0"});
