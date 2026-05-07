@@ -31,7 +31,7 @@ class SearchBarTool extends StatelessWidget {
                 Flexible(
                   flex: 3,
                   child: SizedBox(
-                    height: 30,
+                    height: 38,
                     child: TextField(
                       decoration: InputDecoration(
                         filled: true,
@@ -41,7 +41,7 @@ class SearchBarTool extends StatelessWidget {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),
@@ -51,7 +51,7 @@ class SearchBarTool extends StatelessWidget {
                 Flexible(
                   flex: 3,
                   child: SizedBox(
-                    height: 30,
+                    height: 38,
                     child: TextField(
                       decoration: InputDecoration(
                         filled: true,
@@ -61,7 +61,7 @@ class SearchBarTool extends StatelessWidget {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),
@@ -72,7 +72,7 @@ class SearchBarTool extends StatelessWidget {
                 Flexible(
                   flex: 3,
                   child: SizedBox(
-                    height: 30,
+                    height: 38,
                     child: TextField(
                       decoration: InputDecoration(
                         filled: true,
@@ -82,7 +82,7 @@ class SearchBarTool extends StatelessWidget {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       ),
                       style: const TextStyle(fontSize: 12),
                     ),

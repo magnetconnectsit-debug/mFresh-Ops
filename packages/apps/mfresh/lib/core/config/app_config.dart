@@ -16,9 +16,9 @@ class AppConfig {
   static bool get isDev => kDebugMode;
 
   // Base URL: PROD in Release Mode OR if toggle is 'prod'
-  static String get baseUrl => (kReleaseMode || !isDevToggle)
-      ? 'https://apis.magnetconnects.com/public/api/'
-      : 'https://testapis.magnetconnects.com/public/api/';
+  static String get baseUrl => kDebugMode
+      ? 'https://testapis.magnetconnects.com/public/api/'
+      : 'https://apis.magnetconnects.com/public/api/';
 
   // Payment & App ID: PROD only in Release Mode AND when toggle is 'prod'
   static bool get _isProdEnv => kReleaseMode && !isDevToggle;

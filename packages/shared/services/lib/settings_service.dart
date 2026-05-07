@@ -10,7 +10,7 @@ class SettingsService extends GetxService {
 
   /// This is the reactive variable your UI will listen to.
   final RxBool showLogger = false.obs;
-  final RxBool isDevMode = true.obs;
+  final RxBool isDevMode = false.obs;
   // endregion
 
   // region Lifecycle

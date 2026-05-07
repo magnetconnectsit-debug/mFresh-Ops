@@ -21,66 +21,36 @@ import 'package:services/storage_service.dart';
 class PrintUtil {
   static final PlutusService _plutusService = Get.find<PlutusService>();
   static final _printerPlugin = FlutterThermalPrinter.instance;
+  static CapabilityProfile? _cachedProfile;
+  static img.Image? _cachedLogo;
+  static Printer? _connectedPrinter;
 
-  /// Shows the selection dialog
+  static Widget _buildPrintOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? const Color(0xFFF15A22)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      tileColor: Colors.grey.shade50,
+    );
+  }
+
+  /// Shows the selection dialog (Now bypassed to go straight to discovery or default)
   static void showPrintSelectionDialog({
     required BuildContext context,
     required BookingDetailsModel booking,
     String? encryptedBookingId,
   }) {
-    final lastPrinterName = Get.find<StorageService>().getLastPrinterName();
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Receipt Printer",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Select printer destination",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              _buildPrintOption(
-                icon: Icons.print_rounded,
-                title: "Internal Printer",
-                subtitle: "Direct Device Printing (Silent)",
-                onTap: () {
-                  Get.back();
-                  for (var service in booking.services) {
-                    printInternal(booking, service, encryptedBookingId: encryptedBookingId);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildPrintOption(
-                icon: Icons.bluetooth_audio_rounded,
-                title: "External Printer",
-                subtitle: lastPrinterName != null 
-                    ? "Last used: $lastPrinterName" 
-                    : "BT / USB / WiFi Printer",
-                onTap: () {
-                  Get.back();
-                  _handleExternalPrint(context, booking);
-                },
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text("Cancel", style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    // We bypass the old selection dialog and go straight to the external print handler
+    // which handles Default Printer auto-connect or shows the discovery list.
+    _handleExternalPrint(context, booking, useDefault: true);
   }
 
   /// Silent/Direct Print for Internal Hardware
@@ -105,7 +75,7 @@ class PrintUtil {
   }
 
   /// Handle External Printer Discovery
-  static Future<void> _handleExternalPrint(BuildContext context, BookingDetailsModel booking) async {
+  static Future<void> _handleExternalPrint(BuildContext context, BookingDetailsModel booking, {bool useDefault = false}) async {
     // Request Permissions
     await [
       Permission.bluetooth,
@@ -115,7 +85,44 @@ class PrintUtil {
     ].request();
 
     if (!context.mounted) return;
+    
+    if (useDefault) {
+      final defaultAddress = Get.find<StorageService>().getDefaultPrinterAddress();
+      if (defaultAddress != null) {
+        // Try to find the printer in a quick scan
+        _attemptDefaultPrint(context, booking, defaultAddress);
+        return;
+      }
+    }
+    
     _showExternalDeviceSelector(context, booking);
+  }
+
+  static void _attemptDefaultPrint(BuildContext context, BookingDetailsModel booking, String address) {
+    AppCommonToastMessage.show(message: "Connecting to default printer...", type: ToastType.info);
+    
+    // We need to scan briefly to get the Printer object
+    StreamSubscription? sub;
+    bool found = false;
+    
+    Timer(const Duration(seconds: 5), () {
+      if (!found) {
+        sub?.cancel();
+        AppCommonToastMessage.show(message: "Default printer not found. Please select manually.", type: ToastType.warning);
+        _showExternalDeviceSelector(context, booking);
+      }
+    });
+
+    sub = _printerPlugin.devicesStream.listen((printers) {
+      final printer = printers.firstWhereOrNull((p) => p.address == address);
+      if (printer != null && !found) {
+        found = true;
+        sub?.cancel();
+        _printToExternal(booking, printer);
+      }
+    });
+
+    _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE]);
   }
 
   static void _showExternalDeviceSelector(BuildContext context, BookingDetailsModel booking) {
@@ -263,6 +270,25 @@ class PrintUtil {
                               AppCommonToastMessage.show(message: "Printer not found in scan. Please wait or refresh.", type: ToastType.warning);
                             }
                           },
+                          trailing: IconButton(
+                            icon: Icon(
+                              Get.find<StorageService>().getDefaultPrinterAddress() == lastAddress
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              color: const Color(0xFFF15A22),
+                            ),
+                            onPressed: () {
+                              final storage = Get.find<StorageService>();
+                              if (storage.getDefaultPrinterAddress() == lastAddress) {
+                                storage.clearDefaultPrinter();
+                                AppCommonToastMessage.show(message: "Default printer cleared", type: ToastType.info);
+                              } else {
+                                storage.saveDefaultPrinter(lastAddress, lastUsedName ?? "Printer");
+                                AppCommonToastMessage.show(message: "Set as default printer", type: ToastType.success);
+                              }
+                              discoveredPrinters.refresh();
+                            },
+                          ),
                         ),
                         const Divider(),
                         const SizedBox(height: 8),
@@ -299,6 +325,28 @@ class PrintUtil {
                               await Future.delayed(const Duration(seconds: 1));
                               _printToExternal(booking, printer);
                             },
+                            trailing: IconButton(
+                              icon: Icon(
+                                Get.find<StorageService>().getDefaultPrinterAddress() == printer.address
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                color: const Color(0xFFF15A22),
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                if (printer.address != null) {
+                                  final storage = Get.find<StorageService>();
+                                  if (storage.getDefaultPrinterAddress() == printer.address) {
+                                    storage.clearDefaultPrinter();
+                                    AppCommonToastMessage.show(message: "Default printer cleared", type: ToastType.info);
+                                  } else {
+                                    storage.saveDefaultPrinter(printer.address!, printer.name ?? "Printer");
+                                    AppCommonToastMessage.show(message: "Set as default printer", type: ToastType.success);
+                                  }
+                                  discoveredPrinters.refresh();
+                                }
+                              },
+                            ),
                           );
                         }),
                     ],
@@ -345,23 +393,33 @@ class PrintUtil {
     );
 
     try {
-      // 1. Connect with Retry for 133 error
+      // 1. Optimized Connection (Skip if already connected to this printer)
       bool connected = false;
-      for (int i = 0; i < 2; i++) {
-        connected = await _printerPlugin.connect(printer);
-        if (connected) {
-          if (printer.address != null) {
-            final displayName = printer.name != null && printer.name!.isNotEmpty
-                ? printer.name!
-                : "${printer.connectionType?.name ?? 'BT'} Printer (${printer.address?.split(':').last ?? '...' })";
-            Get.find<StorageService>().saveLastPrinter(
-              printer.address!,
-              displayName,
-            );
-          }
-          break;
+      
+      // If we think we are already connected to this printer, skip the connect call
+      if (_connectedPrinter != null && _connectedPrinter!.address == printer.address) {
+        connected = true;
+      } else {
+        // Disconnect old one if exists before connecting new
+        if (_connectedPrinter != null) {
+          try { await _printerPlugin.disconnect(_connectedPrinter!); } catch (_) {}
         }
-        await Future.delayed(const Duration(seconds: 2));
+        
+        connected = await _printerPlugin.connect(printer);
+        if (!connected) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          connected = await _printerPlugin.connect(printer);
+        }
+      }
+
+      if (connected) {
+        _connectedPrinter = printer;
+        if (printer.address != null) {
+          final displayName = printer.name != null && printer.name!.isNotEmpty
+              ? printer.name!
+              : "BT Printer (${printer.address?.split(':').last ?? '...' })";
+          Get.find<StorageService>().saveLastPrinter(printer.address!, displayName);
+        }
       }
 
       if (!connected) {
@@ -369,21 +427,40 @@ class PrintUtil {
         while (Get.isDialogOpen ?? false) {
           Get.back();
         }
-        AppCommonToastMessage.show(message: "Printer connection failed. Please check printer power & distance.", type: ToastType.error);
+        AppCommonToastMessage.show(message: "Printer connection failed.", type: ToastType.error);
         return;
       }
 
-      // 2. Print each service separately
-      for (var service in booking.services) {
-        final bytes = await _generateEscPosBytes(booking, service);
-        await _printerPlugin.printData(printer, bytes);
-        // Small delay between prints to allow the hardware to process the cut and next feed
-        await Future.delayed(const Duration(milliseconds: 800));
+      // 2. Minimum stabilization delay
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // 3. Print each service separately, and each quantity as a unique receipt
+      for (int i = 0; i < booking.services.length; i++) {
+        final service = booking.services[i];
+        final int qty = int.tryParse(service.quantity) ?? 1;
+        
+        // Loop through the quantity to print separate receipts for each unit
+        for (int q = 0; q < qty; q++) {
+          final bytes = await _generateEscPosBytes(booking, service, quantityIndex: q + 1);
+          
+          // Large chunks for high-speed transmission
+          const int chunkSize = 1024; 
+          for (int j = 0; j < bytes.length; j += chunkSize) {
+            int end = (j + chunkSize < bytes.length) ? j + chunkSize : bytes.length;
+            await _printerPlugin.printData(printer, bytes.sublist(j, end));
+          }
+          
+          // Smart delay: 3 seconds between multiple receipts
+          // (Only delay if there's another receipt coming: either more quantity or more services)
+          bool isLastReceipt = (i == booking.services.length - 1) && (q == qty - 1);
+          if (!isLastReceipt) {
+            await Future.delayed(const Duration(seconds: 3));
+          }
+        }
       }
       
-      // 3. Disconnect
-      await Future.delayed(const Duration(seconds: 1));
-      await _printerPlugin.disconnect(printer);
+      // 4. Stay Connected (Removed disconnect call for persistent connection)
+      // We don't call disconnect here anymore so subsequent prints are instant
       
       while (Get.isDialogOpen ?? false) {
         Get.back();
@@ -399,38 +476,45 @@ class PrintUtil {
     }
   }
 
-  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm58, profile);
+  static Future<List<int>> _generateEscPosBytes(
+    BookingDetailsModel booking, 
+    ServiceItem service, 
+    {int? quantityIndex}
+  ) async {
+    _cachedProfile ??= await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, _cachedProfile!);
     List<int> bytes = [];
 
     bytes += generator.reset();
 
-    // 1. Logo
+    // 1. App Title with Stylized "Chakra" Brand (Optimized with Caching)
     try {
-      final ByteData data = await rootBundle.load(AppImages.appLogo);
-      final Uint8List imgBytes = data.buffer.asUint8List();
-      final img.Image? logo = img.decodeImage(imgBytes);
-      if (logo != null) {
-        // Balanced logo size
-        img.Image processedLogo = img.copyResize(logo, width: 280);
-        processedLogo = img.grayscale(processedLogo);
-        
-        bytes += generator.imageRaster(processedLogo, align: PosAlign.center);
+      if (_cachedLogo == null) {
+        final ByteData data = await rootBundle.load(AppImages.appLogo);
+        final Uint8List imgBytes = data.buffer.asUint8List();
+        final img.Image? logo = img.decodeImage(imgBytes);
+        if (logo != null) {
+           _cachedLogo = img.copyResize(logo, width: 180); // Slightly larger for visibility
+           _cachedLogo = img.grayscale(_cachedLogo!);
+        }
+      }
+
+      if (_cachedLogo != null) {
+        bytes += generator.imageRaster(_cachedLogo!, align: PosAlign.center);
       } else {
-        bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true));
+        bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
       }
     } catch (e) {
-      debugPrint("Logo load error: $e");
-      bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true));
+      bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
     }
+    bytes += generator.feed(1);
 
     // 2. Unit & Location with slight character spacing
     bytes += [27, 32, 2]; // Set character spacing to 2 dots
     bytes += generator.text("Unit No.: ${booking.unitNo}");
     bytes += [27, 32, 0]; // Reset
     bytes += generator.text("Location: ${booking.fullAddress}");
-    bytes += generator.text("--------------------------------");
+    bytes += generator.text("-----------------------------------------------");
 
     // 3. Booking Info
     String originalId = booking.bookingId;
@@ -448,14 +532,14 @@ class PrintUtil {
     }
     bytes += generator.text("Payment Mode: $paymentModeStr");
 
-    // 4. Single Service for this print
-    bytes += generator.text("Services:", styles: const PosStyles(bold: true));
-    bytes += generator.text("1. ${service.servicesName} (x${service.quantity})");
+    // 3. Service Details
+    bytes += generator.text("Service: ${service.servicesName}", styles: const PosStyles(bold: true));
+    bytes += generator.text("Quantity: 1", styles: const PosStyles(align: PosAlign.left));
 
     // 5. Total
-    bytes += generator.text("--------------------------------");
-    bytes += generator.text("Total Paid: Rs. ${booking.totalAmount}", styles: const PosStyles(bold: true));
-    bytes += generator.text("--------------------------------");
+    bytes += generator.text("-----------------------------------------------");
+    bytes += generator.text("Total Paid: Rs. ${booking.totalAmount}", styles: const PosStyles(bold: true, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += generator.text("-----------------------------------------------");
 
     // 6. Footer & QR
     bytes += generator.text("Thank you!", styles: const PosStyles(align: PosAlign.center, bold: true));
@@ -464,7 +548,7 @@ class PrintUtil {
       "BookingID": booking.bookingId,
       "DeviceID": "NA",
       "AccessDate": _formatDateRaw(booking.bookingTimeDate),
-    }), size: QRSize.size6);
+    }), size: QRSize.size4);
 
     bytes += generator.cut();
 
@@ -485,7 +569,7 @@ class PrintUtil {
 
   static Future<pw.Document> _generateDocument(BookingDetailsModel booking, String? encryptedBookingId) async {
     final doc = pw.Document();
-    const rollFormat = PdfPageFormat(58 * PdfPageFormat.mm, double.infinity, marginAll: 0);
+    const rollFormat = PdfPageFormat(80 * PdfPageFormat.mm, double.infinity, marginAll: 0);
 
     // Load logo for PDF
     final ByteData logoData = await rootBundle.load(AppImages.appLogo);
@@ -613,47 +697,7 @@ class PrintUtil {
     };
   }
 
-  static Widget _buildPrintOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF15A22).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: const Color(0xFFF15A22)),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   static String _formatDate(String dateString) {
     try {

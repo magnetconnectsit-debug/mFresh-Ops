@@ -23,6 +23,8 @@ class StorageService extends GetxService {
       'has_shown_dashboard_tutorial_v2';
   static const String _lastPrinterAddressKey = 'last_printer_address';
   static const String _lastPrinterNameKey = 'last_printer_name';
+  static const String _defaultPrinterAddressKey = 'default_printer_address';
+  static const String _defaultPrinterNameKey = 'default_printer_name';
 
   late final Box<dynamic> _authBox;
   late final Box<dynamic> _userBox;
@@ -130,7 +132,7 @@ class StorageService extends GetxService {
   }
 
   bool getIsDevMode() {
-    return _settingsBox.get(_isDevModeKey, defaultValue: true); // Default to true for dev safety
+    return _settingsBox.get(_isDevModeKey, defaultValue: false);
   }
 
   Future<void> saveRememberMe(bool remember) async {
@@ -265,6 +267,25 @@ class StorageService extends GetxService {
 
   String? getLastPrinterName() {
     return _settingsBox.get(_lastPrinterNameKey) as String?;
+  }
+
+  Future<void> saveDefaultPrinter(String address, String name) async {
+    debugPrint('StorageService: Saving default printer: $name ($address)');
+    await _settingsBox.put(_defaultPrinterAddressKey, address);
+    await _settingsBox.put(_defaultPrinterNameKey, name);
+  }
+
+  String? getDefaultPrinterAddress() {
+    return _settingsBox.get(_defaultPrinterAddressKey) as String?;
+  }
+
+  String? getDefaultPrinterName() {
+    return _settingsBox.get(_defaultPrinterNameKey) as String?;
+  }
+
+  Future<void> clearDefaultPrinter() async {
+    await _settingsBox.delete(_defaultPrinterAddressKey);
+    await _settingsBox.delete(_defaultPrinterNameKey);
   }
   // endregion
 }

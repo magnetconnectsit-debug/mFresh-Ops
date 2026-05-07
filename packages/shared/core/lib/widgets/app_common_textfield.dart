@@ -88,7 +88,6 @@ class AppCommonTextField extends StatelessWidget {
             ),
           ),
         SizedBox(
-          height: height ?? 40.h,
           width: width,
           child: TextFormField(
             controller: controller,
@@ -116,7 +115,7 @@ class AppCommonTextField extends StatelessWidget {
               labelStyle: AppTextStyle.style_14_500(color: AppColors.black300),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
-                vertical: 10.h,
+                vertical: 12.h,
               ),
               filled: true,
               fillColor: AppColors.background,

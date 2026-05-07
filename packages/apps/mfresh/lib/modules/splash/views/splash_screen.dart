@@ -18,29 +18,32 @@ class SplashScreen extends StatelessWidget {
       body: Stack(
         children: [
           Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Hero(
-                  tag: 'app_logo',
-                  child: Image.asset(
-                    AppImages.appLogo,
-                    width: 180.w,
-                    height: 180.w,
-                    fit: BoxFit.contain,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Hero(
+                    tag: 'app_logo',
+                    child: Image.asset(
+                      AppImages.appLogo,
+                      width: 180.w,
+                      height: 180.w,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                ),
-                SizedBox(height: 40.h),
-                Text(
-                  'mFresh',
-                  style: AppTextStyle.style_24_600(color: AppColors.primary),
-                ),
-                SizedBox(height: 10.h),
-                Text(
-                  'Cleanliness Redefined',
-                  style: AppTextStyle.style_14_400(color: AppColors.grey300),
-                ),
-              ],
+                  SizedBox(height: 40.h),
+                  Text(
+                    'mFresh',
+                    style: AppTextStyle.style_24_600(color: AppColors.primary),
+                  ),
+                  SizedBox(height: 10.h),
+                  Text(
+                    'Cleanliness Redefined',
+                    style: AppTextStyle.style_14_400(color: AppColors.grey300),
+                  ),
+                ],
+              ),
             ),
           ),
           Positioned(

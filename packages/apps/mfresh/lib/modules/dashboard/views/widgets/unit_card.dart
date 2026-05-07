@@ -19,9 +19,9 @@ class UnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double fontSizeUnitNo = 12;
-    double fontSizeDescription = 10;
-    double fontSizeDate = 10;
+    double fontSizeUnitNo = 16;
+    double fontSizeDescription = 14;
+    double fontSizeDate = 14;
 
     return GestureDetector(
       onTap: onTap,
@@ -35,7 +35,7 @@ class UnitCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              flex: 5,
+              flex: 6,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),

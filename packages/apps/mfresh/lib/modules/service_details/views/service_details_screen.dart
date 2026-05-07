@@ -4,6 +4,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh/core/config/app_config.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -20,84 +21,91 @@ class ServiceDetailsScreen extends StatelessWidget {
         child: Column(
           children: [
             // Top Banner
-            Container(
-              width: double.infinity,
-              height: 120.h,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(AppImages.unitCard),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Unit Image (Overlays the fallback decoration)
-                  Obx(
-                    () => controller.unitImage.value.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: controller.unitImage.value,
-                            width: double.infinity,
-                            height: 120.h,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                Container(), // Falls back to decoration
-                            errorWidget: (context, url, error) =>
-                                Container(), // Falls back to decoration
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                  // Dark overlay
-                  Container(color: AppColors.black.withValues(alpha: 0.5)),
-                  // Unit info
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Obx(
-                          () => Text(
-                            controller.unitNo.value,
-                            style: AppTextStyle.style_18_600(
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        Obx(
-                          () => Text(
-                            controller.location.value,
-                            style: AppTextStyle.style_10_400(
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+            Builder(
+              builder: (context) {
+                final bool isDesktop = MediaQuery.of(context).size.width > 1000;
+                final double bannerHeight = isDesktop ? 150.h : 120.h;
+                
+                return Container(
+                  width: double.infinity,
+                  height: bannerHeight,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(AppImages.unitCard),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  // Back button
-                  Positioned(
-                    left: 8.w,
-                    top: 0,
-                    bottom: 0,
-                    child: GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        color: Colors.transparent,
-                        child: Icon(
-                          Icons.arrow_back_ios,
-                          size: 18.sp,
-                          color: AppColors.white,
+                  child: Stack(
+                    children: [
+                      // Unit Image (Overlays the fallback decoration)
+                      Obx(
+                        () => controller.unitImage.value.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: controller.unitImage.value,
+                                width: double.infinity,
+                                height: bannerHeight,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) =>
+                                    Container(), // Falls back to decoration
+                                errorWidget: (context, url, error) =>
+                                    Container(), // Falls back to decoration
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      // Dark overlay
+                      Container(color: AppColors.black.withValues(alpha: 0.5)),
+                      // Unit info
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Obx(
+                              () => Text(
+                                controller.unitNo.value,
+                                style: AppTextStyle.style_32_700(
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 6.h),
+                            Obx(
+                              () => Text(
+                                controller.location.value,
+                                style: AppTextStyle.style_20_400(
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                      // Back button
+                      Positioned(
+                        left: 8.w,
+                        top: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: () => Get.back(),
+                          child: Container(
+                            padding: EdgeInsets.all(8.w),
+                            color: Colors.transparent,
+                            child: Icon(
+                              Icons.arrow_back_ios,
+                              size: 18.sp,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              }
             ),
 
             // Customer / Membership toggle + Online toggle
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 3.h),
               child: Row(
                 children: [
                   const Spacer(),
@@ -155,48 +163,50 @@ class ServiceDetailsScreen extends StatelessWidget {
                   const Spacer(),
                   // Online toggle
                   Obx(
-                    () => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          controller.isOnline.value ? 'Online' : 'Offline',
-                          style: AppTextStyle.style_10_600(
-                            color: controller.isOnline.value
-                                ? AppColors.green
-                                : AppColors.red,
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        GestureDetector(
-                          onTap: controller.toggleOnline,
-                          child: Container(
-                            width: 36.w,
-                            height: 18.h,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(9.r),
+                    () => AppConfig.isDevToggle 
+                      ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            controller.isOnline.value ? 'Online' : 'Offline',
+                            style: AppTextStyle.style_14_600(
                               color: controller.isOnline.value
                                   ? AppColors.green
                                   : AppColors.red,
                             ),
-                            child: AnimatedAlign(
-                              duration: const Duration(milliseconds: 200),
-                              alignment: controller.isOnline.value
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                width: 14.w,
-                                height: 14.h,
-                                margin: EdgeInsets.symmetric(horizontal: 2.w),
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.white,
+                          ),
+                          SizedBox(height: 2.h),
+                          GestureDetector(
+                            onTap: controller.toggleOnline,
+                            child: Container(
+                              width: 50.w,
+                              height: 25.h,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12.5.r),
+                                color: controller.isOnline.value
+                                    ? AppColors.green
+                                    : AppColors.red,
+                              ),
+                              child: AnimatedAlign(
+                                duration: const Duration(milliseconds: 200),
+                                alignment: controller.isOnline.value
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  width: 20.w,
+                                  height: 20.h,
+                                  margin: EdgeInsets.symmetric(horizontal: 2.w),
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.white,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                      : const SizedBox.shrink(),
                   ),
                 ],
               ),
@@ -235,20 +245,25 @@ class ServiceDetailsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Services Grid
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: controller.services.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12.w,
-                          mainAxisSpacing: 12.h,
-                          childAspectRatio: 1.9,
-                        ),
-                        itemBuilder: (context, index) {
-                          return _ServiceCard(
-                            controller: controller,
-                            index: index,
+                      Builder(
+                        builder: (context) {
+                          final bool isDesktop = MediaQuery.of(context).size.width > 1000;
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: controller.services.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: isDesktop ? 4 : 2,
+                              crossAxisSpacing: 12.w,
+                              mainAxisSpacing: 12.h,
+                              childAspectRatio: isDesktop ? 2.8 : 1.9,
+                            ),
+                            itemBuilder: (context, index) {
+                              return _ServiceCard(
+                                controller: controller,
+                                index: index,
+                              );
+                            },
                           );
                         },
                       ),
@@ -701,7 +716,6 @@ class _ServiceCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyle.style_10_600(color: AppColors.black),
                 ),
-                SizedBox(height: 1.h),
                 Row(
                   children: [
                     Text(
@@ -714,50 +728,52 @@ class _ServiceCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 4.h),
+                const SizedBox(height: 4),
                 // Dynamic Blue/White Counter
                 Obx(() {
                   final bool isAdded = service.quantity.value > 0;
                   final Color themeColor = AppColors.pineBlue;
                   return Container(
-                    height: 22.h,
+                    height: 40.h,
                     decoration: BoxDecoration(
                       color: isAdded ? themeColor : AppColors.white,
-                      border: Border.all(color: themeColor, width: 1),
-                      borderRadius: BorderRadius.circular(5.r),
+                      border: Border.all(color: themeColor, width: 1.5),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => controller.decrement(index),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6.w),
-                            child: Text(
-                              '-',
-                              style: AppTextStyle.style_14_600(
-                                color: isAdded ? AppColors.white : themeColor,
-                              ),
+                          child: Container(
+                            width: 40.w,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.remove,
+                              size: 20.sp,
+                              color: isAdded ? AppColors.white : themeColor,
                             ),
                           ),
                         ),
+                        const Spacer(),
                         Text(
                           '${service.quantity.value}',
-                          style: AppTextStyle.style_11_600(
+                          style: AppTextStyle.style_16_600(
                             color: isAdded ? AppColors.white : themeColor,
                           ),
                         ),
+                        const Spacer(),
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => controller.increment(index),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6.w),
-                            child: Text(
-                              '+',
-                              style: AppTextStyle.style_14_600(
-                                color: isAdded ? AppColors.white : themeColor,
-                              ),
+                          child: Container(
+                            width: 40.w,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.add,
+                              size: 20.sp,
+                              color: isAdded ? AppColors.white : themeColor,
                             ),
                           ),
                         ),

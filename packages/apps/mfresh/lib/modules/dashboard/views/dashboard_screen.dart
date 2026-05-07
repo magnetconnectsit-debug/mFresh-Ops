@@ -81,9 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         builder: (context, constraints) {
           final screenWidth = constraints.maxWidth;
           final bool isTablet = screenWidth > 600;
+          final bool isDesktop = screenWidth > 1000;
 
-          double fontSizeTitle = isTablet ? 30.0 : 20.0;
-          double fontSizeSubTitle = isTablet ? 15.0 : 9.0;
+          double fontSizeTitle = isDesktop ? 24.0 : (isTablet ? 22.0 : 20.0);
+          double fontSizeSubTitle = isDesktop ? 12.0 : (isTablet ? 10.0 : 9.0);
 
           return Scaffold(
             appBar: AppBar(
@@ -106,17 +107,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   // Banner
                   Container(
                     width: double.infinity,
-                    height: isTablet ? 180 : 120,
+                    height: isDesktop ? 270 : (isTablet ? 150 : 120),
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage(AppImages.dashboardBanner),
-                        fit: BoxFit.cover,
+                        fit: BoxFit.fill,
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 8),
                   // Heading & Scanner Button
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -251,14 +250,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: SearchBarTool(),
-                  ),
+                  if (!isDesktop)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: SearchBarTool(),
+                    ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -273,10 +273,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: isTablet ? 3 : 2,
+                          crossAxisCount: isDesktop ? 5 : (isTablet ? 3 : 2),
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          childAspectRatio: isTablet ? 1.0 : 0.8,
+                          childAspectRatio: isDesktop ? 1.1 : (isTablet ? 1.0 : 0.8),
                         ),
                         itemCount: dashboardController.allUnitsList.length,
                         itemBuilder: (context, index) {
