@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:mfresh/core/config/app_config.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mfresh/routes/app_routes.dart';
 
 class ServiceDetailsScreen extends StatelessWidget {
   const ServiceDetailsScreen({super.key});
@@ -92,6 +93,24 @@ class ServiceDetailsScreen extends StatelessWidget {
                             child: Icon(
                               Icons.arrow_back_ios,
                               size: 18.sp,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // History button
+                      Positioned(
+                        right: 8.w,
+                        top: 0,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: () => Get.toNamed(AppRoutes.bookingHistory),
+                          child: Container(
+                            padding: EdgeInsets.all(8.w),
+                            color: Colors.transparent,
+                            child: Icon(
+                              Icons.history,
+                              size: 22.sp,
                               color: AppColors.white,
                             ),
                           ),
@@ -255,7 +274,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                               crossAxisCount: isDesktop ? 4 : 2,
                               crossAxisSpacing: 12.w,
                               mainAxisSpacing: 12.h,
-                              childAspectRatio: isDesktop ? 2.8 : 1.9,
+                              childAspectRatio: isDesktop ? 2.8 : 1.7,
                             ),
                             itemBuilder: (context, index) {
                               return _ServiceCard(
@@ -606,9 +625,12 @@ class _ServiceCard extends StatelessWidget {
           SizedBox(width: 8.w),
           // Service Details & Counter
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   service.name,
@@ -628,63 +650,69 @@ class _ServiceCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 2.h),
                 // Dynamic Blue/White Counter
                 Obx(() {
                   final bool isAdded = service.quantity.value > 0;
                   final Color themeColor = AppColors.pineBlue;
                   return Container(
-                    height: 40.h,
+                    height: 34.h,
                     decoration: BoxDecoration(
                       color: isAdded ? themeColor : AppColors.white,
                       border: Border.all(color: themeColor, width: 1.5),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => controller.decrement(index),
-                          child: Container(
-                            width: 40.w,
-                            alignment: Alignment.center,
-                            child: Icon(
-                              Icons.remove,
-                              size: 20.sp,
-                              color: isAdded ? AppColors.white : themeColor,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4.w),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => controller.decrement(index),
+                              child: Padding(
+                                padding: EdgeInsets.all(8.w),
+                                child: Icon(
+                                  Icons.remove,
+                                  size: 20.sp,
+                                  color: isAdded ? AppColors.white : themeColor,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '${service.quantity.value}',
-                          style: AppTextStyle.style_16_600(
-                            color: isAdded ? AppColors.white : themeColor,
-                          ),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => controller.increment(index),
-                          child: Container(
-                            width: 40.w,
-                            alignment: Alignment.center,
-                            child: Icon(
-                              Icons.add,
-                              size: 20.sp,
-                              color: isAdded ? AppColors.white : themeColor,
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10.w),
+                              child: Text(
+                                '${service.quantity.value}',
+                                style: AppTextStyle.style_16_600(
+                                  color: isAdded ? AppColors.white : themeColor,
+                                ),
+                              ),
                             ),
-                          ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => controller.increment(index),
+                              child: Padding(
+                                padding: EdgeInsets.all(8.w),
+                                child: Icon(
+                                  Icons.add,
+                                  size: 20.sp,
+                                  color: isAdded ? AppColors.white : themeColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   );
                 }),
               ],
             ),
           ),
-        ],
+        ),
+      ],
       ),
     );
   }

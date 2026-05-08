@@ -13,6 +13,7 @@ import 'package:services/plutus_service.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:mfresh/core/utils/print_util.dart';
+import 'package:mfresh/core/utils/printer_dialog_util.dart';
 
 class BookingConfirmedScreen extends StatefulWidget {
   const BookingConfirmedScreen({super.key});
@@ -36,10 +37,12 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   }
 
   Future<void> _handlePrint(BookingDetailsModel booking) async {
-    PrintUtil.showPrintSelectionDialog(
+    final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
+    
+    PrinterDialogUtil.showPrintSelectionDialog(
       context: context,
       booking: booking,
-      encryptedBookingId: Get.arguments?['encryptBookingId'],
+      encryptedBookingId: encryptId,
     );
   }
 
@@ -70,6 +73,12 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
         centerTitle: true,
         backgroundColor: AppColors.background,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: AppColors.black),
+            onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
+          ),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
           onPressed: () => Get.offAllNamed(AppRoutes.dashboard),

@@ -56,10 +56,10 @@ class _WebViewPageState extends State<WebViewPage> {
             debugPrint("WebView Page Started: $url");
             _checkRedirect(url);
             
-            // Inject CSS to scale down QR if too large (Tiny Scale)
+            // Inject CSS to scale down QR if too large (Optimized for Mobile/POS)
             _controller.runJavaScript("""
               var style = document.createElement('style');
-              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.3) !important; transform-origin: top center !important; margin-bottom: -150px !important; }';
+              style.innerHTML = 'img { max-width: 80% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.7) !important; transform-origin: top center !important; margin-bottom: -50px !important; }';
               document.head.appendChild(style);
             """);
             _controller.runJavaScript("""
@@ -88,10 +88,10 @@ class _WebViewPageState extends State<WebViewPage> {
             debugPrint("WebView Page Finished: $url");
             _checkRedirect(url);
             
-            // Re-apply tiny scaling after load
+            // Re-apply optimized scaling after load
             _controller.runJavaScript("""
               var style = document.createElement('style');
-              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.3) !important; transform-origin: top center !important; margin-bottom: -150px !important; }';
+              style.innerHTML = 'img { max-width: 80% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.7) !important; transform-origin: top center !important; margin-bottom: -50px !important; }';
               document.head.appendChild(style);
             """);
           },

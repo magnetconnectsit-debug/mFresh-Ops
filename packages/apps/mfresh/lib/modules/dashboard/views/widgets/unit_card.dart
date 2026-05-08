@@ -66,56 +66,60 @@ class UnitCard extends StatelessWidget {
               flex: 4,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    RichText(
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: "Unit No.: ",
-                            style: TextStyle(
-                              fontSize: fontSizeUnitNo,
-                              color: Colors.black54,
-                              fontWeight: FontWeight.bold,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      RichText(
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: "Unit No.: ",
+                              style: TextStyle(
+                                fontSize: fontSizeUnitNo,
+                                color: Colors.black54,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: unitName,
-                            style: TextStyle(
-                              fontSize: fontSizeUnitNo + 1,
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
+                            TextSpan(
+                              text: unitName,
+                              style: TextStyle(
+                                fontSize: fontSizeUnitNo + 1,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: fontSizeDescription,
-                        color: Colors.black87,
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: fontSizeDescription,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      date,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: fontSizeDate,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                      const SizedBox(height: 2),
+                      Text(
+                        date,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: fontSizeDate,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

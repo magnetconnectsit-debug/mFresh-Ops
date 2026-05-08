@@ -600,27 +600,27 @@ class ServiceDetailsController extends GetxController {
                   onPressed: (isVerifying.value || hasVerified.value)
                       ? null
                       : () async {
-                          if (bottomOtpController.text.length < 6) {
-                            AppCommonToastMessage.show(
-                              message: "Please enter 6-digit OTP",
-                              type: ToastType.error,
-                            );
-                            return;
-                          }
-                          
-                          isVerifying.value = true;
-                          final success = await verifyMemberOtp(
-                            phone: phone,
-                            otp: bottomOtpController.text.trim(),
-                            showLoading: false,
-                          );
-                          isVerifying.value = false;
-                          if (success) {
-                            hasVerified.value = true;
-                            debugPrint("OTP Verified via button. Closing via Navigator.pop...");
-                            Navigator.pop(Get.context!, true);
-                          }
-                        },
+                           if (bottomOtpController.text.length < 6) {
+                             AppCommonToastMessage.show(
+                               message: "Please enter 6-digit OTP",
+                               type: ToastType.error,
+                             );
+                             return;
+                           }
+                           
+                           isVerifying.value = true;
+                           final success = await verifyMemberOtp(
+                             phone: phone,
+                             otp: bottomOtpController.text.trim(),
+                             showLoading: false,
+                           );
+                           isVerifying.value = false;
+                           if (success) {
+                             hasVerified.value = true;
+                             debugPrint("OTP Verified via button. Closing via Navigator.pop...");
+                             Navigator.pop(Get.context!, true);
+                           }
+                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: EdgeInsets.symmetric(vertical: 12.h),

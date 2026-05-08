@@ -37,137 +37,144 @@ class SignupScreen extends StatelessWidget {
             ),
           ),
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: 30.h),
-                  Text(
-                    'Create your Account',
-                    style: AppTextStyle.style_22_600(color: AppColors.black),
+              child: Center(
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width > 600 ? 900.w : 500.w,
                   ),
-                  SizedBox(height: 22.h),
-
-                  // Full Name Field
-                  AppCommonTextField(
-                    controller: controller.fullNameController,
-                    titleText: 'Full Name',
-                    isRequired: true,
-                    hintText: 'Full Name',
-                  ),
-                  SizedBox(height: 8.h),
-
-                  // Email Field
-                  AppCommonTextField(
-                    controller: controller.emailController,
-                    titleText: 'Email',
-                    isRequired: true,
-                    hintText: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  SizedBox(height: 8.h),
-
-                  // Mobile Number Field
-                  PhoneNoTextField(
-                    controller: controller.mobileController,
-                    hintText: 'Mobile Number',
-                  ),
-                  SizedBox(height: 8.h),
-
-                  // Password Field
-                  Obx(
-                    () => AppCommonTextField(
-                      controller: controller.passwordController,
-                      titleText: 'Password',
-                      isRequired: true,
-                      hintText: 'Password',
-                      obscureText: controller.obscurePassword.value,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          controller.obscurePassword.value
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.grey400,
-                          size: 24.sp,
-                        ),
-                        onPressed: controller.togglePasswordVisibility,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 22.h),
-
-                  // Sign Up Button
-                  Obx(
-                    () => AppCommonButton(
-                      text: 'Sign Up',
-                      isLoading: controller.isLoading.value,
-                      onPressed: controller.signup,
-                    ),
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  // Divider
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        child: Text(
-                          'Or',
-                          style: AppTextStyle.style_12_400(
-                            color: AppColors.grey200,
+                      SizedBox(height: 30.h),
+                      Text(
+                        'Create your Account',
+                        style: AppTextStyle.style_22_600(color: AppColors.black),
+                      ),
+                      SizedBox(height: 22.h),
+    
+                      // Full Name Field
+                      AppCommonTextField(
+                        controller: controller.fullNameController,
+                        titleText: 'Full Name',
+                        isRequired: true,
+                        hintText: 'Full Name',
+                      ),
+                      SizedBox(height: 8.h),
+    
+                      // Email Field
+                      AppCommonTextField(
+                        controller: controller.emailController,
+                        titleText: 'Email',
+                        isRequired: true,
+                        hintText: 'Email',
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      SizedBox(height: 8.h),
+    
+                      // Mobile Number Field
+                      PhoneNoTextField(
+                        controller: controller.mobileController,
+                        hintText: 'Mobile Number',
+                      ),
+                      SizedBox(height: 8.h),
+    
+                      // Password Field
+                      Obx(
+                        () => AppCommonTextField(
+                          controller: controller.passwordController,
+                          titleText: 'Password',
+                          isRequired: true,
+                          hintText: 'Password',
+                          obscureText: controller.obscurePassword.value,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              controller.obscurePassword.value
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppColors.grey400,
+                              size: 24.sp,
+                            ),
+                            onPressed: controller.togglePasswordVisibility,
                           ),
                         ),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  // Google Sign In
-                  AppCommonButton(
-                    text: 'Continue with Google',
-                    textSize: 14.sp,
-                    variant: ButtonVariant.outline,
-                    prefixWidget: SvgPicture.asset(
-                      AppImages.googleIcon,
-                      width: 24.w,
-                      height: 24.w,
-                    ),
-                    onPressed: () {},
-                  ),
-
-                  const Spacer(),
-
-                  // Already have an account? Login
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Already have an account? ',
-                          style: AppTextStyle.style_14_400(
-                            color: AppColors.grey200,
-                          ),
+    
+                      SizedBox(height: 22.h),
+    
+                      // Sign Up Button
+                      Obx(
+                        () => AppCommonButton(
+                          text: 'Sign Up',
+                          isLoading: controller.isLoading.value,
+                          onPressed: controller.signup,
                         ),
-                        InkWell(
-                          onTap: () => Get.offNamed(AppRoutes.login),
-                          child: Text(
-                            'Login',
-                            style: AppTextStyle.style_14_600(
-                              color: AppColors.primary,
+                      ),
+    
+                      SizedBox(height: 16.h),
+    
+                      // Divider
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            child: Text(
+                              'Or',
+                              style: AppTextStyle.style_12_400(
+                                color: AppColors.grey200,
+                              ),
                             ),
                           ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+    
+                      SizedBox(height: 16.h),
+    
+                      // Google Sign In
+                      AppCommonButton(
+                        text: 'Continue with Google',
+                        textSize: 14.sp,
+                        variant: ButtonVariant.outline,
+                        prefixWidget: SvgPicture.asset(
+                          AppImages.googleIcon,
+                          width: 24.w,
+                          height: 24.w,
                         ),
-                      ],
-                    ),
+                        onPressed: () {},
+                      ),
+    
+                      SizedBox(height: 40.h),
+    
+                      // Already have an account? Login
+                      Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Already have an account? ',
+                              style: AppTextStyle.style_14_400(
+                                color: AppColors.grey200,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => Get.offNamed(AppRoutes.login),
+                              child: Text(
+                                'Login',
+                                style: AppTextStyle.style_14_600(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+                    ],
                   ),
-                  SizedBox(height: 24.h),
-                ],
+                ),
               ),
             ),
           ),

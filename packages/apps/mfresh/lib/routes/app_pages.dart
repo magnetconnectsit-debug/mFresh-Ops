@@ -4,6 +4,7 @@ import 'package:mfresh/modules/authentication/views/login_screen.dart';
 import 'package:mfresh/modules/authentication/views/signup_screen.dart';
 import 'package:mfresh/modules/booking/views/booking_confirmed_screen.dart';
 import 'package:mfresh/modules/booking/views/booking_history_screen.dart';
+import 'package:mfresh/modules/booking/views/print_receipt_screen.dart';
 import 'package:mfresh/modules/dashboard/views/dashboard_screen.dart';
 import 'package:mfresh/modules/service_details/views/service_details_screen.dart';
 import 'package:mfresh/modules/qr_scanner/qr_scanner_screen.dart';
@@ -60,6 +61,13 @@ class AppPages {
     GetPage(
       name: AppRoutes.webView,
       page: () => WebViewPage(),
+    ),
+    GetPage(
+      name: AppRoutes.printReceipt,
+      page: () => PrintReceiptScreen(
+        booking: Get.arguments['booking'],
+        encryptedBookingId: Get.arguments['encryptBookingId'],
+      ),
     ),
   ];
 }

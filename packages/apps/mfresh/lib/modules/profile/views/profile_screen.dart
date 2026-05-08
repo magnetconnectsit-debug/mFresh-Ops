@@ -81,6 +81,21 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             children: [
               SizedBox(height: 16.h),
+              // Header with Title and History
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Profile',
+                    style: AppTextStyle.style_20_700(color: AppColors.black),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.history, size: 24.sp, color: AppColors.black),
+                    onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
               // User Card (Orange Header)
               Container(
                 width: double.infinity,

@@ -43,7 +43,7 @@ class LoginScreen extends StatelessWidget {
               child: Center(
                 child: Container(
                   constraints: BoxConstraints(
-                    maxWidth: 500.w, // Limit width on large screens
+                    maxWidth: MediaQuery.of(context).size.width > 600 ? 900.w : 500.w,
                   ),
                   child: Column(
                     children: [
@@ -57,7 +57,7 @@ class LoginScreen extends StatelessWidget {
                             child: Image.asset(
                               AppImages.loginImage,
                               width: double.infinity,
-                              height: 160.h,
+                              height: MediaQuery.of(context).size.width > 600 ? 320.h : 160.h,
                               fit: BoxFit.cover,
                             ),
                           ),

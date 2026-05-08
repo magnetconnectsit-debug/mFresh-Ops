@@ -10,4 +10,5 @@ class AppRoutes {
   static const String serviceDetails = '/service-details';
   static const String qrScanner = '/qr-scanner';
   static const String webView = '/web-view';
+  static const String printReceipt = '/print-receipt';
 }

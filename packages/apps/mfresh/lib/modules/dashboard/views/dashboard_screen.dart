@@ -93,6 +93,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               centerTitle: true,
               actions: [
                 IconButton(
+                  icon: const Icon(Icons.history),
+                  onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
+                ),
+                IconButton(
                   icon: const Icon(Icons.account_circle),
                   onPressed: () {
                     Get.toNamed(AppRoutes.profile);
