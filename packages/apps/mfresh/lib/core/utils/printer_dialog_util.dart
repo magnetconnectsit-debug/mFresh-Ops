@@ -34,6 +34,7 @@ class PrinterDialogUtil {
     required BuildContext context,
     required BookingDetailsModel booking,
     String? encryptedBookingId,
+    int rollSize = 80,
   }) {
     Get.bottomSheet(
       Container(
@@ -56,10 +57,10 @@ class PrinterDialogUtil {
             _buildPrintOption(
               icon: Icons.bluetooth_searching,
               title: "Thermal Printer",
-              subtitle: "Connect to Bluetooth or USB thermal printers",
+              subtitle: "Connect to Bluetooth, USB or WiFi thermal printers",
               onTap: () {
                 Get.back();
-                PrintUtil.handleExternalPrint(context, booking, useDefault: true);
+                PrintUtil.handleExternalPrint(context, booking, useDefault: true, rollSize: rollSize);
               },
             ),
             const SizedBox(height: 12),
@@ -69,7 +70,7 @@ class PrinterDialogUtil {
               subtitle: "Print via system dialog or save as PDF",
               onTap: () {
                 Get.back();
-                PrintUtil.printSystem(booking, encryptedBookingId);
+                PrintUtil.printSystem(booking, encryptedBookingId, rollSize: rollSize);
               },
             ),
             const SizedBox(height: 20),
@@ -82,7 +83,7 @@ class PrinterDialogUtil {
   }
 
   /// UI for discovered devices
-  static void showExternalDeviceSelector(BuildContext context, BookingDetailsModel booking) {
+  static void showExternalDeviceSelector(BuildContext context, BookingDetailsModel booking, {int rollSize = 80}) {
     final discoveredPrinters = <Printer>[].obs;
     final isScanning = false.obs;
     StreamSubscription? subscription;
@@ -91,11 +92,13 @@ class PrinterDialogUtil {
     Future<void> startScan() async {
       if (isScanning.value) return;
       
-      final status = await Permission.bluetoothScan.status;
-      if (!status.isGranted) {
-        await Permission.bluetoothScan.request();
-        await Permission.bluetoothConnect.request();
-      }
+      // Comprehensive permissions for BT and WiFi scanning
+      await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.location,
+        Permission.nearbyWifiDevices,
+      ].request();
 
       isScanning.value = true;
       discoveredPrinters.clear();
@@ -109,10 +112,17 @@ class PrinterDialogUtil {
         }
 
         subscription = _printerPlugin.devicesStream.listen((printers) {
+          debugPrint("Discovered ${printers.length} printers");
           discoveredPrinters.assignAll(printers);
         });
 
-        _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE, ConnectionType.USB]);
+        // Staggered requests for different connection types to improve discovery reliability
+        _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE]);
+        await Future.delayed(const Duration(milliseconds: 300));
+        _printerPlugin.getPrinters(connectionTypes: [ConnectionType.USB]);
+        await Future.delayed(const Duration(milliseconds: 300));
+        _printerPlugin.getPrinters(connectionTypes: [ConnectionType.NETWORK]);
+        
       } catch (e) {
         debugPrint("Scan Error: $e");
       }
@@ -141,89 +151,55 @@ class PrinterDialogUtil {
                 ],
               ),
               const SizedBox(height: 16),
-              const Text("Detected Printers (BT/USB/WiFi)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const Text("Available Devices", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
 
               Obx(() {
-                final storage = Get.find<StorageService>();
-                final lastAddress = storage.getLastPrinterAddress();
-                final lastUsedName = storage.getLastPrinterName();
-                
+                if (discoveredPrinters.isEmpty && !isScanning.value) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Center(child: Text("No printers found", style: TextStyle(color: Colors.grey))),
+                  );
+                }
+
+                // Categorize based on connection type name for maximum compatibility
+                final blePrinters = <Printer>[];
+                final wifiPrinters = <Printer>[];
+                final usbPrinters = <Printer>[];
+
+                for (var p in discoveredPrinters) {
+                  final String type = p.connectionType?.name?.toUpperCase() ?? "";
+                  if (type.contains("USB")) {
+                    usbPrinters.add(p);
+                  } else if (type.contains("WIFI") || type.contains("NETWORK") || type.contains("IP") || type.contains("TCP")) {
+                    wifiPrinters.add(p);
+                  } else {
+                    blePrinters.add(p);
+                  }
+                }
+
                 return ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 350),
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
                   child: ListView(
                     shrinkWrap: true,
                     children: [
-                      if (lastAddress != null) ...[
-                        const Text("LAST USED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFF15A22))),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.history, size: 20, color: Color(0xFFF15A22)),
-                          title: Text(lastUsedName ?? "Unknown Printer", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                          subtitle: Text(lastAddress, style: const TextStyle(fontSize: 10)),
-                          onTap: () {
-                            Get.back();
-                            final printer = discoveredPrinters.firstWhereOrNull((p) => p.address == lastAddress);
-                            if (printer != null) {
-                              PrintUtil.printToExternal(booking, printer);
-                            } else {
-                              AppCommonToastMessage.show(message: "Printer not found in scan. Please wait or refresh.", type: ToastType.warning);
-                            }
-                          },
-                          trailing: IconButton(
-                            icon: Icon(
-                              storage.getDefaultPrinterAddress() == lastAddress
-                                  ? Icons.star_rounded
-                                  : Icons.star_outline_rounded,
-                              color: const Color(0xFFF15A22),
-                            ),
-                            onPressed: () {
-                              if (storage.getDefaultPrinterAddress() == lastAddress) {
-                                storage.clearDefaultPrinter();
-                                AppCommonToastMessage.show(message: "Default printer cleared", type: ToastType.info);
-                              } else {
-                                storage.saveDefaultPrinter(lastAddress, lastUsedName ?? "Printer");
-                                AppCommonToastMessage.show(message: "Set as default printer", type: ToastType.success);
-                              }
-                              discoveredPrinters.refresh();
-                            },
-                          ),
-                        ),
-                        const Divider(),
-                        const SizedBox(height: 8),
+                      // Bluetooth Section
+                      if (blePrinters.isNotEmpty) ...[
+                        _buildSectionHeader("Bluetooth Devices"),
+                        ...blePrinters.map((p) => _buildPrinterTile(p, Icons.bluetooth, booking, isScanning, subscription, rollSize)),
+                      ],
+                      
+                      // WiFi / WiFi Direct Section
+                      if (wifiPrinters.isNotEmpty) ...[
+                        _buildSectionHeader("WiFi / Network Devices"),
+                        ...wifiPrinters.map((p) => _buildPrinterTile(p, Icons.wifi, booking, isScanning, subscription, rollSize)),
                       ],
 
-                      if (discoveredPrinters.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: Text("Scanning for printers...", style: TextStyle(fontSize: 12, color: Colors.grey))),
-                        )
-                      else
-                        ...discoveredPrinters.map((printer) {
-                          if (printer.address == lastAddress) return const SizedBox.shrink();
-
-                          IconData icon;
-                          switch (printer.connectionType) {
-                            case ConnectionType.USB: icon = Icons.usb; break;
-                            case ConnectionType.NETWORK: icon = Icons.wifi; break;
-                            default: icon = Icons.bluetooth;
-                          }
-
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Icon(icon, size: 20, color: const Color(0xFFF15A22)),
-                            title: Text(printer.name ?? "Unknown Printer", style: const TextStyle(fontSize: 13)),
-                            subtitle: Text("${printer.connectionType?.name} - ${printer.address ?? 'No Address'}", style: const TextStyle(fontSize: 10)),
-                            onTap: () async {
-                              Get.back();
-                              isScanning.value = false;
-                              subscription?.cancel();
-                              AppCommonToastMessage.show(message: "Connecting...", type: ToastType.info);
-                              await Future.delayed(const Duration(seconds: 1));
-                              PrintUtil.printToExternal(booking, printer);
-                            },
-                          );
-                        }),
+                      // USB Section
+                      if (usbPrinters.isNotEmpty) ...[
+                        _buildSectionHeader("USB Devices"),
+                        ...usbPrinters.map((p) => _buildPrinterTile(p, Icons.usb, booking, isScanning, subscription, rollSize)),
+                      ],
                     ],
                   ),
                 );
@@ -243,6 +219,43 @@ class PrinterDialogUtil {
           ),
         ),
       ),
-    ).then((_) => subscription?.cancel());
+    );
+  }
+
+  static Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+          const Expanded(child: Divider(indent: 10, endIndent: 0, thickness: 0.5)),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildPrinterTile(Printer printer, IconData icon, BookingDetailsModel booking, RxBool isScanning, StreamSubscription? subscription, int rollSize) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF15A22).withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 18, color: const Color(0xFFF15A22)),
+      ),
+      title: Text(printer.name ?? "Unknown Printer", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+      subtitle: Text("${printer.connectionType?.name} - ${printer.address ?? 'No Address'}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+      onTap: () async {
+        Get.back();
+        isScanning.value = false;
+        subscription?.cancel();
+        AppCommonToastMessage.show(message: "Connecting to ${printer.name}...", type: ToastType.info);
+        await Future.delayed(const Duration(seconds: 1));
+        PrintUtil.printToExternal(booking, printer, rollSize: rollSize);
+      },
+    );
   }
 }

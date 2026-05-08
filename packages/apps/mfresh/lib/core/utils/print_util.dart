@@ -54,7 +54,7 @@ class PrintUtil {
   }
 
   /// Handle External Printer Discovery logic
-  static Future<void> handleExternalPrint(BuildContext context, BookingDetailsModel booking, {bool useDefault = false}) async {
+  static Future<void> handleExternalPrint(BuildContext context, BookingDetailsModel booking, {bool useDefault = false, int rollSize = 80}) async {
     // Request Permissions
     await [
       Permission.bluetooth,
@@ -74,20 +74,20 @@ class PrintUtil {
         if (_connectedPrinter != null && 
             _connectedPrinter!.address == defaultAddress && 
             (_connectedPrinter!.isConnected ?? false)) {
-          printToExternal(booking, _connectedPrinter!);
+          printToExternal(booking, _connectedPrinter!, rollSize: rollSize);
           return;
         }
 
         // 2. Otherwise, try to find the printer in a quick scan
-        _attemptDefaultPrint(context, booking, defaultAddress);
+        _attemptDefaultPrint(context, booking, defaultAddress, rollSize: rollSize);
         return;
       }
     }
     
-    PrinterDialogUtil.showExternalDeviceSelector(context, booking);
+    PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
   }
 
-  static void _attemptDefaultPrint(BuildContext context, BookingDetailsModel booking, String address) {
+  static void _attemptDefaultPrint(BuildContext context, BookingDetailsModel booking, String address, {int rollSize = 80}) {
     AppCommonToastMessage.show(message: "Connecting to default printer...", type: ToastType.info);
     
     // We need to scan briefly to get the Printer object
@@ -98,24 +98,23 @@ class PrintUtil {
       if (!found) {
         sub?.cancel();
         AppCommonToastMessage.show(message: "Default printer not found. Please select manually.", type: ToastType.warning);
-        PrinterDialogUtil.showExternalDeviceSelector(context, booking);
+        PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
       }
     });
 
     sub = _printerPlugin.devicesStream.listen((printers) {
-      final printer = printers.firstWhereOrNull((p) => p.address == address);
+      final printer = printers.where((p) => p.address == address).firstOrNull;
       if (printer != null && !found) {
         found = true;
         sub?.cancel();
-        printToExternal(booking, printer);
+        printToExternal(booking, printer, rollSize: rollSize);
       }
     });
-
-    _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE]);
+    _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE, ConnectionType.USB, ConnectionType.NETWORK]);
   }
 
   /// Core logic for printing to thermal devices
-  static Future<void> printToExternal(BookingDetailsModel booking, Printer printer) async {
+  static Future<void> printToExternal(BookingDetailsModel booking, Printer printer, {int rollSize = 80}) async {
     // Show a persistent loading indicator
     Get.dialog(
       const PopScope(
@@ -191,7 +190,7 @@ class PrintUtil {
         final int qty = int.tryParse(service.quantity) ?? 1;
         
         for (int q = 0; q < qty; q++) {
-          final List<int> bytes = await _generateEscPosBytes(booking, service);
+          final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
           
           // Use built-in longData handling for better stability
           await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 128);
@@ -216,11 +215,18 @@ class PrintUtil {
     }
   }
 
-  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service) async {
+  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service, {int rollSize = 80}) async {
     _cachedProfile ??= await CapabilityProfile.load();
-    // Use mm80 for 3-inch rolls as requested
-    final generator = Generator(PaperSize.mm80, _cachedProfile!);
+    
+    // Support for 56mm, 58mm, and 80mm
+    final PaperSize paperSize = rollSize == 80 ? PaperSize.mm80 : PaperSize.mm58;
+    final generator = Generator(paperSize, _cachedProfile!);
     List<int> bytes = [];
+
+    // Adjust separators based on roll size
+    String separator = "--------------------------------"; // 80mm default
+    if (rollSize == 58) separator = "----------------------------";
+    if (rollSize == 56) separator = "--------------------------";
 
     bytes += generator.reset();
 
@@ -228,27 +234,28 @@ class PrintUtil {
     bytes += generator.feed(1);
     
     bytes += [27, 32, 2]; // Set character spacing
-    bytes += generator.text("Unit No.: ${booking.unitNo}", styles: const PosStyles(align: PosAlign.left, bold: true));
-    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size2));
+    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left, bold: true));
     bytes += [27, 32, 0]; // Reset
-    bytes += generator.text("--------------------------------", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
-    // Booking Details (Strictly left-aligned combined text)
-    bytes += generator.text("Booking ID: ${booking.bookingId}", styles: const PosStyles(align: PosAlign.left));
+    // Booking Details
+    bytes += generator.text("BOOKING ID: ${booking.bookingId}", styles: const PosStyles(align: PosAlign.left, bold: true));
     bytes += generator.text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", styles: const PosStyles(align: PosAlign.left));
 
-    String paymentModeStr = booking.paymentMode == 1 ? "Cash" : booking.paymentMode == 2 ? "UPI" : "QR";
-    bytes += generator.text("Payment: $paymentModeStr", styles: const PosStyles(align: PosAlign.left));
+    String paymentModeStr = booking.paymentMode == 1 ? "CASH" : booking.paymentMode == 2 ? "UPI" : "QR";
+    bytes += generator.text("Payment: $paymentModeStr", styles: const PosStyles(align: PosAlign.left, bold: true));
     
-    bytes += generator.text("--------------------------------", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
     // Service & Qty
-    bytes += generator.text("${service.servicesName} (QTY: 1)", styles: const PosStyles(bold: true, align: PosAlign.left));
-    bytes += generator.text("Unit Price: RS. ${service.price}", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("${service.servicesName.toUpperCase()}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size2));
+    bytes += generator.text("QTY: 1", styles: const PosStyles(bold: true, align: PosAlign.left));
+    bytes += generator.text("Unit Price: RS. ${service.price}", styles: const PosStyles(align: PosAlign.left, bold: true));
 
-    bytes += generator.text("--------------------------------", styles: const PosStyles(align: PosAlign.left));
-    bytes += generator.text("TOTAL AMOUNT: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left));
-    bytes += generator.text("--------------------------------", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("TOTAL: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size2));
+    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
     bytes += generator.qrcode(jsonEncode({
       "BookingID": booking.bookingId,
@@ -265,33 +272,39 @@ class PrintUtil {
     return bytes;
   }
 
-  static Future<void> printSystem(BookingDetailsModel booking, String? encryptedBookingId) async {
+  static Future<void> printSystem(BookingDetailsModel booking, String? encryptedBookingId, {int rollSize = 58}) async {
     try {
-      final doc = await _generateDocument(booking, encryptedBookingId);
+      final doc = await _generateDocument(booking, encryptedBookingId, rollSize: rollSize);
       await sys_print.Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => doc.save(),
         name: 'receipt_${booking.bookingId}',
       );
     } catch (e) {
       debugPrint("System Print Error: $e");
+      AppCommonToastMessage.show(message: "System print failed: $e", type: ToastType.error);
     }
   }
 
-  static Future<void> shareSystem(BookingDetailsModel booking, String? encryptedBookingId) async {
+  static Future<void> shareSystem(BookingDetailsModel booking, String? encryptedBookingId, {int rollSize = 58}) async {
     try {
-      final doc = await _generateDocument(booking, encryptedBookingId);
+      debugPrint("Generating PDF for sharing...");
+      final doc = await _generateDocument(booking, encryptedBookingId, rollSize: rollSize);
+      final bytes = await doc.save();
+      
+      debugPrint("Sharing PDF (${bytes.length} bytes)...");
       await sys_print.Printing.sharePdf(
-        bytes: await doc.save(),
+        bytes: bytes,
         filename: 'receipt_${booking.bookingId}.pdf',
       );
     } catch (e) {
       debugPrint("System Share Error: $e");
+      AppCommonToastMessage.show(message: "Failed to share receipt: $e", type: ToastType.error);
     }
   }
 
-  static Future<pw.Document> _generateDocument(BookingDetailsModel booking, String? encryptedBookingId) async {
+  static Future<pw.Document> _generateDocument(BookingDetailsModel booking, String? encryptedBookingId, {int rollSize = 58}) async {
     final doc = pw.Document();
-    const rollFormat = PdfPageFormat(58 * PdfPageFormat.mm, double.infinity, marginAll: 0);
+    final rollFormat = PdfPageFormat(rollSize * PdfPageFormat.mm, double.infinity, marginAll: 0);
 
     final ByteData logoData = await rootBundle.load(AppImages.mFreshLogo);
     final Uint8List logoBytes = logoData.buffer.asUint8List();
@@ -306,16 +319,16 @@ class PrintUtil {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Center(child: pw.Image(logoImage, width: 90)),
-                pw.SizedBox(height: 2),
-                pw.Text("Unit No.: ${booking.unitNo}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8)),
-                pw.Text("Location: ${booking.fullAddress}", style: const pw.TextStyle(fontSize: 7)),
+                pw.Center(child: pw.Image(logoImage, width: 100)),
+                pw.SizedBox(height: 5),
+                pw.Text("UNIT NO.: ${booking.unitNo}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                pw.Text("Location: ${booking.fullAddress}", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                 pw.Text("-----------------------------------------"),
-                pw.Text("Booking ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                pw.Text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", style: const pw.TextStyle(fontSize: 8)),
+                pw.Text("BOOKING ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+                pw.Text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", style: const pw.TextStyle(fontSize: 11)),
                 pw.Text("-----------------------------------------"),
-                pw.Text("TOTAL AMOUNT: RS. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                pw.SizedBox(height: 10),
+                pw.Text("TOTAL: RS. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                pw.SizedBox(height: 15),
                 pw.Center(
                   child: pw.BarcodeWidget(
                     barcode: pw.Barcode.qrCode(),
@@ -324,8 +337,8 @@ class PrintUtil {
                       "DeviceID": "NA",
                       "AccessDate": booking.bookingTimeDate,
                     }),
-                    width: 60,
-                    height: 60,
+                    width: 80,
+                    height: 80,
                   ),
                 ),
               ],

@@ -44,6 +44,25 @@ class CommonRepository extends GetxService {
     }
   }
 
+  Future<UnitModel?> getUnitConfig({required String unitId}) async {
+    try {
+      final response = await _apiService.post(
+        '/customer/unit-config',
+        data: {'unit_id': unitId},
+      );
+
+      if (response != null && response['status'] == 'success') {
+        final data = response['data'];
+        if (data != null) {
+          return UnitModel.fromJson(data);
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<List<ServiceModel>> getServices({
     required String customerMode,
     required String unitNo,

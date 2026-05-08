@@ -38,11 +38,13 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
 
   Future<void> _handlePrint(BookingDetailsModel booking) async {
     final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
+    final int rollSize = int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? '80') ?? 80;
     
     PrinterDialogUtil.showPrintSelectionDialog(
       context: context,
       booking: booking,
       encryptedBookingId: encryptId,
+      rollSize: rollSize,
     );
   }
 
@@ -266,7 +268,16 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                         style: AppTextStyle.style_10_600(color: AppColors.grey300, isUnderline: true),
                                       ),
                                       SizedBox(width: 8.w),
-                                      Icon(Icons.share, color: AppColors.grey300, size: 14.sp),
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (booking != null) {
+                                            final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
+                                            final int rollSize = int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? '58') ?? 58;
+                                            PrintUtil.shareSystem(booking, encryptId, rollSize: rollSize);
+                                          }
+                                        },
+                                        child: Icon(Icons.share, color: const Color(0xFFF15A22), size: 18.sp),
+                                      ),
                                     ],
                                   ),
                                 ],

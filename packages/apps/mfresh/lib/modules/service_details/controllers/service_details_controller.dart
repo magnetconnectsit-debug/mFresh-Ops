@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
+import 'package:mfresh/data/models/unit_model.dart';
 
 import 'package:services/phonepe_service.dart';
 import 'package:core/utils/app_common_toast_message.dart';
@@ -38,6 +39,10 @@ class ServiceDetailsController extends GetxController {
   final unitNo = ''.obs;
   final location = ''.obs;
   final unitImage = ''.obs;
+  final printingType = 'thermal'.obs;
+  final paymentMode = 'phonepe'.obs;
+  final paperRollSize = 80.obs;
+  final hasPermission = UnitPermission().obs;
 
   // Toggle states
   final isCustomer = true.obs; // true = Customer, false = Membership
@@ -47,6 +52,8 @@ class ServiceDetailsController extends GetxController {
   // Contact details
   final mobileController = TextEditingController();
   final nameController = TextEditingController();
+  final addPhoneController = TextEditingController();
+  final referralController = TextEditingController();
   final createAccount = false.obs;
 
   // Member flow
@@ -68,6 +75,13 @@ class ServiceDetailsController extends GetxController {
       unitNo.value = args['unitNo']?.toString() ?? '';
       location.value = args['location']?.toString() ?? '';
       unitImage.value = args['unitImage']?.toString() ?? '';
+      printingType.value = args['printingType']?.toString() ?? 'thermal';
+      paymentMode.value = args['paymentMode']?.toString() ?? 'phonepe';
+      paperRollSize.value = int.tryParse(args['paperRollSize']?.toString() ?? '80') ?? 80;
+    }
+
+    if (unitNo.value.isNotEmpty && (args?['paymentMode'] == null)) {
+      _fetchUnitConfig();
     }
 
     // Pre-fill user info
@@ -114,6 +128,33 @@ class ServiceDetailsController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> _fetchUnitConfig() async {
+    try {
+      final config = await _commonRepository.getUnitConfig(unitId: unitNo.value);
+      if (config != null) {
+        printingType.value = config.printingType;
+        paymentMode.value = config.paymentMode;
+        paperRollSize.value = config.paperRollSize;
+        hasPermission.value = config.permission;
+        
+        if (!hasPermission.value.isActive) {
+          services.clear();
+          AppCommonToastMessage.show(
+            message: "Access Denied for this unit",
+            type: ToastType.error,
+          );
+        } else {
+          fetchServices(); // Re-fetch if permission granted
+        }
+        
+        debugPrint(
+            "Unit Config Updated: Printing=${printingType.value}, Payment=${paymentMode.value}, RollSize=${paperRollSize.value}, Permission=${hasPermission.value.isActive}");
+      }
+    } catch (e) {
+      debugPrint("Failed to fetch unit config: $e");
     }
   }
 
@@ -286,7 +327,9 @@ class ServiceDetailsController extends GetxController {
         "Unit_no": unitNo.value,
         "User_Id": _profileController.user.value?.id.toString() ?? "",
         "phone_no": phone,
-        "Add_phone_no": !isCustomer.value
+        "Add_phone_no": addPhoneController.text.trim(),
+        "referal_id": referralController.text.trim(),
+        "Membership_No": !isCustomer.value
             ? memberMobileController.text.trim()
             : "",
         "User_name": name,
@@ -361,6 +404,7 @@ class ServiceDetailsController extends GetxController {
         arguments: {
           'bookingId': bookingId,
           'encryptBookingId': encryptBookingId,
+          'paperRollSize': paperRollSize.value,
         },
       );
     } else {
@@ -485,6 +529,14 @@ class ServiceDetailsController extends GetxController {
   }
 
   void increment(int index) {
+    if (services[index].quantity.value == 0) {
+      // Show bottom sheet when adding the first item of a service
+      // Or maybe show only once if any service is > 0?
+      // Let's show it if it's the first time any item is added
+      if (total == 0) {
+        showContactDetailsBottomSheet();
+      }
+    }
     services[index].quantity.value++;
   }
 
@@ -664,5 +716,211 @@ class ServiceDetailsController extends GetxController {
     );
 
     return result ?? false;
+  }
+
+  void showContactDetailsBottomSheet() {
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20.r),
+            topRight: Radius.circular(20.r),
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey100,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Text(
+                'Customer Information',
+                style: AppTextStyle.style_18_600(color: AppColors.primary),
+              ),
+              SizedBox(height: 15.h),
+              
+              Builder(
+                builder: (context) {
+                  final bool isTablet = MediaQuery.of(context).size.width > 600;
+
+                  if (isTablet) {
+                    return Column(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildBottomSheetField(
+                                controller: mobileController,
+                                label: 'Mobile Number*',
+                                keyboardType: TextInputType.phone,
+                                icon: Icons.phone_android,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              child: _buildBottomSheetField(
+                                controller: nameController,
+                                label: 'Full Name',
+                                icon: Icons.person_outline,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16.h),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildBottomSheetField(
+                                controller: addPhoneController,
+                                label: 'Additional Phone Number',
+                                keyboardType: TextInputType.phone,
+                                icon: Icons.add_call,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              child: _buildBottomSheetField(
+                                controller: referralController,
+                                label: 'Referral ID',
+                                icon: Icons.card_giftcard,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      // Mobile Number
+                      _buildBottomSheetField(
+                        controller: mobileController,
+                        label: 'Mobile Number*',
+                        keyboardType: TextInputType.phone,
+                        icon: Icons.phone_android,
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // Full Name
+                      _buildBottomSheetField(
+                        controller: nameController,
+                        label: 'Full Name',
+                        icon: Icons.person_outline,
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // Additional Phone
+                      _buildBottomSheetField(
+                        controller: addPhoneController,
+                        label: 'Additional Phone Number',
+                        keyboardType: TextInputType.phone,
+                        icon: Icons.add_call,
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // Referral ID
+                      _buildBottomSheetField(
+                        controller: referralController,
+                        label: 'Referral ID',
+                        icon: Icons.card_giftcard,
+                      ),
+                    ],
+                  );
+                },
+              ),
+              
+              SizedBox(height: 30.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (mobileController.text.length < 10) {
+                      AppCommonToastMessage.show(
+                        message: "Please enter a valid mobile number",
+                        type: ToastType.error,
+                      );
+                      return;
+                    }
+                    Get.back();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                  child: Text(
+                    'DONE',
+                    style: AppTextStyle.style_14_600(color: AppColors.white),
+                  ),
+                ),
+              ),
+              SizedBox(height: 10.h),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  Widget _buildBottomSheetField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyle.style_12_600(color: AppColors.grey300),
+        ),
+        SizedBox(height: 6.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          decoration: BoxDecoration(
+            color: AppColors.grey50.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: AppColors.grey100),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 16.sp, color: AppColors.grey300),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  style: AppTextStyle.style_14_400(color: AppColors.black),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

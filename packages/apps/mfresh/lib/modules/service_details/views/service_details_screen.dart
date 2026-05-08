@@ -320,80 +320,40 @@ class ServiceDetailsScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Contact Details
-                      Text(
-                        'Contact Details',
-                        style: AppTextStyle.style_12_600(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-
-                      // Mobile + Name fields
+                      // Customer Info Summary / Edit Button
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(
-                            child: Container(
-                              decoration: AppColors.appCardDecoration(
-                                borderColor: AppColors.grey50,
-                                containerColor: AppColors.white,
-                                borderRadius: 4,
-                                isShadow: false,
-                              ),
-                              child: TextField(
-                                controller: controller.mobileController,
-                                keyboardType: TextInputType.phone,
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.black,
-                                ),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  hintText: 'Mobile Number*',
-                                  hintStyle: AppTextStyle.style_10_400(
-                                    color: AppColors.grey200,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 6.h,
-                                  ),
-                                ),
-                              ),
+                          Text(
+                            'Customer Details',
+                            style: AppTextStyle.style_12_600(
+                              color: AppColors.primary,
                             ),
                           ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Container(
-                              decoration: AppColors.appCardDecoration(
-                                borderColor: AppColors.grey50,
-                                containerColor: AppColors.white,
-                                borderRadius: 4,
-                                isShadow: false,
-                              ),
-                              child: TextField(
-                                controller: controller.nameController,
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.black,
+                          GestureDetector(
+                            onTap: () => controller.showContactDetailsBottomSheet(),
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_note, size: 16.sp, color: AppColors.blue),
+                                SizedBox(width: 4.w),
+                                Text(
+                                  'Edit Info',
+                                  style: AppTextStyle.style_12_600(color: AppColors.blue),
                                 ),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  hintText: 'Full Name',
-                                  hintStyle: AppTextStyle.style_10_400(
-                                    color: AppColors.grey200,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 6.h,
-                                  ),
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ],
                       ),
+                      SizedBox(height: 4.h),
+                      
+                      // Small display of current name/phone
+                      Obx(() => Text(
+                        '${controller.nameController.text.isEmpty ? 'Guest' : controller.nameController.text} | ${controller.mobileController.text.isEmpty ? 'No Phone' : controller.mobileController.text}',
+                        style: AppTextStyle.style_10_400(color: AppColors.grey300),
+                      )),
 
-                      // Membership Verification (Hidden because it's now in a BottomSheet)
+                      // Membership Verification (If still needed here)
                       Obx(
                         () => !controller.isCustomer.value
                             ? Column(

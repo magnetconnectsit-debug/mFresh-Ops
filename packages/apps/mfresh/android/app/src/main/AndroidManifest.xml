@@ -3,18 +3,40 @@
     package="com.example.mangnet_connect">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/pdf" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="application/pdf" />
+        </intent>
+    </queries>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     
+    <!-- WiFi Permissions for WiFi Direct Scanning -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" 
+                     android:usesPermissionFlags="neverForLocation" 
+                     tools:targetApi="33" />
+    
     <!-- Bluetooth Permissions -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" tools:node="replace" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" 
+                     android:usesPermissionFlags="neverForLocation" 
+                     tools:node="replace" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:node="replace" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" tools:node="replace" />
     <uses-permission android:name="android.permission.BLUETOOTH" tools:node="replace" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" tools:node="replace" />
 
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
-    <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
 
     <application
         android:label="mFresh"

@@ -13,11 +13,13 @@ import 'package:mfresh/routes/app_routes.dart';
 class PrintReceiptScreen extends StatelessWidget {
   final BookingDetailsModel booking;
   final String? encryptedBookingId;
-
+  final int rollSize;
+  
   const PrintReceiptScreen({
     super.key,
     required this.booking,
     this.encryptedBookingId,
+    this.rollSize = 58,
   });
 
   String _formatDate(String dateString) {
@@ -207,7 +209,7 @@ class PrintReceiptScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      PrintUtil.shareSystem(booking, encryptedBookingId);
+                      PrintUtil.shareSystem(booking, encryptedBookingId, rollSize: rollSize);
                     },
                     icon: const Icon(Icons.share),
                     label: const Text('Share Now'),
