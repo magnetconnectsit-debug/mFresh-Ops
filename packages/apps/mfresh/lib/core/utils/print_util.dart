@@ -14,7 +14,6 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
-import 'package:image/image.dart' as img;
 import 'package:services/storage_service.dart';
 import 'printer_dialog_util.dart';
 
@@ -115,7 +114,9 @@ class PrintUtil {
 
   /// Core logic for printing to thermal devices
   static Future<void> printToExternal(BookingDetailsModel booking, Printer printer, {int rollSize = 80}) async {
-    // Show a persistent loading indicator
+    debugPrint("printToExternal: Initiating process for ${printer.name}");
+    
+    // Show loading dialog immediately
     Get.dialog(
       const PopScope(
         canPop: false,
@@ -125,7 +126,7 @@ class PrintUtil {
             children: [
               CircularProgressIndicator(color: Color(0xFFF15A22)),
               SizedBox(height: 16),
-              Text("Printing...", style: TextStyle(color: Colors.white, fontSize: 14)),
+              Text("Printing...", style: TextStyle(color: Colors.white, fontSize: 14, decoration: TextDecoration.none)),
             ],
           ),
         ),
@@ -133,110 +134,98 @@ class PrintUtil {
       barrierDismissible: false,
     );
 
-    try {
-      // 1. Optimized Connection (Skip if already connected to this printer)
-      bool connected = false;
-      
-      // If we think we are already connected to this printer, skip the connect call
-      if (_connectedPrinter != null && _connectedPrinter!.address == printer.address && (printer.isConnected ?? false)) {
-        connected = true;
-      } else {
-        // 1a. Clear any lingering stale connection for this specific printer
-        try { await _printerPlugin.disconnect(printer); } catch (_) {}
-        await Future.delayed(const Duration(milliseconds: 1000));
-        
-        // 1b. Attempt connection with retry and longer delays
-        connected = await _printerPlugin.connect(printer);
-        if (!connected) {
-          debugPrint("First connection attempt failed. Retrying in 2 seconds...");
-          await Future.delayed(const Duration(seconds: 2));
+    // Run the rest in a microtask to avoid blocking the current frame
+    Future.microtask(() async {
+      try {
+        _cachedProfile ??= await CapabilityProfile.load();
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        bool connected = false;
+        if (_connectedPrinter != null && _connectedPrinter!.address == printer.address && (printer.isConnected ?? false)) {
+          connected = true;
+        } else {
+          // Attempt direct connection without pre-disconnecting to avoid potential hangs
           connected = await _printerPlugin.connect(printer);
-        }
-
-        if (!connected) {
-          debugPrint("Second connection attempt failed. Final retry in 3 seconds...");
-          await Future.delayed(const Duration(seconds: 3));
-          connected = await _printerPlugin.connect(printer);
-        }
-      }
-
-      if (connected) {
-        _connectedPrinter = printer;
-        if (printer.address != null) {
-          final displayName = printer.name != null && printer.name!.isNotEmpty
-              ? printer.name!
-              : "BT Printer (${printer.address?.split(':').last ?? '...' })";
-          // Save both as last used and default for direct printing
-          final storage = Get.find<StorageService>();
-          storage.saveLastPrinter(printer.address!, displayName);
-          storage.saveDefaultPrinter(printer.address!, displayName);
-        }
-      }
-
-      if (!connected) {
-        if (Get.isDialogOpen ?? false) {
-          Get.back();
-        }
-        AppCommonToastMessage.show(message: "Printer connection failed.", type: ToastType.error);
-        return;
-      }
-
-      // 2. Extended stabilization delay for BLE
-      await Future.delayed(const Duration(milliseconds: 1000));
-
-      // 3. Print each service separately
-      for (int i = 0; i < booking.services.length; i++) {
-        final service = booking.services[i];
-        final int qty = int.tryParse(service.quantity) ?? 1;
-        
-        for (int q = 0; q < qty; q++) {
-          final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
-          
-          // Use built-in longData handling for better stability
-          await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 128);
-          
-          bool isLastReceipt = (i == booking.services.length - 1) && (q == qty - 1);
-          if (!isLastReceipt) {
-            await Future.delayed(const Duration(seconds: 3));
+          if (!connected) {
+            await Future.delayed(const Duration(seconds: 1));
+            connected = await _printerPlugin.connect(printer);
           }
         }
+
+        if (connected) {
+          _connectedPrinter = printer;
+          if (printer.address != null) {
+            Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
+          }
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          for (int i = 0; i < booking.services.length; i++) {
+            final service = booking.services[i];
+            final int qty = int.tryParse(service.quantity) ?? 1;
+            
+            for (int q = 0; q < qty; q++) {
+              // Yield to engine and allow hardware buffer to settle
+              await Future.delayed(const Duration(milliseconds: 200)); 
+              
+              final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
+              
+              // Use a safe chunk size (256) to avoid buffer overflow on smaller printers
+              await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 256);
+              
+              // Give the printer time to actually physicalize the print before sending more
+              if (!(i == booking.services.length - 1 && q == qty - 1)) {
+                await Future.delayed(const Duration(milliseconds: 2000)); 
+              } else {
+                // Final delay to ensure last cut command is processed
+                await Future.delayed(const Duration(milliseconds: 500));
+              }
+            }
+          }
+          AppCommonToastMessage.show(message: "Printing successful", type: ToastType.success);
+        } else {
+          AppCommonToastMessage.show(message: "Printer connection failed.", type: ToastType.error);
+        }
+      } catch (e) {
+        debugPrint("Print Error: $e");
+        AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
+      } finally {
+        debugPrint("Print process finished. Cleaning up dialogs...");
+        int attempts = 3;
+        while (Get.isDialogOpen == true && attempts > 0) {
+          Get.back();
+          attempts--;
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+        if (Get.isDialogOpen == true) {
+          final context = Get.overlayContext ?? Get.context;
+          if (context != null) Navigator.of(context, rootNavigator: true).pop();
+        }
       }
-      
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-      AppCommonToastMessage.show(message: "Printing successful", type: ToastType.success);
-    } catch (e) {
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
-      debugPrint("External Print Error: $e");
-      AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
-    }
+    });
   }
 
   static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service, {int rollSize = 80}) async {
     _cachedProfile ??= await CapabilityProfile.load();
     
-    // Support for 56mm, 58mm, and 80mm
-    final PaperSize paperSize = rollSize == 80 ? PaperSize.mm80 : PaperSize.mm58;
+    // Determine paper size and column count
+    final PaperSize paperSize = rollSize >= 80 ? PaperSize.mm80 : PaperSize.mm58;
+    final int maxChars = rollSize >= 80 ? 42 : (rollSize >= 58 ? 32 : 30);
     final generator = Generator(paperSize, _cachedProfile!);
     List<int> bytes = [];
 
-    // Adjust separators based on roll size
-    String separator = "--------------------------------"; // 80mm default
-    if (rollSize == 58) separator = "----------------------------";
-    if (rollSize == 56) separator = "--------------------------";
+    // Create dynamic separator
+    String separator = "-" * maxChars;
 
     bytes += generator.reset();
 
-    bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
+    // Header - Decreased size and left aligned
+    bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size1, width: PosTextSize.size1));
     bytes += generator.feed(1);
     
-    bytes += [27, 32, 2]; // Set character spacing
-    bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size2));
-    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left, bold: true));
-    bytes += [27, 32, 0]; // Reset
+    bytes += [27, 32, 0]; // Standard character spacing
+    bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size1));
+    // Use Font B for smaller location text
+    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left, bold: false, fontType: PosFontType.fontB));
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
     // Booking Details
@@ -244,24 +233,26 @@ class PrintUtil {
     bytes += generator.text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", styles: const PosStyles(align: PosAlign.left));
 
     String paymentModeStr = booking.paymentMode == 1 ? "CASH" : booking.paymentMode == 2 ? "UPI" : "QR";
-    bytes += generator.text("Payment: $paymentModeStr", styles: const PosStyles(align: PosAlign.left, bold: true));
+    bytes += generator.text("Payment: $paymentModeStr", styles: const PosStyles(align: PosAlign.left, bold: false));
     
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
-    // Service & Qty
-    bytes += generator.text("${service.servicesName.toUpperCase()}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size2));
-    bytes += generator.text("QTY: 1", styles: const PosStyles(bold: true, align: PosAlign.left));
+    // Service & Qty - Standard size
+    bytes += generator.text(service.servicesName.toUpperCase(), styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size1));
+    bytes += generator.text("QTY: 1", styles: const PosStyles(bold: false, align: PosAlign.left));
     bytes += generator.text("Unit Price: RS. ${service.price}", styles: const PosStyles(align: PosAlign.left, bold: true));
 
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
-    bytes += generator.text("TOTAL: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size2));
+    bytes += generator.text("TOTAL: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size1));
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
+    // QR Code - Size adjusted for paper width but always left aligned
+    final QRSize qrSize = rollSize >= 80 ? QRSize.size6 : QRSize.size4;
     bytes += generator.qrcode(jsonEncode({
       "BookingID": booking.bookingId,
       "DeviceID": "NA",
       "AccessDate": _formatDateRaw(booking.bookingTimeDate),
-    }), size: QRSize.size4, align: PosAlign.left);
+    }), size: qrSize, align: PosAlign.left);
     
     bytes += generator.feed(1);
     bytes += generator.text("Thank you for using mFresh!", styles: const PosStyles(align: PosAlign.left));

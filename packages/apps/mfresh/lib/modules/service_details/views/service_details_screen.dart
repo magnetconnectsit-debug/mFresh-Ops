@@ -4,7 +4,6 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:mfresh/core/config/app_config.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mfresh/routes/app_routes.dart';
@@ -18,6 +17,7 @@ class ServiceDetailsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -296,190 +296,246 @@ class ServiceDetailsScreen extends StatelessWidget {
       ),
       bottomNavigationBar: Obx(
         () => controller.total > 0
-            ? SafeArea(
+            ? Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 16.w,
-                    vertical: 6.h,
+                    vertical: 2.h,
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20.r),
-                      topRight: Radius.circular(20.r),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
                     ),
+                  ],
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20.r),
+                    topRight: Radius.circular(20.r),
                   ),
+                ),
+                child: SafeArea(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Customer Info Summary / Edit Button
+                      // Contact Details Section
+                      Text(
+                        'Contact Details',
+                        style: AppTextStyle.style_12_600(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Customer Details',
-                            style: AppTextStyle.style_12_600(
-                              color: AppColors.primary,
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: TextField(
+                                controller: controller.mobileController,
+                                keyboardType: TextInputType.phone,
+                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  hintText: 'Mobile Number*',
+                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                ),
+                              ),
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () => controller.showContactDetailsBottomSheet(),
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_note, size: 16.sp, color: AppColors.blue),
-                                SizedBox(width: 4.w),
-                                Text(
-                                  'Edit Info',
-                                  style: AppTextStyle.style_12_600(color: AppColors.blue),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: TextField(
+                                controller: controller.nameController,
+                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  hintText: 'Full Name',
+                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(height: 6.h),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: TextField(
+                                controller: controller.addPhoneController,
+                                keyboardType: TextInputType.phone,
+                                maxLength: 10,
+                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  counterText: "",
+                                  hintText: 'Additional Phone',
+                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: TextField(
+                                controller: controller.referralController,
+                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  hintText: 'Referral ID',
+                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       
-                      // Small display of current name/phone
-                      Obx(() => Text(
-                        '${controller.nameController.text.isEmpty ? 'Guest' : controller.nameController.text} | ${controller.mobileController.text.isEmpty ? 'No Phone' : controller.mobileController.text}',
-                        style: AppTextStyle.style_10_400(color: AppColors.grey300),
-                      )),
-
-                      // Membership Verification (If still needed here)
-                      Obx(
-                        () => !controller.isCustomer.value
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 6.h),
-                                  Text(
-                                    'Membership Details',
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Container(
-                                    decoration:
-                                        AppColors.appCardDecoration(
-                                          borderColor: AppColors.grey50,
-                                          containerColor: AppColors.white,
-                                          borderRadius: 4,
-                                          isShadow: false,
+                      // Membership Verification (Restored from old project)
+                      Obx(() => !controller.isCustomer.value
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(height: 8.h),
+                                Text(
+                                  'Membership Details',
+                                  style: AppTextStyle.style_12_600(color: AppColors.primary),
+                                ),
+                                SizedBox(height: 6.h),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.grey50.withValues(alpha: 0.5),
+                                          borderRadius: BorderRadius.circular(8.r),
                                         ),
-                                    child: TextField(
-                                      controller: controller
-                                          .memberMobileController,
-                                      keyboardType:
-                                          TextInputType.phone,
-                                      maxLength: 10,
-                                      style:
-                                          AppTextStyle.style_12_400(
-                                            color: AppColors.black,
+                                        child: TextField(
+                                          controller: controller.memberMobileController,
+                                          keyboardType: TextInputType.phone,
+                                          maxLength: 10,
+                                          onChanged: (value) {
+                                            if (value.length == 10) {
+                                              controller.verifyMemberPhone(value);
+                                            }
+                                          },
+                                          style: AppTextStyle.style_12_400(color: AppColors.black),
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            counterText: "",
+                                            hintText: 'Member Mobile Number',
+                                            hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                                           ),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        counterText: "",
-                                        hintText:
-                                            'Member Mobile Number',
-                                        hintStyle:
-                                            AppTextStyle.style_10_400(
-                                              color:
-                                                  AppColors.grey200,
-                                            ),
-                                        border: InputBorder.none,
-                                        contentPadding:
-                                            EdgeInsets.symmetric(
-                                              horizontal: 10.w,
-                                              vertical: 8.h,
-                                            ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox.shrink(),
-                      ),
+                                  ],
+                                ),
+                                Obx(() => controller.isOtpSent.value && !controller.isOtpVerified.value
+                                    ? Padding(
+                                        padding: EdgeInsets.only(top: 6.h),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.grey50.withValues(alpha: 0.5),
+                                            borderRadius: BorderRadius.circular(8.r),
+                                          ),
+                                          child: TextField(
+                                            controller: controller.otpController,
+                                            keyboardType: TextInputType.number,
+                                            style: AppTextStyle.style_12_400(color: AppColors.black),
+                                            decoration: InputDecoration(
+                                              border: InputBorder.none,
+                                              isDense: true,
+                                              hintText: 'Enter OTP',
+                                              hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink()),
+                              ],
+                            )
+                          : const SizedBox.shrink()),
+                      SizedBox(height: 8.h),
 
-                      SizedBox(height: 4.h),
-                      // Total
+                      // Dashed Divider
+                      Row(
+                        children: List.generate(
+                          150,
+                          (index) => Expanded(
+                            child: Container(
+                              color: index % 2 == 0 ? Colors.transparent : AppColors.grey100,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+
+                      // Total Amount Display
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'TOTAL',
-                            style: AppTextStyle.style_14_600(
+                            style: AppTextStyle.style_12_600(
                               color: AppColors.primary,
                             ),
                           ),
                           Text(
                             '₹ ${controller.total}',
-                            style: AppTextStyle.style_18_600(
+                            style: AppTextStyle.style_14_700(
                               color: AppColors.primary,
                             ),
                           ),
                         ],
                       ),
-
-                      SizedBox(height: 4.h),
+                      
+                      SizedBox(height: 6.h),
 
                       // Payment Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.blue.withValues(alpha: 0.3),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: () => controller.initiateBooking(
-                                  isExternalQr: false,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: controller.isOnline.value
-                                      ? AppColors.blue
-                                      : AppColors.green,
-                                  foregroundColor: AppColors.white,
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  controller.isOnline.value ? 'PAY' : 'PAY CASH',
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyle.style_12_600(
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (controller.isOnline.value) ...[
-                            SizedBox(width: 12.w),
-                            Expanded(
+                      Obx(() => !controller.isOnline.value
+                          ? SizedBox(
+                              width: double.infinity,
                               child: Container(
                                 decoration: BoxDecoration(
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.black.withValues(
-                                        alpha: 0.2,
-                                      ),
+                                      color: Colors.green.withValues(alpha: 0.3),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -487,36 +543,90 @@ class ServiceDetailsScreen extends StatelessWidget {
                                 ),
                                 child: ElevatedButton(
                                   onPressed: () => controller.initiateBooking(
-                                    isExternalQr: true,
+                                    isExternalQr: false,
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.grey300,
-                                    foregroundColor: AppColors.white,
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 10.h,
-                                    ),
+                                    backgroundColor: AppColors.green,
+                                    padding: EdgeInsets.symmetric(vertical: 8.h), // Decreased size further
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
+                                      borderRadius: BorderRadius.circular(10.r),
                                     ),
-                                    elevation: 0,
                                   ),
                                   child: Text(
-                                    'External QR Payment',
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.white,
-                                    ),
+                                    'PAY CASH',
+                                    style: AppTextStyle.style_14_700(color: AppColors.white),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ],
-                      ),
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.blue.withValues(alpha: 0.3),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: () => controller.initiateBooking(
+                                        isExternalQr: false,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.blue,
+                                        padding: EdgeInsets.symmetric(vertical: 8.h), // Decreased size further
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10.r),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'PAY',
+                                        style: AppTextStyle.style_14_700(color: AppColors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.black.withValues(alpha: 0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: () => controller.initiateBooking(
+                                        isExternalQr: true,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.grey400,
+                                        padding: EdgeInsets.symmetric(vertical: 8.h), // Decreased size further
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10.r),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'External QR Payment',
+                                        style: AppTextStyle.style_12_600(color: AppColors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )),
                     ],
                   ),
                 ),
-              )
+              ),
+            )
             : const SizedBox.shrink(),
       ),
     );

@@ -44,6 +44,10 @@ class ServiceDetailsController extends GetxController {
   final paperRollSize = 80.obs;
   final hasPermission = UnitPermission().obs;
 
+  // Observable strings for UI summary
+  final customerName = ''.obs;
+  final customerPhone = ''.obs;
+
   // Toggle states
   final isCustomer = true.obs; // true = Customer, false = Membership
   final isOnline = false.obs;
@@ -54,7 +58,6 @@ class ServiceDetailsController extends GetxController {
   final nameController = TextEditingController();
   final addPhoneController = TextEditingController();
   final referralController = TextEditingController();
-  final createAccount = false.obs;
 
   // Member flow
   final memberMobileController = TextEditingController();
@@ -89,6 +92,8 @@ class ServiceDetailsController extends GetxController {
     if (user != null) {
       nameController.text = user.name ?? '';
       mobileController.text = user.mob ?? '';
+      customerName.value = user.name ?? '';
+      customerPhone.value = user.mob ?? '';
     }
 
     fetchServices();
@@ -327,8 +332,6 @@ class ServiceDetailsController extends GetxController {
         "Unit_no": unitNo.value,
         "User_Id": _profileController.user.value?.id.toString() ?? "",
         "phone_no": phone,
-        "Add_phone_no": addPhoneController.text.trim(),
-        "referal_id": referralController.text.trim(),
         "Membership_No": !isCustomer.value
             ? memberMobileController.text.trim()
             : "",
@@ -399,7 +402,7 @@ class ServiceDetailsController extends GetxController {
     debugPrint("Booking Confirmation API Result: $confirmed");
     if (confirmed) {
       debugPrint("Navigating to Booking Confirmed Screen...");
-      Get.offNamed(
+      Get.toNamed(
         AppRoutes.bookingConfirmed,
         arguments: {
           'bookingId': bookingId,
@@ -529,14 +532,6 @@ class ServiceDetailsController extends GetxController {
   }
 
   void increment(int index) {
-    if (services[index].quantity.value == 0) {
-      // Show bottom sheet when adding the first item of a service
-      // Or maybe show only once if any service is > 0?
-      // Let's show it if it's the first time any item is added
-      if (total == 0) {
-        showContactDetailsBottomSheet();
-      }
-    }
     services[index].quantity.value++;
   }
 
@@ -751,97 +746,24 @@ class ServiceDetailsController extends GetxController {
               ),
               SizedBox(height: 15.h),
               
-              Builder(
-                builder: (context) {
-                  final bool isTablet = MediaQuery.of(context).size.width > 600;
+              // Mobile Number
+              buildBottomSheetField(
+                controller: mobileController,
+                label: 'Mobile Number*',
+                hintText: 'Mobile Number*',
+                showLabel: false,
+                keyboardType: TextInputType.phone,
+                icon: Icons.phone_android,
+              ),
+              SizedBox(height: 12.h),
 
-                  if (isTablet) {
-                    return Column(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildBottomSheetField(
-                                controller: mobileController,
-                                label: 'Mobile Number*',
-                                keyboardType: TextInputType.phone,
-                                icon: Icons.phone_android,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: _buildBottomSheetField(
-                                controller: nameController,
-                                label: 'Full Name',
-                                icon: Icons.person_outline,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16.h),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildBottomSheetField(
-                                controller: addPhoneController,
-                                label: 'Additional Phone Number',
-                                keyboardType: TextInputType.phone,
-                                icon: Icons.add_call,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: _buildBottomSheetField(
-                                controller: referralController,
-                                label: 'Referral ID',
-                                icon: Icons.card_giftcard,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  }
-
-                  return Column(
-                    children: [
-                      // Mobile Number
-                      _buildBottomSheetField(
-                        controller: mobileController,
-                        label: 'Mobile Number*',
-                        keyboardType: TextInputType.phone,
-                        icon: Icons.phone_android,
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // Full Name
-                      _buildBottomSheetField(
-                        controller: nameController,
-                        label: 'Full Name',
-                        icon: Icons.person_outline,
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // Additional Phone
-                      _buildBottomSheetField(
-                        controller: addPhoneController,
-                        label: 'Additional Phone Number',
-                        keyboardType: TextInputType.phone,
-                        icon: Icons.add_call,
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // Referral ID
-                      _buildBottomSheetField(
-                        controller: referralController,
-                        label: 'Referral ID',
-                        icon: Icons.card_giftcard,
-                      ),
-                    ],
-                  );
-                },
+              // Full Name
+              buildBottomSheetField(
+                controller: nameController,
+                label: 'Full Name',
+                hintText: 'Full Name',
+                showLabel: false,
+                icon: Icons.person_outline,
               ),
               
               SizedBox(height: 30.h),
@@ -849,13 +771,8 @@ class ServiceDetailsController extends GetxController {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (mobileController.text.length < 10) {
-                      AppCommonToastMessage.show(
-                        message: "Please enter a valid mobile number",
-                        type: ToastType.error,
-                      );
-                      return;
-                    }
+                    customerName.value = nameController.text.trim();
+                    customerPhone.value = mobileController.text.trim();
                     Get.back();
                   },
                   style: ElevatedButton.styleFrom(
@@ -881,20 +798,24 @@ class ServiceDetailsController extends GetxController {
     );
   }
 
-  Widget _buildBottomSheetField({
+  Widget buildBottomSheetField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    String? hintText,
+    bool showLabel = true,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyle.style_12_600(color: AppColors.grey300),
-        ),
-        SizedBox(height: 6.h),
+        if (showLabel) ...[
+          Text(
+            label,
+            style: AppTextStyle.style_12_600(color: AppColors.grey300),
+          ),
+          SizedBox(height: 6.h),
+        ],
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           decoration: BoxDecoration(
@@ -904,16 +825,18 @@ class ServiceDetailsController extends GetxController {
           ),
           child: Row(
             children: [
-              Icon(icon, size: 16.sp, color: AppColors.grey300),
+              Icon(icon, size: 14.sp, color: AppColors.grey300),
               SizedBox(width: 10.w),
               Expanded(
                 child: TextField(
                   controller: controller,
                   keyboardType: keyboardType,
-                  style: AppTextStyle.style_14_400(color: AppColors.black),
-                  decoration: const InputDecoration(
+                  style: AppTextStyle.style_12_400(color: AppColors.black),
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     isDense: true,
+                    hintText: hintText,
+                    hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                   ),
                 ),
               ),

@@ -83,7 +83,10 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
         ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
-          onPressed: () => Get.offAllNamed(AppRoutes.dashboard),
+          onPressed: () {
+            Get.delete<ServiceDetailsController>(force: true);
+            Get.back();
+          },
         ),
       ),
       body: Stack(
@@ -371,22 +374,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
             child: Center(
               child: GestureDetector(
                 onTap: () {
-                  final booking = controller.bookingDetails.value;
                   // Force delete the old controller to ensure data resets
                   Get.delete<ServiceDetailsController>(force: true);
-                  
-                  if (booking != null) {
-                    Get.offNamed(
-                      AppRoutes.serviceDetails,
-                      arguments: {
-                        'unitNo': booking.unitNo,
-                        'location': booking.unitLocation,
-                        'unitImage': booking.serviceIcon,
-                      },
-                    );
-                  } else {
-                    Get.back();
-                  }
+                  Get.back();
                 },
                 child: Container(
                   width: 40.w,
