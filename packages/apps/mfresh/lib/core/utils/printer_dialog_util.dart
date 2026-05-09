@@ -6,7 +6,6 @@ import 'package:flutter_thermal_printer/utils/printer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:services/storage_service.dart';
 import 'print_util.dart';
 
 class PrinterDialogUtil {
@@ -186,19 +185,19 @@ class PrinterDialogUtil {
                       // Bluetooth Section
                       if (blePrinters.isNotEmpty) ...[
                         _buildSectionHeader("Bluetooth Devices"),
-                        ...blePrinters.map((p) => _buildPrinterTile(p, Icons.bluetooth, booking, isScanning, subscription, rollSize)),
+                        ...blePrinters.map((p) => _buildPrinterTile(context, p, Icons.bluetooth, booking, isScanning, subscription, rollSize)),
                       ],
                       
                       // WiFi / WiFi Direct Section
                       if (wifiPrinters.isNotEmpty) ...[
                         _buildSectionHeader("WiFi / Network Devices"),
-                        ...wifiPrinters.map((p) => _buildPrinterTile(p, Icons.wifi, booking, isScanning, subscription, rollSize)),
+                        ...wifiPrinters.map((p) => _buildPrinterTile(context, p, Icons.wifi, booking, isScanning, subscription, rollSize)),
                       ],
 
                       // USB Section
                       if (usbPrinters.isNotEmpty) ...[
                         _buildSectionHeader("USB Devices"),
-                        ...usbPrinters.map((p) => _buildPrinterTile(p, Icons.usb, booking, isScanning, subscription, rollSize)),
+                        ...usbPrinters.map((p) => _buildPrinterTile(context, p, Icons.usb, booking, isScanning, subscription, rollSize)),
                       ],
                     ],
                   ),
@@ -234,13 +233,13 @@ class PrinterDialogUtil {
     );
   }
 
-  static Widget _buildPrinterTile(Printer printer, IconData icon, BookingDetailsModel booking, RxBool isScanning, StreamSubscription? subscription, int rollSize) {
+  static Widget _buildPrinterTile(BuildContext context, Printer printer, IconData icon, BookingDetailsModel booking, RxBool isScanning, StreamSubscription? subscription, int rollSize) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF15A22).withOpacity(0.1),
+          color: const Color(0xFFF15A22).withAlpha(25),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 18, color: const Color(0xFFF15A22)),
@@ -254,7 +253,13 @@ class PrinterDialogUtil {
         subscription?.cancel();
         AppCommonToastMessage.show(message: "Connecting to ${printer.name}...", type: ToastType.info);
         await Future.delayed(const Duration(seconds: 1));
-        PrintUtil.printToExternal(booking, printer, rollSize: rollSize);
+        final success = await PrintUtil.printToExternal(booking, printer, rollSize: rollSize);
+        
+        if (!success) {
+          debugPrint("Print failed, re-showing device selector...");
+          // Fallback: Re-show the selector if printing failed
+          showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize);
+        }
       },
     );
   }

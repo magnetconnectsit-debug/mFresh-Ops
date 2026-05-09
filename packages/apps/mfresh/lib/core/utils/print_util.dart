@@ -73,7 +73,12 @@ class PrintUtil {
         if (_connectedPrinter != null && 
             _connectedPrinter!.address == defaultAddress && 
             (_connectedPrinter!.isConnected ?? false)) {
-          printToExternal(booking, _connectedPrinter!, rollSize: rollSize);
+          printToExternal(booking, _connectedPrinter!, rollSize: rollSize).then((success) {
+            if (!success) {
+              debugPrint("Default printer failed, opening selector...");
+              PrinterDialogUtil.showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize);
+            }
+          });
           return;
         }
 
@@ -106,14 +111,19 @@ class PrintUtil {
       if (printer != null && !found) {
         found = true;
         sub?.cancel();
-        printToExternal(booking, printer, rollSize: rollSize);
+        printToExternal(booking, printer, rollSize: rollSize).then((success) {
+          if (!success) {
+            debugPrint("Target printer failed, opening selector...");
+            PrinterDialogUtil.showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize);
+          }
+        });
       }
     });
     _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE, ConnectionType.USB, ConnectionType.NETWORK]);
   }
 
   /// Core logic for printing to thermal devices
-  static Future<void> printToExternal(BookingDetailsModel booking, Printer printer, {int rollSize = 80}) async {
+  static Future<bool> printToExternal(BookingDetailsModel booking, Printer printer, {int rollSize = 80}) async {
     debugPrint("printToExternal: Initiating process for ${printer.name}");
     
     // Show loading dialog immediately
@@ -134,74 +144,78 @@ class PrintUtil {
       barrierDismissible: false,
     );
 
-    // Run the rest in a microtask to avoid blocking the current frame
-    Future.microtask(() async {
-      try {
-        _cachedProfile ??= await CapabilityProfile.load();
-        await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      _cachedProfile ??= await CapabilityProfile.load();
+      await Future.delayed(const Duration(milliseconds: 100));
 
-        bool connected = false;
-        if (_connectedPrinter != null && _connectedPrinter!.address == printer.address && (printer.isConnected ?? false)) {
-          connected = true;
-        } else {
-          // Attempt direct connection without pre-disconnecting to avoid potential hangs
+      bool connected = false;
+      if (_connectedPrinter != null && _connectedPrinter!.address == printer.address && (printer.isConnected ?? false)) {
+        connected = true;
+      } else {
+        // Attempt direct connection without pre-disconnecting to avoid potential hangs
+        connected = await _printerPlugin.connect(printer);
+        if (!connected) {
+          await Future.delayed(const Duration(seconds: 1));
           connected = await _printerPlugin.connect(printer);
-          if (!connected) {
-            await Future.delayed(const Duration(seconds: 1));
-            connected = await _printerPlugin.connect(printer);
-          }
-        }
-
-        if (connected) {
-          _connectedPrinter = printer;
-          if (printer.address != null) {
-            Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
-          }
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          for (int i = 0; i < booking.services.length; i++) {
-            final service = booking.services[i];
-            final int qty = int.tryParse(service.quantity) ?? 1;
-            
-            for (int q = 0; q < qty; q++) {
-              // Yield to engine and allow hardware buffer to settle
-              await Future.delayed(const Duration(milliseconds: 200)); 
-              
-              final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
-              
-              // Use a safe chunk size (256) to avoid buffer overflow on smaller printers
-              await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 256);
-              
-              // Give the printer time to actually physicalize the print before sending more
-              if (!(i == booking.services.length - 1 && q == qty - 1)) {
-                await Future.delayed(const Duration(milliseconds: 2000)); 
-              } else {
-                // Final delay to ensure last cut command is processed
-                await Future.delayed(const Duration(milliseconds: 500));
-              }
-            }
-          }
-          AppCommonToastMessage.show(message: "Printing successful", type: ToastType.success);
-        } else {
-          AppCommonToastMessage.show(message: "Printer connection failed.", type: ToastType.error);
-        }
-      } catch (e) {
-        debugPrint("Print Error: $e");
-        AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
-      } finally {
-        debugPrint("Print process finished. Cleaning up dialogs...");
-        int attempts = 3;
-        while (Get.isDialogOpen == true && attempts > 0) {
-          Get.back();
-          attempts--;
-          await Future.delayed(const Duration(milliseconds: 200));
-        }
-        if (Get.isDialogOpen == true) {
-          final context = Get.overlayContext ?? Get.context;
-          if (context != null) Navigator.of(context, rootNavigator: true).pop();
         }
       }
-    });
+
+      if (connected) {
+        _connectedPrinter = printer;
+        if (printer.address != null) {
+          Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        for (int i = 0; i < booking.services.length; i++) {
+          final service = booking.services[i];
+          final int qty = int.tryParse(service.quantity) ?? 1;
+          
+          for (int q = 0; q < qty; q++) {
+            // Yield to engine and allow hardware buffer to settle
+            await Future.delayed(const Duration(milliseconds: 200)); 
+            
+            final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
+            
+            // Use a safe chunk size (256) to avoid buffer overflow on smaller printers
+            debugPrint("Sending data to printer...");
+            try {
+              await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 256);
+            } catch (e) {
+              debugPrint("Data transmission error: $e");
+              return false;
+            }
+            
+            // Yield to engine and give hardware time to process
+            if (!(i == booking.services.length - 1 && q == qty - 1)) {
+              await Future.delayed(const Duration(milliseconds: 2000)); 
+            } else {
+              // Final delay to ensure last cut command is processed
+              await Future.delayed(const Duration(milliseconds: 500));
+            }
+          }
+        }
+
+        AppCommonToastMessage.show(message: "Printing successful", type: ToastType.success);
+        return true;
+      } else {
+        AppCommonToastMessage.show(message: "Printer connection failed.", type: ToastType.error);
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Print Error: $e");
+      AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
+      return false;
+    } finally {
+      debugPrint("Print process finished. Cleaning up loading dialog...");
+      // Robust cleanup to ensure the loading dialog is dismissed
+      int attempts = 0;
+      while (Get.isDialogOpen == true && attempts < 3) {
+        Get.back();
+        attempts++;
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
   }
 
   static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service, {int rollSize = 80}) async {
@@ -314,8 +328,14 @@ class PrintUtil {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Center(
-                  child: pw.Text("mFresh", 
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24, letterSpacing: 2.0)
+                  child: pw.Column(
+                    children: [
+                      pw.Image(logoImage, width: 40, height: 40),
+                      pw.SizedBox(height: 4),
+                      pw.Text("mFresh", 
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24, letterSpacing: 2.0)
+                      )
+                    ]
                   )
                 ),
                 pw.SizedBox(height: 12),
