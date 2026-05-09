@@ -3,6 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class WebViewPage extends StatefulWidget {
   final String? url;
@@ -46,6 +47,7 @@ class _WebViewPageState extends State<WebViewPage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setUserAgent(mobileUserAgent)
+      ..enableZoom(true)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -59,8 +61,19 @@ class _WebViewPageState extends State<WebViewPage> {
             // Inject CSS to scale down QR if too large (Optimized for Mobile/POS)
             _controller.runJavaScript("""
               var style = document.createElement('style');
-              style.innerHTML = 'img { max-width: 80% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.7) !important; transform-origin: top center !important; margin-bottom: -50px !important; }';
+              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container, .qr-image-wrapper { transform: scale(0.5) !important; transform-origin: top center !important; margin-bottom: -100px !important; }';
               document.head.appendChild(style);
+              
+              // Force enable user scaling/zoom
+              var meta = document.createElement('meta');
+              meta.name = 'viewport';
+              meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+              var existingMeta = document.querySelector('meta[name="viewport"]');
+              if (existingMeta) {
+                existingMeta.parentNode.replaceChild(meta, existingMeta);
+              } else {
+                document.getElementsByTagName('head')[0].appendChild(meta);
+              }
             """);
             _controller.runJavaScript("""
               if (!Array.prototype.at) {
@@ -91,8 +104,19 @@ class _WebViewPageState extends State<WebViewPage> {
             // Re-apply optimized scaling after load
             _controller.runJavaScript("""
               var style = document.createElement('style');
-              style.innerHTML = 'img { max-width: 80% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container { transform: scale(0.7) !important; transform-origin: top center !important; margin-bottom: -50px !important; }';
+              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container, .qr-image-wrapper { transform: scale(0.5) !important; transform-origin: top center !important; margin-bottom: -100px !important; }';
               document.head.appendChild(style);
+              
+              // Force enable user scaling/zoom
+              var meta = document.createElement('meta');
+              meta.name = 'viewport';
+              meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+              var existingMeta = document.querySelector('meta[name="viewport"]');
+              if (existingMeta) {
+                existingMeta.parentNode.replaceChild(meta, existingMeta);
+              } else {
+                document.getElementsByTagName('head')[0].appendChild(meta);
+              }
             """);
           },
           onUrlChange: (UrlChange change) {

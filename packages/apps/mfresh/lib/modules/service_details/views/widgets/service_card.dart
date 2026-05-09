@@ -1,0 +1,160 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
+
+class ServiceCard extends StatelessWidget {
+  final ServiceDetailsController controller;
+  final int index;
+
+  const ServiceCard({super.key, required this.controller, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = controller.services[index];
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: AppColors.appCardDecoration(
+        borderColor: AppColors.grey50,
+        containerColor: AppColors.white,
+        borderRadius: 12,
+        isShadow: true,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: BoxDecoration(
+              color: AppColors.pineOrange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10.r),
+              child: service.image != null && service.image!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: service.image!,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => Center(
+                        child: Icon(
+                          Icons.image,
+                          color: AppColors.pineOrange,
+                          size: 24.sp,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Center(
+                        child: Icon(
+                          Icons.image,
+                          color: AppColors.pineOrange,
+                          size: 24.sp,
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Icon(
+                        Icons.image,
+                        color: AppColors.pineOrange,
+                        size: 24.sp,
+                      ),
+                    ),
+            ),
+          ),
+          SizedBox(width: 6.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  service.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyle.style_11_500(color: AppColors.black),
+                ),
+                SizedBox(height: 2.h),
+                Row(
+                  children: [
+                    Text(
+                      '₹ ${service.price}',
+                      style: AppTextStyle.style_10_600(
+                        color: AppColors.pineBlue,
+                      ),
+                    ),
+                    Text(
+                      ' / use',
+                      style: AppTextStyle.style_8_400(color: AppColors.grey300),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                // Compact Counter
+                Obx(() {
+                  final bool isAdded = service.quantity.value > 0;
+                  final Color themeColor = AppColors.pineBlue;
+                  return Container(
+                    height: 28.h,
+                    decoration: BoxDecoration(
+                      color: isAdded ? themeColor : AppColors.white,
+                      border: Border.all(color: themeColor, width: 1.2),
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => controller.decrement(index),
+                          child: Container(
+                            width: 32.w,
+                            alignment: Alignment.center,
+                            child: Text(
+                              '-',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w900,
+                                color: isAdded ? AppColors.white : themeColor,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${service.quantity.value}',
+                          style: AppTextStyle.style_12_700(
+                            color: isAdded ? AppColors.white : themeColor,
+                          ),
+                        ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => controller.increment(index),
+                          child: Container(
+                            width: 32.w,
+                            alignment: Alignment.center,
+                            child: Text(
+                              '+',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w900,
+                                color: isAdded ? AppColors.white : themeColor,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

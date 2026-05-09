@@ -12,6 +12,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:mfresh/data/models/unit_model.dart';
 import 'package:mfresh/core/config/app_config.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -104,10 +105,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            body: RefreshIndicator(
+              onRefresh: () async {
+                await dashboardController.fetchUnits();
+                await profileController.fetchProfile();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // Banner
                   Container(
                     width: double.infinity,
@@ -268,7 +275,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Obx(() {
                       if (dashboardController.isLoading.value) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                          child: CustomAppLoader(size: 60),
+                        );
                       }
                       if (dashboardController.allUnitsList.isEmpty) {
                         return const Center(child: Text('No units available'));
@@ -308,9 +317,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
+    ),
     );
   }
 }

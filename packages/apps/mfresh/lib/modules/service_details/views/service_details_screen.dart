@@ -1,4 +1,5 @@
 import 'package:core/constants/app_colors.dart';
+import 'package:mfresh/modules/service_details/views/widgets/service_card.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mfresh/routes/app_routes.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class ServiceDetailsScreen extends StatelessWidget {
   const ServiceDetailsScreen({super.key});
@@ -234,7 +236,7 @@ class ServiceDetailsScreen extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CustomAppLoader(size: 60));
                 }
                 if (controller.services.isEmpty) {
                   return Center(
@@ -257,36 +259,40 @@ class ServiceDetailsScreen extends StatelessWidget {
                     ),
                   );
                 }
-                return SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Services Grid
-                      Builder(
-                        builder: (context) {
-                          final bool isDesktop = MediaQuery.of(context).size.width > 1000;
-                          return GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: controller.services.length,
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: isDesktop ? 4 : 2,
-                              crossAxisSpacing: 12.w,
-                              mainAxisSpacing: 12.h,
-                              childAspectRatio: isDesktop ? 2.8 : 1.7,
-                            ),
-                            itemBuilder: (context, index) {
-                              return _ServiceCard(
-                                controller: controller,
-                                index: index,
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      SizedBox(height: 20.h),
-                    ],
+                return RefreshIndicator(
+                  onRefresh: () => controller.refreshData(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Services Grid
+                        Builder(
+                          builder: (context) {
+                            final bool isDesktop = MediaQuery.of(context).size.width > 1000;
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: controller.services.length,
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isDesktop ? 4 : 2,
+                                crossAxisSpacing: 10.w,
+                                mainAxisSpacing: 10.h,
+                                childAspectRatio: isDesktop ? 2.4 : 1.7,
+                              ),
+                              itemBuilder: (context, index) {
+                                return ServiceCard(
+                                  controller: controller,
+                                  index: index,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: 20.h),
+                      ],
+                    ),
                   ),
                 );
               }),
@@ -301,7 +307,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 16.w,
-                    vertical: 2.h,
+                    vertical: 10.h,
                   ),
                 decoration: BoxDecoration(
                   color: AppColors.background,
@@ -334,7 +340,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                               decoration: BoxDecoration(
                                 color: AppColors.grey50.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(8.r),
@@ -342,12 +348,12 @@ class ServiceDetailsScreen extends StatelessWidget {
                               child: TextField(
                                 controller: controller.mobileController,
                                 keyboardType: TextInputType.phone,
-                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                style: AppTextStyle.style_12_400(color: AppColors.black),
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
                                   hintText: 'Mobile Number*',
-                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                                 ),
                               ),
                             ),
@@ -355,19 +361,19 @@ class ServiceDetailsScreen extends StatelessWidget {
                           SizedBox(width: 8.w),
                           Expanded(
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                               decoration: BoxDecoration(
                                 color: AppColors.grey50.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(8.r),
                               ),
                               child: TextField(
                                 controller: controller.nameController,
-                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                style: AppTextStyle.style_12_400(color: AppColors.black),
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
                                   hintText: 'Full Name',
-                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                                 ),
                               ),
                             ),
@@ -379,7 +385,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                               decoration: BoxDecoration(
                                 color: AppColors.grey50.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(8.r),
@@ -388,13 +394,13 @@ class ServiceDetailsScreen extends StatelessWidget {
                                 controller: controller.addPhoneController,
                                 keyboardType: TextInputType.phone,
                                 maxLength: 10,
-                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                style: AppTextStyle.style_12_400(color: AppColors.black),
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
                                   counterText: "",
                                   hintText: 'Additional Phone',
-                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                                 ),
                               ),
                             ),
@@ -402,19 +408,19 @@ class ServiceDetailsScreen extends StatelessWidget {
                           SizedBox(width: 8.w),
                           Expanded(
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                               decoration: BoxDecoration(
                                 color: AppColors.grey50.withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(8.r),
                               ),
                               child: TextField(
                                 controller: controller.referralController,
-                                style: AppTextStyle.style_10_400(color: AppColors.black),
+                                style: AppTextStyle.style_12_400(color: AppColors.black),
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
                                   hintText: 'Referral ID',
-                                  hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
+                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                                 ),
                               ),
                             ),
@@ -578,7 +584,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                                       ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.blue,
-                                        padding: EdgeInsets.symmetric(vertical: 8.h), // Decreased size further
+                                        padding: EdgeInsets.symmetric(vertical: 12.h), 
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(10.r),
                                         ),
@@ -608,7 +614,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                                       ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.grey400,
-                                        padding: EdgeInsets.symmetric(vertical: 8.h), // Decreased size further
+                                        padding: EdgeInsets.symmetric(vertical: 12.h), 
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(10.r),
                                         ),
@@ -633,157 +639,3 @@ class ServiceDetailsScreen extends StatelessWidget {
   }
 }
 
-/// Individual service card with icon placeholder, name, price, and qty counter
-class _ServiceCard extends StatelessWidget {
-  final ServiceDetailsController controller;
-  final int index;
-
-  const _ServiceCard({required this.controller, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    final service = controller.services[index];
-
-    return Container(
-      padding: EdgeInsets.all(8.w),
-      decoration: AppColors.appCardDecoration(
-        borderColor: AppColors.grey50,
-        containerColor: AppColors.white,
-        borderRadius: 12,
-        isShadow: true,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: AppColors.pineOrange,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8.r),
-              child: service.image != null && service.image!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: service.image!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const Center(
-                        child: Icon(
-                          Icons.image,
-                          color: AppColors.white,
-                          size: 20,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => const Center(
-                        child: Icon(
-                          Icons.image,
-                          color: AppColors.white,
-                          size: 20,
-                        ),
-                      ),
-                    )
-                  : const Center(
-                      child: Icon(
-                        Icons.image,
-                        size: 20,
-                        color: AppColors.white,
-                      ),
-                    ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          // Service Details & Counter
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  service.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.style_10_600(color: AppColors.black),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      '₹ ${service.price}',
-                      style: AppTextStyle.style_10_600(color: AppColors.black),
-                    ),
-                    Text(
-                      ' / use',
-                      style: AppTextStyle.style_8_400(color: AppColors.black),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 2.h),
-                // Dynamic Blue/White Counter
-                Obx(() {
-                  final bool isAdded = service.quantity.value > 0;
-                  final Color themeColor = AppColors.pineBlue;
-                  return Container(
-                    height: 34.h,
-                    decoration: BoxDecoration(
-                      color: isAdded ? themeColor : AppColors.white,
-                      border: Border.all(color: themeColor, width: 1.5),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4.w),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => controller.decrement(index),
-                              child: Padding(
-                                padding: EdgeInsets.all(8.w),
-                                child: Icon(
-                                  Icons.remove,
-                                  size: 20.sp,
-                                  color: isAdded ? AppColors.white : themeColor,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10.w),
-                              child: Text(
-                                '${service.quantity.value}',
-                                style: AppTextStyle.style_16_600(
-                                  color: isAdded ? AppColors.white : themeColor,
-                                ),
-                              ),
-                            ),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => controller.increment(index),
-                              child: Padding(
-                                padding: EdgeInsets.all(8.w),
-                                child: Icon(
-                                  Icons.add,
-                                  size: 20.sp,
-                                  color: isAdded ? AppColors.white : themeColor,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-      ],
-      ),
-    );
-  }
-}

@@ -218,14 +218,17 @@ class PrintUtil {
 
     bytes += generator.reset();
 
-    // Header - Decreased size and left aligned
-    bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size1, width: PosTextSize.size1));
+    // Header - Centered and Tall
+    bytes += [27, 32, 2]; // Set character spacing
+    bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += [27, 32, 0]; // Reset spacing
     bytes += generator.feed(1);
     
-    bytes += [27, 32, 0]; // Standard character spacing
+    bytes += [27, 32, 4]; // Increased spacing for Unit Number
     bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size1));
-    // Use Font B for smaller location text
-    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left, bold: false, fontType: PosFontType.fontB));
+    bytes += [27, 32, 0]; // Reset spacing to prevent separator wrapping
+    // Standard size for location text
+    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left, bold: false));
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
     // Booking Details
@@ -240,10 +243,10 @@ class PrintUtil {
     // Service & Qty - Standard size
     bytes += generator.text(service.servicesName.toUpperCase(), styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size1));
     bytes += generator.text("QTY: 1", styles: const PosStyles(bold: false, align: PosAlign.left));
-    bytes += generator.text("Unit Price: RS. ${service.price}", styles: const PosStyles(align: PosAlign.left, bold: true));
-
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
-    bytes += generator.text("TOTAL: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size1));
+    bytes += [27, 32, 2]; // Wide spacing for Total
+    bytes += generator.text("TOTAL: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += [27, 32, 0]; // Reset spacing
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
     // QR Code - Size adjusted for paper width but always left aligned
@@ -255,7 +258,7 @@ class PrintUtil {
     }), size: qrSize, align: PosAlign.left);
     
     bytes += generator.feed(1);
-    bytes += generator.text("Thank you for using mFresh!", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("Thank you for using mFresh!", styles: const PosStyles(align: PosAlign.left, bold: true));
 
     bytes += generator.feed(3);
     bytes += generator.cut();
@@ -306,20 +309,41 @@ class PrintUtil {
         pageFormat: rollFormat,
         build: (pw.Context context) {
           return pw.Padding(
-            padding: const pw.EdgeInsets.all(8),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Center(child: pw.Image(logoImage, width: 100)),
-                pw.SizedBox(height: 5),
-                pw.Text("UNIT NO.: ${booking.unitNo}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                pw.Text("Location: ${booking.fullAddress}", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                pw.Text("-----------------------------------------"),
-                pw.Text("BOOKING ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
-                pw.Text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", style: const pw.TextStyle(fontSize: 11)),
-                pw.Text("-----------------------------------------"),
-                pw.Text("TOTAL: RS. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
-                pw.SizedBox(height: 15),
+                pw.Center(
+                  child: pw.Text("mFresh", 
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24, letterSpacing: 2.0)
+                  )
+                ),
+                pw.SizedBox(height: 12),
+                pw.Text("UNIT NO.: ${booking.unitNo}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14, letterSpacing: 1.0)),
+                pw.Text("Location: ${booking.fullAddress}", style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.normal)),
+                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
+                
+                pw.Text("BOOKING ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                pw.Text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", style: pw.TextStyle(fontSize: 11)),
+                
+                pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", style: pw.TextStyle(fontSize: 11)),
+                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
+
+                // Services List
+                ...booking.services.map((service) => pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(service.servicesName.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    pw.Text("QTY: 1", style: pw.TextStyle(fontSize: 11)),
+                    pw.SizedBox(height: 6),
+                  ]
+                )),
+
+                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
+                pw.Text("TOTAL: RS. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, letterSpacing: 1.5)),
+                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
+                
+                pw.SizedBox(height: 10),
                 pw.Center(
                   child: pw.BarcodeWidget(
                     barcode: pw.Barcode.qrCode(),
@@ -328,9 +352,13 @@ class PrintUtil {
                       "DeviceID": "NA",
                       "AccessDate": booking.bookingTimeDate,
                     }),
-                    width: 80,
-                    height: 80,
+                    width: 100,
+                    height: 100,
                   ),
+                ),
+                pw.SizedBox(height: 12),
+                pw.Center(
+                  child: pw.Text("Thank you for using mFresh!", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
                 ),
               ],
             ),

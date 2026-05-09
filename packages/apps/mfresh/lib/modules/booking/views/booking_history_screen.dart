@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:mfresh/modules/booking/controllers/booking_history_controller.dart';
 import 'package:mfresh/data/models/booking_history_model.dart';
 import 'package:intl/intl.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class BookingHistoryScreen extends StatelessWidget {
   const BookingHistoryScreen({super.key});
@@ -25,7 +26,7 @@ class BookingHistoryScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CustomAppLoader(size: 60));
         }
 
         if (controller.bookings.isEmpty) {
@@ -37,14 +38,18 @@ class BookingHistoryScreen extends StatelessWidget {
           );
         }
 
-        return ListView.separated(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          itemCount: controller.bookings.length,
-          separatorBuilder: (_, __) => SizedBox(height: 12.h),
-          itemBuilder: (context, index) {
-            final booking = controller.bookings[index];
-            return _BookingCard(booking: booking);
-          },
+        return RefreshIndicator(
+          onRefresh: () => controller.fetchBookingHistory(),
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: controller.bookings.length,
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
+            itemBuilder: (context, index) {
+              final booking = controller.bookings[index];
+              return _BookingCard(booking: booking);
+            },
+          ),
         );
       }),
     );

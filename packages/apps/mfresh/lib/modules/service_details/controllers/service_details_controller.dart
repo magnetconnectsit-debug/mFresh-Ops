@@ -99,6 +99,13 @@ class ServiceDetailsController extends GetxController {
     fetchServices();
   }
 
+  Future<void> refreshData() async {
+    await Future.wait([
+      _fetchUnitConfig(),
+      fetchServices(),
+    ]);
+  }
+
   Future<void> fetchServices() async {
     if (unitNo.value.isEmpty) return;
 
