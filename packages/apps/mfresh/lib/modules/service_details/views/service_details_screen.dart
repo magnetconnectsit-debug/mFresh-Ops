@@ -198,7 +198,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 2.h),
                         GestureDetector(
-                          onTap: controller.toggleOnline,
+                          onTap: () => controller.toggleOnline(),
                           child: Container(
                             width: 50.w,
                             height: 25.h,

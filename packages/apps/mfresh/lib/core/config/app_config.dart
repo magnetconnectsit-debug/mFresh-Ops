@@ -17,7 +17,7 @@ class AppConfig {
 
   // Base URL: PROD in Release Mode OR if toggle is 'prod'
   static String get baseUrl => kDebugMode
-      ? 'https://testapis.magnetconnects.com/public/api/'
+      ? 'https://apis.magnetconnects.com/public/api/'
       : 'https://apis.magnetconnects.com/public/api/';
 
   // Payment & App ID: PROD only in Release Mode AND when toggle is 'prod'
@@ -29,5 +29,5 @@ class AppConfig {
       ? '6458835ce3374a60af722c4d51f2ba8f' // LIVE
       : '71c39b94aad8435c96f81b1f5324c9c7'; // UAT
 
-  static bool get isPhonePeProduction => _isProdEnv;
+  static bool get isPhonePeProduction => true;
 }

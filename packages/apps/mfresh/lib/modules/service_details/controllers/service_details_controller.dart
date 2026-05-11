@@ -432,32 +432,24 @@ class ServiceDetailsController extends GetxController {
     String phone,
   ) async {
     try {
-      final paymentData = await _phonePeService.initiatePayment(
+      final sdkResponse = await _phonePeService.startSDKTransaction(
         bookingId: bookingId,
         encryptedBookingId: encryptBookingId,
         amount: amount,
         phone: phone,
       );
 
-      if (paymentData != null) {
-        final redirectUrl = paymentData['url'];
-        final actualTxnId = paymentData['transactionId'] ?? encryptBookingId;
+      if (sdkResponse != null) {
+        final String status = sdkResponse['status']?.toString() ?? "";
+        final String actualTxnId = sdkResponse['transactionId']?.toString() ?? "";
 
-        final result = await Get.toNamed(
-          AppRoutes.webView,
-          arguments: {
-            'url': redirectUrl,
-            'title': 'PhonePe Payment',
-            'redirectUrlToCapture': 'magnetconnects.com',
-          },
-        );
-
-        if (result != null) {
-          // Verification logic...
+        if (status == 'SUCCESS' || status == 'PENDING') {
           AppCommonToastMessage.show(
-            message: "Verifying payment...",
+            message: status == 'SUCCESS' ? "Payment initiated!" : "Payment pending...",
             type: ToastType.info,
           );
+
+          // Always verify the actual status from the server/PhonePe API
           final phonePeStatus = await _phonePeService.checkPaymentStatus(
             merchantTransactionId: actualTxnId,
           );
@@ -467,7 +459,6 @@ class ServiceDetailsController extends GetxController {
             final realData = phonePeStatus['data'] ?? {};
 
             if (phonePeStatus['success'] == true && code == 'PAYMENT_SUCCESS') {
-              // PhonePe confirms success!
               await _confirmSuccess(
                 bookingId,
                 encryptBookingId,
@@ -478,18 +469,12 @@ class ServiceDetailsController extends GetxController {
                 },
               );
             } else {
-              // Fallback to Server check if PhonePe says pending/failed but user insists
-              final bookingDetails = await _commonRepository.getBookingDetails(
-                bookingId: bookingId,
-              );
+              // Fallback to Server check
+              final bookingDetails = await _commonRepository.getBookingDetails(bookingId: bookingId);
               if (bookingDetails != null &&
                   (bookingDetails.paymentStatus.toLowerCase() == 'paid' ||
                       bookingDetails.paymentStatus.toLowerCase() == 'success')) {
-                await _confirmSuccess(
-                  bookingId,
-                  encryptBookingId,
-                  phonePeData: {'code': 'PAYMENT_SUCCESS'},
-                );
+                await _confirmSuccess(bookingId, encryptBookingId, phonePeData: {'code': 'PAYMENT_SUCCESS'});
               } else {
                 AppCommonToastMessage.show(
                   message: "Payment Status: ${realData['state'] ?? code}",
@@ -497,36 +482,16 @@ class ServiceDetailsController extends GetxController {
                 );
               }
             }
-          } else {
-            // Fallback to Server check if PhonePe API fails
-            final bookingDetails = await _commonRepository.getBookingDetails(
-              bookingId: bookingId,
-            );
-            if (bookingDetails != null &&
-                (bookingDetails.paymentStatus.toLowerCase() == 'paid' ||
-                    bookingDetails.paymentStatus.toLowerCase() == 'success')) {
-              await _confirmSuccess(
-                bookingId,
-                encryptBookingId,
-                phonePeData: {'code': 'PAYMENT_SUCCESS'},
-              );
-            } else {
-              AppCommonToastMessage.show(
-                message: "Verification failed. Please try again or contact support.",
-                type: ToastType.error,
-              );
-            }
           }
         } else {
-          // User cancelled verification
           AppCommonToastMessage.show(
-            message: "Verification was not completed",
-            type: ToastType.info,
+            message: "Payment Failed: ${sdkResponse['error'] ?? 'User cancelled'}",
+            type: ToastType.error,
           );
         }
       } else {
         AppCommonToastMessage.show(
-          message: "Failed to initiate PhonePe payment",
+          message: "Could not initiate SDK payment. Please try again.",
           type: ToastType.error,
         );
       }

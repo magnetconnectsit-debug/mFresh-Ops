@@ -13,7 +13,33 @@
             <action android:name="android.intent.action.SEND" />
             <data android:mimeType="application/pdf" />
         </intent>
+        
+        <!-- UPI Apps for PhonePe SDK -->
+        <package android:name="com.phonepe.app" />
+        <package android:name="com.phonepe.app.preprod" />
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="com.whatsapp" />
+        <package android:name="in.org.npci.upiapp" />
+        <package android:name="in.amazon.mShop.android.shopping" />
+
+        <!-- Web & Image Capture -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
+        </intent>
     </queries>
+
+    <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     
@@ -79,28 +105,5 @@
             android:value="2" />
 
     </application>
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="http" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" />
-        </intent>
-    </queries>
-
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <queries>
-        <intent>
-            <action android:name="android.media.action.IMAGE_CAPTURE"/>
-        </intent>
-    </queries>
 
 </manifest>

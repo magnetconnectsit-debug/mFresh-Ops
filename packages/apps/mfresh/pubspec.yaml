@@ -33,6 +33,7 @@ dependencies:
   lottie: ^3.3.3
   webview_flutter: ^4.13.1
   webview_flutter_android: ^4.11.0
+  phonepe_payment_sdk: ^2.0.3
   chewie: ^1.13.1
   video_player: ^2.10.1
   cached_network_image: ^3.4.1
