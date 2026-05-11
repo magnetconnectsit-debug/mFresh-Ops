@@ -111,8 +111,10 @@ class PrinterDialogUtil {
         }
 
         subscription = _printerPlugin.devicesStream.listen((printers) {
-          debugPrint("Discovered ${printers.length} printers");
-          discoveredPrinters.assignAll(printers);
+          // Filter out devices with no names (often stale or invalid signals)
+          final activePrinters = printers.where((p) => p.name != null && p.name!.isNotEmpty).toList();
+          debugPrint("Discovered ${activePrinters.length} valid printers");
+          discoveredPrinters.assignAll(activePrinters);
         });
 
         // Staggered requests for different connection types to improve discovery reliability
@@ -167,7 +169,7 @@ class PrinterDialogUtil {
                 final usbPrinters = <Printer>[];
 
                 for (var p in discoveredPrinters) {
-                  final String type = p.connectionType?.name?.toUpperCase() ?? "";
+                  final String type = (p.connectionType?.name ?? "").toUpperCase();
                   if (type.contains("USB")) {
                     usbPrinters.add(p);
                   } else if (type.contains("WIFI") || type.contains("NETWORK") || type.contains("IP") || type.contains("TCP")) {
@@ -245,7 +247,14 @@ class PrinterDialogUtil {
         child: Icon(icon, size: 18, color: const Color(0xFFF15A22)),
       ),
       title: Text(printer.name ?? "Unknown Printer", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-      subtitle: Text("${printer.connectionType?.name} - ${printer.address ?? 'No Address'}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("${printer.connectionType?.name} - ${printer.address ?? 'No Address'}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          if (printer.address == PrintUtil.lastFailedAddress)
+            const Text("Last connection failed", style: TextStyle(fontSize: 9, color: Colors.red, fontWeight: FontWeight.bold)),
+        ],
+      ),
       trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
       onTap: () async {
         Get.back();

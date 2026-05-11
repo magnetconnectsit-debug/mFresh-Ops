@@ -159,4 +159,20 @@ class CommonRepository extends GetxService {
       return false;
     }
   }
+
+  Future<bool> sendSmsReceipt({required String bookingId, required String phone}) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.sentSms,
+        data: {
+          'booking_id': bookingId,
+          'mobile_no': phone,
+        },
+      );
+
+      return response != null && response['status'] == 'success';
+    } catch (e) {
+      return false;
+    }
+  }
 }

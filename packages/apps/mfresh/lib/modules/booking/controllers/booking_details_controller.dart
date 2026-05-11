@@ -69,4 +69,23 @@ class BookingDetailsController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<void> sendSms(String phone) async {
+    if (bookingDetails.value == null) return;
+    
+    try {
+      final success = await _commonRepository.sendSmsReceipt(
+        bookingId: bookingDetails.value!.bookingId,
+        phone: phone,
+      );
+      
+      if (success) {
+        AppCommonToastMessage.show(message: "sent successfully", type: ToastType.success);
+      } else {
+        AppCommonToastMessage.show(message: "Failed to send SMS", type: ToastType.error);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: "Error: $e", type: ToastType.error);
+    }
+  }
 }

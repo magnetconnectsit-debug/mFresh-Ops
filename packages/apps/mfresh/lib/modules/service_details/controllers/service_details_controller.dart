@@ -57,7 +57,6 @@ class ServiceDetailsController extends GetxController {
   final mobileController = TextEditingController();
   final nameController = TextEditingController();
   final addPhoneController = TextEditingController();
-  final referralController = TextEditingController();
 
   // Member flow
   final memberMobileController = TextEditingController();
@@ -104,6 +103,12 @@ class ServiceDetailsController extends GetxController {
       _fetchUnitConfig(),
       fetchServices(),
     ]);
+  }
+
+  void resetSelection() {
+    for (var service in services) {
+      service.quantity.value = 0;
+    }
   }
 
   Future<void> fetchServices() async {
@@ -346,6 +351,7 @@ class ServiceDetailsController extends GetxController {
         "total_amount": total.toString(),
         "Payment_status": "Pending",
         "payment_mode": paymentMode,
+        "Add_phone_no": addPhoneController.text.trim(),
         "cart": cartItems,
       };
 
