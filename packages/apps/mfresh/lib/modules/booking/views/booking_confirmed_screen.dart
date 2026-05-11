@@ -74,7 +74,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
           try {
-            Get.find<ServiceDetailsController>().resetSelection();
+            Get.find<ServiceDetailsController>().resetAll();
           } catch (e) {
             debugPrint("Could not reset selection on system pop: $e");
           }
@@ -97,7 +97,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
           onPressed: () {
             try {
-              Get.find<ServiceDetailsController>().resetSelection();
+              Get.find<ServiceDetailsController>().resetAll();
             } catch (e) {
               debugPrint("Could not reset selection: $e");
             }
@@ -445,7 +445,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
               child: GestureDetector(
                 onTap: () {
                   try {
-                    Get.find<ServiceDetailsController>().resetSelection();
+                    Get.find<ServiceDetailsController>().resetAll();
                   } catch (e) {
                     debugPrint("Could not reset selection: $e");
                   }

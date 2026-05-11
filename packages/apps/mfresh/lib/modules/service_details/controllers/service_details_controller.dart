@@ -105,9 +105,34 @@ class ServiceDetailsController extends GetxController {
     ]);
   }
 
-  void resetSelection() {
+  void resetAll() {
+    isOnline.value = false;
+    isCustomer.value = true;
+    isOtpSent.value = false;
+    isOtpVerified.value = false;
+
+    // Clear selections
     for (var service in services) {
       service.quantity.value = 0;
+    }
+
+    // Clear controllers
+    addPhoneController.clear();
+    otpController.clear();
+    memberMobileController.clear();
+
+    // Reset user data to profile defaults
+    final user = _profileController.user.value;
+    if (user != null) {
+      nameController.text = user.name ?? '';
+      mobileController.text = user.mob ?? '';
+      customerName.value = user.name ?? '';
+      customerPhone.value = user.mob ?? '';
+    } else {
+      nameController.clear();
+      mobileController.clear();
+      customerName.value = '';
+      customerPhone.value = '';
     }
   }
 
