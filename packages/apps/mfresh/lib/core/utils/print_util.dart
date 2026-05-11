@@ -22,6 +22,7 @@ class PrintUtil {
   static final _printerPlugin = FlutterThermalPrinter.instance;
   static CapabilityProfile? _cachedProfile;
   static Printer? _connectedPrinter;
+  static String? lastFailedAddress;
 
   /// Silent/Direct Print for Internal Hardware (PineLabs / Udyama / etc.)
   static Future<void> printInternal(BookingDetailsModel booking, ServiceItem service, {String? encryptedBookingId}) async {
@@ -152,11 +153,13 @@ class PrintUtil {
       if (_connectedPrinter != null && _connectedPrinter!.address == printer.address && (printer.isConnected ?? false)) {
         connected = true;
       } else {
-        // Attempt direct connection without pre-disconnecting to avoid potential hangs
-        connected = await _printerPlugin.connect(printer);
-        if (!connected) {
-          await Future.delayed(const Duration(seconds: 1));
-          connected = await _printerPlugin.connect(printer);
+        try {
+          connected = await _printerPlugin
+              .connect(printer)
+              .timeout(const Duration(seconds: 10));
+        } catch (e) {
+          debugPrint("Connection timeout/error: $e");
+          connected = false;
         }
       }
 
@@ -165,6 +168,7 @@ class PrintUtil {
         await Future.delayed(const Duration(seconds: 1)); 
         
         _connectedPrinter = printer;
+        lastFailedAddress = null; // Clear failure state on success
         if (printer.address != null) {
           Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
         }
@@ -180,22 +184,22 @@ class PrintUtil {
             
             final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
             
-            // Reduced chunk size to 128 for better BLE reliability on various devices
+            // Reduced chunk size to 128 for better BLE reliability
             debugPrint("Sending data to printer (Chunk: 128)...");
             try {
-              await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 128);
+              // Add a timeout to printing to prevent hanging the UI
+              await _printerPlugin
+                  .printData(printer, bytes, longData: true, chunkSize: 128)
+                  .timeout(const Duration(seconds: 15));
             } catch (e) {
               debugPrint("Data transmission error: $e");
               return false;
             }
             
-            // Pause 2 seconds between receipts for manual tear-off
             if (!(i == booking.services.length - 1 && q == qty - 1)) {
               debugPrint("Receipt printed. Pausing 4 seconds for tearing...");
               await Future.delayed(const Duration(seconds: 4)); 
-              debugPrint("Resuming next receipt...");
             } else {
-              // Final delay for the last receipt
               await Future.delayed(const Duration(milliseconds: 500));
             }
           }
@@ -204,21 +208,35 @@ class PrintUtil {
         AppCommonToastMessage.show(message: "Printing successful", type: ToastType.success);
         return true;
       } else {
-        AppCommonToastMessage.show(message: "Printer connection failed.", type: ToastType.error);
+        debugPrint("Connection failed, clearing printer states...");
+        _connectedPrinter = null;
+        lastFailedAddress = printer.address;
+        Get.find<StorageService>().clearDefaultPrinter();
+        AppCommonToastMessage.show(message: "Printer connection failed. Please select again.", type: ToastType.error);
         return false;
       }
     } catch (e) {
       debugPrint("Print Error: $e");
-      AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
+      final errorStr = e.toString();
+      if (errorStr.contains("deviceNotFound") || errorStr.contains("DEVICE_NOT_FOUND")) {
+        debugPrint("Stale printer detected, clearing default...");
+        lastFailedAddress = printer.address;
+        Get.find<StorageService>().clearDefaultPrinter();
+        AppCommonToastMessage.show(message: "Printer not found. Please select again.", type: ToastType.warning);
+      } else {
+        AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
+      }
       return false;
     } finally {
       debugPrint("Print process finished. Cleaning up loading dialog...");
-      // Robust cleanup to ensure the loading dialog is dismissed
-      int attempts = 0;
-      while (Get.isDialogOpen == true && attempts < 3) {
+      // Ensure the loading dialog is closed even if multiple overlays exist
+      if (Get.isDialogOpen == true) {
         Get.back();
-        attempts++;
-        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      // Second check for safety
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (Get.isDialogOpen == true) {
+        Get.back();
       }
     }
   }

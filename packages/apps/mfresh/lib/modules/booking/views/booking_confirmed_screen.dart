@@ -14,6 +14,8 @@ import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:mfresh/core/utils/print_util.dart';
 import 'package:mfresh/core/utils/printer_dialog_util.dart';
+import 'package:core/widgets/app_common_textfield.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class BookingConfirmedScreen extends StatefulWidget {
   const BookingConfirmedScreen({super.key});
@@ -68,7 +70,17 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          try {
+            Get.find<ServiceDetailsController>().resetAll();
+          } catch (e) {
+            debugPrint("Could not reset selection on system pop: $e");
+          }
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Booking Confirmed'),
@@ -84,7 +96,11 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
           onPressed: () {
-            Get.delete<ServiceDetailsController>(force: true);
+            try {
+              Get.find<ServiceDetailsController>().resetAll();
+            } catch (e) {
+              debugPrint("Could not reset selection: $e");
+            }
             Get.back();
           },
         ),
@@ -273,13 +289,67 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                       SizedBox(width: 8.w),
                                       GestureDetector(
                                         onTap: () {
-                                          if (booking != null) {
-                                            final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
-                                            final int rollSize = int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? '58') ?? 58;
-                                            PrintUtil.shareSystem(booking, encryptId, rollSize: rollSize);
-                                          }
+                                          final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
+                                          final int rollSize = int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? '58') ?? 58;
+                                          PrintUtil.shareSystem(booking, encryptId, rollSize: rollSize);
                                         },
                                         child: Icon(Icons.share, color: const Color(0xFFF15A22), size: 18.sp),
+                                      ),
+                                      SizedBox(width: 12.w),
+                                      GestureDetector(
+                                        onTap: () {
+                                          final smsPhoneController = TextEditingController();
+                                          Get.dialog(
+                                            Dialog(
+                                              backgroundColor: AppColors.white,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+                                              child: Padding(
+                                                padding: EdgeInsets.all(20.w),
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text('Send Receipt via SMS', style: AppTextStyle.style_14_600(color: AppColors.black)),
+                                                    SizedBox(height: 16.h),
+                                                    AppCommonTextField(
+                                                      controller: smsPhoneController,
+                                                      hintText: 'Enter 10 digit phone number',
+                                                      keyboardType: TextInputType.phone,
+                                                      maxLength: 10,
+                                                    ),
+                                                    SizedBox(height: 16.h),
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.end,
+                                                      children: [
+                                                        TextButton(
+                                                          onPressed: () => Get.back(),
+                                                          child: Text('Cancel', style: AppTextStyle.style_12_600(color: AppColors.grey300)),
+                                                        ),
+                                                        SizedBox(width: 8.w),
+                                                        ElevatedButton(
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFFF15A22),
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                                                          ),
+                                                          onPressed: () async {
+                                                            final phone = smsPhoneController.text.trim();
+                                                            if (phone.length == 10) {
+                                                              Get.back();
+                                                              await controller.sendSms(phone);
+                                                            } else {
+                                                              AppCommonToastMessage.show(message: "Enter valid 10 digit number", type: ToastType.error);
+                                                            }
+                                                          },
+                                                          child: Text('Send', style: AppTextStyle.style_12_600(color: AppColors.white)),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: Icon(Icons.sms_outlined, color: const Color(0xFFF15A22), size: 18.sp),
                                       ),
                                     ],
                                   ),
@@ -374,8 +444,11 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
             child: Center(
               child: GestureDetector(
                 onTap: () {
-                  // Force delete the old controller to ensure data resets
-                  Get.delete<ServiceDetailsController>(force: true);
+                  try {
+                    Get.find<ServiceDetailsController>().resetAll();
+                  } catch (e) {
+                    debugPrint("Could not reset selection: $e");
+                  }
                   Get.back();
                 },
                 child: Container(
@@ -402,6 +475,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 

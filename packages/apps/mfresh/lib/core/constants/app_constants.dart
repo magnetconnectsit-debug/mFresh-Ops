@@ -25,6 +25,7 @@ class AppConstants {
   static const String allServices = '/customer/Api-get-Unit-services';
   static const String initiateBooking = '/customer/Api-initiateBooking';
   static const String successBooking = '/customer/Api-SuccessBooking';
+  static const String sentSms = '/customer/resend-booking-sms';
   static const String validateMemPhone = '/customer/validate-mem-phone';
   static const String sendOtpMember = '/customer/send-otp-member';
   static const String verifyOtpMember = '/customer/verify-otp-member';

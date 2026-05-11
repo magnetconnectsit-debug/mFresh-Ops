@@ -57,7 +57,6 @@ class ServiceDetailsController extends GetxController {
   final mobileController = TextEditingController();
   final nameController = TextEditingController();
   final addPhoneController = TextEditingController();
-  final referralController = TextEditingController();
 
   // Member flow
   final memberMobileController = TextEditingController();
@@ -100,10 +99,42 @@ class ServiceDetailsController extends GetxController {
   }
 
   Future<void> refreshData() async {
+    resetAll();
     await Future.wait([
       _fetchUnitConfig(),
       fetchServices(),
     ]);
+  }
+
+  void resetAll() {
+    isOnline.value = false;
+    isCustomer.value = true;
+    isOtpSent.value = false;
+    isOtpVerified.value = false;
+
+    // Clear selections
+    for (var service in services) {
+      service.quantity.value = 0;
+    }
+
+    // Clear controllers
+    addPhoneController.clear();
+    otpController.clear();
+    memberMobileController.clear();
+
+    // Reset user data to profile defaults
+    final user = _profileController.user.value;
+    if (user != null) {
+      nameController.text = user.name ?? '';
+      mobileController.text = user.mob ?? '';
+      customerName.value = user.name ?? '';
+      customerPhone.value = user.mob ?? '';
+    } else {
+      nameController.clear();
+      mobileController.clear();
+      customerName.value = '';
+      customerPhone.value = '';
+    }
   }
 
   Future<void> fetchServices() async {
@@ -346,6 +377,7 @@ class ServiceDetailsController extends GetxController {
         "total_amount": total.toString(),
         "Payment_status": "Pending",
         "payment_mode": paymentMode,
+        "Add_phone_no": addPhoneController.text.trim(),
         "cart": cartItems,
       };
 

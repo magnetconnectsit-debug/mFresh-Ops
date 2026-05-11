@@ -381,51 +381,25 @@ class ServiceDetailsScreen extends StatelessWidget {
                         ],
                       ),
                       SizedBox(height: 6.h),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: AppColors.grey50.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: TextField(
-                                controller: controller.addPhoneController,
-                                keyboardType: TextInputType.phone,
-                                maxLength: 10,
-                                style: AppTextStyle.style_12_400(color: AppColors.black),
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  counterText: "",
-                                  hintText: 'Additional Phone',
-                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-                                ),
-                              ),
-                            ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey50.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: TextField(
+                          controller: controller.addPhoneController,
+                          keyboardType: TextInputType.phone,
+                          maxLength: 10,
+                          style: AppTextStyle.style_12_400(color: AppColors.black),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            counterText: "",
+                            hintText: 'Additional Phone',
+                            hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
                           ),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: AppColors.grey50.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: TextField(
-                                controller: controller.referralController,
-                                style: AppTextStyle.style_12_400(color: AppColors.black),
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  hintText: 'Referral ID',
-                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                       
                       // Membership Verification (Restored from old project)
