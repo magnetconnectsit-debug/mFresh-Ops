@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 class LoginController extends GetxController {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
-  
+
   final rememberMe = false.obs;
   final obscurePassword = true.obs;
   final isLoading = false.obs;
@@ -49,7 +49,8 @@ class LoginController extends GetxController {
 
   void handleLogoTap() {
     final now = DateTime.now();
-    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+    if (_lastTapTime == null ||
+        now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
       _logoTapCount = 1;
     } else {
       _logoTapCount++;
