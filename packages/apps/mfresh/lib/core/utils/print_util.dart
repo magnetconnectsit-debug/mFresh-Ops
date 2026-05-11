@@ -161,6 +161,9 @@ class PrintUtil {
       }
 
       if (connected) {
+        // Wait for BLE handshake to fully settle before sending data
+        await Future.delayed(const Duration(seconds: 1)); 
+        
         _connectedPrinter = printer;
         if (printer.address != null) {
           Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
@@ -177,20 +180,22 @@ class PrintUtil {
             
             final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
             
-            // Use a safe chunk size (256) to avoid buffer overflow on smaller printers
-            debugPrint("Sending data to printer...");
+            // Reduced chunk size to 128 for better BLE reliability on various devices
+            debugPrint("Sending data to printer (Chunk: 128)...");
             try {
-              await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 256);
+              await _printerPlugin.printData(printer, bytes, longData: true, chunkSize: 128);
             } catch (e) {
               debugPrint("Data transmission error: $e");
               return false;
             }
             
-            // Yield to engine and give hardware time to process
+            // Pause 2 seconds between receipts for manual tear-off
             if (!(i == booking.services.length - 1 && q == qty - 1)) {
-              await Future.delayed(const Duration(milliseconds: 2000)); 
+              debugPrint("Receipt printed. Pausing 4 seconds for tearing...");
+              await Future.delayed(const Duration(seconds: 4)); 
+              debugPrint("Resuming next receipt...");
             } else {
-              // Final delay to ensure last cut command is processed
+              // Final delay for the last receipt
               await Future.delayed(const Duration(milliseconds: 500));
             }
           }
@@ -274,7 +279,6 @@ class PrintUtil {
     bytes += generator.feed(1);
     bytes += generator.text("Thank you for using mFresh!", styles: const PosStyles(align: PosAlign.left, bold: true));
 
-    bytes += generator.feed(3);
     bytes += generator.cut();
 
     return bytes;
