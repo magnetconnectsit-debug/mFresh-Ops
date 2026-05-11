@@ -99,6 +99,7 @@ class ServiceDetailsController extends GetxController {
   }
 
   Future<void> refreshData() async {
+    resetAll();
     await Future.wait([
       _fetchUnitConfig(),
       fetchServices(),
