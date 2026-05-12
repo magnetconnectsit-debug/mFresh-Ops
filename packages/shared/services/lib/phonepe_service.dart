@@ -223,6 +223,7 @@ class PhonePeService extends GetxService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
+        debugPrint("PhonePe Status Response: ${response.data}");
         return Map<String, dynamic>.from(response.data);
       }
       return null;

@@ -482,6 +482,7 @@ class ServiceDetailsController extends GetxController {
           );
 
           // Always verify the actual status from the server/PhonePe API
+          debugPrint("Checking PhonePe status for Transaction ID: $actualTxnId");
           final phonePeStatus = await _phonePeService.checkPaymentStatus(
             merchantTransactionId: actualTxnId,
           );

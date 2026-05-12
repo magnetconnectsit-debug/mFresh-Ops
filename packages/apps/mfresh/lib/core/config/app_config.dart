@@ -23,6 +23,8 @@ class AppConfig {
   // Payment & App ID: PROD only in Release Mode AND when toggle is 'prod'
   static bool get _isProdEnv => kReleaseMode && !isDevToggle;
 
+
+
   static String get envName => _isProdEnv ? 'PRODUCTION' : 'DEVELOPMENT';
 
   static String get applicationId => _isProdEnv
