@@ -15,7 +15,6 @@ import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:services/storage_service.dart';
-import 'package:universal_ble/universal_ble.dart';
 import 'printer_dialog_util.dart';
 
 class PrintUtil {
@@ -49,13 +48,13 @@ class PrintUtil {
         type: ToastType.info,
       );
       if (Get.context != null) {
-        handleExternalPrint(Get.context!, booking, useDefault: true);
+        handleExternalPrint(Get.context!, booking, useDefault: true, encryptedBookingId: encryptedBookingId);
       }
     }
   }
 
   /// Handle External Printer Discovery logic
-  static Future<void> handleExternalPrint(BuildContext context, BookingDetailsModel booking, {bool useDefault = false, int rollSize = 80}) async {
+  static Future<void> handleExternalPrint(BuildContext context, BookingDetailsModel booking, {bool useDefault = false, int rollSize = 80, String? encryptedBookingId}) async {
     // Request Permissions
     await [
       Permission.bluetooth,
@@ -75,12 +74,12 @@ class PrintUtil {
         if (_connectedPrinter != null && 
             _connectedPrinter!.address == defaultAddress && 
             (_connectedPrinter!.isConnected ?? false)) {
-          final success = await printToExternal(booking, _connectedPrinter!, rollSize: rollSize);
+          final success = await printToExternal(booking, _connectedPrinter!, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
           if (!success) {
             debugPrint("Default printer connected but failed to print, opening selector...");
             await Future.delayed(const Duration(milliseconds: 300));
             if (context.mounted) {
-              PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
+              PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
             } else {
               debugPrint("Context not mounted, cannot show selector.");
             }
@@ -89,15 +88,15 @@ class PrintUtil {
         }
 
         // 2. Otherwise, try to find the printer in a quick scan
-        _attemptDefaultPrint(context, booking, defaultAddress, rollSize: rollSize);
+        _attemptDefaultPrint(context, booking, defaultAddress, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
         return;
       }
     }
     
-    PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
+    PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
   }
 
-  static void _attemptDefaultPrint(BuildContext context, BookingDetailsModel booking, String address, {int rollSize = 80}) {
+  static void _attemptDefaultPrint(BuildContext context, BookingDetailsModel booking, String address, {int rollSize = 80, String? encryptedBookingId}) {
     AppCommonToastMessage.show(message: "Connecting to default printer...", type: ToastType.info);
     
     // We need to scan briefly to get the Printer object
@@ -123,14 +122,14 @@ class PrintUtil {
         timeoutTimer?.cancel(); // CANCEL TIMER IMMEDIATELY
         sub?.cancel();
         
-        final success = await printToExternal(booking, printer, rollSize: rollSize);
+        final success = await printToExternal(booking, printer, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
         attemptInProgress = false;
         
         if (!success) {
           debugPrint("Target printer failed, opening selector dialog now...");
           await Future.delayed(const Duration(milliseconds: 300));
           if (context.mounted) {
-            PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
+            PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
           } else {
             debugPrint("Context not mounted, cannot show selector.");
           }
@@ -141,7 +140,7 @@ class PrintUtil {
   }
 
   /// Core logic for printing to thermal devices
-  static Future<bool> printToExternal(BookingDetailsModel booking, Printer printer, {int rollSize = 80}) async {
+  static Future<bool> printToExternal(BookingDetailsModel booking, Printer printer, {int rollSize = 80, String? encryptedBookingId}) async {
     debugPrint("printToExternal: Initiating process for ${printer.name}");
     
     // Show loading dialog immediately
@@ -167,29 +166,44 @@ class PrintUtil {
       await Future.delayed(const Duration(milliseconds: 100));
 
       bool connected = false;
+      debugPrint("Checking existing connection for ${printer.address}...");
+      
       if (_connectedPrinter != null && _connectedPrinter!.address == printer.address && (printer.isConnected ?? false)) {
+        debugPrint("Already connected to ${printer.address}. Using existing session.");
         connected = true;
       } else {
+        debugPrint("No valid existing connection. Attempting fresh connect to ${printer.address}...");
+        
+        // Manual cleanup before connect can help some BLE stacks
         try {
+          debugPrint("Pre-emptive disconnect for ${printer.address}...");
+          await _printerPlugin.disconnect(printer).timeout(const Duration(seconds: 2));
+        } catch (_) {}
+
+        try {
+          debugPrint("Calling _printerPlugin.connect...");
           connected = await _printerPlugin
               .connect(printer)
-              .timeout(const Duration(seconds: 10));
+              .timeout(const Duration(seconds: 12));
+          debugPrint("Connection result for ${printer.address}: $connected");
         } catch (e) {
-          debugPrint("Connection timeout/error: $e");
+          debugPrint("Connection timeout/error for ${printer.address}: $e");
           connected = false;
         }
       }
 
       if (connected) {
+        debugPrint("Connection established. Waiting for BLE handshake (1.5s)...");
         // Wait for BLE handshake to fully settle before sending data
-        await Future.delayed(const Duration(seconds: 2)); 
+        await Future.delayed(const Duration(milliseconds: 1500)); 
         
         _connectedPrinter = printer;
         lastFailedAddress = null; // Clear failure state on success
         if (printer.address != null) {
           Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
         }
-        await Future.delayed(const Duration(seconds: 1));
+        debugPrint("Handshake finished. Ready to send data.");
+        await Future.delayed(const Duration(milliseconds: 500));
 
         for (int i = 0; i < booking.services.length; i++) {
           final service = booking.services[i];
@@ -199,7 +213,7 @@ class PrintUtil {
             // Yield to engine and allow hardware buffer to settle
             await Future.delayed(const Duration(milliseconds: 200)); 
             
-            final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize);
+            final List<int> bytes = await _generateEscPosBytes(booking, service, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
             
             // Reduced chunk size to 128 for better BLE reliability
             debugPrint("Sending data to printer (Chunk: 128)...");
@@ -208,16 +222,6 @@ class PrintUtil {
               await _printerPlugin
                   .printData(printer, bytes, longData: true, chunkSize: 128)
                   .timeout(const Duration(seconds: 15));
-                  
-              // Real-time verification using UniversalBle directly
-              if (printer.connectionType == ConnectionType.BLE && printer.address != null) {
-                final bleState = await UniversalBle.getConnectionState(printer.address!);
-                if (bleState != BleConnectionState.connected) {
-                  debugPrint("UniversalBle detected disconnected state ($bleState). Assuming failure.");
-                  _connectedPrinter = null;
-                  return false;
-                }
-              }
             } catch (e) {
               debugPrint("Data transmission error: $e");
               _connectedPrinter = null; // Clear state so we reconnect next time
@@ -276,7 +280,7 @@ class PrintUtil {
     }
   }
 
-  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service, {int rollSize = 80}) async {
+  static Future<List<int>> _generateEscPosBytes(BookingDetailsModel booking, ServiceItem service, {int rollSize = 80, String? encryptedBookingId}) async {
     _cachedProfile ??= await CapabilityProfile.load();
     
     // Determine paper size and column count
@@ -304,8 +308,8 @@ class PrintUtil {
     bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
 
     // Booking Details
-    bytes += generator.text("BOOKING ID: ${booking.bookingId}", styles: const PosStyles(align: PosAlign.left, bold: true));
-    bytes += generator.text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("BOOKING ID: ${encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId}", styles: const PosStyles(align: PosAlign.left, bold: true));
+    bytes += generator.text("Date & Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", styles: const PosStyles(align: PosAlign.left));
 
     String paymentModeStr = booking.paymentMode == 1 ? "CASH" : booking.paymentMode == 2 ? "UPI" : "QR";
     bytes += generator.text("Payment: $paymentModeStr", styles: const PosStyles(align: PosAlign.left, bold: false));
@@ -324,9 +328,9 @@ class PrintUtil {
     // QR Code - Size adjusted for paper width but always left aligned
     final QRSize qrSize = rollSize >= 80 ? QRSize.size6 : QRSize.size4;
     bytes += generator.qrcode(jsonEncode({
-      "BookingID": booking.bookingId,
+      "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
       "DeviceID": "NA",
-      "AccessDate": _formatDateRaw(booking.bookingTimeDate),
+      "AccessDate": DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
     }), size: qrSize, align: PosAlign.left);
     
     bytes += generator.feed(1);
@@ -400,8 +404,8 @@ class PrintUtil {
                 pw.Text("Location: ${booking.fullAddress}", style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.normal)),
                 pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
                 
-                pw.Text("BOOKING ID: ${booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                pw.Text("Date & Time: ${_formatDate(booking.bookingTimeDate)}", style: pw.TextStyle(fontSize: 11)),
+                pw.Text("BOOKING ID: ${encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                pw.Text("Date & Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", style: pw.TextStyle(fontSize: 11)),
                 
                 pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", style: pw.TextStyle(fontSize: 11)),
                 pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
@@ -425,9 +429,9 @@ class PrintUtil {
                   child: pw.BarcodeWidget(
                     barcode: pw.Barcode.qrCode(),
                     data: jsonEncode({
-                      "BookingID": encryptedBookingId ?? booking.bookingId,
+                      "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
                       "DeviceID": "NA",
-                      "AccessDate": booking.bookingTimeDate,
+                      "AccessDate": DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
                     }),
                     width: 100,
                     height: 100,
@@ -447,34 +451,17 @@ class PrintUtil {
     return doc;
   }
 
-  static String _formatDate(String dateString) {
-    try {
-      DateTime date = DateTime.parse(dateString);
-      return DateFormat('MMM dd, yyyy hh:mm a').format(date);
-    } catch (e) {
-      return dateString;
-    }
-  }
-
-  static String _formatDateRaw(String dateString) {
-    try {
-      DateTime date = DateTime.parse(dateString);
-      return DateFormat('yyyy-MM-dd HH:mm:ss').format(date.toLocal());
-    } catch (e) {
-      return dateString;
-    }
-  }
 
   static Map<String, dynamic> _buildPlutusPrintData(BookingDetailsModel booking, ServiceItem service, String? encryptedBookingId) {
     return {
-      "bookingId": booking.bookingId,
+      "bookingId": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
       "unitNo": booking.unitNo,
       "amount": booking.totalAmount,
       "service": service.servicesName,
       "qrData": jsonEncode({
-        "BookingID": encryptedBookingId ?? booking.bookingId,
+        "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
         "DeviceID": "NA",
-        "AccessDate": booking.bookingTimeDate,
+        "AccessDate": DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
       }),
     };
   }

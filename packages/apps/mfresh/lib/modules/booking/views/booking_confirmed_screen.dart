@@ -40,7 +40,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   }
 
   Future<void> _handlePrint(BookingDetailsModel booking) async {
-    final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
+    final encryptId = booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId']);
     
     // Use values from controller as source of truth (fetched based on unitId)
     final int rollSize = controller.paperRollSize.value;
@@ -53,7 +53,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       PrintUtil.printSystem(booking, encryptId, rollSize: rollSize);
     } else {
       // Direct Thermal: Try default first, fallback to selector
-      PrintUtil.handleExternalPrint(context, booking, useDefault: true, rollSize: rollSize);
+      PrintUtil.handleExternalPrint(context, booking, useDefault: true, rollSize: rollSize, encryptedBookingId: encryptId);
     }
   }
 
@@ -275,7 +275,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                       ),
                                     ),
                                     SizedBox(height: 12.h),
-                                    _buildDetailRow('Booking ID', booking.bookingId),
+                                    _buildDetailRow('Booking ID', booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? booking.bookingId)),
                                     _buildDetailRow('Booking Date & Time', formatBookingDate(booking.bookingTimeDate).toUpperCase()),
                                     _buildDetailRow('Payment method', booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'EXTERNAL QR'),
                                     
@@ -388,9 +388,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                 SizedBox(height: 16.h),
                                                 QrImageView(
                                                   data: jsonEncode({
-                                                    "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
+                                                    "BookingID": booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? booking.bookingId),
                                                     "DeviceID": 'NA',
-                                                    "AccessDate": formatDate(booking.bookingTimeDate),
+                                                    "AccessDate": formatDate(DateTime.now().toString()),
                                                   }),
                                                   version: QrVersions.auto,
                                                   size: 250.w,
@@ -417,9 +417,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                       ),
                                       child: QrImageView(
                                         data: jsonEncode({
-                                          "BookingID": Get.arguments?['encryptBookingId'] ?? booking.bookingId,
+                                          "BookingID": booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? booking.bookingId),
                                           "DeviceID": 'NA',
-                                          "AccessDate": formatDate(booking.bookingTimeDate),
+                                          "AccessDate": formatDate(DateTime.now().toString()),
                                         }),
                                         version: QrVersions.auto,
                                         size: 80.w,

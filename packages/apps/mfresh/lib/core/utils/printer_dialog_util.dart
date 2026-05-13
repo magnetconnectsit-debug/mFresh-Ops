@@ -59,7 +59,7 @@ class PrinterDialogUtil {
               subtitle: "Connect to Bluetooth, USB or WiFi thermal printers",
               onTap: () {
                 Get.back();
-                PrintUtil.handleExternalPrint(context, booking, useDefault: true, rollSize: rollSize);
+                PrintUtil.handleExternalPrint(context, booking, useDefault: true, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
               },
             ),
             const SizedBox(height: 12),
@@ -82,7 +82,7 @@ class PrinterDialogUtil {
   }
 
   /// UI for discovered devices
-  static void showExternalDeviceSelector(BuildContext context, BookingDetailsModel booking, {int rollSize = 80}) {
+  static void showExternalDeviceSelector(BuildContext context, BookingDetailsModel booking, {int rollSize = 80, String? encryptedBookingId}) {
     final discoveredPrinters = <Printer>[].obs;
     final isScanning = false.obs;
     StreamSubscription? subscription;
@@ -187,19 +187,19 @@ class PrinterDialogUtil {
                       // Bluetooth Section
                       if (blePrinters.isNotEmpty) ...[
                         _buildSectionHeader("Bluetooth Devices"),
-                        ...blePrinters.map((p) => _buildPrinterTile(context, p, Icons.bluetooth, booking, isScanning, subscription, rollSize)),
+                        ...blePrinters.map((p) => _buildPrinterTile(context, p, Icons.bluetooth, booking, isScanning, subscription, rollSize, encryptedBookingId)),
                       ],
                       
                       // WiFi / WiFi Direct Section
                       if (wifiPrinters.isNotEmpty) ...[
                         _buildSectionHeader("WiFi / Network Devices"),
-                        ...wifiPrinters.map((p) => _buildPrinterTile(context, p, Icons.wifi, booking, isScanning, subscription, rollSize)),
+                        ...wifiPrinters.map((p) => _buildPrinterTile(context, p, Icons.wifi, booking, isScanning, subscription, rollSize, encryptedBookingId)),
                       ],
 
                       // USB Section
                       if (usbPrinters.isNotEmpty) ...[
                         _buildSectionHeader("USB Devices"),
-                        ...usbPrinters.map((p) => _buildPrinterTile(context, p, Icons.usb, booking, isScanning, subscription, rollSize)),
+                        ...usbPrinters.map((p) => _buildPrinterTile(context, p, Icons.usb, booking, isScanning, subscription, rollSize, encryptedBookingId)),
                       ],
                     ],
                   ),
@@ -235,7 +235,7 @@ class PrinterDialogUtil {
     );
   }
 
-  static Widget _buildPrinterTile(BuildContext context, Printer printer, IconData icon, BookingDetailsModel booking, RxBool isScanning, StreamSubscription? subscription, int rollSize) {
+  static Widget _buildPrinterTile(BuildContext context, Printer printer, IconData icon, BookingDetailsModel booking, RxBool isScanning, StreamSubscription? subscription, int rollSize, String? encryptedBookingId) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Container(
@@ -262,12 +262,12 @@ class PrinterDialogUtil {
         subscription?.cancel();
         AppCommonToastMessage.show(message: "Connecting to ${printer.name}...", type: ToastType.info);
         await Future.delayed(const Duration(seconds: 1));
-        final success = await PrintUtil.printToExternal(booking, printer, rollSize: rollSize);
+        final success = await PrintUtil.printToExternal(booking, printer, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
         
         if (!success) {
           debugPrint("Print failed, re-showing device selector...");
           // Fallback: Re-show the selector if printing failed
-          showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize);
+          showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize, encryptedBookingId: encryptedBookingId);
         }
       },
     );

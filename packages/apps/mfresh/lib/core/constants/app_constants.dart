@@ -31,6 +31,7 @@ class AppConstants {
   static const String verifyOtpMember = '/customer/verify-otp-member';
   static const String bookingHistory = '/customer/bookinghistory';
   static const String deleteCart = '/customer/delete_cart';
+  static const String kioskScan = '/customer/kiosk-scan';
   static const String serviceImageBaseUrl = 'https://magnetconnects.com/public/images/';
   // endregion
 

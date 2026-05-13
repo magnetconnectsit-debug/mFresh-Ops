@@ -179,4 +179,27 @@ class CommonRepository extends GetxService {
       return false;
     }
   }
+
+  Future<Map<String, dynamic>?> kioskScan({
+    required String bookingId,
+    String deviceId = "NA",
+  }) async {
+    try {
+      final now = DateTime.now();
+      final formattedDate = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+
+      final response = await _apiService.post(
+        AppConstants.kioskScan,
+        data: {
+          "BookingID": bookingId,
+          "DeviceID": deviceId,
+          "AccessDate": formattedDate,
+        },
+      );
+
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
 }

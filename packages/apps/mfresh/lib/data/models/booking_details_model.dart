@@ -8,8 +8,8 @@ class BookingDetailsModel {
   final String fullAddress;
   final List<ServiceItem> services;
   final int paymentMode;
-
   final String paymentStatus;
+  final String? encryptBookingId;
 
   BookingDetailsModel({
     this.bookingId = '',
@@ -22,6 +22,7 @@ class BookingDetailsModel {
     this.services = const [],
     this.paymentMode = 0,
     this.paymentStatus = '',
+    this.encryptBookingId,
   });
 
   BookingDetailsModel copyWith({
@@ -35,6 +36,7 @@ class BookingDetailsModel {
     List<ServiceItem>? services,
     int? paymentMode,
     String? paymentStatus,
+    String? encryptBookingId,
   }) {
     return BookingDetailsModel(
       bookingId: bookingId ?? this.bookingId,
@@ -47,6 +49,7 @@ class BookingDetailsModel {
       services: services ?? this.services,
       paymentMode: paymentMode ?? this.paymentMode,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+      encryptBookingId: encryptBookingId ?? this.encryptBookingId,
     );
   }
 
@@ -66,6 +69,7 @@ class BookingDetailsModel {
           : [],
       paymentMode: int.tryParse(json['payment_mode']?.toString() ?? '') ?? 0,
       paymentStatus: json['payment_status'] ?? json['Payment_status'] ?? '',
+      encryptBookingId: json['encrypt_booking_id']?.toString(),
     );
   }
 }

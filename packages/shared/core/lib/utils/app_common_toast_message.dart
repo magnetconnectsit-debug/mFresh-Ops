@@ -16,9 +16,11 @@ class AppCommonToastMessage {
 
   final config = _ToastConfig.fromType(type);
 
-  if (Get.isSnackbarOpen) {
-    Get.closeAllSnackbars();
-  }
+  try {
+    if (Get.isSnackbarOpen) {
+      Get.closeAllSnackbars();
+    }
+  } catch (_) {}
 
   Get.showSnackbar(
     GetSnackBar(

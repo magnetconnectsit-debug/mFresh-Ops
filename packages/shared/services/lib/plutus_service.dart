@@ -10,6 +10,15 @@ class PlutusService extends GetxService {
     bindToService();
   }
 
+  Future<int> getCameraCount() async {
+    try {
+      final int count = await _channel.invokeMethod('getCameraCount');
+      return count;
+    } catch (e) {
+      return 0;
+    }
+  }
+
   Future<String> bindToService() async {
     try {
       final result = await _channel.invokeMethod('bindToService');
