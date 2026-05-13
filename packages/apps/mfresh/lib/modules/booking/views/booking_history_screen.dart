@@ -40,15 +40,98 @@ class BookingHistoryScreen extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () => controller.fetchBookingHistory(),
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: controller.bookings.length,
-            separatorBuilder: (_, __) => SizedBox(height: 12.h),
-            itemBuilder: (context, index) {
-              final booking = controller.bookings[index];
-              return _BookingCard(booking: booking);
-            },
+          child: Column(
+            children: [
+              if (controller.showFilters) ...[
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+                  child: Row(
+                    children: [
+                      // Date Filter Dropdown
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(color: AppColors.grey50),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: controller.selectedDateFilter.value,
+                              isExpanded: true,
+                              icon: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                              style: AppTextStyle.style_12_400(color: AppColors.black),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  controller.selectedDateFilter.value = newValue;
+                                }
+                              },
+                              items: ['All', 'Today', 'Yesterday'].map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      // Mode Filter Dropdown
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(color: AppColors.grey50),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: controller.selectedModeFilter.value,
+                              isExpanded: true,
+                              icon: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                              style: AppTextStyle.style_12_400(color: AppColors.black),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  controller.selectedModeFilter.value = newValue;
+                                }
+                              },
+                              items: ['All', 'Cash', 'Online'].map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(color: AppColors.grey50, thickness: 1),
+              ],
+              Expanded(
+                child: Obx(() {
+                  final list = controller.filteredBookings;
+                  if (list.isEmpty) {
+                    return Center(child: Text('No matching bookings', style: AppTextStyle.style_12_400(color: AppColors.grey200)));
+                  }
+                  return ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                    itemBuilder: (context, index) {
+                      final booking = list[index];
+                      return _BookingCard(booking: booking);
+                    },
+                  );
+                }),
+              ),
+            ],
           ),
         );
       }),

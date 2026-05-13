@@ -137,6 +137,7 @@ void main() async {
 
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());
+  Hive.registerAdapter(UserPermissionsAdapter());
   await initServices();
 
   ErrorWidget.builder = (FlutterErrorDetails details) {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
@@ -5,8 +6,10 @@ import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/data/models/unit_model.dart';
+import 'package:mfresh/data/models/user.dart';
 
 import 'package:services/phonepe_service.dart';
+import 'package:services/plutus_service.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
@@ -32,7 +35,7 @@ class ServiceItem {
 class ServiceDetailsController extends GetxController {
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
   final ProfileController _profileController = Get.find<ProfileController>();
-  // final PlutusService _plutusService = Get.find<PlutusService>();
+  final PlutusService _plutusService = Get.find<PlutusService>();
   final PhonePeService _phonePeService = Get.find<PhonePeService>();
 
   // Unit info
@@ -40,9 +43,7 @@ class ServiceDetailsController extends GetxController {
   final location = ''.obs;
   final unitImage = ''.obs;
   final printingType = 'thermal'.obs;
-  final paymentMode = 'phonepe'.obs;
   final paperRollSize = 80.obs;
-  final hasPermission = UnitPermission().obs;
 
   // Observable strings for UI summary
   final customerName = ''.obs;
@@ -68,6 +69,10 @@ class ServiceDetailsController extends GetxController {
   // Services list
   final services = <ServiceItem>[].obs;
 
+  // Permissions from User object
+  UserPermissions? get appPermissions =>
+      _profileController.user.value?.appPermissions;
+
   @override
   void onInit() {
     super.onInit();
@@ -78,11 +83,11 @@ class ServiceDetailsController extends GetxController {
       location.value = args['location']?.toString() ?? '';
       unitImage.value = args['unitImage']?.toString() ?? '';
       printingType.value = args['printingType']?.toString() ?? 'thermal';
-      paymentMode.value = args['paymentMode']?.toString() ?? 'phonepe';
-      paperRollSize.value = int.tryParse(args['paperRollSize']?.toString() ?? '80') ?? 80;
+      paperRollSize.value =
+          int.tryParse(args['paperRollSize']?.toString() ?? '80') ?? 80;
     }
 
-    if (unitNo.value.isNotEmpty && (args?['paymentMode'] == null)) {
+    if (unitNo.value.isNotEmpty && (args?['paperRollSize'] == null)) {
       _fetchUnitConfig();
     }
 
@@ -93,12 +98,19 @@ class ServiceDetailsController extends GetxController {
       mobileController.text = user.mob ?? '';
       customerName.value = user.name ?? '';
       customerPhone.value = user.mob ?? '';
+      
+      // If online_offline_toggle is false, force Online mode
+      final canToggle = user.appPermissions?.onlineOfflineToggle ?? false;
+      if (!canToggle) {
+        isOnline.value = true;
+      }
     }
 
     fetchServices();
   }
 
   Future<void> refreshData() async {
+    await _profileController.fetchProfile();
     resetAll();
     await Future.wait([
       _fetchUnitConfig(),
@@ -107,7 +119,8 @@ class ServiceDetailsController extends GetxController {
   }
 
   void resetAll() {
-    isOnline.value = false;
+    final canToggle = appPermissions?.onlineOfflineToggle ?? false;
+    isOnline.value = !canToggle ? true : false;
     isCustomer.value = true;
     isOtpSent.value = false;
     isOtpVerified.value = false;
@@ -179,22 +192,10 @@ class ServiceDetailsController extends GetxController {
       final config = await _commonRepository.getUnitConfig(unitId: unitNo.value);
       if (config != null) {
         printingType.value = config.printingType;
-        paymentMode.value = config.paymentMode;
         paperRollSize.value = config.paperRollSize;
-        hasPermission.value = config.permission;
-        
-        if (!hasPermission.value.isActive) {
-          services.clear();
-          AppCommonToastMessage.show(
-            message: "Access Denied for this unit",
-            type: ToastType.error,
-          );
-        } else {
-          fetchServices(); // Re-fetch if permission granted
-        }
         
         debugPrint(
-            "Unit Config Updated: Printing=${printingType.value}, Payment=${paymentMode.value}, RollSize=${paperRollSize.value}, Permission=${hasPermission.value.isActive}");
+            "Unit Config Updated: Printing=${printingType.value}, RollSize=${paperRollSize.value}");
       }
     } catch (e) {
       debugPrint("Failed to fetch unit config: $e");
@@ -399,13 +400,25 @@ class ServiceDetailsController extends GetxController {
           debugPrint("Calling _confirmSuccess for direct confirmation...");
           await _confirmSuccess(bookingId, encryptBookingId);
         } else if (isOnline.value && !isExternalQr) {
-          // Handle PhonePe Payment
-          await _handlePhonePePayment(
-            bookingId,
-            encryptBookingId,
-            total.toDouble(),
-            phone,
-          );
+          // Use PhonePe if payment_gateway is true, else use PineLabs
+          final usePhonePe = appPermissions?.paymentGateway ?? false;
+
+          if (usePhonePe) {
+            // Handle PhonePe Payment
+            await _handlePhonePePayment(
+              bookingId,
+              encryptBookingId,
+              total.toDouble(),
+              phone,
+            );
+          } else {
+            // Handle PineLabs Payment
+            await _handlePineLabsPayment(
+              bookingId,
+              encryptBookingId,
+              total.toDouble(),
+            );
+          }
         }
       }
     } catch (e) {
@@ -415,6 +428,68 @@ class ServiceDetailsController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> _handlePineLabsPayment(
+    String bookingId,
+    String encryptBookingId,
+    double amount,
+  ) async {
+    try {
+      AppCommonToastMessage.show(
+        message: "Initiating PineLabs Payment...",
+        type: ToastType.info,
+      );
+
+      final String amountInPaisa = (amount * 100).toInt().toString();
+
+      final paymentPayload = {
+        "Header": {
+          "ApplicationId": "com.example.mangnet_connect", // Whitelisted ID
+          "UserId": "user1234",
+          "MethodId": "1001",
+          "VersionNo": "1.0",
+        },
+        "Detail": {
+          "TransactionType": "4001",
+          "BillingRefNo": bookingId,
+          "TransactionAmount": amountInPaisa,
+        },
+      };
+
+      final result = await _plutusService.startTransaction(
+        jsonEncode(paymentPayload),
+      );
+
+      final Map<String, dynamic> data = jsonDecode(result);
+      final responseCode = data['Response']?['ResponseCode'];
+
+      if (responseCode == "0") {
+        AppCommonToastMessage.show(
+          message: "PineLabs Payment Successful",
+          type: ToastType.success,
+        );
+        await _confirmSuccess(
+          bookingId,
+          encryptBookingId,
+          phonePeData: {
+            'code': 'PAYMENT_SUCCESS',
+            'providerReferenceId': data['Response']?['RRN'] ?? "PINELABS_$bookingId",
+          },
+        );
+      } else {
+        String errorMsg = data['Response']?['ResponseMessage'] ?? "Payment failed on terminal";
+        AppCommonToastMessage.show(
+          message: "PineLabs Error: $errorMsg (Code: $responseCode)",
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: "PineLabs Error: $e",
+        type: ToastType.error,
+      );
     }
   }
 
@@ -447,6 +522,7 @@ class ServiceDetailsController extends GetxController {
           'bookingId': bookingId,
           'encryptBookingId': encryptBookingId,
           'paperRollSize': paperRollSize.value,
+          'printingType': printingType.value,
         },
       );
     } else {
@@ -517,8 +593,21 @@ class ServiceDetailsController extends GetxController {
             }
           }
         } else {
+          String rawError = sdkResponse['error']?.toString() ?? "";
+          String userFriendlyMsg = "Payment failed";
+
+          if (rawError.contains("USER_CANCEL")) {
+            userFriendlyMsg = "Transaction cancelled by user";
+          } else if (rawError.contains("TIMED_OUT")) {
+            userFriendlyMsg = "Payment timed out. Please try again.";
+          } else if (rawError.contains("NETWORK_ERROR")) {
+            userFriendlyMsg = "Network error. Please check your connection.";
+          } else if (rawError.isNotEmpty) {
+            userFriendlyMsg = "Payment Failed: $rawError";
+          }
+
           AppCommonToastMessage.show(
-            message: "Payment Failed: ${sdkResponse['error'] ?? 'User cancelled'}",
+            message: userFriendlyMsg,
             type: ToastType.error,
           );
         }
@@ -562,9 +651,18 @@ class ServiceDetailsController extends GetxController {
   }
 
   void toggleOnline() {
+    final canToggle = appPermissions?.onlineOfflineToggle ?? false;
+    if (!canToggle) {
+      AppCommonToastMessage.show(
+        message: "Offline mode is not allowed by your permissions",
+        type: ToastType.warning,
+      );
+      return;
+    }
     isOnline.value = !isOnline.value;
     fetchServices();
   }
+
   Future<bool> _showOtpBottomSheet(String phone) async {
     final TextEditingController bottomOtpController = TextEditingController();
     final RxBool isVerifying = false.obs;

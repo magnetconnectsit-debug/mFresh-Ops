@@ -3,12 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh/data/models/unit_model.dart';
+import 'package:mfresh/modules/dashboard/controllers/dashboard_controller.dart';
 
 class BookingDetailsController extends GetxController {
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
 
   final bookingDetails = Rxn<BookingDetailsModel>();
   final isLoading = false.obs;
+  
+  // Printer Config
+  final printingType = 'thermal'.obs;
+  final paperRollSize = 80.obs;
 
   Future<void> fetchBookingDetails(String bookingId) async {
     try {
@@ -25,11 +31,46 @@ class BookingDetailsController extends GetxController {
           fullAddress: "Puri Beach Road",
           services: [ServiceItem(servicesName: "Toilet - Male", quantity: "1")],
         );
+        printingType.value = 'thermal';
+        paperRollSize.value = 80;
         return;
       }
 
       var result = await _commonRepository.getBookingDetails(bookingId: bookingId);
       if (result != null) {
+        // Fetch Unit Config to get Printer Type and Roll Size
+        try {
+          UnitModel? unitConfig;
+          
+          // 1. Try to find in DashboardController cache first
+          try {
+            final dashController = Get.find<DashboardController>();
+            unitConfig = dashController.allUnitsList.firstWhereOrNull((u) => u.unitId == result!.unitNo);
+            if (unitConfig != null) {
+              debugPrint("BookingDetailsController: Found Unit Config in Dashboard cache");
+            }
+          } catch (e) {
+            debugPrint("DashboardController not found or error: $e");
+          }
+
+          // 2. Fallback to API if not found or cache failed
+          if (unitConfig == null) {
+            unitConfig = await _commonRepository.getUnitConfig(unitId: result.unitNo);
+            if (unitConfig != null) {
+              debugPrint("BookingDetailsController: Fetched Unit Config from API");
+            }
+          }
+
+          if (unitConfig != null) {
+            printingType.value = unitConfig.printingType;
+            paperRollSize.value = unitConfig.paperRollSize;
+            debugPrint("BookingDetailsController: FINAL CONFIG -> Type: ${printingType.value}, Size: ${paperRollSize.value}");
+          } else {
+            debugPrint("BookingDetailsController: Unit config not found anywhere for ${result.unitNo}");
+          }
+        } catch (e) {
+          debugPrint("Failed to fetch unit config in BookingDetailsController: $e");
+        }
         // ENRICHMENT: Match service names with unit services to get accurate prices
         try {
           final unitServices = await _commonRepository.getServices(

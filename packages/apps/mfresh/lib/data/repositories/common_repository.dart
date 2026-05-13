@@ -54,7 +54,11 @@ class CommonRepository extends GetxService {
       if (response != null && response['status'] == 'success') {
         final data = response['data'];
         if (data != null) {
-          return UnitModel.fromJson(data);
+          if (data is List && data.isNotEmpty) {
+            return UnitModel.fromJson(data[0]);
+          } else if (data is Map<String, dynamic>) {
+            return UnitModel.fromJson(data);
+          }
         }
       }
       return null;

@@ -15,6 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:services/storage_service.dart';
+import 'package:universal_ble/universal_ble.dart';
 import 'printer_dialog_util.dart';
 
 class PrintUtil {
@@ -74,12 +75,16 @@ class PrintUtil {
         if (_connectedPrinter != null && 
             _connectedPrinter!.address == defaultAddress && 
             (_connectedPrinter!.isConnected ?? false)) {
-          printToExternal(booking, _connectedPrinter!, rollSize: rollSize).then((success) {
-            if (!success) {
-              debugPrint("Default printer failed, opening selector...");
-              PrinterDialogUtil.showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize);
+          final success = await printToExternal(booking, _connectedPrinter!, rollSize: rollSize);
+          if (!success) {
+            debugPrint("Default printer connected but failed to print, opening selector...");
+            await Future.delayed(const Duration(milliseconds: 300));
+            if (context.mounted) {
+              PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
+            } else {
+              debugPrint("Context not mounted, cannot show selector.");
             }
-          });
+          }
           return;
         }
 
@@ -97,27 +102,39 @@ class PrintUtil {
     
     // We need to scan briefly to get the Printer object
     StreamSubscription? sub;
+    Timer? timeoutTimer;
     bool found = false;
+    bool attemptInProgress = false;
     
-    Timer(const Duration(seconds: 5), () {
-      if (!found) {
+    timeoutTimer = Timer(const Duration(seconds: 8), () {
+      if (!found && !attemptInProgress) {
         sub?.cancel();
+        debugPrint("Default printer search timed out.");
         AppCommonToastMessage.show(message: "Default printer not found. Please select manually.", type: ToastType.warning);
         PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
       }
     });
 
-    sub = _printerPlugin.devicesStream.listen((printers) {
+    sub = _printerPlugin.devicesStream.listen((printers) async {
       final printer = printers.where((p) => p.address == address).firstOrNull;
       if (printer != null && !found) {
         found = true;
+        attemptInProgress = true;
+        timeoutTimer?.cancel(); // CANCEL TIMER IMMEDIATELY
         sub?.cancel();
-        printToExternal(booking, printer, rollSize: rollSize).then((success) {
-          if (!success) {
-            debugPrint("Target printer failed, opening selector...");
-            PrinterDialogUtil.showExternalDeviceSelector(Get.context!, booking, rollSize: rollSize);
+        
+        final success = await printToExternal(booking, printer, rollSize: rollSize);
+        attemptInProgress = false;
+        
+        if (!success) {
+          debugPrint("Target printer failed, opening selector dialog now...");
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (context.mounted) {
+            PrinterDialogUtil.showExternalDeviceSelector(context, booking, rollSize: rollSize);
+          } else {
+            debugPrint("Context not mounted, cannot show selector.");
           }
-        });
+        }
       }
     });
     _printerPlugin.getPrinters(connectionTypes: [ConnectionType.BLE, ConnectionType.USB, ConnectionType.NETWORK]);
@@ -165,14 +182,14 @@ class PrintUtil {
 
       if (connected) {
         // Wait for BLE handshake to fully settle before sending data
-        await Future.delayed(const Duration(seconds: 1)); 
+        await Future.delayed(const Duration(seconds: 2)); 
         
         _connectedPrinter = printer;
         lastFailedAddress = null; // Clear failure state on success
         if (printer.address != null) {
           Get.find<StorageService>().saveDefaultPrinter(printer.address!, printer.name ?? "BT Printer");
         }
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(seconds: 1));
 
         for (int i = 0; i < booking.services.length; i++) {
           final service = booking.services[i];
@@ -191,8 +208,19 @@ class PrintUtil {
               await _printerPlugin
                   .printData(printer, bytes, longData: true, chunkSize: 128)
                   .timeout(const Duration(seconds: 15));
+                  
+              // Real-time verification using UniversalBle directly
+              if (printer.connectionType == ConnectionType.BLE && printer.address != null) {
+                final bleState = await UniversalBle.getConnectionState(printer.address!);
+                if (bleState != BleConnectionState.connected) {
+                  debugPrint("UniversalBle detected disconnected state ($bleState). Assuming failure.");
+                  _connectedPrinter = null;
+                  return false;
+                }
+              }
             } catch (e) {
               debugPrint("Data transmission error: $e");
+              _connectedPrinter = null; // Clear state so we reconnect next time
               return false;
             }
             
@@ -216,28 +244,35 @@ class PrintUtil {
         return false;
       }
     } catch (e) {
-      debugPrint("Print Error: $e");
+      debugPrint("Print Error Caught in printToExternal: $e");
       final errorStr = e.toString();
-      if (errorStr.contains("deviceNotFound") || errorStr.contains("DEVICE_NOT_FOUND")) {
-        debugPrint("Stale printer detected, clearing default...");
+      if (errorStr.contains("deviceNotFound") || errorStr.contains("DEVICE_NOT_FOUND") || errorStr.contains("133")) {
+        debugPrint("Explicitly caught DEVICE_NOT_FOUND or GATT error");
         lastFailedAddress = printer.address;
         Get.find<StorageService>().clearDefaultPrinter();
-        AppCommonToastMessage.show(message: "Printer not found. Please select again.", type: ToastType.warning);
+        AppCommonToastMessage.show(message: "Printer connection lost. Please select again.", type: ToastType.warning);
       } else {
         AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);
       }
       return false;
     } finally {
-      debugPrint("Print process finished. Cleaning up loading dialog...");
-      // Ensure the loading dialog is closed even if multiple overlays exist
+      debugPrint("Print process finished. Cleaning up loading dialogs...");
+      
+      // Use Navigator.pop specifically for dialogs to avoid hitting snackbars
+      // which causes "Cannot remove entry from a disposed snackbar" crash in GetX.
+      // We check Get.isDialogOpen to ensure we only pop if a dialog is actually present.
       if (Get.isDialogOpen == true) {
-        Get.back();
+        try {
+          Navigator.of(Get.context!, rootNavigator: true).pop();
+        } catch (e) {
+          debugPrint("Error popping dialog: $e");
+          // Fallback if context is invalid
+          if (Get.isDialogOpen == true) Get.back();
+        }
       }
-      // Second check for safety
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (Get.isDialogOpen == true) {
-        Get.back();
-      }
+      
+      // Safety delay to ensure GetX stack is settled
+      await Future.delayed(const Duration(milliseconds: 300));
     }
   }
 

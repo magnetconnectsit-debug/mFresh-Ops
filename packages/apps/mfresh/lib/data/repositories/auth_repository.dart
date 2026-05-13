@@ -22,9 +22,8 @@ class AuthRepository extends GetxService {
         final String token = response['data']['access_token'];
         await _storageService.saveToken(token);
         
-        // Return a basic user object since login doesn't return full details
-        // We'll fetch the full profile in the controller or splash
-        final user = User(id: 0, name: 'User'); 
+        // Parse user from the whole response (contains 'user' and 'permissions' inside 'data')
+        final user = User.fromJson(response); 
         await _storageService.saveUser(user);
         
         return user;

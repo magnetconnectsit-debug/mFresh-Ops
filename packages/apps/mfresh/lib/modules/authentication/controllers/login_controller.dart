@@ -35,7 +35,7 @@ class LoginController extends GetxController {
     // Set default credentials in debug mode for easier testing
     if (kDebugMode && mobileController.text.isEmpty && passwordController.text.isEmpty) {
       mobileController.text = "6370658717";
-      passwordController.text = "1234";
+      passwordController.text = "12345";
     }
   }
 

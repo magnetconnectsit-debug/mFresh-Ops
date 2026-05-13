@@ -5,9 +5,7 @@ class UnitModel {
   final String unitLocation;
   final String timing;
   final String printingType; // 'system' or 'thermal'
-  final String paymentMode;   // 'pinelab' or 'phonepe'
   final int paperRollSize;    // 58 or 80
-  final UnitPermission permission;
 
   UnitModel({
     required this.id,
@@ -16,21 +14,35 @@ class UnitModel {
     required this.unitLocation,
     required this.timing,
     this.printingType = 'thermal',
-    this.paymentMode = 'phonepe',
     this.paperRollSize = 80,
-    UnitPermission? permission,
-  }) : permission = permission ?? UnitPermission();
+  });
 
   factory UnitModel.fromJson(Map<String, dynamic> json) {
     String img = (json['Unit_Image'] ?? '').toString();
     if (img.isNotEmpty && !img.startsWith('http')) {
       img = 'https://$img';
     }
-    
-    // Parse permission object if it exists, otherwise use defaults
-    UnitPermission? perm;
-    if (json['permission'] != null && json['permission'] is Map<String, dynamic>) {
-      perm = UnitPermission.fromJson(json['permission']);
+
+    // Map printer_type: "0" -> thermal, "1" -> system
+    String pType = 'thermal';
+    final dynamic apiPType = json['printer_type'];
+    if (apiPType != null) {
+      if (apiPType.toString() == "1") {
+        pType = 'system';
+      } else if (apiPType.toString() == "0") {
+        pType = 'thermal';
+      }
+    }
+
+    // Map paper_roll_size: "2" -> 58mm, "3" -> 80mm
+    int pRollSize = 80;
+    final dynamic apiRollSize = json['paper_roll_size'];
+    if (apiRollSize != null) {
+      if (apiRollSize.toString() == "2") {
+        pRollSize = 58;
+      } else if (apiRollSize.toString() == "3") {
+        pRollSize = 80;
+      }
     }
 
     return UnitModel(
@@ -39,33 +51,8 @@ class UnitModel {
       unitImage: img,
       unitLocation: json['Unit_location'] ?? '',
       timing: json['timing'] ?? '',
-      printingType: json['printing_type'] ?? 'thermal',
-      paymentMode: json['payment_mode'] ?? 'phonepe',
-      paperRollSize: int.tryParse(json['paper_roll_size']?.toString() ?? '80') ?? 80,
-      permission: perm,
-    );
-  }
-}
-
-class UnitPermission {
-  final bool isActive;
-  final bool allowOnlinePayment;
-  final bool allowThermalPrinting;
-  final bool allowSystemPrinting;
-
-  UnitPermission({
-    this.isActive = true,
-    this.allowOnlinePayment = true,
-    this.allowThermalPrinting = true,
-    this.allowSystemPrinting = true,
-  });
-
-  factory UnitPermission.fromJson(Map<String, dynamic> json) {
-    return UnitPermission(
-      isActive: json['is_active'] ?? true,
-      allowOnlinePayment: json['allow_online_payment'] ?? true,
-      allowThermalPrinting: json['allow_thermal_printing'] ?? true,
-      allowSystemPrinting: json['allow_system_printing'] ?? true,
+      printingType: pType,
+      paperRollSize: pRollSize,
     );
   }
 }

@@ -161,7 +161,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         Obx(() {
                           final user = profileController.user.value;
-                          if (user != null && user.role == "3") {
+                          final bool canScan = user?.appPermissions?.scannerAccess ?? false;
+                          
+                          if (user != null && canScan) {
                             return Align(
                               alignment: Alignment.centerRight,
                               child: InkWell(
@@ -169,34 +171,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   final scannerPayload = {
                                     "Header": {
                                       "ApplicationId": AppConfig.applicationId,
-                                      "UserId": "user1234",
+                                      "UserId": user.customeUserID ?? "NA",
                                       "MethodId": "1007",
                                       "VersionNo": "1.0",
                                     },
                                   };
                                   try {
-                                    final result = await plutusService
-                                        .startScanner(
-                                          jsonEncode(scannerPayload),
-                                        );
+                                    debugPrint("Starting Scanner with payload: ${jsonEncode(scannerPayload)}");
+                                    final result = await plutusService.startScanner(jsonEncode(scannerPayload));
+                                    debugPrint("Scanner Result: $result");
+                                    
                                     final data = jsonDecode(result);
-                                    if (data['Response']?['ScannedValue'] !=
-                                        null) {
-                                      String scannedUnitId =
-                                          data['Response']['ScannedValue'];
+                                    if (data['Response']?['ScannedValue'] != null && data['Response']['ScannedValue'].toString().isNotEmpty) {
+                                      String scannedUnitId = data['Response']['ScannedValue'].toString();
+                                      
                                       // Find the unit in the list to get its location
-                                      final unit = dashboardController
-                                          .allUnitsList
-                                          .firstWhere(
-                                            (u) => u.unitId == scannedUnitId,
-                                            orElse: () => UnitModel(
-                                              id: 0,
-                                              unitId: scannedUnitId,
-                                              unitImage: '',
-                                              unitLocation: 'Scanned Location',
-                                              timing: '',
-                                            ),
-                                          );
+                                      final unit = dashboardController.allUnitsList.firstWhere(
+                                        (u) => u.unitId == scannedUnitId,
+                                        orElse: () => UnitModel(
+                                          id: 0,
+                                          unitId: scannedUnitId,
+                                          unitImage: '',
+                                          unitLocation: 'Scanned Location',
+                                          timing: '',
+                                        ),
+                                      );
 
                                       Get.toNamed(
                                         AppRoutes.serviceDetails,
@@ -207,13 +206,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         },
                                       );
                                     } else {
-                                      AppCommonToastMessage.show(
-                                        message: "Scanner: No value scanned",
-                                        type: ToastType.info,
-                                      );
+                                      String errorMsg = data['Response']?['ResponseMessage'] ?? "No value scanned";
+                                      AppCommonToastMessage.show(message: "Scanner: $errorMsg", type: ToastType.info);
                                     }
                                   } catch (e) {
                                     debugPrint("Scanner Error: $e");
+                                    AppCommonToastMessage.show(message: "Scanner Error: ${e.toString()}", type: ToastType.error);
                                   }
                                 },
                                 child: Container(
@@ -223,9 +221,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(
-                                          alpha: 0.2,
-                                        ),
+                                        color: Colors.grey.withValues(alpha: 0.2),
                                         blurRadius: 5,
                                         spreadRadius: 1,
                                         offset: const Offset(0, 2),

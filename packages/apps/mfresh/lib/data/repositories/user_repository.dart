@@ -13,7 +13,7 @@ class UserRepository extends GetxService {
     try {
       final response = await _apiService.post(AppConstants.profile);
       if (response != null && response['data'] != null) {
-        final user = User.fromJson(response['data']);
+        final user = User.fromJson(response);
         await _storageService.saveUser(user);
         return user;
       }

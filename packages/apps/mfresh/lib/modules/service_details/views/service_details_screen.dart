@@ -130,62 +130,70 @@ class ServiceDetailsScreen extends StatelessWidget {
               child: Row(
                 children: [
                   const Spacer(),
-                  // Customer radio
-                  Obx(
-                    () => GestureDetector(
-                      onTap: () => controller.toggleCustomerType(true),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            controller.isCustomer.value
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_off,
-                            size: 16.sp,
-                            color: AppColors.primaryVariant,
+                  // Customer / Membership radio toggle
+                  Obx(() {
+                    final canToggle = controller.appPermissions?.customerMemberRadio ?? false;
+                    if (!canToggle) return const SizedBox.shrink();
+                    
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () => controller.toggleCustomerType(true),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                controller.isCustomer.value
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                size: 16.sp,
+                                color: AppColors.primaryVariant,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'Customer',
+                                style: AppTextStyle.style_12_600(
+                                  color: AppColors.black,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 4.w),
-                          Text(
-                            'Customer',
-                            style: AppTextStyle.style_12_600(
-                              color: AppColors.black,
-                            ),
+                        ),
+                        SizedBox(width: 20.w),
+                        GestureDetector(
+                          onTap: () => controller.toggleCustomerType(false),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                !controller.isCustomer.value
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                size: 16.sp,
+                                color: AppColors.primaryVariant,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'Membership',
+                                style: AppTextStyle.style_12_600(
+                                  color: AppColors.black,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 20.w),
-                  // Membership radio
-                  Obx(
-                    () => GestureDetector(
-                      onTap: () => controller.toggleCustomerType(false),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            !controller.isCustomer.value
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_off,
-                            size: 16.sp,
-                            color: AppColors.primaryVariant,
-                          ),
-                          SizedBox(width: 4.w),
-                          Text(
-                            'Membership',
-                            style: AppTextStyle.style_12_600(
-                              color: AppColors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                        ),
+                        SizedBox(width: 20.w),
+                      ],
+                    );
+                  }),
                   const Spacer(),
                   // Online toggle
-                  // Online toggle
-                  Obx(
-                    () => Column(
+                  Obx(() {
+                    final canToggle = controller.appPermissions?.onlineOfflineToggle ?? false;
+                    if (!canToggle) return const SizedBox.shrink();
+                    
+                    return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -226,8 +234,8 @@ class ServiceDetailsScreen extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  ),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -380,27 +388,36 @@ class ServiceDetailsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 6.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey50.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: TextField(
-                          controller: controller.addPhoneController,
-                          keyboardType: TextInputType.phone,
-                          maxLength: 10,
-                          style: AppTextStyle.style_12_400(color: AppColors.black),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            counterText: "",
-                            hintText: 'Additional Phone',
-                            hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-                          ),
-                        ),
-                      ),
+                      Obx(() {
+                        final canShowAddPhone = controller.appPermissions?.additionalPhoneNo ?? false;
+                        if (!canShowAddPhone) return const SizedBox.shrink();
+                        
+                        return Column(
+                          children: [
+                            SizedBox(height: 6.h),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: TextField(
+                                controller: controller.addPhoneController,
+                                keyboardType: TextInputType.phone,
+                                maxLength: 10,
+                                style: AppTextStyle.style_12_400(color: AppColors.black),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  counterText: "",
+                                  hintText: 'Additional Phone',
+                                  hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
                       
                       // Membership Verification (Restored from old project)
                       Obx(() => !controller.isCustomer.value
@@ -570,36 +587,41 @@ class ServiceDetailsScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.black.withValues(alpha: 0.1),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
+                                Obx(() {
+                                  final canShowExternalQr = (controller.appPermissions?.externalQr ?? false) && controller.isOnline.value;
+                                  if (!canShowExternalQr) return const SizedBox.shrink();
+                                  
+                                  return Expanded(
+                                    child: Container(
+                                      margin: EdgeInsets.only(left: 12.w),
+                                      decoration: BoxDecoration(
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.black.withValues(alpha: 0.1),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: () => controller.initiateBooking(
+                                          isExternalQr: true,
                                         ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton(
-                                      onPressed: () => controller.initiateBooking(
-                                        isExternalQr: true,
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.grey400,
-                                        padding: EdgeInsets.symmetric(vertical: 12.h), 
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10.r),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.grey400,
+                                          padding: EdgeInsets.symmetric(vertical: 12.h), 
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10.r),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'External QR Payment',
+                                          style: AppTextStyle.style_12_600(color: AppColors.white),
                                         ),
                                       ),
-                                      child: Text(
-                                        'External QR Payment',
-                                        style: AppTextStyle.style_12_600(color: AppColors.white),
-                                      ),
                                     ),
-                                  ),
-                                ),
+                                  );
+                                }),
                               ],
                             )),
                     ],
