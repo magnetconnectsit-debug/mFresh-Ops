@@ -273,7 +273,7 @@ class SupportTicketsScreen extends StatelessWidget {
 
   Widget _buildSingleDropdown<T>(String label, T? value, List<DropdownMenuItem<T>> items, Function(T?) onChanged) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       items: items,
       onChanged: onChanged,
       isExpanded: true,

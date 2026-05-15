@@ -164,78 +164,78 @@ class _BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(14.w),
-      decoration: AppColors.appCardDecoration(
-        borderColor: AppColors.grey50,
-        containerColor: AppColors.white,
-        borderRadius: 8,
-        isShadow: true,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row: Booking ID + Amount
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'BOOKING ID: ${booking.bookingId}',
-                style: AppTextStyle.style_14_600(color: AppColors.black),
-              ),
-              Text(
-                'Rs ${booking.totalAmount}',
-                style: AppTextStyle.style_14_600(color: AppColors.primary),
-              ),
-            ],
-          ),
+    return GestureDetector(
+      onTap: () {
+        Get.toNamed(
+          AppRoutes.bookingConfirmed,
+          arguments: {
+            'bookingId': booking.bookingId,
+            'encryptBookingId': booking.encryptBookingId,
+          },
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(14.w),
+        decoration: AppColors.appCardDecoration(
+          borderColor: AppColors.grey50,
+          containerColor: AppColors.white,
+          borderRadius: 8,
+          isShadow: true,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row: Booking ID + Amount
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'BOOKING ID: ${booking.bookingId}',
+                  style: AppTextStyle.style_14_600(color: AppColors.black),
+                ),
+                Text(
+                  'Rs ${booking.totalAmount}',
+                  style: AppTextStyle.style_14_600(color: AppColors.primary),
+                ),
+              ],
+            ),
 
-          SizedBox(height: 4.h),
+            SizedBox(height: 4.h),
 
-          // Date & Time
-          Row(
-            children: [
-              Text(
-                _formatDate(booking.createdAt),
-                style: AppTextStyle.style_10_400(color: AppColors.grey200),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: Text(
-                  '●',
+            // Date & Time
+            Row(
+              children: [
+                Text(
+                  _formatDate(booking.createdAt),
                   style: AppTextStyle.style_10_400(color: AppColors.grey200),
                 ),
-              ),
-              Text(
-                _formatTime(booking.createdAt),
-                style: AppTextStyle.style_10_400(color: AppColors.grey200),
-              ),
-            ],
-          ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  child: Text(
+                    '●',
+                    style: AppTextStyle.style_10_400(color: AppColors.grey200),
+                  ),
+                ),
+                Text(
+                  _formatTime(booking.createdAt),
+                  style: AppTextStyle.style_10_400(color: AppColors.grey200),
+                ),
+              ],
+            ),
 
-          SizedBox(height: 2.h),
+            SizedBox(height: 2.h),
 
-          // Unit No
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Unit No.: ${booking.unitNo}',
-                style: AppTextStyle.style_10_400(color: AppColors.grey200),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () {
-                    Get.toNamed(
-                      AppRoutes.bookingConfirmed,
-                      arguments: {
-                        'bookingId': booking.bookingId,
-                        'encryptBookingId': booking.encryptBookingId,
-                      },
-                    );
-                  },
+            // Unit No
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Unit No.: ${booking.unitNo}',
+                  style: AppTextStyle.style_10_400(color: AppColors.grey200),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -254,10 +254,10 @@ class _BookingCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

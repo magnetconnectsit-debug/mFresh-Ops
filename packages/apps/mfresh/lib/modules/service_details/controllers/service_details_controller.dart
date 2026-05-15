@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
-import 'package:mfresh/data/models/unit_model.dart';
 import 'package:mfresh/data/models/user.dart';
 
 import 'package:services/phonepe_service.dart';
@@ -15,6 +14,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pinput/pinput.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class ServiceItem {
   final String assignServiceId;
@@ -400,23 +400,23 @@ class ServiceDetailsController extends GetxController {
           debugPrint("Calling _confirmSuccess for direct confirmation...");
           await _confirmSuccess(bookingId, encryptBookingId);
         } else if (isOnline.value && !isExternalQr) {
-          // Use PhonePe if payment_gateway is true, else use PineLabs
-          final usePhonePe = appPermissions?.paymentGateway ?? false;
+          // Use PineLabs if payment_gateway is true, else use PhonePe
+          final usePineLabs = appPermissions?.paymentGateway ?? false;
 
-          if (usePhonePe) {
+          if (usePineLabs) {
+            // Handle PineLabs Payment
+            await _handlePineLabsPayment(
+              bookingId,
+              encryptBookingId,
+              total.toDouble(),
+            );
+          } else {
             // Handle PhonePe Payment
             await _handlePhonePePayment(
               bookingId,
               encryptBookingId,
               total.toDouble(),
               phone,
-            );
-          } else {
-            // Handle PineLabs Payment
-            await _handlePineLabsPayment(
-              bookingId,
-              encryptBookingId,
-              total.toDouble(),
             );
           }
         }
@@ -446,7 +446,7 @@ class ServiceDetailsController extends GetxController {
 
       final paymentPayload = {
         "Header": {
-          "ApplicationId": "com.example.mangnet_connect", // Whitelisted ID
+          "ApplicationId": "com.mFresh", // Whitelisted ID
           "UserId": "user1234",
           "MethodId": "1001",
           "VersionNo": "1.0",
@@ -780,14 +780,7 @@ class ServiceDetailsController extends GetxController {
                     elevation: 0,
                   ),
                   child: isVerifying.value
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: AppColors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                      ? const CustomAppLoader(size: 20, strokeWidth: 1.5)
                       : Text(
                           'VERIFY & PROCEED',
                           style: AppTextStyle.style_14_600(

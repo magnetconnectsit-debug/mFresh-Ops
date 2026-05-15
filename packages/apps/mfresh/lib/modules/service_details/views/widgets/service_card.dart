@@ -1,6 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -27,44 +25,15 @@ class ServiceCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: AppColors.pineOrange.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10.r),
-              child: service.image != null && service.image!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: service.image!,
-                      fit: BoxFit.contain,
-                      placeholder: (context, url) => Center(
-                        child: Icon(
-                          Icons.image,
-                          color: AppColors.pineOrange,
-                          size: 24.sp,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Center(
-                        child: Icon(
-                          Icons.image,
-                          color: AppColors.pineOrange,
-                          size: 24.sp,
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Icon(
-                        Icons.image,
-                        color: AppColors.pineOrange,
-                        size: 24.sp,
-                      ),
-                    ),
-            ),
+          AppImageView(
+            imageUrl: service.image!,
+            height: 50.w,
+            width: 50.w,
+            borderRadius: 10.r,
+            fit: BoxFit.fill,
+            backgroundColor: AppColors.primary,
           ),
-          SizedBox(width: 6.w),
+          SizedBox(width: 4.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,13 +50,13 @@ class ServiceCard extends StatelessWidget {
                   children: [
                     Text(
                       '₹ ${service.price}',
-                      style: AppTextStyle.style_10_600(
-                        color: AppColors.pineBlue,
-                      ),
+                      style: AppTextStyle.style_10_600(color: AppColors.black),
                     ),
                     Text(
                       ' / use',
-                      style: AppTextStyle.style_8_400(color: AppColors.grey300),
+                      style: AppTextStyle.style_10_500(
+                        color: AppColors.grey300,
+                      ),
                     ),
                   ],
                 ),
@@ -117,7 +86,9 @@ class ServiceCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.w900,
-                                color: isAdded ? AppColors.white : themeColor,
+                                color: isAdded
+                                    ? AppColors.white
+                                    : AppColors.black,
                                 height: 1,
                               ),
                             ),
@@ -126,7 +97,7 @@ class ServiceCard extends StatelessWidget {
                         Text(
                           '${service.quantity.value}',
                           style: AppTextStyle.style_12_700(
-                            color: isAdded ? AppColors.white : themeColor,
+                            color: isAdded ? AppColors.white : AppColors.black,
                           ),
                         ),
                         GestureDetector(
@@ -140,7 +111,9 @@ class ServiceCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.w900,
-                                color: isAdded ? AppColors.white : themeColor,
+                                color: isAdded
+                                    ? AppColors.white
+                                    : AppColors.black,
                                 height: 1,
                               ),
                             ),

@@ -13,10 +13,11 @@ import 'package:services/plutus_service.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
 import 'package:mfresh/core/utils/print_util.dart';
-import 'package:mfresh/core/utils/printer_dialog_util.dart';
+import 'package:mfresh/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/storage_service.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class BookingConfirmedScreen extends StatefulWidget {
   const BookingConfirmedScreen({super.key});
@@ -28,7 +29,7 @@ class BookingConfirmedScreen extends StatefulWidget {
 class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   final controller = Get.put(BookingDetailsController());
   final plutusService = Get.find<PlutusService>();
-  final profileController = Get.find<ProfileController>();
+  final profileController = Get.put(ProfileController());
 
   @override
   void initState() {
@@ -114,20 +115,38 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
         ),
         body: Stack(
           children: [
-            Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
+              Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CustomAppLoader(size: 60));
+                }
 
-              final booking = controller.bookingDetails.value;
-              if (booking == null) {
-                return const Center(child: Text("No booking details available"));
-              }
+                final booking = controller.bookingDetails.value;
+                if (booking == null) {
+                  return const Center(
+                    child: Text("No booking details available"),
+                  );
+                }
 
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                child: Column(
-                  children: [
+                return RefreshIndicator(
+                  color: const Color(0xFFF15A22),
+                  onRefresh: () async {
+                    // Re-fetch everything to update permissions and printer config
+                    await Future.wait([
+                      profileController.fetchProfile(),
+                      Get.find<DashboardController>().fetchUnits(),
+                      controller.fetchBookingDetails(
+                        controller.bookingDetails.value?.bookingId ?? "",
+                      ),
+                    ]);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 10.h,
+                    ),
+                    child: Column(
+                      children: [
                     // Main Ticket Card
                     Container(
                       width: double.infinity,
@@ -275,7 +294,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                       ),
                                     ),
                                     SizedBox(height: 12.h),
-                                    _buildDetailRow('Booking ID', booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? booking.bookingId)),
+                                    _buildDetailRow('Booking ID', booking.bookingId),
                                     _buildDetailRow('Booking Date & Time', formatBookingDate(booking.bookingTimeDate).toUpperCase()),
                                     _buildDetailRow('Payment method', booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'EXTERNAL QR'),
                                     
@@ -296,7 +315,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                         SizedBox(width: 8.w),
                                         GestureDetector(
                                           onTap: () {
-                                            final encryptId = Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId'];
+                                            final encryptId = booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId']);
                                             final int rollSize = int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? '58') ?? 58;
                                             PrintUtil.shareSystem(booking, encryptId, rollSize: rollSize);
                                           },
@@ -469,9 +488,10 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                     ),
                     SizedBox(height: 40.h),
                   ],
-                ),
-              );
-            }),
+                  ),
+                  ),
+                );
+              }),
 
             // Left-Center Back Arrow Button
             Positioned(

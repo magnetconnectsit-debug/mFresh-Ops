@@ -85,4 +85,38 @@ class AuthRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.signup,
+        data: {
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+
+      if (response != null && response['data'] != null && response['data']['access_token'] != null) {
+        final String token = response['data']['access_token'];
+        await _storageService.saveToken(token);
+        
+        final user = User.fromJson(response); 
+        await _storageService.saveUser(user);
+        
+        return response;
+      }
+      return null;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

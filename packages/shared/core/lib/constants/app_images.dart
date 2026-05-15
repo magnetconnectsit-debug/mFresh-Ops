@@ -8,6 +8,7 @@ class AppImages {
   static const String dashboardBanner = 'assets/images/40c1c5d7b2b850b4200197afa18d879e.jpeg';
   static const String scanIcon = 'assets/images/bar_code_scan.png';
   static const String unitCard = 'assets/images/unit_card.jpeg';
+  static const String mfreshFullLogo = 'assets/images/mfreshlogo.png';
 }
 
 

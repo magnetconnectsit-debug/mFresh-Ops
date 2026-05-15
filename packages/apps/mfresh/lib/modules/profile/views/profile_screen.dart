@@ -6,20 +6,44 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  void _showEditNameDialog(BuildContext context, ProfileController controller) {
+  void _showEditProfileDialog(BuildContext context, ProfileController controller) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Profile Name',
+        title: Text('Edit Profile',
             style: AppTextStyle.style_16_600(color: AppColors.black)),
-        content: TextField(
-          controller: controller.nameController,
-          decoration: const InputDecoration(
-            hintText: 'Enter your name',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller.nameController,
+                decoration: const InputDecoration(labelText: 'Name', hintText: 'Enter your name'),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: controller.emailController,
+                decoration: const InputDecoration(labelText: 'Email', hintText: 'Enter your email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: controller.mobileController,
+                decoration: const InputDecoration(labelText: 'Mobile', hintText: 'Enter your mobile number'),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: controller.passwordController,
+                decoration: const InputDecoration(labelText: 'Password', hintText: 'Enter your password'),
+                obscureText: true,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -30,11 +54,11 @@ class ProfileScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              controller.updateProfileName();
+              controller.updateFullProfile();
               Get.back();
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text('Save',
+            child: Text('Save Changes',
                 style: AppTextStyle.style_14_400(color: AppColors.white)),
           ),
         ],
@@ -125,9 +149,7 @@ class ProfileScreen extends StatelessWidget {
                                     imageUrl: controller.userImage,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => const Center(
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: AppColors.white)),
+                                        child: CustomAppLoader(size: 30, strokeWidth: 1.5)),
                                     errorWidget: (context, url, error) => Icon(
                                       Icons.person,
                                       size: 50.sp,
@@ -194,7 +216,7 @@ class ProfileScreen extends StatelessWidget {
                     Align(
                       alignment: Alignment.bottomRight,
                       child: GestureDetector(
-                        onTap: () => _showEditNameDialog(context, controller),
+                        onTap: () => _showEditProfileDialog(context, controller),
                         child: Padding(
                           padding: EdgeInsets.only(top: 8.h),
                           child: Row(

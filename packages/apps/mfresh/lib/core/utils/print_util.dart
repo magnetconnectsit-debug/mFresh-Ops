@@ -16,6 +16,7 @@ import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:services/storage_service.dart';
 import 'printer_dialog_util.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class PrintUtil {
   static final PlutusService _plutusService = Get.find<PlutusService>();
@@ -151,7 +152,7 @@ class PrintUtil {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: Color(0xFFF15A22)),
+              CustomAppLoader(size: 60),
               SizedBox(height: 16),
               Text("Printing...", style: TextStyle(color: Colors.white, fontSize: 14, decoration: TextDecoration.none)),
             ],

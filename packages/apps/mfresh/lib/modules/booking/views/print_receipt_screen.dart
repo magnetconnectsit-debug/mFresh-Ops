@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:mfresh/core/utils/print_util.dart';
 import 'package:core/constants/app_images.dart';
-import 'package:mfresh/core/utils/printer_dialog_util.dart';
 import 'package:mfresh/routes/app_routes.dart';
 
 class PrintReceiptScreen extends StatelessWidget {
@@ -137,7 +136,7 @@ class PrintReceiptScreen extends StatelessWidget {
             ),
             
             // Thermal Paper Bottom
-            Container(
+            SizedBox(
               height: 20.h,
               width: double.infinity,
               child: _buildDashedLine(),

@@ -193,41 +193,44 @@ class UserAdapter extends TypeAdapter<User> {
   @override
   User read(BinaryReader reader) {
     final numOfFields = reader.readByte();
-    final id = reader.read();
-    final name = reader.read();
-    final email = reader.read();
-    final role = reader.read();
-    final mob = reader.read();
-    final profileImage = reader.read();
-    final appPermissions = reader.read();
-    final customeUserID = reader.read();
-    final unitId = reader.read();
-
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
     return User(
-      id: id,
-      name: name,
-      email: email,
-      role: role,
-      mob: mob,
-      profileImage: profileImage,
-      appPermissions: appPermissions as UserPermissions?,
-      customeUserID: customeUserID,
-      unitId: unitId,
+      id: (fields[0] as int?) ?? 0,
+      name: (fields[1] as String?) ?? '',
+      email: (fields[2] as String?) ?? '',
+      role: (fields[3] as String?) ?? '',
+      mob: (fields[4] as String?) ?? '',
+      profileImage: (fields[5] as String?) ?? '',
+      appPermissions: fields[6] as UserPermissions?,
+      customeUserID: (fields[7] as String?) ?? '',
+      unitId: (fields[8] as String?) ?? '',
     );
   }
 
   @override
   void write(BinaryWriter writer, User obj) {
-    writer.writeByte(9); // Number of fields written
-    writer.write(obj.id);
-    writer.write(obj.name);
-    writer.write(obj.email);
-    writer.write(obj.role);
-    writer.write(obj.mob);
-    writer.write(obj.profileImage);
-    writer.write(obj.appPermissions);
-    writer.write(obj.customeUserID);
-    writer.write(obj.unitId);
+    writer
+      ..writeByte(9)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.name)
+      ..writeByte(2)
+      ..write(obj.email)
+      ..writeByte(3)
+      ..write(obj.role)
+      ..writeByte(4)
+      ..write(obj.mob)
+      ..writeByte(5)
+      ..write(obj.profileImage)
+      ..writeByte(6)
+      ..write(obj.appPermissions)
+      ..writeByte(7)
+      ..write(obj.customeUserID)
+      ..writeByte(8)
+      ..write(obj.unitId);
   }
 }
 

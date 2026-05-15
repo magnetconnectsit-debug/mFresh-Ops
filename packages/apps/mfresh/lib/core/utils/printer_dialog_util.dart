@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'print_util.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class PrinterDialogUtil {
   static final _printerPlugin = FlutterThermalPrinter.instance;
@@ -146,7 +147,7 @@ class PrinterDialogUtil {
                 children: [
                   const Text("Select Printer", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   Obx(() => isScanning.value 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const CustomAppLoader(size: 20, strokeWidth: 1.5)
                     : IconButton(icon: const Icon(Icons.refresh), onPressed: startScan)
                   ),
                 ],

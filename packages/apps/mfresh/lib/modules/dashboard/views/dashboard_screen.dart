@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/modules/dashboard/controllers/dashboard_controller.dart';
-import 'package:mfresh/modules/dashboard/views/widgets/search_bar_tool.dart';
+// import 'package:mfresh/modules/dashboard/views/widgets/search_bar_tool.dart';
 import 'package:mfresh/modules/dashboard/views/widgets/unit_card.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
@@ -217,11 +217,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    if (!isDesktop)
+/*                    if (!isDesktop)
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.0),
                         child: SearchBarTool(),
-                      ),
+                      ),*/
                     const SizedBox(height: 12),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -414,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     
                     // Show a loader on the dashboard while calling API
                     Get.dialog(
-                      const Center(child: CircularProgressIndicator(color: Colors.white)), 
+                      const Center(child: CustomAppLoader(size: 60)), 
                       barrierDismissible: false
                     );
                     
@@ -485,7 +485,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final user = profileController.user.value;
         final scannerPayload = {
           "Header": {
-            "ApplicationId": "com.example.mangnet_connect",
+            "ApplicationId": "com.mFresh",
             "UserId": user?.customeUserID ?? "NA",
             "MethodId": "1007",
             "VersionNo": "1.0",

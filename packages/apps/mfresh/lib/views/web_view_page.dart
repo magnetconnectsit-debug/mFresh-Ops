@@ -3,7 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class WebViewPage extends StatefulWidget {
   final String? url;
@@ -227,11 +227,7 @@ class _WebViewPageState extends State<WebViewPage> {
             const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                child: CustomAppLoader(size: 20, strokeWidth: 1.0),
               ),
             ),
         ],

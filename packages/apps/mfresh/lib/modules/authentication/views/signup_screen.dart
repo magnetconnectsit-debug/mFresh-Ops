@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_text_style.dart';
@@ -19,7 +18,7 @@ class SignupScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.white,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Background Watermark Logo
@@ -113,40 +112,6 @@ class SignupScreen extends StatelessWidget {
                       ),
     
                       SizedBox(height: 16.h),
-    
-                      // Divider
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w),
-                            child: Text(
-                              'Or',
-                              style: AppTextStyle.style_12_400(
-                                color: AppColors.grey200,
-                              ),
-                            ),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-    
-                      SizedBox(height: 16.h),
-    
-                      // Google Sign In
-                      AppCommonButton(
-                        text: 'Continue with Google',
-                        textSize: 14.sp,
-                        variant: ButtonVariant.outline,
-                        prefixWidget: SvgPicture.asset(
-                          AppImages.googleIcon,
-                          width: 24.w,
-                          height: 24.w,
-                        ),
-                        onPressed: () {},
-                      ),
-    
-                      SizedBox(height: 40.h),
     
                       // Already have an account? Login
                       Center(

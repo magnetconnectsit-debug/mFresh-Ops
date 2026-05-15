@@ -451,7 +451,7 @@ class EditTicketScreen extends StatelessWidget {
 
   Widget _buildDropdown<T>(T? value, List<T> options, Function(T?) onChanged, String Function(T) labelBuilder) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       icon: const SizedBox.shrink(),
       decoration: _inputDecoration("Select"),

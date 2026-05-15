@@ -6,7 +6,6 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/modules/authentication/controllers/login_controller.dart';
 
@@ -19,7 +18,7 @@ class LoginScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.white,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Background Watermark Logo
@@ -38,8 +37,6 @@ class LoginScreen extends StatelessWidget {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom),
               child: Center(
                 child: Container(
                   constraints: BoxConstraints(
@@ -196,57 +193,6 @@ class LoginScreen extends StatelessWidget {
                             ),
 
                             SizedBox(height: 12.h),
-
-                            // Google Sign In
-                            AppCommonButton(
-                              text: 'Continue with Google',
-                              textSize: 14.sp,
-                              variant: ButtonVariant.outline,
-                              prefixWidget: SvgPicture.asset(
-                                AppImages.googleIcon,
-                                width: 24.w,
-                                height: 24.w,
-                              ),
-                              onPressed: () {},
-                            ),
-
-                            SizedBox(height: 12.h),
-
-                            // Divider
-                            Row(
-                              children: [
-                                const Expanded(child: Divider()),
-                                Padding(
-                                  padding:
-                                      EdgeInsets.symmetric(horizontal: 16.w),
-                                  child: Text(
-                                    'Or',
-                                    style: AppTextStyle.style_12_400(
-                                      color: AppColors.grey200,
-                                    ),
-                                  ),
-                                ),
-                                const Expanded(child: Divider()),
-                              ],
-                            ),
-                            SizedBox(height: 12.h),
-                            Center(
-                              child: InkWell(
-                                onTap: controller.toggleEmailLogin,
-                                child: Obx(
-                                  () => Text(
-                                    controller.isEmailLogin.value
-                                        ? 'Sign in with Mobile'
-                                        : 'Sign in with Email',
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(height: 40.h),
 
                             // Not Registered
                             Center(

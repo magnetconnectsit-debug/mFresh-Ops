@@ -35,15 +35,26 @@ class UserRepository extends GetxService {
     }
   }
 
-  Future<User?> updateProfile({required String name}) async {
+  Future<Map<String, dynamic>?> editProfile({
+    required String name,
+    required String email,
+    required String mob,
+    required String profileImage,
+    required String password,
+  }) async {
     try {
       final response = await _apiService.post(
-        AppConstants.profileUpdate,
-        data: {'name': name},
+        AppConstants.profileEdit,
+        data: {
+          "name": name,
+          "email": email,
+          "mob": mob,
+          "profile_image": profileImage,
+          "pass": password,
+        },
       );
       if (response != null && response['status'] == 'success') {
-         // Re-fetch profile to get updated data
-         return await getProfile();
+         return response;
       }
       return null;
     } catch (e) {

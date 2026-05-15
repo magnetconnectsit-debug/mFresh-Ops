@@ -17,6 +17,9 @@ class ProfileController extends GetxController {
   final isHistoryLoading = false.obs;
 
   final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final mobileController = TextEditingController();
+  final passwordController = TextEditingController();
   
   String get userName => user.value?.name ?? 'User Name';
   String get userPhone => user.value?.mob ?? 'User Phone';
@@ -42,6 +45,8 @@ class ProfileController extends GetxController {
       if (result != null) {
         user.value = result;
         nameController.text = result.name ?? '';
+        emailController.text = result.email ?? '';
+        mobileController.text = result.mob ?? '';
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to fetch profile', type: ToastType.error);
@@ -89,19 +94,34 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> updateProfileName() async {
-    final newName = nameController.text.trim();
-    if (newName.isEmpty) return;
+  Future<void> updateFullProfile() async {
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final mob = mobileController.text.trim();
+    final pass = passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || mob.isEmpty || pass.isEmpty) {
+      AppCommonToastMessage.show(message: 'Please fill all required fields', type: ToastType.error);
+      return;
+    }
 
     try {
       isLoading.value = true;
-      final updatedUser = await _userRepository.updateProfile(name: newName);
-      if (updatedUser != null) {
-        user.value = updatedUser;
-        AppCommonToastMessage.show(message: 'Profile updated successfully', type: ToastType.success);
+      final response = await _userRepository.editProfile(
+        name: name,
+        email: email,
+        mob: mob,
+        profileImage: userImage.isEmpty ? "NA" : userImage,
+        password: pass,
+      );
+      if (response != null) {
+        final successMsg = response['message'] ?? "Profile updated successfully";
+        AppCommonToastMessage.show(message: successMsg, type: ToastType.success);
+        // Re-fetch profile to sync state
+        await fetchProfile();
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to update profile', type: ToastType.error);
+      AppCommonToastMessage.show(message: 'Failed to update profile: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }

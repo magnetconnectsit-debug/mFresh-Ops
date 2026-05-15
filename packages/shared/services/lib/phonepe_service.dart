@@ -31,8 +31,6 @@ class PhonePeService extends GetxService {
   static const String _prodApiBaseUrl = 'https://api.phonepe.com/apis/hermes';
   static const String _prodCallbackUrl =
       'https://magnetconnects.com/payment/callback/';
-  static const String _prodAppSchema =
-      "mfreshMerchant"; // Custom schema for iOS
 
   // Sandbox (UAT) Credentials
   static const String _uatSaltKey = '14fa5465-f8a7-443f-8477-f986b8fcfde9';
@@ -42,7 +40,6 @@ class PhonePeService extends GetxService {
       'https://api-preprod.phonepe.com/apis/pg-sandbox';
   static const String _uatCallbackUrl =
       'https://magnetconnects.com/payment/callback/';
-  static const String _uatAppSchema = "mfreshMerchantUAT";
 
   // Dynamic getters
   String get _saltKey => _isProduction ? _prodSaltKey : _uatSaltKey;
@@ -55,7 +52,6 @@ class PhonePeService extends GetxService {
 
   String get _callbackUrl => _isProduction ? _prodCallbackUrl : _uatCallbackUrl;
 
-  String get _appSchema => _isProduction ? _prodAppSchema : _uatAppSchema;
 
   Future<bool> initSDK() async {
     try {
@@ -73,7 +69,7 @@ class PhonePeService extends GetxService {
         getPackageSignature();
       }
 
-      return result ?? false;
+      return result;
     } catch (e) {
       debugPrint("PhonePe SDK Init Error: $e");
       return false;

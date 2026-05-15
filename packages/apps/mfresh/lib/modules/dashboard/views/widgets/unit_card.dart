@@ -1,3 +1,4 @@
+import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -26,11 +27,13 @@ class UnitCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        elevation: 4,
+        elevation: 6,
+        color: AppColors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.primary),
         ),
-        shadowColor: Colors.black26,
+        shadowColor: AppColors.primary,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

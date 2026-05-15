@@ -1,4 +1,4 @@
-package com.example.mangnet_connect
+package com.mFresh
 
 import android.content.Intent
 import android.os.Bundle

@@ -13,7 +13,7 @@ class SplashController extends GetxController {
 
   Future<void> _navigateToNext() async {
     // Wait for a few seconds for the splash animation
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 2));
 
     if (_storage.getToken() != null) {
       Get.offAllNamed(AppRoutes.dashboard);

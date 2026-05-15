@@ -18,6 +18,7 @@ class AppConstants {
   static const String logout = '/customer/logout';
   static const String passwordUpdate = '/customer/password-update';
   static const String profileUpdate = '/customer/profile-update';
+  static const String profileEdit = '/customer/profile-edit';
   static const String sendOtp = '/customer/send-otp';
   static const String verifyOtp = '/customer/login-with-otp';
   static const String customerBookingDetails = '/customer/customerbookingdetails';
