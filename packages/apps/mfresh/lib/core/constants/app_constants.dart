@@ -23,6 +23,7 @@ class AppConstants {
   static const String verifyOtp = '/customer/login-with-otp';
   static const String customerBookingDetails = '/customer/customerbookingdetails';
   static const String allUnits = '/customer/All-Units';
+  static const String deleteProfile = '/customer/delete-profile';
   static const String allServices = '/customer/Api-get-Unit-services';
   static const String initiateBooking = '/customer/Api-initiateBooking';
   static const String successBooking = '/customer/Api-SuccessBooking';
@@ -34,6 +35,8 @@ class AppConstants {
   static const String deleteCart = '/customer/delete_cart';
   static const String kioskScan = '/customer/kiosk-scan';
   static const String serviceImageBaseUrl = 'https://magnetconnects.com/public/images/';
+  static const String privacyPolicyUrl = 'https://magnetconnects.com/privacy-Policy';
+  static const String termsConditionUrl = 'https://magnetconnects.com/Terms-Condition';
   // endregion
 
   // region Hive Keys

@@ -8,6 +8,8 @@ import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/modules/authentication/controllers/signup_controller.dart';
+import 'package:mfresh/core/constants/app_constants.dart';
+import 'package:core/core.dart';
 
 class SignupScreen extends StatelessWidget {
   const SignupScreen({super.key});
@@ -131,6 +133,59 @@ class SignupScreen extends StatelessWidget {
                                 style: AppTextStyle.style_14_600(
                                   color: AppColors.primary,
                                 ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Footer
+                      Center(
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                InkWell(
+                                  onTap: () => Get.to(
+                                    () => const AppCommonWebView(
+                                      url: AppConstants.privacyPolicyUrl,
+                                      title: 'Privacy Policy',
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Privacy Policy',
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  ' | ',
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.black200,
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () => Get.to(
+                                    () => const AppCommonWebView(
+                                      url: AppConstants.termsConditionUrl,
+                                      title: 'Terms & Condition',
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Terms & Condition',
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              '© 2024 ALL RIGHTS RESERVED',
+                              style: AppTextStyle.style_12_400(
+                                color: AppColors.black200,
                               ),
                             ),
                           ],

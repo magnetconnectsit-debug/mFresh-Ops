@@ -74,4 +74,16 @@ class UserRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> deleteAccount(int userId) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.deleteProfile,
+        data: {"id": userId},
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

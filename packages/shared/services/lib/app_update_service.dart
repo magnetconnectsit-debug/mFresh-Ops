@@ -38,39 +38,52 @@ class AppUpdateService extends GetxService {
 
   Future<UpdateInfo> getUpdateInfo() async {
     try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+      final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
+
+      String jsonStr = _remoteConfigService.getStringValue('app_update_settings');
+      AppUpdateConfig? config;
+      if (jsonStr.isNotEmpty) {
+        config = AppUpdateConfig.fromRemoteConfig(jsonStr);
+      }
+
       if (Platform.isAndroid) {
-        final info = await InAppUpdate.checkForUpdate();
-        if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        // Use ONLY Native Play Store Check for Android
+        try {
+          final info = await InAppUpdate.checkForUpdate();
+          if (info.updateAvailability == UpdateAvailability.updateAvailable) {
             return UpdateInfo(
-                isAvailable: true,
-                isForceUpdate: true, // Android is always immediate/force as per current logic
+              isAvailable: true,
+              isForceUpdate: true, // Native immediate update
+              message: 'A new version is available on Play Store!',
+              storeUrl: '', // Not needed for native immediate update
+              versionName: info.availableVersionCode.toString(),
             );
+          }
+        } catch (e) {
+          debugPrint("AppUpdateService Native Check Error: $e");
         }
       } else if (Platform.isIOS) {
-        String jsonStr = _remoteConfigService.getStringValue('app_update_settings');
-        if (jsonStr.isNotEmpty) {
-            final config = AppUpdateConfig.fromRemoteConfig(jsonStr);
-            if (_sessionUpdateSkipped && !config.isIosForceUpdate) {
-                return UpdateInfo.none();
-            }
-            final packageInfo = await PackageInfo.fromPlatform();
-            final currentVersion = packageInfo.version;
-            final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
+        if (config != null) {
+          if (_sessionUpdateSkipped && !config.isIosForceUpdate) {
+            return UpdateInfo.none();
+          }
 
-            if (_isUpdateAvailable(
-                currentVersion: currentVersion,
-                currentBuild: currentBuild,
-                storeVersion: config.currentIosAppVersion,
-                storeBuild: config.currentIosAppBuildNumber,
-            )) {
-                return UpdateInfo(
-                    isAvailable: true,
-                    isForceUpdate: config.isIosForceUpdate,
-                    message: config.updateMessage,
-                    storeUrl: config.appleStoreUrl,
-                    versionName: config.currentIosAppVersion,
-                );
-            }
+          if (_isUpdateAvailable(
+            currentVersion: currentVersion,
+            currentBuild: currentBuild,
+            storeVersion: config.currentIosAppVersion,
+            storeBuild: config.currentIosAppBuildNumber,
+          )) {
+            return UpdateInfo(
+              isAvailable: true,
+              isForceUpdate: config.isIosForceUpdate,
+              message: config.updateMessage,
+              storeUrl: config.appleStoreUrl,
+              versionName: config.currentIosAppVersion,
+            );
+          }
         }
       }
     } catch (e) {

@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:core/widgets/custom_app_loader.dart';
+import 'package:mfresh/core/constants/app_constants.dart';
+import 'package:core/core.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -59,6 +61,33 @@ class ProfileScreen extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text('Save Changes',
+                style: AppTextStyle.style_14_400(color: AppColors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, ProfileController controller) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Account',
+            style: AppTextStyle.style_16_600(color: AppColors.error)),
+        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Cancel',
+                style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              controller.deleteAccount();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text('Delete',
                 style: AppTextStyle.style_14_400(color: AppColors.white)),
           ),
         ],
@@ -286,9 +315,47 @@ class ProfileScreen extends StatelessWidget {
               SizedBox(height: 12.h),
 
               _buildExpandableSection(
+                title: 'Legal',
+                isExpanded: controller.isLegalExpanded,
+                onTap: controller.toggleLegal,
+                children: [
+                  _buildSubItem(
+                    title: 'Privacy Policy',
+                    onTap: () => Get.to(
+                      () => const AppCommonWebView(
+                        url: AppConstants.privacyPolicyUrl,
+                        title: 'Privacy Policy',
+                      ),
+                    ),
+                  ),
+                  _buildSubItem(
+                    title: 'Terms & Condition',
+                    onTap: () => Get.to(
+                      () => const AppCommonWebView(
+                        url: AppConstants.termsConditionUrl,
+                        title: 'Terms & Condition',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 12.h),
+
+              _buildExpandableSection(
                 title: 'Logout',
                 isExpanded: controller.isFeedbackExpanded, // Just for visual
                 onTap: () => _showLogoutDialog(context, controller),
+                children: [],
+              ),
+
+              SizedBox(height: 12.h),
+
+              _buildExpandableSection(
+                title: 'Delete Account',
+                titleColor: AppColors.error,
+                isExpanded: false.obs, // Just for visual
+                onTap: () => _showDeleteAccountDialog(context, controller),
                 children: [],
               ),
 
@@ -305,6 +372,7 @@ class ProfileScreen extends StatelessWidget {
     required RxBool isExpanded,
     required VoidCallback onTap,
     required List<Widget> children,
+    Color? titleColor,
   }) {
     return Obx(
       () => Container(
@@ -331,16 +399,17 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: AppTextStyle.style_14_600(color: AppColors.black300),
+                      style: AppTextStyle.style_14_600(color: titleColor ?? AppColors.black300),
                     ),
                     const Spacer(),
-                    Icon(
-                      isExpanded.value
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 24.sp,
-                      color: AppColors.grey300,
-                    ),
+                    if (children.isNotEmpty)
+                      Icon(
+                        isExpanded.value
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        size: 24.sp,
+                        color: AppColors.grey300,
+                      ),
                   ],
                 ),
               ),

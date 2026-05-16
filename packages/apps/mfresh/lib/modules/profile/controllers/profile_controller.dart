@@ -31,6 +31,7 @@ class ProfileController extends GetxController {
   final isReferEarnExpanded = false.obs;
   final isHelpSupportExpanded = false.obs;
   final isFeedbackExpanded = false.obs;
+  final isLegalExpanded = false.obs;
 
   @override
   void onInit() {
@@ -69,6 +70,10 @@ class ProfileController extends GetxController {
 
   void toggleFeedback() {
     isFeedbackExpanded.value = !isFeedbackExpanded.value;
+  }
+
+  void toggleLegal() {
+    isLegalExpanded.value = !isLegalExpanded.value;
   }
 
   void logout() async {
@@ -122,6 +127,31 @@ class ProfileController extends GetxController {
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to update profile: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    final userId = user.value?.id;
+    if (userId == null) {
+      AppCommonToastMessage.show(message: 'User ID not found', type: ToastType.error);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      final response = await _userRepository.deleteAccount(userId);
+      if (response != null && response['status'] == 'success') {
+        final message = response['message'] ?? 'Account deleted successfully';
+        AppCommonToastMessage.show(message: message, type: ToastType.success);
+        logout();
+      } else {
+        final errorMsg = response?['message'] ?? 'Failed to delete account';
+        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Error deleting account: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }

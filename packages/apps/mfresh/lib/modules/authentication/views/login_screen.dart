@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/modules/authentication/controllers/login_controller.dart';
+import 'package:mfresh/core/constants/app_constants.dart';
+import 'package:core/core.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -222,11 +224,55 @@ class LoginScreen extends StatelessWidget {
 
                             // Footer
                             Center(
-                              child: Text(
-                                '© 2024 ALL RIGHTS RESERVED',
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.black200,
-                                ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      InkWell(
+                                        onTap: () => Get.to(
+                                          () => const AppCommonWebView(
+                                            url: AppConstants.privacyPolicyUrl,
+                                            title: 'Privacy Policy',
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Privacy Policy',
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        ' | ',
+                                        style: AppTextStyle.style_12_400(
+                                          color: AppColors.black200,
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () => Get.to(
+                                          () => const AppCommonWebView(
+                                            url: AppConstants.termsConditionUrl,
+                                            title: 'Terms & Condition',
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Terms & Condition',
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    '© 2024 ALL RIGHTS RESERVED',
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.black200,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             SizedBox(height: 16.h),
