@@ -99,8 +99,7 @@ class SupportRepository extends GetxService {
     try {
       final response = await _apiService.post(
         AppConstants.viewSupportTicket,
-        data: {"main_id": mainId.toString()},
-        options: dio.Options(contentType: dio.Headers.jsonContentType),
+        data: dio.FormData.fromMap({"main_id": mainId}),
       );
       if (response != null && response['status'] == true) {
         return SupportTicketDetail.fromJson(response['data']);
@@ -151,11 +150,23 @@ class SupportRepository extends GetxService {
     }
   }
 
+  Future<dynamic> bulkUpdateTickets(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bulkSupportTicketUpdate,
+        data: data,
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<EditSupportTicketData?> editSupportTicket(int mainId) async {
     try {
       final response = await _apiService.post(
         AppConstants.editSupportTicket,
-        data: {"main_id": mainId.toString()},
+        data: dio.FormData.fromMap({"main_id": mainId}),
       );
       if (response != null && response['status'] == true) {
         return EditSupportTicketData.fromJson(response['data']);

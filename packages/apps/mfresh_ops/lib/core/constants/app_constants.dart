@@ -1,13 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
-import 'package:mfresh_ops/core/env/env.dart';
 
 class AppConstants {
   AppConstants._();
 
   // region Base URL
-  static final String defaultBaseUrl = ProdEnv.baseUrl;
-  static final String devBaseUrl = DevEnv.baseUrl;
   static String baseUrl = AppConfig.baseUrl;
   static const bool isDevBuild = kDebugMode;
   // endregion
@@ -34,6 +31,7 @@ class AppConstants {
   static const String allSupportTickets = 'all-supporttickets';
   static const String createSupportTicketComment = 'create-support-ticket-comment';
   static const String updateSupportTicketComment = 'update-support-ticket-comment';
+  static const String bulkSupportTicketUpdate = 'bulksupport-ticket-update';
   
   // Support Management
   static const String categoryList = 'category-support-ticket-list';

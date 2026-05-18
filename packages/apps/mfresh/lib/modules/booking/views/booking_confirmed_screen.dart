@@ -36,7 +36,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
     super.initState();
     final String? bookingId = Get.arguments?['bookingId'] ?? Get.parameters['bookingId'];
     if (bookingId != null) {
-      controller.fetchBookingDetails(bookingId);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.fetchBookingDetails(bookingId);
+      });
     }
   }
 
@@ -115,7 +117,8 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
         ),
         body: Stack(
           children: [
-              Obx(() {
+            Positioned.fill(
+              child: Obx(() {
                 if (controller.isLoading.value) {
                   return const Center(child: CustomAppLoader(size: 60));
                 }
@@ -492,6 +495,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                   ),
                 );
               }),
+            ),
 
             // Left-Center Back Arrow Button
             Positioned(

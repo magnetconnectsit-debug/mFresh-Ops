@@ -4,6 +4,7 @@ import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/core.dart';
+import 'package:services/storage_service.dart';
 
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});
@@ -11,6 +12,7 @@ class CommonSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentRoute = Get.currentRoute;
+    final userName = Get.find<StorageService>().getUser()?.name ?? 'Ops Manager';
     
     return Drawer(
       backgroundColor: AppColors.white,
@@ -31,7 +33,7 @@ class CommonSidebar extends StatelessWidget {
                   ),
                   SizedBox(height: 10.h),
                   Text(
-                    'Ops Manager',
+                    userName,
                     style: AppTextStyle.style_18_600(color: AppColors.white),
                   ),
                 ],

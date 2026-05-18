@@ -64,6 +64,7 @@ class DioClient {
 class AuthInterceptor extends Interceptor {
   final StorageService _storageService;
   final List<String> publicPaths;
+  static bool _isLoggingOut = false;
 
   AuthInterceptor(this._storageService, {this.publicPaths = const []});
 
@@ -94,20 +95,7 @@ class AuthInterceptor extends Interceptor {
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
     if (response.statusCode == 401) {
       debugPrint('AuthInterceptor: 401 Unauthorized detected in response. Logging out...');
-      
-      final message = response.data is Map ? response.data['message']?.toString() : null;
-      
-      AppCommonToastMessage.show(
-        message: message ?? 'Session expired, logging out...',
-        type: ToastType.warning,
-      );
-      
-      await _storageService.clearAllStorage();
-      
-      // Using a small delay to ensure the UI can handle the transition
-      Future.delayed(const Duration(milliseconds: 100), () {
-        Get.offAllNamed('/login');
-      });
+      _handleLogout(response.data);
       return; // Stop further processing
     }
     return super.onResponse(response, handler);
@@ -117,16 +105,30 @@ class AuthInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401) {
       debugPrint('AuthInterceptor: 401 Unauthorized detected in error. Logging out...');
-      AppCommonToastMessage.show(
-        message: 'Session expired, logging out...',
-        type: ToastType.warning,
-      );
-      await _storageService.clearAllStorage();
-      Future.delayed(const Duration(milliseconds: 100), () {
-        Get.offAllNamed('/login');
-      });
+      _handleLogout(err.response?.data);
     }
     return super.onError(err, handler);
+  }
+
+  void _handleLogout(dynamic responseData) async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
+
+    final message = responseData is Map ? responseData['message']?.toString() : null;
+    
+    AppCommonToastMessage.show(
+      message: message ?? 'Session expired, logging out...',
+      type: ToastType.warning,
+    );
+    
+    await _storageService.clearAllStorage();
+    
+    // Using a small delay to ensure the UI can handle the transition
+    Future.delayed(const Duration(milliseconds: 100), () {
+      Get.offAllNamed('/login');
+      // Reset after redirect to allow future logins
+      _isLoggingOut = false;
+    });
   }
 }
 // endregion

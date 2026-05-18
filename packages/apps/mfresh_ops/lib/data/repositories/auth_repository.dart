@@ -20,9 +20,13 @@ class AuthRepository extends GetxService {
 
       if (response != null && response['token'] != null) {
         final String token = response['token'];
+        final String? refreshToken = response['refresh_token'];
         final user = User.fromJson(response);
         
         await _storageService.saveToken(token);
+        if (refreshToken != null) {
+          await _storageService.saveRefreshToken(refreshToken);
+        }
         await _storageService.saveUser(user);
         
         return user;

@@ -23,6 +23,18 @@ class User extends HiveObject {
   @HiveField(6)
   final List<String>? permissions;
 
+  @HiveField(7)
+  final String? securityGroupIds;
+
+  @HiveField(8)
+  final int? activeStatus;
+
+  @HiveField(9)
+  final String? createdAt;
+
+  @HiveField(10)
+  final String? updatedAt;
+
   User({
     required this.id,
     this.name,
@@ -31,6 +43,10 @@ class User extends HiveObject {
     this.mob,
     this.uimage,
     this.permissions,
+    this.securityGroupIds,
+    this.activeStatus,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -47,6 +63,12 @@ class User extends HiveObject {
       mob: userData['Mob']?.toString(),
       uimage: userData['uimage'],
       permissions: permissions,
+      securityGroupIds: userData['security_group_ids']?.toString(),
+      activeStatus: userData['Active_status'] is int 
+          ? userData['Active_status'] 
+          : int.tryParse(userData['Active_status']?.toString() ?? ''),
+      createdAt: userData['created_at'],
+      updatedAt: userData['updated_at'],
     );
   }
 
@@ -59,6 +81,10 @@ class User extends HiveObject {
       'Mob': mob,
       'uimage': uimage,
       'permissions': permissions,
+      'security_group_ids': securityGroupIds,
+      'Active_status': activeStatus,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
     };
   }
 }
@@ -76,6 +102,10 @@ class UserAdapter extends TypeAdapter<User> {
     final mob = reader.read();
     final uimage = reader.read();
     final permissions = reader.read();
+    final securityGroupIds = reader.read();
+    final activeStatus = reader.read();
+    final createdAt = reader.read();
+    final updatedAt = reader.read();
 
     return User(
       id: id,
@@ -85,6 +115,10 @@ class UserAdapter extends TypeAdapter<User> {
       mob: mob,
       uimage: uimage,
       permissions: permissions != null ? List<String>.from(permissions) : null,
+      securityGroupIds: securityGroupIds,
+      activeStatus: activeStatus,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
@@ -97,5 +131,9 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.mob);
     writer.write(obj.uimage);
     writer.write(obj.permissions);
+    writer.write(obj.securityGroupIds);
+    writer.write(obj.activeStatus);
+    writer.write(obj.createdAt);
+    writer.write(obj.updatedAt);
   }
 }

@@ -15,6 +15,7 @@ class StorageService extends GetxService {
   static const String _notificationBoxName = 'notifications_box';
 
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'current_user';
   static const String _baseUrlKey = 'base_url';
   static const String _showLoggerKey = 'show_logger';
@@ -60,14 +61,24 @@ class StorageService extends GetxService {
     } catch (e) {
       debugPrint('StorageService: Error opening box $boxName: $e. Re-initializing...');
       try {
+        // Attempt to close if open
         if (Hive.isBoxOpen(boxName)) {
           await Hive.box<T>(boxName).close();
         }
+        // Force delete the box from disk
         await Hive.deleteBoxFromDisk(boxName);
+        debugPrint('StorageService: Box $boxName deleted successfully.');
       } catch (err) {
-        debugPrint('StorageService: Failed to delete box $boxName from disk: $err');
+        debugPrint('StorageService: Failed to delete box $boxName: $err');
       }
-      return await Hive.openBox<T>(boxName);
+      
+      // Try opening again (should create a new empty box)
+      try {
+        return await Hive.openBox<T>(boxName);
+      } catch (retryError) {
+        debugPrint('StorageService: Critical error - failed to re-open box $boxName: $retryError');
+        rethrow;
+      }
     }
   }
 
@@ -84,9 +95,23 @@ class StorageService extends GetxService {
     return token;
   }
 
+  Future<void> saveRefreshToken(String token) async {
+    debugPrint('StorageService: Saving refresh token.');
+    await _authBox.put(_refreshTokenKey, token);
+  }
+
+  String? getRefreshToken() {
+    return _authBox.get(_refreshTokenKey) as String?;
+  }
+
   Future<void> clearToken() async {
     debugPrint('StorageService: Clearing token.');
     await _authBox.delete(_tokenKey);
+  }
+
+  Future<void> clearRefreshToken() async {
+    debugPrint('StorageService: Clearing refresh token.');
+    await _authBox.delete(_refreshTokenKey);
   }
 
   // endregion

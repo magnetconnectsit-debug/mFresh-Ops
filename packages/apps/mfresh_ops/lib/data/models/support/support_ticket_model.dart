@@ -149,9 +149,16 @@ class SupportTicketDetail {
   String? get ticketAge => tktAge;
   SupportReminder? get reminder => reminderData as SupportReminder?;
 
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   factory SupportTicketDetail.fromJson(Map<String, dynamic> json) {
     return SupportTicketDetail(
-      id: json['id'],
+      id: _parseInt(json['id']) ?? 0,
       caseId: json['case_id']?.toString(),
       status: json['status']?.toString(),
       priority: json['priority']?.toString(),
@@ -159,12 +166,14 @@ class SupportTicketDetail {
       subcategory: json['subcategory'],
       project: json['project'],
       unitNo: json['unit_no'],
-      createdBy: json['created_by'],
+      createdBy: _parseInt(json['created_by']),
       userName: json['user_name'],
       subject: json['subject'],
       description: json['description'],
       cashierImages: json['cashier_images'],
-      attachments: json['attachments'] != null ? List<String>.from(json['attachments']) : [],
+      attachments: json['attachments'] is List
+          ? (json['attachments'] as List).map((e) => e.toString()).toList()
+          : [],
       followUp: json['follow_up'],
       assignedTo: json['assigned_to']?.toString(),
       assignedToName: json['assigned_to_name'],
@@ -174,13 +183,13 @@ class SupportTicketDetail {
       tktAge: json['tkt_age'],
       comments: json['comments'],
       logs: json['logs'],
-      projectId: json['projectid'],
-      unitId: json['unit_id'],
-      categoryId: json['categoryid'],
-      subcategoryId: json['subcategoryid'],
+      projectId: _parseInt(json['projectid']),
+      unitId: _parseInt(json['unit_id']),
+      categoryId: _parseInt(json['categoryid']),
+      subcategoryId: _parseInt(json['subcategoryid']),
       priorityId: json['priorityid']?.toString(),
-      assignedToId: json['assigned_to'],
-      createdById: json['created_by'],
+      assignedToId: _parseInt(json['assigned_to']),
+      createdById: _parseInt(json['created_by']),
       reminderData: json['reminderdata'] != null
           ? SupportReminder.fromJson(json['reminderdata'])
           : null,

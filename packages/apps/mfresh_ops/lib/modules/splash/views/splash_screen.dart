@@ -1,8 +1,7 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_images.dart';
-import 'package:core/constants/app_colors.dart';
 import 'package:mfresh_ops/modules/splash/controllers/splash_controller.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -22,11 +21,7 @@ class SplashScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  AppImages.appLogo,
-                  width: 150.w,
-                  height: 150.h,
-                ),
+                Image.asset(AppImages.appLogo, width: 300.w, height: 200.h),
               ],
             ),
           ),
@@ -38,23 +33,13 @@ class SplashScreen extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'MAGNET CONNECTS',
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                    letterSpacing: 4.0,
-                  ),
+                  'mFresh Ops',
+                  style: AppTextStyle.style_22_600(color: AppColors.primary),
                 ),
                 SizedBox(height: 8.h),
                 Text(
                   'EMPOWERING OPERATIONS',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.grey300,
-                    letterSpacing: 2.0,
-                  ),
+                  style: AppTextStyle.style_12_500(color: AppColors.grey300),
                 ),
               ],
             ),

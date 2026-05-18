@@ -106,9 +106,18 @@ class PrinterDialogUtil {
       try {
         bool isBleOn = await _printerPlugin.isBleTurnedOn();
         if (!isBleOn) {
-          AppCommonToastMessage.show(message: "Please turn on Bluetooth & Location", type: ToastType.info);
-          isScanning.value = false;
-          return;
+          try {
+            await _printerPlugin.turnOnBluetooth();
+            await Future.delayed(const Duration(seconds: 2));
+            isBleOn = await _printerPlugin.isBleTurnedOn();
+          } catch (e) {
+            debugPrint("Failed to request bluetooth turn on: $e");
+          }
+          if (!isBleOn) {
+            AppCommonToastMessage.show(message: "Please turn on Bluetooth & Location", type: ToastType.info);
+            isScanning.value = false;
+            return;
+          }
         }
 
         subscription = _printerPlugin.devicesStream.listen((printers) {
@@ -212,7 +221,7 @@ class PrinterDialogUtil {
                 child: TextButton(
                   onPressed: () {
                     subscription?.cancel();
-                    Get.back();
+                    Navigator.pop(context);
                   },
                   child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
                 ),
@@ -258,7 +267,7 @@ class PrinterDialogUtil {
       ),
       trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
       onTap: () async {
-        Get.back();
+        Navigator.pop(context);
         isScanning.value = false;
         subscription?.cancel();
         AppCommonToastMessage.show(message: "Connecting to ${printer.name}...", type: ToastType.info);

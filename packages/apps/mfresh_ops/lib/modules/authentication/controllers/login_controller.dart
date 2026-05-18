@@ -29,8 +29,8 @@ class LoginController extends GetxController {
 
   void _loadSavedCredentials() {
     if (kDebugMode) {
-      usernameController.text = '9337881379';
-      passwordController.text = '123456';
+      usernameController.text = '8249965521';
+      passwordController.text = 'itadmin@1234';
       rememberMe.value = true;
       return;
     }

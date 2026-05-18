@@ -13,7 +13,7 @@ class SplashController extends GetxController {
 
   Future<void> _navigateToNext() async {
     // Show splash for 3 seconds to ensure visibility
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 2));
 
     final token = _storageService.getToken();
     

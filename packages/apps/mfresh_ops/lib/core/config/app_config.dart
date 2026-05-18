@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:services/settings_service.dart';
-import 'package:mfresh_ops/core/env/env.dart';
 
 enum AppEnvironment { dev, prod }
 
@@ -15,10 +14,10 @@ class AppConfig {
   
   static bool get isDevToggle => Get.find<SettingsService>().isDevMode.value;
 
-  // Base URL: PROD in Release Mode OR if toggle is 'prod'
-  static String get baseUrl => (kReleaseMode || !isDevToggle)
-      ? ProdEnv.baseUrl 
-      : DevEnv.baseUrl;
+  // Base URL: Test URL in Debug Mode, Production URL in Release Mode
+  static String get baseUrl => kDebugMode
+      ? 'https://opsapitest.magnetconnects.com/public/api/'
+      : 'https://opsapi.magnetconnects.com/public/api/';
 
   // Environment identifier: PROD only in Release Mode AND when toggle is 'prod'
   static bool get _isProdEnv => kReleaseMode && !isDevToggle;

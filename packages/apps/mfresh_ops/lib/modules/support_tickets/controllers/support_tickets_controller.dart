@@ -6,6 +6,7 @@ import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class SupportTicketsController extends GetxController {
   final SupportRepository _supportRepository = Get.find<SupportRepository>();
@@ -17,6 +18,7 @@ class SupportTicketsController extends GetxController {
   final isLoading = false.obs;
 
   final selectedTickets = <int>{}.obs;
+  final expandedSubjectTickets = <int>{}.obs;
   final isSearching = false.obs;
   final searchController = TextEditingController();
 
@@ -63,8 +65,25 @@ class SupportTicketsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchTickets();
-    fetchFilterData();
+    _initialLoad();
+  }
+
+  Future<void> _initialLoad() async {
+    try {
+      isLoading.value = true;
+      // Load all filters sequentially to ensure order and avoid parallel fetchTickets calls
+      await fetchUnits();
+      await fetchCategories();
+      await fetchProjects();
+      await fetchAssignees(shouldFetchTickets: false); // Don't fetch yet
+      
+      // Now fetch tickets with all filters applied (including default assignee)
+      await fetchTickets();
+    } catch (e) {
+      debugPrint('Error during initial load: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> fetchFilterData() async {
@@ -73,7 +92,7 @@ class SupportTicketsController extends GetxController {
         fetchUnits(),
         fetchCategories(),
         fetchProjects(),
-        fetchAssignees(),
+        fetchAssignees(shouldFetchTickets: false),
       ]);
     } catch (e) {
       debugPrint('Error fetching filters: $e');
@@ -116,13 +135,31 @@ class SupportTicketsController extends GetxController {
     }
   }
 
-  Future<void> fetchAssignees() async {
+  Future<void> fetchAssignees({bool shouldFetchTickets = true}) async {
     try {
       final storage = Get.find<StorageService>();
       final user = storage.getUser();
       if (user == null) return;
+      
       final result = await Get.find<CommonRepository>().getAllAssignees(mainId: user.id.toString());
       assignees.assignAll(result);
+
+      // Default select the current user
+      if (selectedAssignees.isEmpty) {
+        var currentUser = assignees.firstWhereOrNull((a) => a.id.toString() == user.id.toString());
+        
+        // If current user not in list, add them manually so they can be selected
+        if (currentUser == null) {
+          debugPrint('fetchAssignees: Current user ${user.id} not in list, adding manually');
+          currentUser = AssigneeModel(id: user.id, name: user.name ?? 'Me');
+          assignees.insert(0, currentUser);
+        }
+
+        selectedAssignees.assignAll([currentUser]);
+        if (shouldFetchTickets) {
+          fetchTickets();
+        }
+      }
     } catch (e) {
       debugPrint('Error fetching assignees: $e');
     }
@@ -168,6 +205,7 @@ class SupportTicketsController extends GetxController {
   Future<void> fetchTickets() async {
     try {
       isLoading.value = true;
+      debugPrint('fetchTickets: Fetching with assigneeIds: ${selectedAssignees.map((e) => e.id).toList()}');
       final response = await _supportRepository.getAllSupportTickets(
         globalSearch: searchController.text,
         mcatIds: selectedCategories.map((e) => e.categoryId).toList(),
@@ -203,6 +241,28 @@ class SupportTicketsController extends GetxController {
       selectedTickets.remove(id);
     } else {
       selectedTickets.add(id);
+    }
+    selectedTickets.refresh();
+  }
+
+  void toggleSubjectExpansion(int id) {
+    if (expandedSubjectTickets.contains(id)) {
+      expandedSubjectTickets.remove(id);
+    } else {
+      expandedSubjectTickets.add(id);
+    }
+    expandedSubjectTickets.refresh();
+  }
+
+  void selectAllTickets(bool? select) {
+    if (select == true) {
+      // Select all visible tickets
+      selectedTickets.assignAll(tickets.map((t) => t.id).toList());
+    } else {
+      // Deselect all visible tickets
+      final visibleIds = tickets.map((t) => t.id).toSet();
+      selectedTickets.removeWhere((id) => visibleIds.contains(id));
+      selectedTickets.refresh();
     }
   }
 
@@ -250,6 +310,140 @@ class SupportTicketsController extends GetxController {
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to export tickets: $e');
+    }
+  }
+  // Bulk Edit Dialog Variables
+  final bulkSelectedUnit = Rxn<SupportUnit>();
+  final bulkEnableUnit = false.obs;
+
+  final bulkSelectedPriority = Rxn<String>();
+  final bulkEnablePriority = false.obs;
+
+  final bulkSelectedStatus = Rxn<String>();
+  final bulkEnableStatus = false.obs;
+
+  final bulkSelectedCategory = Rxn<SupportCategory>();
+  final bulkEnableCategory = false.obs;
+
+  final bulkSelectedSubCategory = Rxn<SupportSubCategory>();
+  final bulkEnableSubCategory = false.obs;
+  final bulkSubCategories = <SupportSubCategory>[].obs;
+
+  final bulkSelectedAssignee = Rxn<AssigneeModel>();
+  final bulkEnableAssignee = false.obs;
+
+  Future<void> fetchBulkSubCategories(int categoryId) async {
+    try {
+      final result = await _supportRepository.getSupportSubCategories(categoryId);
+      bulkSubCategories.assignAll(result);
+      bulkSelectedSubCategory.value = null; // reset
+    } catch (e) {
+      debugPrint('Error fetching bulk subcategories: $e');
+    }
+  }
+
+  void resetBulkEdit() {
+    bulkSelectedUnit.value = null;
+    bulkEnableUnit.value = false;
+    bulkSelectedPriority.value = null;
+    bulkEnablePriority.value = false;
+    bulkSelectedStatus.value = null;
+    bulkEnableStatus.value = false;
+    bulkSelectedCategory.value = null;
+    bulkEnableCategory.value = false;
+    bulkSelectedSubCategory.value = null;
+    bulkEnableSubCategory.value = false;
+    bulkSubCategories.clear();
+    bulkSelectedAssignee.value = null;
+    bulkEnableAssignee.value = false;
+  }
+
+  Future<void> submitBulkEdit() async {
+    if (selectedTickets.isEmpty) {
+      AppCommonToastMessage.show(message: 'Please select at least one ticket', type: ToastType.error);
+      return;
+    }
+
+    bool hasUpdates = (bulkEnableUnit.value && bulkSelectedUnit.value != null) ||
+                      (bulkEnablePriority.value && bulkSelectedPriority.value != null) ||
+                      (bulkEnableStatus.value && bulkSelectedStatus.value != null) ||
+                      (bulkEnableCategory.value && bulkSelectedCategory.value != null) ||
+                      (bulkEnableSubCategory.value && bulkSelectedSubCategory.value != null) ||
+                      (bulkEnableAssignee.value && bulkSelectedAssignee.value != null);
+
+    if (!hasUpdates) {
+      AppCommonToastMessage.show(message: 'Please check at least one field and select a value to update.', type: ToastType.error);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      final storage = Get.find<StorageService>();
+      final user = storage.getUser();
+      if (user == null) {
+        isLoading.value = false;
+        return;
+      }
+
+      Map<String, dynamic> data = {
+        "ticket_ids": selectedTickets.join(","),
+        "userid": user.id.toString(),
+      };
+
+      if (bulkEnableUnit.value && bulkSelectedUnit.value != null) {
+        data["munitId"] = bulkSelectedUnit.value!.unitId.toString();
+      }
+      if (bulkEnablePriority.value && bulkSelectedPriority.value != null) {
+        data["priority"] = _getPriorityId(bulkSelectedPriority.value);
+      }
+      if (bulkEnableStatus.value && bulkSelectedStatus.value != null) {
+        data["resolved_status"] = _getStatusId(bulkSelectedStatus.value);
+      }
+      if (bulkEnableCategory.value && bulkSelectedCategory.value != null) {
+        data["mcatid"] = bulkSelectedCategory.value!.categoryId.toString();
+      }
+      if (bulkEnableSubCategory.value && bulkSelectedSubCategory.value != null) {
+        data["bsubmcatid"] = bulkSelectedSubCategory.value!.subCategoryId.toString();
+      }
+      if (bulkEnableAssignee.value && bulkSelectedAssignee.value != null) {
+        data["assignid"] = bulkSelectedAssignee.value!.id.toString();
+      }
+
+      final response = await _supportRepository.bulkUpdateTickets(data);
+      if (response != null && response['status'] == true) {
+        Get.back(); // close dialog
+        selectedTickets.clear();
+        AppCommonToastMessage.show(message: response['message'] ?? 'Tickets updated successfully', type: ToastType.success);
+        fetchTickets();
+      } else {
+        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to update tickets', type: ToastType.error);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'An error occurred: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  String _getPriorityId(String? priority) {
+    switch (priority) {
+      case 'Low': return '1';
+      case 'Medium': return '2';
+      case 'High': return '3';
+      case 'Top Priority': return '6';
+      default: return '2';
+    }
+  }
+
+  String _getStatusId(String? status) {
+    switch (status) {
+      case 'New': return '0';
+      case 'WIP': return '1';
+      case 'Resolved': return '2';
+      case 'Closed': return '3';
+      case 'Hold': return '4';
+      case 'Awaited': return '5';
+      default: return '0';
     }
   }
 }
