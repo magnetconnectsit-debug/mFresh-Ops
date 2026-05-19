@@ -51,6 +51,11 @@ class AppConstants {
   static const String subcategoryUpdate = 'subcategory-support-ticket-update';
   static const String subcategoryDelete = 'subcategory-support-ticket-delete';
 
+  // Templates
+  static const String templateList = 'all-templates';
+  static const String templateStore = 'store-template-api';
+  static const String templateUpdate = 'update-template-api';
+
   // Task Scheduler
   static const String taskProjectList = 'task-project-list';
   static const String taskGroupList = 'task-group-list';

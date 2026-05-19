@@ -1,23 +1,20 @@
-import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:core/widgets/app_image_view.dart';
 
 class TicketDetailsScreen extends GetView<TicketDetailsController> {
   const TicketDetailsScreen({super.key});
 
-  // Design Theme Colors from legacy
   static const Color primaryOrange = Color(0xFFFF7043);
   static const Color secondaryOrange = Color(0xFFFFF3F0);
-  static const Color webBlueBorder = Color(0xFF2196F3);
-  static const Color scaffoldBg = Color(0xFFFDFDFD);
-  static const Color lightGrey = Color(0xFFEEEEEE);
+  static const Color scaffoldBg = Color(0xFFFAFAFA);
+  static const Color timelineBlue = Color(0xFF90CAF9);
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +23,14 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
+        centerTitle: true,
         title: const Text(
           "Ticket Details",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: primaryOrange,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -50,55 +52,20 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         return RefreshIndicator(
           onRefresh: () => controller.fetchTicketDetails(),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top action header
-                _buildActionHeader(ticket),
-                const SizedBox(height: 16),
+                // Prominent Ticket ID display with outline Edit Icon next to it
+                _buildTicketIdHeader(ticket),
+                const SizedBox(height: 12),
 
-                // Prominent Ticket ID display
-                _buildTicketIdContainer(ticket),
-                const SizedBox(height: 16),
-
-                // Ticket Info Card
+                // Ticket Info Card (Blue outline)
                 _buildTicketInfoCard(ticket),
-                const SizedBox(height: 16),
 
-                // Attachments
-                if (ticket.attachments != null &&
-                    ticket.attachments!.isNotEmpty) ...[
-                  _buildImageSection(
-                    context,
-                    "Attachments",
-                    ticket.attachments!,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Action Buttons for Status Update
-                _buildStatusActionButtons(),
-                const SizedBox(height: 16),
-
-                // Comment input area
-                _buildCommentInputArea(),
+                // Timeline structure containing comments and activities
+                _buildTimelineFlow(ticket),
                 const SizedBox(height: 24),
-
-                // Comment history
-                _buildCommentHistory(controller, ticket.comments ?? []),
-                const SizedBox(height: 16),
-
-                // History table
-                _buildHistoryTable(ticket.logs ?? []),
-                const SizedBox(height: 16),
-
-                // Cashier images section
-                _buildImageSection(
-                  context,
-                  "Attachments",
-                  ticket.cashierImages?.map((e) => e.toString()).toList() ?? [],
-                ),
               ],
             ),
           ),
@@ -107,119 +74,31 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     );
   }
 
-  // --- Action Header ---
-  Widget _buildActionHeader(dynamic ticket) {
+  // --- Ticket ID Header ---
+  Widget _buildTicketIdHeader(dynamic ticket) {
     return Row(
       children: [
-        Expanded(
-          child: _actionButton(
-            label: "List",
-            icon: Icons.cancel_outlined,
-            color: Colors.redAccent,
-            onTap: () => Get.back(),
-            isSecondary: true,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _actionButton(
-            label: "Edit Ticket",
-            icon: Icons.edit_note_rounded,
+        Text(
+          "TICKET ID: ${ticket.caseId ?? ticket.id}",
+          style: const TextStyle(
             color: primaryOrange,
-            onTap: () =>
-                Get.toNamed(AppRoutes.editTicket, arguments: ticket.id),
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _actionButton(
-            label: "WhatsApp",
-            icon: FontAwesomeIcons.whatsapp,
-            color: Colors.green,
-            onTap: () => controller.shareToWhatsApp(),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: () => Get.toNamed(AppRoutes.editTicket, arguments: ticket.id),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              border: Border.all(color: primaryOrange, width: 1.5),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Icon(Icons.edit, color: primaryOrange, size: 12),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _actionButton({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    bool isSecondary = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSecondary ? Colors.white : color,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color),
-          boxShadow: [
-            if (!isSecondary)
-              BoxShadow(
-                color: color.withValues(alpha: 0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: isSecondary ? color : Colors.white),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSecondary ? color : Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Ticket ID Container ---
-  Widget _buildTicketIdContainer(dynamic ticket) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: primaryOrange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryOrange.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.confirmation_number, color: primaryOrange, size: 20),
-          const SizedBox(width: 8),
-          const Text(
-            "Ticket ID:",
-            style: TextStyle(
-              color: primaryOrange,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              "#${ticket.caseId ?? ticket.id}",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.black.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -228,203 +107,323 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: secondaryOrange,
+        color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5), // Sky blue border in mockup
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            runSpacing: 10,
-            spacing: 0,
+          Table(
+            columnWidths: const {
+              0: FixedColumnWidth(66),
+              1: FlexColumnWidth(1.0),
+              2: FixedColumnWidth(8),
+              3: FixedColumnWidth(66),
+              4: FlexColumnWidth(1.4),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: [
-              _infoTile(
-                "Status",
-                valueWidget: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _buildStatusBadge(ticket.status ?? "0"),
-                ),
+              _tableRow(
+                leftLabel: "Status",
+                leftValue: _getStatusLabel(ticket.status ?? "0"),
+                rightLabel: "Created By",
+                rightValue: ticket.userName ?? "-",
               ),
-              _infoTile("Created By", value: ticket.userName ?? "-"),
-              _infoTile(
-                "Priority",
-                valueWidget: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _buildPriorityBadge(ticket.priorityId ?? "1"),
-                ),
+              _tableRow(
+                leftLabel: "Priority",
+                leftValue: _getPriorityLabel(ticket.priorityId ?? "1"),
+                rightLabel: "Created On",
+                rightValue: ticket.createdOn ?? "-",
               ),
-              _infoTile("Created On", value: ticket.createdOn ?? "-"),
-              _infoTile("Category", value: ticket.category ?? "-"),
-              _infoTile("Modified On", value: ticket.modifiedOn ?? "-"),
-              _infoTile("S-Category", value: ticket.subcategory ?? "-"),
-              _infoTile("Resolved", value: ticket.resolvedOn ?? "-"),
-              _infoTile("Assignee", value: ticket.assignedToName ?? "-"),
-              _infoTile("Follow-Up", value: ticket.followUp ?? "-"),
-              _infoTile("Unit No", value: ticket.unitNo ?? "-"),
-              _infoTile("Ticket Age", value: ticket.tktAge ?? "-"),
-              _infoTile("Project", value: ticket.project ?? "-"),
-              _infoTile(
-                "Reminder",
-                value: ticket.reminder?.reminderDate ?? "-",
+              _tableRow(
+                leftLabel: "Category",
+                leftValue: ticket.category ?? "-",
+                rightLabel: "Modified On",
+                rightValue: ticket.modifiedOn ?? "-",
+                isRightOrange: true,
               ),
-              _infoTile("Linked Tkt", value: "NA"),
+              _tableRow(
+                leftLabel: "Sub Category",
+                leftValue: ticket.subcategory ?? "-",
+                rightLabel: "Resolved",
+                rightValue: ticket.resolvedOn ?? "-",
+              ),
+              _tableRow(
+                leftLabel: "Assignee",
+                leftValue: ticket.assignedToName ?? "-",
+                isLeftOrange: true,
+                rightLabel: "Follow-up",
+                rightValue: ticket.followUp ?? "-",
+              ),
+              _tableRow(
+                leftLabel: "Unit",
+                leftValue: ticket.unitNo ?? "-",
+                rightLabel: "Ticket Age",
+                rightValue: ticket.tktAge ?? "-",
+              ),
+              _tableRow(
+                leftLabel: "Project",
+                leftValue: ticket.project ?? "-",
+                rightLabel: "Reminder",
+                rightWidget: _reminderWidget(),
+              ),
+              _tableRow(
+                leftLabel: "",
+                leftValue: "",
+                rightLabel: "Link Ticket",
+                rightWidget: _linkTicketWidget(),
+              ),
             ],
           ),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(color: Colors.black12, height: 1),
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: Color(0xFFEEEEEE), height: 1, thickness: 1),
           ),
-          _textBlock("Subject", ticket.subject ?? "-"),
-          const SizedBox(height: 12),
-          _textBlock("Description", ticket.description ?? "-"),
+          Table(
+            columnWidths: const {
+              0: FixedColumnWidth(74),
+              1: FlexColumnWidth(1.0),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.top,
+            children: [
+              _bottomTableRow("Subject", ticket.subject ?? "-"),
+              _bottomTableRow("Description", ticket.description ?? "-"),
+              _bottomTableRowWidget(
+                "Attachments",
+                _buildAttachmentsWidget([
+                  ...?ticket.cashierImages,
+                  ...?ticket.attachments,
+                ]),
+              ),
+              _bottomTableRowWidget("Interest Party", _buildInterestPartyWidget()),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _infoTile(String label, {String? value, Widget? valueWidget}) {
-    return SizedBox(
-      width: Get.width * 0.4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.black54, fontSize: 11),
-          ),
-          const SizedBox(height: 2),
-          if (valueWidget != null)
-            valueWidget
-          else
-            Text(
-              value ?? "-",
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _textBlock(String title, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  TableRow _tableRow({
+    required String leftLabel,
+    required String leftValue,
+    bool isLeftOrange = false,
+    required String rightLabel,
+    String? rightValue,
+    Widget? rightWidget,
+    bool isRightOrange = false,
+  }) {
+    return TableRow(
       children: [
-        Expanded(
-          flex: 1,
+        // Col 0: Left Label
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
-            title,
+            leftLabel,
             style: const TextStyle(
-              fontWeight: FontWeight.bold,
               color: primaryOrange,
+              fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 2,
-          child: Text(value, style: const TextStyle(height: 1.4, fontSize: 12)),
+        // Col 1: Left Value
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            leftValue,
+            style: TextStyle(
+              color: isLeftOrange ? primaryOrange : Colors.black87,
+              fontWeight: isLeftOrange ? FontWeight.bold : FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        // Col 2: Spacer
+        const SizedBox(),
+        // Col 3: Right Label
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            rightLabel,
+            style: const TextStyle(
+              color: primaryOrange,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        // Col 4: Right Value or Widget
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: rightWidget ??
+              Text(
+                rightValue ?? "",
+                style: TextStyle(
+                  color: isRightOrange ? primaryOrange : Colors.black87,
+                  fontWeight: isRightOrange ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
         ),
       ],
     );
   }
 
-  // --- Badges ---
-  Widget _buildStatusBadge(String statusValue) {
-    String label = _getStatusLabel(statusValue);
-    Color textColor = Colors.black87;
-    Color? bgColor;
-
-    switch (statusValue) {
-      case "0": // New
-        textColor = Colors.red;
-        bgColor = Colors.red.withValues(alpha: 0.1);
-        break;
-      case "1": // WIP
-        textColor = Colors.black;
-        bgColor = Colors.grey.withValues(alpha: 0.2);
-        break;
-      case "5": // Awaited
-        textColor = Colors.black;
-        bgColor = const Color(0x9496F1EF);
-        break;
-      case "4": // Hold
-        textColor = Colors.black;
-        bgColor = const Color(0x9607B8FF);
-        break;
-      case "2": // Resolved
-        textColor = Colors.black;
-        bgColor = Colors.green.withValues(alpha: 0.2);
-        break;
-      case "3": // Closed
-        textColor = Colors.black;
-        bgColor = Colors.grey.withValues(alpha: 0.3);
-        break;
-      default:
-        textColor = Colors.black;
-        bgColor = Colors.grey.withValues(alpha: 0.1);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: textColor.withValues(alpha: 0.5), width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 8,
+  Widget _reminderWidget() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0E0E0),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Icon(Icons.calendar_today, size: 10, color: Colors.black54),
         ),
+        const SizedBox(width: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0E0E0),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Icon(Icons.access_time, size: 10, color: Colors.black54),
+        ),
+      ],
+    );
+  }
+
+  Widget _linkTicketWidget() {
+    return Container(
+      height: 14,
+      width: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0E0E0),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 
-  Widget _buildPriorityBadge(String priorityValue) {
-    String label = _getPriorityLabel(priorityValue);
-    Color textColor = Colors.black;
-    Color? bgColor;
+  TableRow _bottomTableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: primaryOrange,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 12,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-    switch (priorityValue) {
-      case "1":
-        textColor = Colors.black;
-        bgColor = Colors.grey.shade200;
-        break;
-      case "2":
-        textColor = Colors.black;
-        bgColor = const Color(0xFFFFC000);
-        break;
-      case "3":
-        textColor = Colors.white;
-        bgColor = const Color(0xFFFF0000);
-        break;
-      case "6":
-        textColor = Colors.white;
-        bgColor = const Color(0xFFC00000);
-        break;
-      default:
-        textColor = Colors.black;
-        bgColor = Colors.grey.shade200;
-    }
+  TableRow _bottomTableRowWidget(String label, Widget child) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: primaryOrange,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: child,
+        ),
+      ],
+    );
+  }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-        border: bgColor == Colors.grey.shade200
-            ? Border.all(color: Colors.grey.shade400)
-            : null,
-      ),
-      child: Text(
-        label,
+  Widget _buildAttachmentsWidget(List attachments) {
+    if (attachments.isEmpty) {
+      return const Text(
+        "No Attachments",
         style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 8,
+          color: Colors.grey,
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: attachments.map((att) {
+        final filename = att.toString().split('/').last;
+        return InkWell(
+          onTap: () => _showImagePreview(Get.context!, att.toString()),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0E0E0),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.attachment_rounded, size: 10, color: primaryOrange),
+                const SizedBox(width: 4),
+                Text(
+                  filename,
+                  style: const TextStyle(
+                    color: primaryOrange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInterestPartyWidget() {
+    return Container(
+      height: 24,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0E0E0),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      alignment: Alignment.centerLeft,
+      child: const Text(
+        "Email",
+        style: TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
         ),
       ),
     );
@@ -464,73 +463,163 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     }
   }
 
-  // --- Status Action Buttons ---
-  Widget _buildStatusActionButtons() {
-    return Row(
+  Widget _buildTimelineFlow(dynamic ticket) {
+    final comments = ticket.comments ?? [];
+    final logs = ticket.logs ?? [];
+    final bool hasHistory = logs.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _headerAction(
-            "Resolve",
-            Icons.check_circle_outline,
-            () => controller.updateStatus("Resolved"),
+        // Spacing & Comments header with vertical timeline segment
+        Stack(
+          children: [
+            Positioned(
+              left: 9,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 1.5,
+                color: Colors.black87,
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(left: 32, top: 12, bottom: 8),
+              child: Text(
+                "Comments",
+                style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+
+        // Green Dot with Comments Input Area
+        _timelineRow(
+          dotColor: const Color(0xFF4CAF50), // Green dot
+          child: _buildCommentInputArea(),
+          isLast: comments.isEmpty && !hasHistory,
+        ),
+
+        // Red Dots with Comment Items
+        ...comments.asMap().entries.map((entry) {
+          final int idx = entry.key;
+          final dynamic c = entry.value;
+          final int commentId = c['id'] ?? 0;
+          final bool isLast = (idx == comments.length - 1) && !hasHistory;
+
+          return _timelineRow(
+            dotColor: Colors.red,
+            child: Obx(
+              () => controller.editingCommentIds.contains(commentId)
+                  ? _buildCommentEditForm(controller, c)
+                  : _buildCommentItem(controller, c),
+            ),
+            isLast: isLast,
+          );
+        }),
+
+        // History section header & table
+        if (hasHistory) ...[
+          Stack(
+            children: [
+              Positioned(
+                left: 9,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 1.5,
+                  color: Colors.black87,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 32, top: 16, bottom: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "History",
+                      style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    _historyHeaderTable(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          _timelineRow(
+            dotColor: Colors.red,
+            child: _buildHistoryTable(logs),
+            isLast: true,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _timelineRow({
+    required Color dotColor,
+    required Widget child,
+    bool isLast = false,
+  }) {
+    return Stack(
+      children: [
+        // Vertical line segment for this row (stops at dot center if isLast)
+        Positioned(
+          left: 9,
+          top: 0,
+          bottom: isLast ? null : 0,
+          height: isLast ? 24 : null, // stops exactly at y = 24 (center of dot)
+          child: Container(
+            width: 1.5,
+            color: Colors.black87,
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _headerAction(
-            "Awaited",
-            Icons.pause_circle_outline,
-            () => controller.updateStatus("Awaited"),
+        // Timeline dot
+        Positioned(
+          left: 0,
+          top: 14,
+          child: Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: dotColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _headerAction(
-            "Hold",
-            Icons.stop_circle_outlined,
-            () => controller.updateStatus("Hold"),
-          ),
+        // Child Content card padded from the left dot, with bottom margin inside stack
+        Padding(
+          padding: const EdgeInsets.only(left: 32, bottom: 16),
+          child: child,
         ),
       ],
     );
   }
 
-  Widget _headerAction(String label, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: primaryOrange,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Comment Input ---
+  // --- Comment Input Card ---
   Widget _buildCommentInputArea() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: webBlueBorder.withValues(alpha: 0.5), width: 1),
+        color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5), // Sky blue border
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,85 +627,133 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           Row(
             children: [
               const Text(
-                "Comments",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                "COMMENTS",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: primaryOrange,
+                ),
               ),
               const Spacer(),
               Obx(
-                () => Row(
-                  children: [
-                    Checkbox(
-                      value: controller.isInternal.value,
-                      activeColor: primaryOrange,
-                      onChanged: (val) => controller.isInternal.value = val!,
-                    ),
-                    const Text(
-                      "Mark Internal",
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              InkWell(
-                onTap: () => controller.addComment(),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: primaryOrange,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.send_rounded,
-                    color: Colors.white,
-                    size: 20,
+                () => GestureDetector(
+                  onTap: () => controller.isInternal.toggle(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        controller.isInternal.value
+                            ? Icons.check_box_outlined
+                            : Icons.crop_square_outlined,
+                        color: primaryOrange,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        "Mark Internal",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: primaryOrange,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: controller.commentController,
-            maxLines: 2,
-            style: const TextStyle(fontSize: 13),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: lightGrey.withValues(alpha: 0.3),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              hintText: "Write comment...",
-            ),
-          ),
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: () => controller.pickImages(),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.attachment_rounded, color: primaryOrange, size: 18),
-                SizedBox(width: 4),
-                Text(
-                  "Upload Images",
-                  style: TextStyle(
-                    color: primaryOrange,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller.commentController,
+                  maxLines: 2,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: "Write your comment...",
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    filled: true,
+                    fillColor: const Color(0xFFEEEEEE),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: primaryOrange, width: 1),
+                    ),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.link, color: Colors.blue, size: 20),
+                          onPressed: () => controller.pickImages(),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.send, color: primaryOrange, size: 20),
+                          onPressed: () => controller.addComment(),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => controller.pickImages(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3F0),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: primaryOrange.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.attachment, color: primaryOrange, size: 14),
+                  const SizedBox(width: 6),
+                  const Text(
+                    "Upload Images",
+                    style: TextStyle(
+                      color: primaryOrange,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Obx(
             () => controller.selectedImages.isNotEmpty
                 ? Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: 8),
                     child: Wrap(
                       spacing: 8,
                       children: controller.selectedImages
@@ -627,8 +764,8 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.file(
                                     File(file.path),
-                                    width: 60,
-                                    height: 60,
+                                    width: 50,
+                                    height: 50,
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -636,10 +773,12 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                                   top: -4,
                                   right: -4,
                                   child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
                                     icon: const Icon(
                                       Icons.cancel,
                                       color: Colors.red,
-                                      size: 20,
+                                      size: 18,
                                     ),
                                     onPressed: () =>
                                         controller.selectedImages.remove(file),
@@ -658,160 +797,208 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     );
   }
 
-  // --- Comment History ---
-  Widget _buildCommentHistory(
-    TicketDetailsController controller,
-    List comments,
-  ) {
-    if (comments.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Comment History",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        const SizedBox(height: 12),
-        ...comments.map((c) {
-          final int commentId = c['id'] ?? 0;
-          return Obx(
-            () => controller.editingCommentIds.contains(commentId)
-                ? _buildCommentEditForm(controller, c)
-                : _buildCommentItem(controller, c),
-          );
-        }),
-      ],
-    );
-  }
-
+  // --- Comment Activity Item Card ---
   Widget _buildCommentItem(TicketDetailsController controller, dynamic c) {
-    final bool isInternal = c['is_internal'] == "1";
     final int commentId = c['id'] ?? 0;
     final List images = c['ticket_images'] ?? [];
     final storage = Get.find<StorageService>();
     final user = storage.getUser();
     final bool isOwner = c['user_id']?.toString() == user?.id?.toString();
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Stack(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(left: 10),
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isInternal ? const Color(0xFFFFF9C4) : Colors.white,
-              border: Border.all(
-                color: isInternal ? Colors.orange : webBlueBorder,
-                width: 1.2,
-              ),
-              borderRadius: BorderRadius.circular(12),
+    final activityText = c['action'] ?? "${c['user_name'] ?? 'User'} updated";
+    final bool hasBookmark = activityText.toLowerCase().contains("accepted");
+
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(left: 12, right: 12, top: 16, bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+            border: Border.all(
+              color: const Color(0xFF29B6F6), // Sky blue border
+              width: 1.5,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(
+                          width: 90,
+                          child: Text(
+                            "ACTIVITY",
+                            style: TextStyle(
+                              color: primaryOrange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            activityText,
+                            style: const TextStyle(
+                              color: primaryOrange, // Orange action text to match mockup
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isOwner)
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
+                      onPressed: () => controller.toggleEditComment(commentId),
+                    ),
+                ],
+              ),
+              
+              // Comment section if present
+              if (c['comment'] != null && c['comment'].toString().trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      c['user_name'] ?? "Unknown",
-                      style: const TextStyle(
-                        color: primaryOrange,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                    const SizedBox(
+                      width: 90,
+                      child: Text(
+                        "COMMENTS",
+                        style: TextStyle(
+                          color: primaryOrange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                    Row(
-                      children: [
-                        if (isInternal) _buildInternalBadge(),
-                        if (isOwner)
-                          PopupMenuButton<String>(
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.more_vert, size: 16),
-                            onSelected: (val) {
-                              if (val == 'edit') {
-                                controller.toggleEditComment(commentId);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Text(
-                                  'Edit',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
+                    Expanded(
+                      child: _buildCommentText(c['comment'].toString()),
                     ),
                   ],
                 ),
+              ],
+
+              // Attachments section if present
+              if (images.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(
-                  c['comment'] ?? "",
-                  style: const TextStyle(fontSize: 12, height: 1.3),
-                ),
-                if (images.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: images
-                        .map(
-                          (img) => InkWell(
-                            onTap: () =>
-                                _showImagePreview(Get.context!, img.toString()),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.network(
-                                img.toString(),
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 60,
-                                  height: 60,
-                                  color: Colors.grey[200],
-                                  child: const Icon(
-                                    Icons.broken_image,
-                                    size: 20,
-                                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 90,
+                      child: Text(
+                        "ATTACHMENTS",
+                        style: TextStyle(
+                          color: primaryOrange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: images
+                            .map(
+                              (img) => InkWell(
+                                onTap: () =>
+                                    _showImagePreview(Get.context!, img.toString()),
+                                child: AppImageView(
+                                  imageUrl: img.toString(),
+                                  width: 50,
+                                  height: 50,
+                                  borderRadius: 6,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Text(
-                  "Updated On : ${c['created_at']}",
-                  style: const TextStyle(
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  "Updated On: ${c['created_at'] != null ? DateFormat('dd-MM-yy, HH:mm').format(DateTime.parse(c['created_at'])) : ''}",
+                  style: TextStyle(
                     fontSize: 10,
-                    color: Colors.black54,
+                    color: Colors.grey[500],
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 0,
-            top: 12,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: isInternal ? Colors.orange : const Color(0xFF4CAF50),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
               ),
+            ],
+          ),
+        ),
+        if (hasBookmark)
+          const Positioned(
+            left: 12,
+            top: 0,
+            child: Icon(Icons.bookmark, color: Color(0xFF29B6F6), size: 18),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCommentText(String text) {
+    if (!text.contains('@')) {
+      return Text(text, style: const TextStyle(fontSize: 12, height: 1.3));
+    }
+    
+    final List<TextSpan> spans = [];
+    final words = text.split(' ');
+    for (int i = 0; i < words.length; i++) {
+      final word = words[i];
+      if (word.startsWith('@')) {
+        spans.add(
+          TextSpan(
+            text: '$word ',
+            style: const TextStyle(
+              color: Colors.blue,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
-        ],
+        );
+      } else {
+        spans.add(
+          TextSpan(
+            text: '$word ',
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 12,
+            ),
+          ),
+        );
+      }
+    }
+    return RichText(
+      text: TextSpan(
+        children: spans,
+        style: const TextStyle(height: 1.3),
       ),
     );
   }
@@ -834,12 +1021,18 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         bool isInternal = initialInternal;
 
         return Container(
-          margin: const EdgeInsets.only(left: 10, bottom: 16),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: webBlueBorder, width: 1.2),
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFFFFFBF9),
+            border: Border.all(color: const Color(0xFF29B6F6), width: 1.5),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,7 +1041,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 children: [
                   const Text(
                     'Edit Comment',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const Spacer(),
                   Checkbox(
@@ -869,7 +1062,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       style: TextStyle(
                         color: primaryOrange,
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -881,7 +1074,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       style: TextStyle(
                         color: Colors.grey,
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -891,7 +1084,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               TextField(
                 controller: editController,
                 maxLines: 3,
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 13),
                 decoration: InputDecoration(
                   hintText: 'Enter comment...',
                   border: OutlineInputBorder(
@@ -913,23 +1106,23 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       .map(
                         (url) => Stack(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                url,
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
+                             AppImageView(
+                               imageUrl: url,
+                               width: 50,
+                               height: 50,
+                               borderRadius: 8,
+                               fit: BoxFit.cover,
+                             ),
                             Positioned(
                               top: -4,
                               right: -4,
                               child: IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                                 icon: const Icon(
                                   Icons.cancel,
                                   color: Colors.red,
-                                  size: 20,
+                                  size: 18,
                                 ),
                                 onPressed: () =>
                                     setState(() => existingImages.remove(url)),
@@ -954,12 +1147,12 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       .map(
                         (file) => Stack(
                           children: [
-                            ClipRRect(
+                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.file(
                                 file,
-                                width: 60,
-                                height: 60,
+                                width: 50,
+                                height: 50,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -967,10 +1160,12 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                               top: -4,
                               right: -4,
                               child: IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                                 icon: const Icon(
                                   Icons.cancel,
                                   color: Colors.red,
-                                  size: 20,
+                                  size: 18,
                                 ),
                                 onPressed: () =>
                                     setState(() => newImages.remove(file)),
@@ -996,7 +1191,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                     Icon(
                       Icons.attachment_rounded,
                       color: primaryOrange,
-                      size: 18,
+                      size: 16,
                     ),
                     SizedBox(width: 4),
                     Text(
@@ -1017,52 +1212,42 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     );
   }
 
-  Widget _buildInternalBadge() {
+  // --- History Table Card ---
+  Widget _buildHistoryTable(List logs) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.orange,
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5), // Sky blue border
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: const Text(
-        "INTERNAL",
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 8,
-          fontWeight: FontWeight.bold,
-        ),
+      child: Column(
+        children: logs.map(
+          (log) {
+            final int idx = logs.indexOf(log);
+            return Column(
+              children: [
+                _historyRowTable(log),
+                if (idx != logs.length - 1)
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              ],
+            );
+          },
+        ).toList(),
       ),
     );
   }
 
-  // --- History Table ---
-  Widget _buildHistoryTable(List logs) {
-    if (logs.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Activity Log",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 16),
-        _historyHeaderTable(),
-        const Divider(height: 1, color: Colors.black12),
-        ...logs.map(
-          (log) => Column(
-            children: [
-              _historyRowTable(log),
-              const Divider(height: 1, color: Colors.black12),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _historyHeaderTable() {
     return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
       child: Row(
         children: [
           Expanded(
@@ -1072,7 +1257,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
-                color: Colors.black54,
+                color: Colors.grey,
               ),
             ),
           ),
@@ -1083,18 +1268,18 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
-                color: Colors.black54,
+                color: Colors.grey,
               ),
             ),
           ),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Text(
               "Action",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
-                color: Colors.black54,
+                color: Colors.grey,
               ),
             ),
           ),
@@ -1111,21 +1296,35 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       final dt = DateTime.parse(dateStr);
       datePart = DateFormat("dd-MM-yy").format(dt);
       timePart = DateFormat("HH:mm").format(dt);
-    } catch (_) {}
+    } catch (_) {
+      datePart = dateStr;
+    }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(datePart, style: const TextStyle(fontSize: 11)),
+                Text(
+                  datePart,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: primaryOrange,
+                  ),
+                ),
                 Text(
                   timePart,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: primaryOrange,
+                  ),
                 ),
               ],
             ),
@@ -1134,88 +1333,67 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             flex: 3,
             child: Text(
               log['user_name'] ?? "-",
-              style: const TextStyle(fontSize: 11),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: primaryOrange,
+              ),
             ),
           ),
           Expanded(
-            flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Changed ${log['action']}",
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  "From ${log['old_value']} to ${log['new_value']}",
-                  style: const TextStyle(fontSize: 10, color: Colors.black54),
-                ),
-              ],
-            ),
+            flex: 5,
+            child: _buildActionSpanText(log),
           ),
         ],
       ),
     );
   }
 
-  // --- Image Section ---
-  Widget _buildImageSection(
-    BuildContext context,
-    String title,
-    List<String> images,
-  ) {
-    if (images.isEmpty) return const SizedBox();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: secondaryOrange,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildActionSpanText(dynamic log) {
+    final String action = log['action'] ?? '';
+    final String field = log['field'] ?? '';
+    final String oldVal = log['old_value'] ?? '';
+    final String newVal = log['new_value'] ?? '';
+
+    // Match mockup styling where properties/fields are bolded
+    if (action.toLowerCase() == 'create' || action.toLowerCase() == 'created') {
+      return const Text(
+        "Created.",
+        style: TextStyle(fontSize: 11, color: Colors.black87),
+      );
+    }
+
+    // Capitalize field name
+    String fieldName = field;
+    if (field == 'subcat_id') fieldName = 'Sub Category';
+    if (field == 'mcat_id') fieldName = 'Category';
+    if (field == 'assigned_to') fieldName = 'Assignee';
+    if (field == 'priority') fieldName = 'Priority';
+    if (field == 'status') fieldName = 'Status';
+    if (field == 'projectid') fieldName = 'Project';
+
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.2),
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: primaryOrange,
-              fontSize: 12,
+          const TextSpan(text: "Change "),
+          TextSpan(
+            text: fieldName,
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          ),
+          if (oldVal.isNotEmpty) ...[
+            const TextSpan(text: " from "),
+            TextSpan(
+              text: oldVal,
+              style: const TextStyle(color: Colors.black87),
             ),
+          ],
+          const TextSpan(text: " to "),
+          TextSpan(
+            text: newVal,
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: images
-                .map(
-                  (img) => InkWell(
-                    onTap: () => _showImagePreview(context, img),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        img,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.white,
-                          child: const Icon(
-                            Icons.broken_image,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
+          const TextSpan(text: "."),
         ],
       ),
     );
@@ -1230,22 +1408,11 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: InteractiveViewer(
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(20),
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ),
+            InteractiveViewer(
+              child: AppImageView(
+                imageUrl: imageUrl,
+                fit: BoxFit.contain,
+                borderRadius: 12,
               ),
             ),
             Positioned(

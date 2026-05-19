@@ -387,4 +387,49 @@ class SupportRepository extends GetxService {
       rethrow;
     }
   }
+
+  // Template Management
+  Future<List<SupportTemplateModel>> fetchAllTemplates() async {
+    try {
+      final response = await _apiService.get(AppConstants.templateList);
+      if (response != null && response['status'] == true) {
+        final List data = response['data'] ?? [];
+        return data.map((e) => SupportTemplateModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> addTemplate(String subject, String descp) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.templateStore,
+        data: {
+          'template_subject': subject,
+          'template_descp': descp,
+        },
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updateTemplate(int id, String subject, String descp) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.templateUpdate,
+        data: {
+          'template_id': id,
+          'template_subject': subject,
+          'template_descp': descp,
+        },
+      );
+      return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

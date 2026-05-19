@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:dio/dio.dart' as dio;
+import 'package:core/utils/app_utils.dart';
 
 class CreateTicketController extends GetxController {
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
@@ -32,6 +33,8 @@ class CreateTicketController extends GetxController {
   final projects = <SupportProject>[].obs;
   final assignees = <AssigneeModel>[].obs;
   final selectedAssignee = Rxn<AssigneeModel>();
+  final templates = <SupportTemplateModel>[].obs;
+  final selectedTemplate = Rxn<SupportTemplateModel>();
   
   // Reminder Logic
   final reminderDate = Rxn<DateTime>();
@@ -54,11 +57,30 @@ class CreateTicketController extends GetxController {
         fetchUnits(),
         fetchCategories(),
         fetchProjects(),
+        fetchTemplates(),
       ]);
     } catch (e) {
       debugPrint('Error fetching dropdown data: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchTemplates() async {
+    try {
+      final result = await _supportRepository.fetchAllTemplates();
+      result.sort((a, b) => a.templateName.compareTo(b.templateName));
+      templates.assignAll(result);
+    } catch (e) {
+      debugPrint('Error fetching templates: $e');
+    }
+  }
+
+  void onTemplateSelected(SupportTemplateModel? template) {
+    selectedTemplate.value = template;
+    if (template != null) {
+      subjectController.text = template.templateName;
+      descriptionController.text = template.description;
     }
   }
 
@@ -144,7 +166,7 @@ class CreateTicketController extends GetxController {
         selectedImages.addAll(images);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to pick images: $e');
+      AppCommonToastMessage.show(message: 'Failed to pick images: $e', type: ToastType.error);
     }
   }
 
@@ -155,7 +177,7 @@ class CreateTicketController extends GetxController {
         selectedImages.add(photo);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to take photo: $e');
+      AppCommonToastMessage.show(message: 'Failed to take photo: $e', type: ToastType.error);
     }
   }
 
@@ -167,7 +189,7 @@ class CreateTicketController extends GetxController {
     if (selectedUnit.value == null || 
         selectedCategory.value == null || 
         subjectController.text.isEmpty) {
-      Get.snackbar('Error', 'Please fill all required fields');
+      AppCommonToastMessage.show(message: 'Please fill all required fields', type: ToastType.error);
       return;
     }
 
@@ -207,21 +229,22 @@ class CreateTicketController extends GetxController {
       
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar(
-          'Success',
-          'Ticket created successfully',
-          backgroundColor: AppColors.success,
-          colorText: AppColors.white,
-        );
+        AppCommonToastMessage.show(message: 'Ticket created successfully', type: ToastType.success);
         // Refresh ticket list
         if (Get.isRegistered<SupportTicketsController>()) {
           Get.find<SupportTicketsController>().fetchTickets();
         }
       } else {
-        Get.snackbar('Error', response?['message'] ?? 'Failed to create ticket');
+        final rawMsg = response?['message']?.toString() ?? '';
+        final cleanMsg = (rawMsg.toLowerCase().contains('sqlstate') || 
+                           rawMsg.toLowerCase().contains('database') || 
+                           rawMsg.toLowerCase().contains('exception'))
+            ? 'Failed to create ticket. Please try again later.'
+            : (rawMsg.isNotEmpty ? rawMsg : 'Failed to create ticket');
+        AppCommonToastMessage.show(message: cleanMsg, type: ToastType.error);
       }
     } catch (e) {
-      Get.snackbar('Error', 'An error occurred: $e');
+      AppCommonToastMessage.show(message: AppUtils.parseError(e), type: ToastType.error);
     } finally {
       isLoading.value = false;
     }

@@ -17,8 +17,14 @@ import 'package:dev/views/widgets/floating_logger_button.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:flutter/services.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());
   await initServices();
@@ -31,7 +37,7 @@ Future<void> initServices() async {
 
   // Initialize StorageService (Hive-based)
   final storageService = await Get.putAsync(() => StorageService().init());
-  
+
   // Initialize SettingsService (Depends on StorageService)
   Get.put(SettingsService());
 
@@ -56,7 +62,6 @@ Future<void> initServices() async {
   Get.put(TaskRepository());
 }
 
-
 class OpsApp extends StatelessWidget {
   const OpsApp({super.key});
 
@@ -67,16 +72,9 @@ class OpsApp extends StatelessWidget {
       builder: (context, child) => GetMaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'mFresh Ops',
-        theme: ThemeData(
-          primaryColor: AppColors.primary,
-        ),
+        theme: ThemeData(primaryColor: AppColors.primary),
         builder: (context, child) {
-          return Stack(
-            children: [
-              child!,
-              const FloatingLoggerButton(),
-            ],
-          );
+          return Stack(children: [child!, const FloatingLoggerButton()]);
         },
         initialRoute: AppRoutes.splash,
         getPages: AppPages.pages,

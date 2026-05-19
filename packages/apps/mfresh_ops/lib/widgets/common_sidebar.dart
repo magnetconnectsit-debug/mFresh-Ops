@@ -76,6 +76,7 @@ class CommonSidebar extends StatelessWidget {
                     'M_Category',
                     'M_Sub Category',
                     'M_Projects',
+                    'M_Template',
                   ],
                   currentRoute: currentRoute,
                 ),
@@ -196,6 +197,8 @@ class CommonSidebar extends StatelessWidget {
               Get.toNamed(AppRoutes.supportSubCategory);
             } else if (item == 'M_Projects') {
               Get.toNamed(AppRoutes.supportProjects);
+            } else if (item == 'M_Template') {
+              Get.toNamed(AppRoutes.supportTemplate);
             } else if (item == 'All Task') {
               Get.toNamed(AppRoutes.allTasks);
             } else if (item == 'Daily Task') {

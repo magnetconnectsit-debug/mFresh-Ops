@@ -9,6 +9,7 @@ abstract class AppRoutes {
   static const supportCategory = '/support-category';
   static const supportSubCategory = '/support-subcategory';
   static const supportProjects = '/support-projects';
+  static const supportTemplate = '/support-template';
   static const createTask = '/create-task';
   static const createSupportTicket = '/create-support-ticket';
   static const ticketDetails = '/ticket-details';

@@ -21,6 +21,29 @@ class SupportTicketsController extends GetxController {
   final expandedSubjectTickets = <int>{}.obs;
   final isSearching = false.obs;
   final searchController = TextEditingController();
+  final searchQuery = "".obs;
+
+  List<SupportTicketListItem> get filteredTickets {
+    final query = searchQuery.value.trim().toLowerCase();
+    if (query.isEmpty) {
+      return tickets;
+    }
+    return tickets.where((ticket) {
+      return (ticket.id.toString().contains(query)) ||
+          (ticket.caseId?.toLowerCase().contains(query) ?? false) ||
+          (ticket.subject?.toLowerCase().contains(query) ?? false) ||
+          (ticket.description?.toLowerCase().contains(query) ?? false) ||
+          (ticket.project?.toLowerCase().contains(query) ?? false) ||
+          (ticket.mCategory?.toLowerCase().contains(query) ?? false) ||
+          (ticket.subCat?.toLowerCase().contains(query) ?? false) ||
+          (ticket.statusLabel?.toLowerCase().contains(query) ?? false) ||
+          (ticket.priorityLabel?.toLowerCase().contains(query) ?? false) ||
+          (ticket.assignedTo?.toLowerCase().contains(query) ?? false) ||
+          (ticket.createdBy?.toLowerCase().contains(query) ?? false) ||
+          (ticket.unitNo?.toLowerCase().contains(query) ?? false) ||
+          (ticket.district?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
 
   // Filters
   final categories = <SupportCategory>[].obs;
@@ -222,7 +245,7 @@ class SupportTicketsController extends GetxController {
         totalTickets.value = response.totalTickets;
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch tickets: $e');
+      AppCommonToastMessage.show(message: 'Failed to fetch tickets: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -230,10 +253,8 @@ class SupportTicketsController extends GetxController {
 
   void toggleSearch() {
     isSearching.value = !isSearching.value;
-    if (!isSearching.value) {
-      searchController.clear();
-      fetchTickets();
-    }
+    searchQuery.value = '';
+    searchController.clear();
   }
 
   void toggleTicketSelection(int id) {
@@ -257,10 +278,10 @@ class SupportTicketsController extends GetxController {
   void selectAllTickets(bool? select) {
     if (select == true) {
       // Select all visible tickets
-      selectedTickets.assignAll(tickets.map((t) => t.id).toList());
+      selectedTickets.assignAll(filteredTickets.map((t) => t.id).toList());
     } else {
       // Deselect all visible tickets
-      final visibleIds = tickets.map((t) => t.id).toSet();
+      final visibleIds = filteredTickets.map((t) => t.id).toSet();
       selectedTickets.removeWhere((id) => visibleIds.contains(id));
       selectedTickets.refresh();
     }
@@ -282,7 +303,7 @@ class SupportTicketsController extends GetxController {
         "Posted Date",
       ];
 
-      List<List<dynamic>> rows = tickets.map((ticket) => [
+      List<List<dynamic>> rows = filteredTickets.map((ticket) => [
         ticket.id,
         ticket.unitNo ?? '',
         ticket.subject ?? '',
@@ -309,7 +330,7 @@ class SupportTicketsController extends GetxController {
         );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to export tickets: $e');
+      AppCommonToastMessage.show(message: 'Failed to export tickets: $e', type: ToastType.error);
     }
   }
   // Bulk Edit Dialog Variables

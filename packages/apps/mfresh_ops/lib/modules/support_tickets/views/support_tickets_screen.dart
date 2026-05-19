@@ -5,6 +5,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -20,20 +21,32 @@ class SupportTicketsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FA),
+      resizeToAvoidBottomInset: true,
       appBar: AppCommonAppBar(
         backgroundColor: Colors.white,
         elevation: 1,
         showAppDrawer: true,
         hasBackButton: false,
-        title: Text(
-          "All Support Tickets",
-          style: AppTextStyle.style_18_700(color: Colors.black),
-        ),
+        title: Obx(() => controller.isSearching.value
+            ? AppCommonSearchBar(
+                controller: controller.searchController,
+                hintText: 'Search tickets locally...',
+                onChanged: (v) => controller.searchQuery.value = v,
+                autofocus: true,
+              )
+            : Text(
+                "All Support Tickets",
+                style: AppTextStyle.style_18_700(color: Colors.black),
+              )),
         actions: [
-          IconButton(
-            onPressed: () => controller.toggleSearch(),
-            icon: Icon(Icons.search, color: Colors.black, size: 24.r),
-          ),
+          Obx(() => IconButton(
+                onPressed: () => controller.toggleSearch(),
+                icon: Icon(
+                  controller.isSearching.value ? Icons.close : Icons.search,
+                  color: Colors.black,
+                  size: 24.r,
+                ),
+              )),
         ],
       ),
       drawer: const CommonSidebar(),
@@ -46,129 +59,135 @@ class SupportTicketsScreen extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(20.r, 20.r, 20.r, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Total tickets
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Skeletonizer(
-                            enabled: showSkeleton,
-                            child: Text(
-                              "Total Tickets: ${controller.totalTickets.value}",
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
+              if (!controller.isSearching.value)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.r, 20.r, 20.r, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Total tickets
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Skeletonizer(
+                              enabled: showSkeleton,
+                              child: Text(
+                                "Total Tickets: ${controller.totalTickets.value}",
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        // Reset filter button
-                        Skeletonizer(
-                          enabled: showSkeleton,
-                          child: _actionButton(
-                            label: "Reset Filter",
-                            colors: const [Color(0xFF9E9E9E), Color(0xFF757575)],
-                            onTap: () => controller.resetFilters(),
+                          // Reset filter button
+                          Skeletonizer(
+                            enabled: showSkeleton,
+                            child: _actionButton(
+                              label: "Reset Filter",
+                              colors: const [Color(0xFF9E9E9E), Color(0xFF757575)],
+                              onTap: () => controller.resetFilters(),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: 5.h),
-
-                    // Unit summary chips
-                    if (controller.unitCounts.isNotEmpty || showSkeleton)
-                      Skeletonizer(
-                        enabled: showSkeleton,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children:
-                                (showSkeleton
-                                        ? List.generate(
-                                            5,
-                                            (index) => "Unit - 0",
-                                          )
-                                        : controller.unitCounts
-                                              .map(
-                                                (e) =>
-                                                    "${e.unit} - ${e.totalTickets}",
-                                              )
-                                              .toList())
-                                    .asMap()
-                                    .entries
-                                    .map((entry) {
-                                      int index = entry.key;
-                                      String label = entry.value;
-                                      Color color = [
-                                        Colors.blue,
-                                        Colors.green,
-                                        Colors.red,
-                                        Colors.orange,
-                                        Colors.teal,
-                                      ][index % 5];
-
-                                      return Container(
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 10.w,
-                                          vertical: 4.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: color),
-                                          borderRadius: BorderRadius.circular(
-                                            4.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          label,
-                                          style: TextStyle(
-                                            color: color,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      );
-                                    })
-                                    .toList(),
-                          ),
-                        ),
+                        ],
                       ),
 
-                    SizedBox(height: 10.h),
+                      SizedBox(height: 5.h),
 
-                    Skeletonizer(
-                      enabled: showSkeleton,
-                      child: _buildFilterSection(controller),
-                    ),
+                      // Unit summary chips
+                      if (controller.unitCounts.isNotEmpty || showSkeleton)
+                        Skeletonizer(
+                          enabled: showSkeleton,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children:
+                                  (showSkeleton
+                                          ? List.generate(
+                                              5,
+                                              (index) => "Unit - 0",
+                                            )
+                                          : controller.unitCounts
+                                                .map(
+                                                  (e) =>
+                                                      "${e.unit} - ${e.totalTickets}",
+                                                )
+                                                .toList())
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
+                                        int index = entry.key;
+                                        String label = entry.value;
+                                        Color color = [
+                                          Colors.blue,
+                                          Colors.green,
+                                          Colors.red,
+                                          Colors.orange,
+                                          Colors.teal,
+                                        ][index % 5];
 
-                    SizedBox(height: 10.h),
+                                        return Container(
+                                          margin: EdgeInsets.only(right: 8.w),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 10.w,
+                                            vertical: 4.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: color),
+                                            borderRadius: BorderRadius.circular(
+                                              4.r,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              color: color,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12.sp,
+                                            ),
+                                          ),
+                                        );
+                                      })
+                                      .toList(),
+                            ),
+                          ),
+                        ),
 
-                    Skeletonizer(
-                      enabled: showSkeleton,
-                      child: _buildActionButtons(controller),
-                    ),
+                      SizedBox(height: 10.h),
 
-                    SizedBox(height: 10.h),
-                  ],
+                      Skeletonizer(
+                        enabled: showSkeleton,
+                        child: _buildFilterSection(controller),
+                      ),
+
+                      SizedBox(height: 10.h),
+
+                      Skeletonizer(
+                        enabled: showSkeleton,
+                        child: _buildActionButtons(controller),
+                      ),
+
+                      SizedBox(height: 10.h),
+                    ],
+                  ),
                 ),
-              ),
 
               // Table section - Expanded to take remaining space and handle its own scrolling
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.r),
+                  padding: EdgeInsets.fromLTRB(
+                    20.r,
+                    controller.isSearching.value ? 10.h : 0,
+                    20.r,
+                    0,
+                  ),
                   child: _buildTicketsTable(controller),
                 ),
               ),
@@ -226,6 +245,11 @@ class SupportTicketsScreen extends StatelessWidget {
               // GLOBAL SEARCH
               TextField(
                 controller: controller.searchController,
+                onTap: () {
+                  if (!controller.isSearching.value) {
+                    controller.toggleSearch();
+                  }
+                },
                 onChanged: (v) => controller.applyFilters(),
                 style: TextStyle(fontSize: 12.sp),
                 decoration: InputDecoration(
@@ -450,17 +474,16 @@ class SupportTicketsScreen extends StatelessWidget {
             onTap: () => controller.exportTickets(),
           ),
           Obx(() {
-            if (controller.selectedTickets.isNotEmpty) {
-              return Padding(
-                padding: EdgeInsets.only(left: 4.w),
-                child: _actionButton(
-                  label: "Bulk Edit",
-                  colors: const [Color(0xFF1E88E5), Color(0xFF0D47A1)],
-                  onTap: () => _showBulkEditDialog(controller),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
+            final isDisabled = controller.selectedTickets.isEmpty;
+            return Padding(
+              padding: EdgeInsets.only(left: 4.w),
+              child: _actionButton(
+                label: "Bulk Edit",
+                colors: const [Color(0xFF1E88E5), Color(0xFF0D47A1)],
+                onTap: () => _showBulkEditDialog(controller),
+                isDisabled: isDisabled,
+              ),
+            );
           }),
         ],
       ),
@@ -471,30 +494,32 @@ class SupportTicketsScreen extends StatelessWidget {
     required String label,
     required List<Color> colors,
     required VoidCallback onTap,
+    bool isDisabled = false,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: isDisabled ? null : onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: colors,
+            colors: isDisabled ? colors.map((c) => c.withValues(alpha: 0.4)).toList() : colors,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
           borderRadius: BorderRadius.circular(8.r),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
+          boxShadow: [
+            if (!isDisabled)
+              const BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
           ],
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: isDisabled ? Colors.white.withValues(alpha: 0.6) : Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
@@ -678,27 +703,27 @@ class SupportTicketsScreen extends StatelessWidget {
   }
 
   Widget _buildTicketsTable(SupportTicketsController controller) {
-    if (controller.isLoading.value && controller.tickets.isEmpty) {
-      return _buildSkeletonTable();
-    }
-
-    if (controller.tickets.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Text(
-            'No tickets found',
-            style: AppTextStyle.style_14_400(color: AppColors.grey400),
-          ),
-        ),
-      );
-    }
-
-    final Map<int, TableColumnWidth> columnWidths = {
-      for (int i = 0; i <= 15; i++) i: const IntrinsicColumnWidth(),
-    };
-
     return Obx(() {
+      if (controller.isLoading.value && controller.tickets.isEmpty) {
+        return _buildSkeletonTable();
+      }
+
+      if (controller.filteredTickets.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Text(
+              'No tickets found',
+              style: AppTextStyle.style_14_400(color: AppColors.grey400),
+            ),
+          ),
+        );
+      }
+
+      final Map<int, TableColumnWidth> columnWidths = {
+        for (int i = 0; i <= 15; i++) i: const IntrinsicColumnWidth(),
+      };
+
       // Ensure Obx watches for selection and expansion changes
       controller.selectedTickets.length;
       controller.expandedSubjectTickets.length;
@@ -736,8 +761,8 @@ class SupportTicketsScreen extends StatelessWidget {
                               height: 20,
                               width: 20,
                               child: Checkbox(
-                                value: controller.tickets.isNotEmpty &&
-                                    controller.tickets.every((t) =>
+                                value: controller.filteredTickets.isNotEmpty &&
+                                    controller.filteredTickets.every((t) =>
                                         controller.selectedTickets.contains(t.id)),
                                 onChanged: (val) =>
                                     controller.selectAllTickets(val),
@@ -768,7 +793,7 @@ class SupportTicketsScreen extends StatelessWidget {
                     ],
                   ),
                   // Data Rows
-                  ...controller.tickets.map((ticket) {
+                  ...controller.filteredTickets.map((ticket) {
                     final isSelected = controller.selectedTickets.contains(ticket.id);
                     final isExpanded = controller.expandedSubjectTickets.contains(ticket.id);
                     final isTopPriority = ticket.priorityLabel?.toLowerCase() == "top priority";
@@ -997,36 +1022,57 @@ class SupportTicketsScreen extends StatelessWidget {
   Widget _statusBlock(String status) {
     Color bgColor;
     Color textColor = Colors.black;
+    Color borderColor = Colors.grey.shade300;
+
     switch (status) {
       case "New":
-        bgColor = Colors.white;
-        textColor = Colors.red;
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        borderColor = Colors.red.shade300;
         break;
       case "WIP":
-        bgColor = Colors.white;
-        textColor = Colors.black;
+        bgColor = Colors.blue.shade50;
+        textColor = Colors.blue.shade700;
+        borderColor = Colors.blue.shade300;
         break;
       case "Awaited":
-        bgColor = const Color(0x96f1ef94);
-        textColor = Colors.black;
+        bgColor = const Color(0xFFFEF9E7);
+        textColor = const Color(0xFFB7950B);
+        borderColor = const Color(0xFFF9E79F);
         break;
       case "Hold":
-        bgColor = const Color(0x07b8ff96);
-        textColor = Colors.black87;
+        bgColor = const Color(0xFFEAF2F8);
+        textColor = const Color(0xFF2471A3);
+        borderColor = const Color(0xFFA9CCE3);
+        break;
+      case "Resolved":
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+        borderColor = Colors.green.shade300;
+        break;
+      case "Closed":
+        bgColor = Colors.grey.shade100;
+        textColor = Colors.grey.shade600;
+        borderColor = Colors.grey.shade400;
         break;
       default:
         bgColor = Colors.white;
         textColor = Colors.black;
+        borderColor = Colors.grey.shade300;
     }
     return Container(
-      alignment: Alignment.center,
-      color: bgColor,
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4.r),
+        border: Border.all(color: borderColor, width: 1),
+      ),
       child: Text(
         status,
         style: TextStyle(
           color: textColor,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 10.sp,
         ),
       ),
     );
@@ -1034,32 +1080,49 @@ class SupportTicketsScreen extends StatelessWidget {
 
   Widget _priorityBlock(String priority) {
     Color bgColor;
+    Color textColor;
+    Color borderColor;
+
     switch (priority) {
       case "Low":
-        bgColor = Colors.white;
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+        borderColor = Colors.green.shade300;
         break;
       case "Normal":
       case "Medium":
-        bgColor = const Color(0xFFFFC107);
+        bgColor = Colors.orange.shade50;
+        textColor = Colors.orange.shade700;
+        borderColor = Colors.orange.shade300;
         break;
       case "High":
-        bgColor = const Color(0xFFF44336);
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        borderColor = Colors.red.shade300;
         break;
       case "Top Priority":
-        bgColor = const Color(0xFFB71C1C);
+        bgColor = Colors.red.shade900;
+        textColor = Colors.white;
+        borderColor = Colors.red.shade900;
         break;
       default:
         bgColor = Colors.white;
+        textColor = Colors.black;
+        borderColor = Colors.grey.shade300;
     }
     return Container(
-      alignment: Alignment.center,
-      color: bgColor,
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4.r),
+        border: Border.all(color: borderColor, width: 1),
+      ),
       child: Text(
         priority,
-        style: const TextStyle(
-          color: Colors.black,
+        style: TextStyle(
+          color: textColor,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 10.sp,
         ),
       ),
     );

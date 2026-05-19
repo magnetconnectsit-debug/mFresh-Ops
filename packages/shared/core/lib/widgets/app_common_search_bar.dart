@@ -14,6 +14,7 @@ class AppCommonSearchBar extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Color? borderColor;
   final Color? fillColor;
+  final bool autofocus;
 
   // endregion
 
@@ -26,6 +27,7 @@ class AppCommonSearchBar extends StatelessWidget {
     this.onSubmitted,
     this.borderColor,
     this.fillColor,
+    this.autofocus = false,
   });
 
   // endregion
@@ -48,6 +50,7 @@ class AppCommonSearchBar extends StatelessWidget {
         ],
       ),
       child: TextFormField(
+        autofocus: autofocus,
         controller: controller,
         onChanged: onChanged,
         cursorColor: AppColors.primary,

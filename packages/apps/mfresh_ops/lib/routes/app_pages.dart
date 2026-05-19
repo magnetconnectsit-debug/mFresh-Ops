@@ -37,6 +37,8 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_con
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_category_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_subcategory_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_projects_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/views/support_template_screen.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_template_controller.dart';
 
 class AppPages {
   static final pages = [
@@ -96,6 +98,11 @@ class AppPages {
       name: AppRoutes.supportProjects,
       page: () => const SupportProjectsScreen(),
       binding: BindingsBuilder(() => Get.lazyPut(() => SupportProjectsController())),
+    ),
+    GetPage(
+      name: AppRoutes.supportTemplate,
+      page: () => const SupportTemplateScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => SupportTemplateController())),
     ),
     GetPage(name: AppRoutes.profile, page: () => const ProfileScreen()),
     GetPage(

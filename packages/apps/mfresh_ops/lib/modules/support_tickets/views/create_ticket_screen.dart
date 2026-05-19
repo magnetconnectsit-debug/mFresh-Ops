@@ -71,10 +71,46 @@ class CreateTicketScreen extends StatelessWidget {
 
                   SizedBox(height: 12.h),
 
-                  const Text("Attach Files",
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  Obx(() => _twoFieldRow(
+                    leftLabel: "Attach Files",
+                    leftChild: InkWell(
+                      onTap: () => _showImageSourceOptions(controller),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xffF5F5F5),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                controller.selectedImages.isEmpty 
+                                    ? "Choose files" 
+                                    : "${controller.selectedImages.length} file(s) selected",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: controller.selectedImages.isEmpty ? Colors.grey : Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Icon(Icons.attach_file, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                    rightLabel: "Template",
+                    rightChild: _buildDropdown<SupportTemplateModel>(
+                      controller.selectedTemplate.value,
+                      controller.templates,
+                      (v) => controller.onTemplateSelected(v),
+                      (item) => item.templateName,
+                    ),
+                  )),
                   SizedBox(height: 8.h),
-                  _buildAttachmentSection(controller),
+                  _buildAttachmentList(controller),
 
                   SizedBox(height: 20.h),
 
@@ -417,74 +453,51 @@ class CreateTicketScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAttachmentSection(CreateTicketController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            ElevatedButton.icon(
-              onPressed: () => _showImageSourceOptions(controller),
-              icon: const Icon(Icons.attach_file, size: 16),
-              label: const Text("Choose files", style: TextStyle(fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xffF5F5F5),
-                foregroundColor: Colors.black87,
-                elevation: 0,
-                side: BorderSide(color: Colors.grey.shade300),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  Widget _buildAttachmentList(CreateTicketController controller) {
+    return Obx(() {
+      if (controller.selectedImages.isEmpty) {
+        return const Text(
+          "No files chosen",
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        );
+      }
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: controller.selectedImages.asMap().entries.map((entry) {
+          int index = entry.key;
+          String fileName = entry.value.name;
+          return Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                margin: const EdgeInsets.only(top: 4, right: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 140),
+                  child: Text(fileName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Obx(() => Expanded(
-              child: Text(
-                controller.selectedImages.isEmpty ? "No file chosen" : "${controller.selectedImages.length} file(s) selected",
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                overflow: TextOverflow.ellipsis,
-              ),
-            )),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Obx(() => Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: controller.selectedImages.asMap().entries.map((entry) {
-            int index = entry.key;
-            String fileName = entry.value.name;
-            return Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  margin: const EdgeInsets.only(top: 4, right: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 140),
-                    child: Text(fileName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: InkWell(
+                  onTap: () => controller.removeImage(index),
+                  child: const CircleAvatar(
+                    radius: 7,
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.close, size: 8, color: Colors.white),
                   ),
                 ),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: InkWell(
-                    onTap: () => controller.removeImage(index),
-                    child: const CircleAvatar(
-                      radius: 7,
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.close, size: 8, color: Colors.white),
-                    ),
-                  ),
-                )
-              ],
-            );
-          }).toList(),
-        )),
-      ],
-    );
+              )
+            ],
+          );
+        }).toList(),
+      );
+    });
   }
 
   void _showImageSourceOptions(CreateTicketController controller) {

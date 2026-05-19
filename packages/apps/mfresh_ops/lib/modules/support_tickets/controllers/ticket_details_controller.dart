@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
@@ -250,7 +251,7 @@ class TicketDetailsController extends GetxController {
         // This requires the models to be fetched first (handled in fetchAllData)
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch ticket details: $e');
+      AppCommonToastMessage.show(message: 'Failed to fetch ticket details: $e', type: ToastType.error);
     }
   }
 
@@ -313,22 +314,14 @@ class TicketDetailsController extends GetxController {
 
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar(
-          'Success',
-          'Ticket updated successfully',
-          backgroundColor: AppColors.success,
-          colorText: AppColors.white,
-        );
+        AppCommonToastMessage.show(message: 'Ticket updated successfully', type: ToastType.success);
         // Refresh details
         fetchTicketDetails();
       } else {
-        Get.snackbar(
-          'Error',
-          response?['message'] ?? 'Failed to update ticket',
-        );
+        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to update ticket', type: ToastType.error);
       }
     } catch (e) {
-      Get.snackbar('Error', 'An error occurred: $e');
+      AppCommonToastMessage.show(message: 'An error occurred: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -352,7 +345,7 @@ class TicketDetailsController extends GetxController {
   Future<void> addComment() async {
     final text = commentController.text.trim();
     if (text.isEmpty && selectedImages.isEmpty) {
-      Get.snackbar('Error', 'Please enter a comment or attach an image');
+      AppCommonToastMessage.show(message: 'Please enter a comment or attach an image', type: ToastType.error);
       return;
     }
 
@@ -385,13 +378,13 @@ class TicketDetailsController extends GetxController {
         commentController.clear();
         selectedImages.clear();
         isInternal.value = false;
-        Get.snackbar('Success', 'Comment added successfully');
+        AppCommonToastMessage.show(message: 'Comment added successfully', type: ToastType.success);
         fetchTicketDetails();
       } else {
-        Get.snackbar('Error', response?['message'] ?? 'Failed to add comment');
+        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to add comment', type: ToastType.error);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to add comment: $e');
+      AppCommonToastMessage.show(message: 'Failed to add comment: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -447,13 +440,13 @@ class TicketDetailsController extends GetxController {
       );
 
       if (success) {
-        Get.snackbar('Success', 'Status updated to $statusName');
+        AppCommonToastMessage.show(message: 'Status updated to $statusName', type: ToastType.success);
         fetchTicketDetails();
       } else {
-        Get.snackbar('Error', 'Failed to update status');
+        AppCommonToastMessage.show(message: 'Failed to update status', type: ToastType.error);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update status: $e');
+      AppCommonToastMessage.show(message: 'Failed to update status: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -493,13 +486,13 @@ class TicketDetailsController extends GetxController {
       final success = await _supportRepository.updateTicketComment(formData);
       if (success) {
         editingCommentIds.remove(commentId);
-        Get.snackbar('Success', 'Comment updated successfully');
+        AppCommonToastMessage.show(message: 'Comment updated successfully', type: ToastType.success);
         fetchTicketDetails();
       } else {
-        Get.snackbar('Error', 'Failed to update comment');
+        AppCommonToastMessage.show(message: 'Failed to update comment', type: ToastType.error);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update comment: $e');
+      AppCommonToastMessage.show(message: 'Failed to update comment: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
