@@ -9,6 +9,8 @@ import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:core/utils/app_utils.dart';
+import 'dart:io';
+import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
 
 class CreateTicketController extends GetxController {
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
@@ -17,6 +19,7 @@ class CreateTicketController extends GetxController {
 
   final occurredDate = DateTime.now().obs;
   final isLoading = false.obs;
+  final isCompressingMedia = false.obs;
   
   // Dropdown Selections
   final selectedUnit = Rxn<SupportUnit>();
@@ -145,6 +148,7 @@ class CreateTicketController extends GetxController {
   final descriptionController = TextEditingController();
   
   final selectedImages = <XFile>[].obs;
+  final selectedVideos = <File>[].obs;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> selectDate(BuildContext context) async {
@@ -163,10 +167,17 @@ class CreateTicketController extends GetxController {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
-        selectedImages.addAll(images);
+        isCompressingMedia.value = true;
+        AppCommonToastMessage.show(message: 'Compressing images...', type: ToastType.info);
+        for (var image in images) {
+          final compressed = await AppMediaCompressor.compressImage(File(image.path));
+          selectedImages.add(XFile(compressed.path));
+        }
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to pick images: $e', type: ToastType.error);
+    } finally {
+      isCompressingMedia.value = false;
     }
   }
 
@@ -174,15 +185,58 @@ class CreateTicketController extends GetxController {
     try {
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
-        selectedImages.add(photo);
+        isCompressingMedia.value = true;
+        AppCommonToastMessage.show(message: 'Compressing image...', type: ToastType.info);
+        final compressed = await AppMediaCompressor.compressImage(File(photo.path));
+        selectedImages.add(XFile(compressed.path));
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to take photo: $e', type: ToastType.error);
+    } finally {
+      isCompressingMedia.value = false;
     }
   }
 
   void removeImage(int index) {
     selectedImages.removeAt(index);
+  }
+
+  Future<void> pickVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+      if (video != null) {
+        isCompressingMedia.value = true;
+        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
+        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        selectedVideos.add(compressed);
+        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to pick/compress video: $e', type: ToastType.error);
+    } finally {
+      isCompressingMedia.value = false;
+    }
+  }
+
+  Future<void> recordVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
+      if (video != null) {
+        isCompressingMedia.value = true;
+        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
+        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        selectedVideos.add(compressed);
+        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to record/compress video: $e', type: ToastType.error);
+    } finally {
+      isCompressingMedia.value = false;
+    }
+  }
+
+  void removeVideo(int index) {
+    selectedVideos.removeAt(index);
   }
 
   Future<void> createTicket() async {
@@ -219,10 +273,12 @@ class CreateTicketController extends GetxController {
 
       // Add attachments
       for (var file in selectedImages) {
-        formData.files.add(MapEntry(
-          'attachments[]',
-          await dio.MultipartFile.fromFile(file.path),
-        ));
+        final path = file.path;
+        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
+      }
+      for (var file in selectedVideos) {
+        final path = file.path;
+        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
       }
 
       final response = await _supportRepository.createSupportTicket(formData);
@@ -247,6 +303,7 @@ class CreateTicketController extends GetxController {
       AppCommonToastMessage.show(message: AppUtils.parseError(e), type: ToastType.error);
     } finally {
       isLoading.value = false;
+      AppMediaCompressor.clearCache();
     }
   }
 

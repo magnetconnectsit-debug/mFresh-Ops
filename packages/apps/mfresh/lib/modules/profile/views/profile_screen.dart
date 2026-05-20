@@ -1,12 +1,9 @@
-import 'package:core/constants/app_colors.dart';
 import 'package:mfresh/routes/app_routes.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh/core/constants/app_constants.dart';
 import 'package:core/core.dart';
 

@@ -290,6 +290,11 @@ class PrintUtil {
     final generator = Generator(paperSize, _cachedProfile!);
     List<int> bytes = [];
 
+    final PosAlign align = rollSize >= 80 ? PosAlign.center : PosAlign.left;
+    final PosFontType? fontType = rollSize >= 80 ? PosFontType.fontB : null;
+    final PosTextSize titleSize = rollSize >= 80 ? PosTextSize.size1 : PosTextSize.size2;
+    final PosTextSize totalSize = rollSize >= 80 ? PosTextSize.size1 : PosTextSize.size2;
+
     // Create dynamic separator
     String separator = "-" * maxChars;
 
@@ -297,34 +302,36 @@ class PrintUtil {
 
     // Header - Centered and Tall
     bytes += [27, 32, 2]; // Set character spacing
-    bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += generator.text("mFresh", styles: PosStyles(align: PosAlign.center, bold: true, height: titleSize, width: titleSize, fontType: fontType));
     bytes += [27, 32, 0]; // Reset spacing
     bytes += generator.feed(1);
     
     bytes += [27, 32, 4]; // Increased spacing for Unit Number
-    bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: const PosStyles(align: PosAlign.left, bold: true, height: PosTextSize.size1));
+    bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: PosStyles(align: align, bold: true, height: PosTextSize.size1, fontType: fontType));
     bytes += [27, 32, 0]; // Reset spacing to prevent separator wrapping
     // Standard size for location text
-    bytes += generator.text("Location: ${booking.fullAddress}", styles: const PosStyles(align: PosAlign.left, bold: false));
-    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("Location: ${booking.fullAddress}", styles: PosStyles(align: align, bold: false, fontType: fontType));
+    bytes += generator.text(separator, styles: PosStyles(align: align, fontType: fontType));
 
     // Booking Details
-    bytes += generator.text("BOOKING ID: ${encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId}", styles: const PosStyles(align: PosAlign.left, bold: true));
-    bytes += generator.text("Date & Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text("BOOKING ID: ${booking.bookingId}", styles: PosStyles(align: align, bold: true, fontType: fontType));
+    
+    final printDate = booking.bookingTimeDate.isNotEmpty ? booking.bookingTimeDate : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    bytes += generator.text("Date & Time: $printDate", styles: PosStyles(align: align, fontType: fontType));
 
     String paymentModeStr = booking.paymentMode == 1 ? "CASH" : booking.paymentMode == 2 ? "UPI" : "QR";
-    bytes += generator.text("Payment: $paymentModeStr", styles: const PosStyles(align: PosAlign.left, bold: false));
+    bytes += generator.text("Payment: $paymentModeStr", styles: PosStyles(align: align, bold: false, fontType: fontType));
     
-    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text(separator, styles: PosStyles(align: align, fontType: fontType));
 
     // Service & Qty - Standard size
-    bytes += generator.text(service.servicesName.toUpperCase(), styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size1));
-    bytes += generator.text("QTY: 1", styles: const PosStyles(bold: false, align: PosAlign.left));
-    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text(service.servicesName.toUpperCase(), styles: PosStyles(bold: true, align: align, height: PosTextSize.size1, fontType: fontType));
+    bytes += generator.text("QTY: 1", styles: PosStyles(bold: false, align: align, fontType: fontType));
+    bytes += generator.text(separator, styles: PosStyles(align: align, fontType: fontType));
     bytes += [27, 32, 2]; // Wide spacing for Total
-    bytes += generator.text("TOTAL: RS. ${service.price}", styles: const PosStyles(bold: true, align: PosAlign.left, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += generator.text("TOTAL: RS. ${service.price}", styles: PosStyles(bold: true, align: align, height: totalSize, width: PosTextSize.size1, fontType: fontType));
     bytes += [27, 32, 0]; // Reset spacing
-    bytes += generator.text(separator, styles: const PosStyles(align: PosAlign.left));
+    bytes += generator.text(separator, styles: PosStyles(align: align, fontType: fontType));
 
     // QR Code - Size adjusted for paper width but always left aligned
     final QRSize qrSize = rollSize >= 80 ? QRSize.size6 : QRSize.size4;
@@ -332,11 +339,15 @@ class PrintUtil {
       "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
       "DeviceID": "NA",
       "AccessDate": DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-    }), size: qrSize, align: PosAlign.left);
+    }), size: qrSize, align: align);
     
     bytes += generator.feed(1);
-    bytes += generator.text("Thank you for using mFresh!", styles: const PosStyles(align: PosAlign.left, bold: true));
+    bytes += generator.text("Thank you for using mFresh!", styles: PosStyles(align: align, bold: true, fontType: fontType));
 
+    // Send explicit cut commands to trigger auto-cutters on 80mm printers
+    bytes += generator.feed(3);
+    bytes += [29, 86, 65, 0]; // GS V A 0 (Full Cut)
+    bytes += [27, 105];       // ESC i (Full Cut)
     bytes += generator.cut();
 
     return bytes;
@@ -380,74 +391,84 @@ class PrintUtil {
     final Uint8List logoBytes = logoData.buffer.asUint8List();
     final pw.MemoryImage logoImage = pw.MemoryImage(logoBytes);
 
-    doc.addPage(
-      pw.Page(
-        pageFormat: rollFormat,
-        build: (pw.Context context) {
-          return pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(
-                  child: pw.Column(
-                    children: [
-                      pw.Image(logoImage, width: 40, height: 40),
-                      pw.SizedBox(height: 4),
-                      pw.Text("mFresh", 
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24, letterSpacing: 2.0)
-                      )
-                    ]
-                  )
-                ),
-                pw.SizedBox(height: 12),
-                pw.Text("UNIT NO.: ${booking.unitNo}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14, letterSpacing: 1.0)),
-                pw.Text("Location: ${booking.fullAddress}", style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.normal)),
-                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
-                
-                pw.Text("BOOKING ID: ${encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                pw.Text("Date & Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", style: pw.TextStyle(fontSize: 11)),
-                
-                pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", style: pw.TextStyle(fontSize: 11)),
-                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
+    for (int i = 0; i < booking.services.length; i++) {
+      final service = booking.services[i];
+      final int qty = int.tryParse(service.quantity.toString()) ?? 1;
 
-                // Services List
-                ...booking.services.map((service) => pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+      for (int q = 0; q < qty; q++) {
+        doc.addPage(
+          pw.Page(
+            pageFormat: rollFormat,
+            build: (pw.Context context) {
+              final align = rollSize >= 80 ? pw.TextAlign.center : pw.TextAlign.left;
+              final crossAlign = rollSize >= 80 ? pw.CrossAxisAlignment.center : pw.CrossAxisAlignment.start;
+              
+              return pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: pw.Column(
+                  crossAxisAlignment: crossAlign,
                   children: [
-                    pw.Text(service.servicesName.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                    pw.Text("QTY: 1", style: pw.TextStyle(fontSize: 11)),
-                    pw.SizedBox(height: 6),
-                  ]
-                )),
+                    pw.Center(
+                      child: pw.Column(
+                        children: [
+                          pw.Image(logoImage, width: 40, height: 40),
+                          pw.SizedBox(height: 4),
+                          pw.Text("mFresh", 
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24, letterSpacing: 2.0)
+                          )
+                        ]
+                      )
+                    ),
+                    pw.SizedBox(height: 12),
+                    pw.Text("UNIT NO.: ${booking.unitNo}", textAlign: align, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14, letterSpacing: 1.0)),
+                    pw.Text("Location: ${booking.fullAddress}", textAlign: align, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.normal)),
+                    pw.Text("---------------------------------------", textAlign: align, style: pw.TextStyle(fontSize: 10)),
+                    
+                    pw.Text("BOOKING ID: ${booking.bookingId}", textAlign: align, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    pw.Text("Date & Time: ${booking.bookingTimeDate.isNotEmpty ? booking.bookingTimeDate : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", textAlign: align, style: pw.TextStyle(fontSize: 11)),
+                    
+                    pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", textAlign: align, style: pw.TextStyle(fontSize: 11)),
+                    pw.Text("---------------------------------------", textAlign: align, style: pw.TextStyle(fontSize: 10)),
 
-                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
-                pw.Text("TOTAL: RS. ${booking.totalAmount}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, letterSpacing: 1.5)),
-                pw.Text("---------------------------------------", style: pw.TextStyle(fontSize: 10)),
-                
-                pw.SizedBox(height: 10),
-                pw.Center(
-                  child: pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: jsonEncode({
-                      "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
-                      "DeviceID": "NA",
-                      "AccessDate": DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-                    }),
-                    width: 100,
-                    height: 100,
-                  ),
+                    // Service List (Only one service per page)
+                    pw.Column(
+                      crossAxisAlignment: crossAlign,
+                      children: [
+                        pw.Text(service.servicesName.toUpperCase(), textAlign: align, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                        pw.Text("QTY: 1", textAlign: align, style: pw.TextStyle(fontSize: 11)),
+                        pw.SizedBox(height: 6),
+                      ]
+                    ),
+
+                    pw.Text("---------------------------------------", textAlign: align, style: pw.TextStyle(fontSize: 10)),
+                    pw.Text("TOTAL: RS. ${service.price}", textAlign: align, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, letterSpacing: 1.5)),
+                    pw.Text("---------------------------------------", textAlign: align, style: pw.TextStyle(fontSize: 10)),
+                    
+                    pw.SizedBox(height: 10),
+                    pw.Center(
+                      child: pw.BarcodeWidget(
+                        barcode: pw.Barcode.qrCode(),
+                        data: jsonEncode({
+                          "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
+                          "DeviceID": "NA",
+                          "AccessDate": DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+                        }),
+                        width: 100,
+                        height: 100,
+                      ),
+                    ),
+                    pw.SizedBox(height: 12),
+                    pw.Center(
+                      child: pw.Text("Thank you for using mFresh!", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    ),
+                  ],
                 ),
-                pw.SizedBox(height: 12),
-                pw.Center(
-                  child: pw.Text("Thank you for using mFresh!", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
+              );
+            },
+          ),
+        );
+      }
+    }
 
     return doc;
   }

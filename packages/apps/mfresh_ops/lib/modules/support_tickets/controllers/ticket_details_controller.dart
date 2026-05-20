@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/services.dart';
@@ -19,6 +20,7 @@ class TicketDetailsController extends GetxController {
   final isInternal = false.obs;
   final ImagePicker _picker = ImagePicker();
   final selectedImages = <File>[].obs;
+  final selectedVideos = <File>[].obs;
   final isLoading = false.obs;
 
   final ticketId = Rxn<int>();
@@ -256,21 +258,79 @@ class TicketDetailsController extends GetxController {
   }
 
   Future<void> pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      selectedImages.addAll(images.map((image) => File(image.path)));
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        isLoading.value = true;
+        AppCommonToastMessage.show(message: 'Compressing images...', type: ToastType.info);
+        for (var image in images) {
+          final compressed = await AppMediaCompressor.compressImage(File(image.path));
+          selectedImages.add(compressed);
+        }
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to pick images: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
     }
   }
 
   Future<void> captureImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-    if (image != null) {
-      selectedImages.add(File(image.path));
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      if (image != null) {
+        isLoading.value = true;
+        AppCommonToastMessage.show(message: 'Compressing image...', type: ToastType.info);
+        final compressed = await AppMediaCompressor.compressImage(File(image.path));
+        selectedImages.add(compressed);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to capture image: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
     }
   }
 
   void removeImage(int index) {
     selectedImages.removeAt(index);
+  }
+
+  Future<void> pickVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+      if (video != null) {
+        isLoading.value = true;
+        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
+        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        selectedVideos.add(compressed);
+        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to pick/compress video: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> recordVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
+      if (video != null) {
+        isLoading.value = true;
+        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
+        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        selectedVideos.add(compressed);
+        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to record/compress video: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void removeVideo(int index) {
+    selectedVideos.removeAt(index);
   }
 
   Future<void> saveTicket() async {
@@ -300,19 +360,27 @@ class TicketDetailsController extends GetxController {
 
       final formData = dio.FormData.fromMap(data);
 
-      // Add attachments
+      // Add attachments using multiple potential backend keys for compatibility
       for (var file in selectedImages) {
-        formData.files.add(
-          MapEntry(
-            'attachments[]',
-            await dio.MultipartFile.fromFile(file.path),
-          ),
-        );
+        final path = file.path;
+        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(MapEntry('ticket_images[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(MapEntry('cashier_imgs[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(MapEntry('cashier_images[]', await dio.MultipartFile.fromFile(path)));
+      }
+      for (var file in selectedVideos) {
+        final path = file.path;
+        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(MapEntry('ticket_images[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(MapEntry('cashier_imgs[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(MapEntry('cashier_images[]', await dio.MultipartFile.fromFile(path)));
       }
 
       final response = await _supportRepository.updateSupportTicket(formData);
 
       if (response != null && response['status'] == true) {
+        selectedImages.clear();
+        selectedVideos.clear();
         Get.back();
         AppCommonToastMessage.show(message: 'Ticket updated successfully', type: ToastType.success);
         // Refresh details
@@ -324,6 +392,7 @@ class TicketDetailsController extends GetxController {
       AppCommonToastMessage.show(message: 'An error occurred: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
+      AppMediaCompressor.clearCache();
     }
   }
 
@@ -344,8 +413,8 @@ class TicketDetailsController extends GetxController {
 
   Future<void> addComment() async {
     final text = commentController.text.trim();
-    if (text.isEmpty && selectedImages.isEmpty) {
-      AppCommonToastMessage.show(message: 'Please enter a comment or attach an image', type: ToastType.error);
+    if (text.isEmpty && selectedImages.isEmpty && selectedVideos.isEmpty) {
+      AppCommonToastMessage.show(message: 'Please enter a comment or attach an image/video', type: ToastType.error);
       return;
     }
 
@@ -372,11 +441,20 @@ class TicketDetailsController extends GetxController {
           ),
         );
       }
+      for (var file in selectedVideos) {
+        formData.files.add(
+          MapEntry(
+            'ticket_images[]',
+            await dio.MultipartFile.fromFile(file.path),
+          ),
+        );
+      }
 
       final response = await _supportRepository.addComment(formData);
       if (response != null && response['status'] == true) {
         commentController.clear();
         selectedImages.clear();
+        selectedVideos.clear();
         isInternal.value = false;
         AppCommonToastMessage.show(message: 'Comment added successfully', type: ToastType.success);
         fetchTicketDetails();
@@ -387,6 +465,7 @@ class TicketDetailsController extends GetxController {
       AppCommonToastMessage.show(message: 'Failed to add comment: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
+      AppMediaCompressor.clearCache();
     }
   }
 
@@ -456,6 +535,7 @@ class TicketDetailsController extends GetxController {
     required int commentId,
     required String comment,
     required List<File> newImages,
+    required List<File> newVideos,
     required bool internal,
   }) async {
     try {
@@ -465,7 +545,8 @@ class TicketDetailsController extends GetxController {
       if (user == null) return;
 
       final Map<String, dynamic> data = {
-        'comment_id': commentId.toString(),
+        'ticket_id': ticketId.value?.toString(),
+        'id': commentId.toString(),
         'comment': comment,
         'is_internal': internal ? '1' : '0',
         'user_id': user.id.toString(),
@@ -474,6 +555,16 @@ class TicketDetailsController extends GetxController {
       final formData = dio.FormData.fromMap(data);
       if (newImages.isNotEmpty) {
         for (var file in newImages) {
+          formData.files.add(
+            MapEntry(
+              'ticket_images[]',
+              await dio.MultipartFile.fromFile(file.path),
+            ),
+          );
+        }
+      }
+      if (newVideos.isNotEmpty) {
+        for (var file in newVideos) {
           formData.files.add(
             MapEntry(
               'ticket_images[]',
@@ -495,6 +586,7 @@ class TicketDetailsController extends GetxController {
       AppCommonToastMessage.show(message: 'Failed to update comment: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
+      AppMediaCompressor.clearCache();
     }
   }
 

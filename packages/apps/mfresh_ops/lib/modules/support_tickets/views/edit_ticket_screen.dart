@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:core/widgets/app_common_media_source.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 
@@ -94,7 +95,7 @@ class EditTicketScreen extends StatelessWidget {
                         _buildTextField(controller.descriptionController, "Description here", maxLines: 3),
 
                         const SizedBox(height: 12),
-                        _buildAttachmentsSection(controller),
+                        _buildAttachmentsSection(context, controller),
                       ],
                     ),
                   ),
@@ -406,8 +407,12 @@ class EditTicketScreen extends StatelessWidget {
   }
 
   Widget _buildDropdown<T>(T? value, List<T> options, Function(T?) onChanged, String Function(T) labelBuilder) {
+    T? safeValue = value;
+    if (value != null && !options.contains(value)) {
+      safeValue = null;
+    }
     return DropdownButtonFormField<T>(
-      initialValue: value,
+      value: safeValue,
       isExpanded: true,
       icon: const SizedBox.shrink(),
       decoration: _inputDecoration("Select"),
@@ -440,7 +445,16 @@ class EditTicketScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAttachmentsSection(TicketDetailsController controller) {
+  void _showMediaSourceOptions(BuildContext context, TicketDetailsController controller) {
+    AppCommonMediaSource.show(
+      onTakePhoto: controller.captureImage,
+      onChoosePhoto: controller.pickImages,
+      onRecordVideo: controller.recordVideo,
+      onChooseVideo: controller.pickVideo,
+    );
+  }
+
+  Widget _buildAttachmentsSection(BuildContext context, TicketDetailsController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -458,7 +472,7 @@ class EditTicketScreen extends StatelessWidget {
               ),
             ),
             InkWell(
-              onTap: () => controller.pickImages(),
+              onTap: () => _showMediaSourceOptions(context, controller),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
@@ -487,6 +501,7 @@ class EditTicketScreen extends StatelessWidget {
         ),
         Obx(() {
           if (controller.selectedImages.isEmpty &&
+              controller.selectedVideos.isEmpty &&
               (controller.ticketDetail.value?.attachments == null ||
                   controller.ticketDetail.value!.attachments!.isEmpty)) {
             return const SizedBox.shrink();
@@ -500,9 +515,17 @@ class EditTicketScreen extends StatelessWidget {
                 if (controller.ticketDetail.value?.attachments != null)
                   ...controller.ticketDetail.value!.attachments!.map((att) {
                     final filename = att.split('/').last;
+                    final isVideo = filename.toLowerCase().endsWith('.mp4') ||
+                                    filename.toLowerCase().endsWith('.mov') ||
+                                    filename.toLowerCase().endsWith('.avi') ||
+                                    filename.toLowerCase().endsWith('.mkv');
                     return Chip(
                       label: Text(filename, style: const TextStyle(fontSize: 8)),
-                      avatar: const Icon(Icons.description, size: 10, color: primaryOrange),
+                      avatar: Icon(
+                        isVideo ? Icons.videocam : Icons.description,
+                        size: 10,
+                        color: primaryOrange,
+                      ),
                       backgroundColor: const Color(0xFFFFF3F0),
                       padding: EdgeInsets.zero,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -520,6 +543,18 @@ class EditTicketScreen extends StatelessWidget {
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   );
                 }),
+                ...controller.selectedVideos.map((file) {
+                  final filename = file.path.split('/').last;
+                  return Chip(
+                    label: Text(filename, style: const TextStyle(fontSize: 8)),
+                    avatar: const Icon(Icons.videocam, size: 10, color: primaryOrange),
+                    backgroundColor: const Color(0xFFFFF3F0),
+                    onDeleted: () => controller.selectedVideos.remove(file),
+                    deleteIconColor: Colors.red,
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                }),
               ],
             ),
           );
@@ -532,8 +567,8 @@ class EditTicketScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        OutlinedButton(
-          onPressed: () => Get.back(),
+        Obx(() => OutlinedButton(
+          onPressed: controller.isLoading.value ? null : () => Get.back(),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             side: BorderSide(color: Colors.grey[300]!),
@@ -543,20 +578,26 @@ class EditTicketScreen extends StatelessWidget {
             "Cancel",
             style: TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
           ),
-        ),
+        )),
         const SizedBox(width: 16),
-        ElevatedButton(
-          onPressed: () => controller.saveTicket(),
+        Obx(() => ElevatedButton(
+          onPressed: controller.isLoading.value ? null : () => controller.saveTicket(),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xff4CAF50), // Green Save button!
+            backgroundColor: controller.isLoading.value ? Colors.grey : const Color(0xff4CAF50), // Green Save button!
             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 8),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          child: const Text(
-            "Save",
-            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ),
+          child: controller.isLoading.value
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text(
+                  "Save",
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+        )),
       ],
     );
   }

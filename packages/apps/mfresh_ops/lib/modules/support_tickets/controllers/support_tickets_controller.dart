@@ -21,6 +21,7 @@ class SupportTicketsController extends GetxController {
   final expandedSubjectTickets = <int>{}.obs;
   final isSearching = false.obs;
   final searchController = TextEditingController();
+  final searchFocusNode = FocusNode();
   final searchQuery = "".obs;
 
   List<SupportTicketListItem> get filteredTickets {
@@ -89,6 +90,12 @@ class SupportTicketsController extends GetxController {
   void onInit() {
     super.onInit();
     _initialLoad();
+  }
+
+  @override
+  void onClose() {
+    searchFocusNode.dispose();
+    super.onClose();
   }
 
   Future<void> _initialLoad() async {
@@ -197,6 +204,20 @@ class SupportTicketsController extends GetxController {
     selectedPriority.value = null;
     selectedStatuses.clear();
     subCategories.clear();
+    
+    searchController.clear();
+    searchQuery.value = '';
+    isSearching.value = false;
+
+    final storage = Get.find<StorageService>();
+    final user = storage.getUser();
+    if (user != null) {
+      var currentUser = assignees.firstWhereOrNull((a) => a.id.toString() == user.id.toString());
+      if (currentUser != null) {
+        selectedAssignees.assignAll([currentUser]);
+      }
+    }
+
     fetchTickets();
   }
 
@@ -255,6 +276,12 @@ class SupportTicketsController extends GetxController {
     isSearching.value = !isSearching.value;
     searchQuery.value = '';
     searchController.clear();
+    
+    if (isSearching.value) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        searchFocusNode.requestFocus();
+      });
+    }
   }
 
   void toggleTicketSelection(int id) {

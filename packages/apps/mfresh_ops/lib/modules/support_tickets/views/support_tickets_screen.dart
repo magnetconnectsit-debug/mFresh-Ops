@@ -11,6 +11,7 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_c
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 
 class SupportTicketsScreen extends StatelessWidget {
   const SupportTicketsScreen({super.key});
@@ -21,33 +22,31 @@ class SupportTicketsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FA),
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       appBar: AppCommonAppBar(
         backgroundColor: Colors.white,
         elevation: 1,
         showAppDrawer: true,
         hasBackButton: false,
-        title: Obx(() => controller.isSearching.value
-            ? AppCommonSearchBar(
-                controller: controller.searchController,
-                hintText: 'Search tickets locally...',
-                onChanged: (v) => controller.searchQuery.value = v,
-                autofocus: true,
-              )
-            : Text(
-                "All Support Tickets",
-                style: AppTextStyle.style_18_700(color: Colors.black),
-              )),
-        actions: [
-          Obx(() => IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                  color: Colors.black,
-                  size: 24.r,
+        title: Obx(
+          () => controller.isSearching.value
+              ? AppCommonSearchBar(
+                  controller: controller.searchController,
+                  focusNode: controller.searchFocusNode,
+                  hintText: 'Search tickets locally...',
+                  onChanged: (v) => controller.searchQuery.value = v,
+                  autofocus: true,
+                  onClose: () {
+                    controller.searchController.clear();
+                    controller.searchQuery.value = '';
+                    controller.toggleSearch();
+                  },
+                )
+              : Text(
+                  "All Support Tickets",
+                  style: AppTextStyle.style_18_700(color: Colors.black),
                 ),
-              )),
-        ],
+        ),
       ),
       drawer: const CommonSidebar(),
       body: SafeArea(
@@ -56,132 +55,144 @@ class SupportTicketsScreen extends StatelessWidget {
           final showSkeleton =
               controller.isLoading.value && controller.tickets.isEmpty;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return Stack(
             children: [
-              if (!controller.isSearching.value)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20.r, 20.r, 20.r, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Total tickets
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8.r),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Skeletonizer(
+              NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(20.r, 20.r, 20.r, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Total tickets
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 6.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                child: Skeletonizer(
+                                  enabled: showSkeleton,
+                                  child: Text(
+                                    "Total Tickets: ${controller.totalTickets.value}",
+                                    style: AppTextStyle.style_14_600(
+                                      color: AppColors.grey900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Reset filter button
+                              Skeletonizer(
+                                enabled: showSkeleton,
+                                child: _actionButton(
+                                  label: "Reset Filter",
+                                  colors: const [
+                                    Color(0xFF9E9E9E),
+                                    Color(0xFF757575),
+                                  ],
+                                  onTap: () => controller.resetFilters(),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 5.h),
+
+                          // Unit summary chips
+                          if (controller.unitCounts.isNotEmpty || showSkeleton)
+                            Skeletonizer(
                               enabled: showSkeleton,
-                              child: Text(
-                                "Total Tickets: ${controller.totalTickets.value}",
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children:
+                                      (showSkeleton
+                                              ? List.generate(
+                                                  5,
+                                                  (index) => "Unit - 0",
+                                                )
+                                              : controller.unitCounts
+                                                    .map(
+                                                      (e) =>
+                                                          "${e.unit} - ${e.totalTickets}",
+                                                    )
+                                                    .toList())
+                                          .asMap()
+                                          .entries
+                                          .map((entry) {
+                                            int index = entry.key;
+                                            String label = entry.value;
+                                            Color color = [
+                                              Colors.blue,
+                                              Colors.green,
+                                              Colors.red,
+                                              Colors.orange,
+                                              Colors.teal,
+                                            ][index % 5];
+
+                                            return Container(
+                                              margin: EdgeInsets.only(
+                                                right: 8.w,
+                                              ),
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 10.w,
+                                                vertical: 4.h,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: color,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(4.r),
+                                              ),
+                                              child: Text(
+                                                label,
+                                                style: TextStyle(
+                                                  color: color,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12.sp,
+                                                ),
+                                              ),
+                                            );
+                                          })
+                                          .toList(),
                                 ),
                               ),
                             ),
-                          ),
-                          // Reset filter button
+
+                          SizedBox(height: 10.h),
+
                           Skeletonizer(
                             enabled: showSkeleton,
-                            child: _actionButton(
-                              label: "Reset Filter",
-                              colors: const [Color(0xFF9E9E9E), Color(0xFF757575)],
-                              onTap: () => controller.resetFilters(),
-                            ),
+                            child: _buildFilterSection(controller),
                           ),
+
+                          SizedBox(height: 10.h),
+
+                          Skeletonizer(
+                            enabled: showSkeleton,
+                            child: _buildActionButtons(controller),
+                          ),
+
+                          SizedBox(height: 10.h),
                         ],
                       ),
-
-                      SizedBox(height: 5.h),
-
-                      // Unit summary chips
-                      if (controller.unitCounts.isNotEmpty || showSkeleton)
-                        Skeletonizer(
-                          enabled: showSkeleton,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children:
-                                  (showSkeleton
-                                          ? List.generate(
-                                              5,
-                                              (index) => "Unit - 0",
-                                            )
-                                          : controller.unitCounts
-                                                .map(
-                                                  (e) =>
-                                                      "${e.unit} - ${e.totalTickets}",
-                                                )
-                                                .toList())
-                                      .asMap()
-                                      .entries
-                                      .map((entry) {
-                                        int index = entry.key;
-                                        String label = entry.value;
-                                        Color color = [
-                                          Colors.blue,
-                                          Colors.green,
-                                          Colors.red,
-                                          Colors.orange,
-                                          Colors.teal,
-                                        ][index % 5];
-
-                                        return Container(
-                                          margin: EdgeInsets.only(right: 8.w),
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 10.w,
-                                            vertical: 4.h,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: color),
-                                            borderRadius: BorderRadius.circular(
-                                              4.r,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            label,
-                                            style: TextStyle(
-                                              color: color,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12.sp,
-                                            ),
-                                          ),
-                                        );
-                                      })
-                                      .toList(),
-                            ),
-                          ),
-                        ),
-
-                      SizedBox(height: 10.h),
-
-                      Skeletonizer(
-                        enabled: showSkeleton,
-                        child: _buildFilterSection(controller),
-                      ),
-
-                      SizedBox(height: 10.h),
-
-                      Skeletonizer(
-                        enabled: showSkeleton,
-                        child: _buildActionButtons(controller),
-                      ),
-
-                      SizedBox(height: 10.h),
-                    ],
+                    ),
                   ),
-                ),
-
-              // Table section - Expanded to take remaining space and handle its own scrolling
-              Expanded(
-                child: Padding(
+                  ];
+                },
+                body: Padding(
                   padding: EdgeInsets.fromLTRB(
                     20.r,
                     controller.isSearching.value ? 10.h : 0,
@@ -191,8 +202,15 @@ class SupportTicketsScreen extends StatelessWidget {
                   child: _buildTicketsTable(controller),
                 ),
               ),
-
-              SizedBox(height: 10.h),
+              if (controller.isLoading.value && controller.tickets.isNotEmpty)
+                Positioned.fill(
+                  child: Container(
+                    color: AppColors.black.withValues(alpha: 0.15),
+                    child: const Center(
+                      child: CustomAppLoader(size: 50, strokeWidth: 2),
+                    ),
+                  ),
+                ),
             ],
           );
         }),
@@ -204,9 +222,9 @@ class SupportTicketsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(10.r),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.grey50),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -232,29 +250,35 @@ class SupportTicketsScreen extends StatelessWidget {
                         child: Text(
                           opt.label,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12.sp),
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                     )
                     .toList(),
-                onChanged: (values) =>
-                    controller.selectedUnits.assignAll(values.toList()),
+                onChanged: (values) {
+                  controller.selectedUnits.assignAll(values.toList());
+                  controller.applyFilters();
+                },
                 showSearch: true,
               ),
 
               // GLOBAL SEARCH
               TextField(
                 controller: controller.searchController,
+                readOnly: true,
                 onTap: () {
                   if (!controller.isSearching.value) {
                     controller.toggleSearch();
                   }
                 },
-                onChanged: (v) => controller.applyFilters(),
-                style: TextStyle(fontSize: 12.sp),
+                style: AppTextStyle.style_12_400(color: AppColors.grey900),
                 decoration: InputDecoration(
                   labelText: "Global",
-                  labelStyle: TextStyle(fontSize: 12.sp),
+                  labelStyle: AppTextStyle.style_12_400(
+                    color: AppColors.grey200,
+                  ),
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 10.w,
@@ -279,7 +303,9 @@ class SupportTicketsScreen extends StatelessWidget {
                         child: Text(
                           opt.label,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12.sp),
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                     )
@@ -291,6 +317,7 @@ class SupportTicketsScreen extends StatelessWidget {
                   } else {
                     controller.selectedCategories.clear();
                   }
+                  controller.applyFilters();
                 },
               ),
 
@@ -305,12 +332,17 @@ class SupportTicketsScreen extends StatelessWidget {
                         child: Text(
                           opt.label,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12.sp),
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                     )
                     .toList(),
-                (val) => controller.selectedSubCategory.value = val,
+                (val) {
+                  controller.selectedSubCategory.value = val;
+                  controller.applyFilters();
+                },
               ),
 
               // STATUS (multi-select)
@@ -320,31 +352,63 @@ class SupportTicketsScreen extends StatelessWidget {
                 items: [
                   DropdownMenuItem(
                     value: "0",
-                    child: Text("New", style: TextStyle(fontSize: 12.sp)),
+                    child: Text(
+                      "New",
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: "1",
-                    child: Text("WIP", style: TextStyle(fontSize: 12.sp)),
+                    child: Text(
+                      "WIP",
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: "4",
-                    child: Text("Hold", style: TextStyle(fontSize: 12.sp)),
+                    child: Text(
+                      "Hold",
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: "5",
-                    child: Text("Awaited", style: TextStyle(fontSize: 12.sp)),
+                    child: Text(
+                      "Awaited",
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: "2",
-                    child: Text("Resolved", style: TextStyle(fontSize: 12.sp)),
+                    child: Text(
+                      "Resolved",
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: "3",
-                    child: Text("Closed", style: TextStyle(fontSize: 12.sp)),
+                    child: Text(
+                      "Closed",
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
                   ),
                 ],
-                onChanged: (values) =>
-                    controller.selectedStatuses.assignAll(values.toList()),
+                onChanged: (values) {
+                  controller.selectedStatuses.assignAll(values.toList());
+                  controller.applyFilters();
+                },
               ),
 
               // PROJECT (multi-select)
@@ -358,13 +422,17 @@ class SupportTicketsScreen extends StatelessWidget {
                         child: Text(
                           opt.label,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12.sp),
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                     )
                     .toList(),
-                onChanged: (values) =>
-                    controller.selectedProjects.assignAll(values.toList()),
+                onChanged: (values) {
+                  controller.selectedProjects.assignAll(values.toList());
+                  controller.applyFilters();
+                },
               ),
 
               // ASSIGNEE (multi-select)
@@ -378,13 +446,17 @@ class SupportTicketsScreen extends StatelessWidget {
                         child: Text(
                           opt.label,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12.sp),
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                     )
                     .toList(),
-                onChanged: (values) =>
-                    controller.selectedAssignees.assignAll(values.toList()),
+                onChanged: (values) {
+                  controller.selectedAssignees.assignAll(values.toList());
+                  controller.applyFilters();
+                },
                 showSearch: true,
               ),
 
@@ -401,13 +473,9 @@ class SupportTicketsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
+                  child: Text(
                     "APPLY FILTER",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                    style: AppTextStyle.style_13_600(color: AppColors.white),
                   ),
                 ),
               ),
@@ -441,6 +509,7 @@ class SupportTicketsScreen extends StatelessWidget {
     Function(T?) onChanged,
   ) {
     return DropdownButtonFormField<T>(
+      key: ValueKey(value),
       initialValue: value,
       items: items,
       onChanged: onChanged,
@@ -449,7 +518,7 @@ class SupportTicketsScreen extends StatelessWidget {
       isDense: true,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(fontSize: 12.sp),
+        labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
         isDense: true,
         contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
@@ -502,7 +571,9 @@ class SupportTicketsScreen extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDisabled ? colors.map((c) => c.withValues(alpha: 0.4)).toList() : colors,
+            colors: isDisabled
+                ? colors.map((c) => c.withValues(alpha: 0.4)).toList()
+                : colors,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -518,10 +589,10 @@ class SupportTicketsScreen extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
-            color: isDisabled ? Colors.white.withValues(alpha: 0.6) : Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+          style: AppTextStyle.style_14_600(
+            color: isDisabled
+                ? AppColors.white.withValues(alpha: 0.6)
+                : AppColors.white,
           ),
         ),
       ),
@@ -532,7 +603,9 @@ class SupportTicketsScreen extends StatelessWidget {
     controller.resetBulkEdit();
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
         child: Container(
           width: Get.width * 0.9,
           constraints: BoxConstraints(maxWidth: 400.w),
@@ -549,7 +622,7 @@ class SupportTicketsScreen extends StatelessWidget {
                 children: [
                   Text(
                     "Bulk Update Tickets",
-                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                    style: AppTextStyle.style_18_700(color: AppColors.grey900),
                   ),
                   InkWell(
                     onTap: () => Get.back(),
@@ -597,13 +670,22 @@ class SupportTicketsScreen extends StatelessWidget {
                     },
                   ),
                   SizedBox(height: 10.h),
-                  Obx(() => _buildBulkDropdownRow<SupportSubCategory>(
-                    "Sub-Cat",
-                    controller.bulkEnableSubCategory,
-                    controller.bulkSelectedSubCategory,
-                    controller.bulkSubCategories.map((e) => DropdownOption(value: e, label: e.subCategoryName)).toList(),
-                    (val) => controller.bulkSelectedSubCategory.value = val,
-                  )),
+                  Obx(
+                    () => _buildBulkDropdownRow<SupportSubCategory>(
+                      "Sub-Cat",
+                      controller.bulkEnableSubCategory,
+                      controller.bulkSelectedSubCategory,
+                      controller.bulkSubCategories
+                          .map(
+                            (e) => DropdownOption(
+                              value: e,
+                              label: e.subCategoryName,
+                            ),
+                          )
+                          .toList(),
+                      (val) => controller.bulkSelectedSubCategory.value = val,
+                    ),
+                  ),
                   SizedBox(height: 10.h),
                   _buildBulkDropdownRow<AssigneeModel>(
                     "Assignee",
@@ -620,14 +702,17 @@ class SupportTicketsScreen extends StatelessWidget {
                 child: InkWell(
                   onTap: () => controller.submitBulkEdit(),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.w,
+                      vertical: 10.h,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF2E7D32),
                       borderRadius: BorderRadius.circular(6.r),
                     ),
                     child: Text(
                       "Update",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp),
+                      style: AppTextStyle.style_14_600(color: AppColors.white),
                     ),
                   ),
                 ),
@@ -648,55 +733,68 @@ class SupportTicketsScreen extends StatelessWidget {
   ) {
     return Row(
       children: [
-        Obx(() => Checkbox(
-          value: isEnabled.value,
-          onChanged: (val) {
-            isEnabled.value = val ?? false;
-            if (!isEnabled.value) selectedValue.value = null;
-          },
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-        )),
+        Obx(
+          () => Checkbox(
+            value: isEnabled.value,
+            onChanged: (val) {
+              isEnabled.value = val ?? false;
+              if (!isEnabled.value) selectedValue.value = null;
+            },
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
         SizedBox(
           width: 65.w,
           child: Text(
-            label, 
-            style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+            label,
+            style: AppTextStyle.style_12_500(color: AppColors.grey900),
             maxLines: 1,
             overflow: TextOverflow.visible,
           ),
         ),
         SizedBox(width: 4.w),
         Expanded(
-          child: Obx(() => Container(
-            height: 34.h,
-            padding: EdgeInsets.symmetric(horizontal: 6.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<T>(
-                value: selectedValue.value,
-                isExpanded: true,
-                isDense: true,
-                hint: Text("Select", style: TextStyle(fontSize: 12.sp, color: Colors.grey)),
-                icon: Icon(Icons.keyboard_arrow_down, size: 16.r, color: Colors.grey),
-                items: options.map((opt) {
-                  return DropdownMenuItem<T>(
-                    value: opt.value,
-                    child: Text(
-                      opt.label,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12.sp),
-                    ),
-                  );
-                }).toList(),
-                onChanged: isEnabled.value ? onChanged : null,
+          child: Obx(
+            () => Container(
+              height: 34.h,
+              padding: EdgeInsets.symmetric(horizontal: 6.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<T>(
+                  value: selectedValue.value,
+                  isExpanded: true,
+                  isDense: true,
+                  hint: Text(
+                    "Select",
+                    style: AppTextStyle.style_12_400(color: AppColors.grey200),
+                  ),
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 16.r,
+                    color: AppColors.grey200,
+                  ),
+                  items: options.map((opt) {
+                    return DropdownMenuItem<T>(
+                      value: opt.value,
+                      child: Text(
+                        opt.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyle.style_12_400(
+                          color: AppColors.grey900,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: isEnabled.value ? onChanged : null,
+                ),
               ),
             ),
-          )),
+          ),
         ),
       ],
     );
@@ -761,61 +859,128 @@ class SupportTicketsScreen extends StatelessWidget {
                               height: 20,
                               width: 20,
                               child: Checkbox(
-                                value: controller.filteredTickets.isNotEmpty &&
-                                    controller.filteredTickets.every((t) =>
-                                        controller.selectedTickets.contains(t.id)),
+                                value:
+                                    controller.filteredTickets.isNotEmpty &&
+                                    controller.filteredTickets.every(
+                                      (t) => controller.selectedTickets
+                                          .contains(t.id),
+                                    ),
                                 onChanged: (val) =>
                                     controller.selectAllTickets(val),
                                 activeColor: AppColors.primary,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
                                 visualDensity: VisualDensity.compact,
-                                side: const BorderSide(color: Colors.white, width: 1.5),
+                                side: const BorderSide(
+                                  color: AppColors.white,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      TableCell(child: _buildHeaderCell("Ticket", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Unit No.", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Subject", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Project", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Category", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Sub-Category", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Status", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Priority", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Assignee", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Comment", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Follow-up-on", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Date/Time Open", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Date/Time Close", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("District", hasRight: true)),
-                      TableCell(child: _buildHeaderCell("Created By", hasRight: true)),
+                      TableCell(
+                        child: _buildHeaderCell("Ticket", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Unit No.", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Subject", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Project", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Category", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Sub-Category", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Status", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Priority", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Assignee", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Comment", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Follow-up-on", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell(
+                          "Date/Time Open",
+                          hasRight: true,
+                        ),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell(
+                          "Date/Time Close",
+                          hasRight: true,
+                        ),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("District", hasRight: true),
+                      ),
+                      TableCell(
+                        child: _buildHeaderCell("Created By", hasRight: true),
+                      ),
                     ],
                   ),
                   // Data Rows
                   ...controller.filteredTickets.map((ticket) {
-                    final isSelected = controller.selectedTickets.contains(ticket.id);
-                    final isExpanded = controller.expandedSubjectTickets.contains(ticket.id);
-                    final isTopPriority = ticket.priorityLabel?.toLowerCase() == "top priority";
+                    final isSelected = controller.selectedTickets.contains(
+                      ticket.id,
+                    );
+                    final isTopPriority =
+                        ticket.priorityLabel?.toLowerCase() == "top priority";
 
                     return TableRow(
                       decoration: BoxDecoration(
-                        color: isSelected ? Colors.blue.withValues(alpha: 0.1) : Colors.white,
+                        color: isSelected
+                            ? AppColors.blue.withValues(alpha: 0.1)
+                            : AppColors.white,
                         border: Border(
-                          top: isTopPriority ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
-                          left: isTopPriority ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
-                          right: isTopPriority ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
+                          top: isTopPriority
+                              ? const BorderSide(
+                                  color: AppColors.red,
+                                  width: 1.5,
+                                )
+                              : BorderSide.none,
+                          left: isTopPriority
+                              ? const BorderSide(
+                                  color: AppColors.red,
+                                  width: 1.5,
+                                )
+                              : BorderSide.none,
+                          right: isTopPriority
+                              ? const BorderSide(
+                                  color: AppColors.red,
+                                  width: 1.5,
+                                )
+                              : BorderSide.none,
                           bottom: _rowBorder(ticket.priorityLabel),
                         ),
                       ),
                       children: [
                         TableCell(
                           child: InkWell(
-                            onTap: () => controller.toggleTicketSelection(ticket.id),
+                            onTap: () =>
+                                controller.toggleTicketSelection(ticket.id),
                             child: Container(
-                              height: isExpanded ? null : 28,
+                              height: 28,
                               decoration: BoxDecoration(
-                                border: Border(right: BorderSide(color: Colors.grey.shade300)),
+                                border: Border(
+                                  right: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
                               ),
                               alignment: Alignment.center,
                               child: IgnorePointer(
@@ -828,7 +993,8 @@ class SupportTicketsScreen extends StatelessWidget {
                                       value: isSelected,
                                       onChanged: (val) {},
                                       activeColor: AppColors.primary,
-                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                       visualDensity: VisualDensity.compact,
                                     ),
                                   ),
@@ -839,84 +1005,115 @@ class SupportTicketsScreen extends StatelessWidget {
                         ),
                         _buildDataCell(
                           child: InkWell(
-                            onTap: () => Get.toNamed(AppRoutes.ticketDetails, arguments: ticket.id),
+                            onTap: () => Get.toNamed(
+                              AppRoutes.ticketDetails,
+                              arguments: ticket.id,
+                            ),
                             child: Text(
                               "${ticket.caseId}",
-                              style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: AppTextStyle.style_12_700(
+                                color: Colors.blue,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           priority: ticket.priorityLabel,
                           isCenter: true,
-                          isExpanded: isExpanded,
                         ),
-                        _buildDataCell(text: ticket.unitNo ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
-                        TableCell(
-                          child: InkWell(
-                            onTap: () => controller.toggleSubjectExpansion(ticket.id),
-                            child: Container(
-                              height: isExpanded ? null : 28,
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                              alignment: Alignment.centerLeft,
-                              decoration: BoxDecoration(
-                                border: Border(right: BorderSide(color: Colors.grey.shade300)),
-                              ),
-                              child: Text(
-                                ticket.subject ?? '',
-                                style: const TextStyle(fontSize: 12),
-                                overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                                maxLines: isExpanded ? null : 1,
-                              ),
-                            ),
-                          ),
+                        _buildDataCell(
+                          text: ticket.unitNo ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
                         ),
-                        _buildDataCell(text: ticket.project ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
-                        _buildDataCell(text: ticket.mCategory ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
-                        _buildDataCell(text: ticket.subCat ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
+                        _buildDataCell(
+                          text: ticket.subject ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
+                        _buildDataCell(
+                          text: ticket.project ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
+                        _buildDataCell(
+                          text: ticket.mCategory ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
+                        _buildDataCell(
+                          text: ticket.subCat ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
                         TableCell(
                           child: Container(
-                            height: isExpanded ? null : 28,
+                            height: 28,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              border: Border(right: BorderSide(color: Colors.grey.shade300)),
+                              border: Border(
+                                right: BorderSide(color: Colors.grey.shade300),
+                              ),
                             ),
                             child: _statusBlock(ticket.statusLabel ?? ''),
                           ),
                         ),
                         TableCell(
                           child: Container(
-                            height: isExpanded ? null : 28,
+                            height: 28,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              border: Border(right: BorderSide(color: Colors.grey.shade300, width: 1)),
+                              border: Border(
+                                right: BorderSide(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                              ),
                             ),
                             child: _priorityBlock(ticket.priorityLabel ?? ''),
                           ),
                         ),
-                        _buildDataCell(text: ticket.assignedTo ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
-                        _buildDataCell(text: ticket.comment ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
-                        _buildDataCell(text: ticket.followUp ?? '', priority: ticket.priorityLabel, isCenter: true, isExpanded: isExpanded),
+                        _buildDataCell(
+                          text: ticket.assignedTo ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
+                        _buildDataCell(
+                          text: ticket.comment ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
+                        _buildDataCell(
+                          text: ticket.followUp ?? '',
+                          priority: ticket.priorityLabel,
+                          isCenter: true,
+                        ),
                         _buildDataCell(
                           text: ticket.postedDate ?? '',
                           priority: ticket.priorityLabel,
                           isCenter: true,
-                          isExpanded: isExpanded
                         ),
                         _buildDataCell(
                           text: "-",
                           priority: ticket.priorityLabel,
                           isCenter: true,
-                          isExpanded: isExpanded
                         ),
-                        _buildDataCell(text: ticket.district ?? '', priority: ticket.priorityLabel, isLeft: true, isExpanded: isExpanded),
+                        _buildDataCell(
+                          text: ticket.district ?? '',
+                          priority: ticket.priorityLabel,
+                          isLeft: true,
+                        ),
                         TableCell(
                           child: Container(
-                            height: isExpanded ? null : 28,
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            height: 28,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
                             alignment: Alignment.centerLeft,
                             child: Text(
                               ticket.createdBy ?? '',
-                              style: const TextStyle(fontSize: 12),
+                              style: AppTextStyle.style_12_400(
+                                color: AppColors.grey900,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -947,7 +1144,7 @@ class SupportTicketsScreen extends StatelessWidget {
       ),
       child: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        style: AppTextStyle.style_12_700(color: AppColors.grey900),
       ),
     );
   }
@@ -958,11 +1155,10 @@ class SupportTicketsScreen extends StatelessWidget {
     bool isLeft = false,
     bool isCenter = false,
     String? priority,
-    bool isExpanded = false,
   }) {
     return TableCell(
       child: Container(
-        height: isExpanded ? null : 28,
+        height: 28,
         alignment: isLeft
             ? Alignment.centerLeft
             : (isCenter ? Alignment.center : Alignment.center),
@@ -970,18 +1166,17 @@ class SupportTicketsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(right: BorderSide(color: Colors.grey.shade300)),
         ),
-        child: child ??
+        child:
+            child ??
             Text(
               text ?? '',
-              style: const TextStyle(fontSize: 12),
-              overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-              maxLines: isExpanded ? null : 1,
+              style: AppTextStyle.style_12_400(color: AppColors.grey900),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
       ),
     );
   }
-
-
 
   Widget _buildSkeletonTable() {
     return Column(
@@ -1003,7 +1198,7 @@ class SupportTicketsScreen extends StatelessWidget {
               itemBuilder: (context, index) => Container(
                 height: 30.h,
                 margin: EdgeInsets.symmetric(vertical: 1.h),
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ),
@@ -1014,15 +1209,15 @@ class SupportTicketsScreen extends StatelessWidget {
 
   BorderSide _rowBorder(String? priority) {
     if (priority?.toLowerCase() == "top priority") {
-      return const BorderSide(color: Colors.red, width: 2.0);
+      return const BorderSide(color: AppColors.red, width: 2.0);
     }
-    return BorderSide(color: Colors.grey.shade300, width: 1);
+    return BorderSide(color: AppColors.grey50, width: 1);
   }
 
   Widget _statusBlock(String status) {
     Color bgColor;
-    Color textColor = Colors.black;
-    Color borderColor = Colors.grey.shade300;
+    Color textColor = AppColors.black;
+    Color borderColor = AppColors.grey50;
 
     switch (status) {
       case "New":
@@ -1056,9 +1251,9 @@ class SupportTicketsScreen extends StatelessWidget {
         borderColor = Colors.grey.shade400;
         break;
       default:
-        bgColor = Colors.white;
-        textColor = Colors.black;
-        borderColor = Colors.grey.shade300;
+        bgColor = AppColors.white;
+        textColor = AppColors.black;
+        borderColor = AppColors.grey50;
     }
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
@@ -1067,14 +1262,7 @@ class SupportTicketsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(4.r),
         border: Border.all(color: borderColor, width: 1),
       ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 10.sp,
-        ),
-      ),
+      child: Text(status, style: AppTextStyle.style_10_600(color: textColor)),
     );
   }
 
@@ -1106,9 +1294,9 @@ class SupportTicketsScreen extends StatelessWidget {
         borderColor = Colors.red.shade900;
         break;
       default:
-        bgColor = Colors.white;
-        textColor = Colors.black;
-        borderColor = Colors.grey.shade300;
+        bgColor = AppColors.white;
+        textColor = AppColors.black;
+        borderColor = AppColors.grey50;
     }
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
@@ -1117,14 +1305,7 @@ class SupportTicketsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(4.r),
         border: Border.all(color: borderColor, width: 1),
       ),
-      child: Text(
-        priority,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 10.sp,
-        ),
-      ),
+      child: Text(priority, style: AppTextStyle.style_10_600(color: textColor)),
     );
   }
 }
@@ -1162,7 +1343,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
 
         await showMenu(
           context: context,
-          color: Colors.white,
+          color: AppColors.white,
           position: RelativeRect.fromRect(
             buttonRect,
             Offset.zero & MediaQuery.of(context).size,
@@ -1174,7 +1355,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
               child: Container(
                 width: size.width,
                 constraints: BoxConstraints(maxWidth: 400.w, maxHeight: 400.h),
-                color: Colors.white,
+                color: AppColors.white,
                 child: StatefulBuilder(
                   builder: (context, setState) {
                     List<DropdownMenuItem<T>> displayedItems = items;
@@ -1250,7 +1431,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(fontSize: 12.sp),
+          labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
           isDense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
@@ -1259,7 +1440,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
           selectedValues.isEmpty
               ? (hint ?? 'Select')
               : '${selectedValues.length} selected',
-          style: TextStyle(fontSize: 12.sp),
+          style: AppTextStyle.style_12_400(color: AppColors.grey900),
         ),
       ),
     );

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_images.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_textfield.dart';
-import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/modules/authentication/controllers/signup_controller.dart';
 import 'package:mfresh/core/constants/app_constants.dart';

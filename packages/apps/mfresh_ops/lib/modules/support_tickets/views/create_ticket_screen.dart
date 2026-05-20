@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:core/widgets/app_common_media_source.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 
@@ -86,12 +87,12 @@ class CreateTicketScreen extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                controller.selectedImages.isEmpty 
-                                    ? "Choose files" 
-                                    : "${controller.selectedImages.length} file(s) selected",
+                                (controller.selectedImages.isEmpty && controller.selectedVideos.isEmpty)
+                                    ? "Choose files"
+                                    : "${controller.selectedImages.length + controller.selectedVideos.length} file(s) selected",
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: controller.selectedImages.isEmpty ? Colors.grey : Colors.black87,
+                                  color: (controller.selectedImages.isEmpty && controller.selectedVideos.isEmpty) ? Colors.grey : Colors.black87,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -111,6 +112,15 @@ class CreateTicketScreen extends StatelessWidget {
                   )),
                   SizedBox(height: 8.h),
                   _buildAttachmentList(controller),
+                  Obx(() => controller.isCompressingMedia.value
+                      ? const Padding(
+                          padding: EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            "Video uploading...",
+                            style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
+                          ),
+                        )
+                      : const SizedBox.shrink()),
 
                   SizedBox(height: 20.h),
 
@@ -419,8 +429,12 @@ class CreateTicketScreen extends StatelessWidget {
   }
 
   Widget _buildDropdown<T>(T? value, List<T> options, Function(T?) onChanged, String Function(T) labelBuilder) {
+    T? safeValue = value;
+    if (value != null && !options.contains(value)) {
+      safeValue = null;
+    }
     return DropdownButtonFormField<T>(
-      initialValue: value,
+      value: safeValue,
       isExpanded: true,
       icon: const SizedBox.shrink(),
       decoration: _inputDecoration("Select"),
@@ -455,7 +469,7 @@ class CreateTicketScreen extends StatelessWidget {
 
   Widget _buildAttachmentList(CreateTicketController controller) {
     return Obx(() {
-      if (controller.selectedImages.isEmpty) {
+      if (controller.selectedImages.isEmpty && controller.selectedVideos.isEmpty) {
         return const Text(
           "No files chosen",
           style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -464,72 +478,96 @@ class CreateTicketScreen extends StatelessWidget {
       return Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: controller.selectedImages.asMap().entries.map((entry) {
-          int index = entry.key;
-          String fileName = entry.value.name;
-          return Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                margin: const EdgeInsets.only(top: 4, right: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 140),
-                  child: Text(fileName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: InkWell(
-                  onTap: () => controller.removeImage(index),
-                  child: const CircleAvatar(
-                    radius: 7,
-                    backgroundColor: Colors.red,
-                    child: Icon(Icons.close, size: 8, color: Colors.white),
+        children: [
+          ...controller.selectedImages.asMap().entries.map((entry) {
+            int index = entry.key;
+            String fileName = entry.value.name;
+            return Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  margin: const EdgeInsets.only(top: 4, right: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.image, size: 12, color: Colors.blue),
+                      const SizedBox(width: 4),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: Text(fileName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
                   ),
                 ),
-              )
-            ],
-          );
-        }).toList(),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: InkWell(
+                    onTap: () => controller.removeImage(index),
+                    child: const CircleAvatar(
+                      radius: 7,
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.close, size: 8, color: Colors.white),
+                    ),
+                  ),
+                )
+              ],
+            );
+          }),
+          ...controller.selectedVideos.asMap().entries.map((entry) {
+            int index = entry.key;
+            String fileName = entry.value.path.split('/').last;
+            return Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  margin: const EdgeInsets.only(top: 4, right: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.videocam, size: 12, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: Text(fileName, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: InkWell(
+                    onTap: () => controller.removeVideo(index),
+                    child: const CircleAvatar(
+                      radius: 7,
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.close, size: 8, color: Colors.white),
+                    ),
+                  ),
+                )
+              ],
+            );
+          }),
+        ],
       );
     });
   }
 
   void _showImageSourceOptions(CreateTicketController controller) {
-    Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.all(20.r),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take a Photo'),
-              onTap: () {
-                Get.back();
-                controller.takePhoto();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Get.back();
-                controller.pickImages();
-              },
-            ),
-          ],
-        ),
-      ),
+    AppCommonMediaSource.show(
+      onTakePhoto: controller.takePhoto,
+      onChoosePhoto: controller.pickImages,
+      onRecordVideo: controller.recordVideo,
+      onChooseVideo: controller.pickVideo,
     );
   }
 
@@ -537,25 +575,31 @@ class CreateTicketScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        TextButton(
-          onPressed: () => Get.back(),
+        Obx(() => TextButton(
+          onPressed: (controller.isLoading.value || controller.isCompressingMedia.value) ? null : () => Get.back(),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r), side: BorderSide(color: Colors.grey.shade300)),
           ),
           child: const Text("Cancel", style: TextStyle(color: Colors.black, fontSize: 14)),
-        ),
+        )),
         const SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: () => controller.createTicket(),
+        Obx(() => ElevatedButton(
+          onPressed: (controller.isLoading.value || controller.isCompressingMedia.value) ? null : () => controller.createTicket(),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xffF15A24),
+            backgroundColor: (controller.isLoading.value || controller.isCompressingMedia.value) ? Colors.grey : const Color(0xffF15A24),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
           ),
-          child: const Text("Submit", style: TextStyle(fontSize: 14)),
-        ),
+          child: controller.isLoading.value
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text("Submit", style: TextStyle(fontSize: 14)),
+        )),
       ],
     );
   }

@@ -7,6 +7,9 @@ import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/widgets/app_image_view.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
 
 class TicketDetailsScreen extends GetView<TicketDetailsController> {
   const TicketDetailsScreen({super.key});
@@ -606,6 +609,55 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   }
 
   // --- Comment Input Card ---
+  void _showCommentMediaSourceOptions(BuildContext context, TicketDetailsController controller) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Get.back();
+                controller.captureImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose Photo from Gallery'),
+              onTap: () {
+                Get.back();
+                controller.pickImages();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam),
+              title: const Text('Record a Video'),
+              onTap: () {
+                Get.back();
+                controller.recordVideo();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_library),
+              title: const Text('Choose Video from Gallery'),
+              onTap: () {
+                Get.back();
+                controller.pickVideo();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCommentInputArea() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -699,15 +751,21 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           icon: const Icon(Icons.link, color: Colors.blue, size: 20),
-                          onPressed: () => controller.pickImages(),
+                          onPressed: () => _showCommentMediaSourceOptions(Get.context!, controller),
                         ),
                         const SizedBox(width: 8),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.send, color: primaryOrange, size: 20),
-                          onPressed: () => controller.addComment(),
-                        ),
+                        Obx(() => controller.isLoading.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: primaryOrange),
+                              )
+                            : IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.send, color: primaryOrange, size: 20),
+                                onPressed: () => controller.addComment(),
+                              )),
                         const SizedBox(width: 8),
                       ],
                     ),
@@ -718,7 +776,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           ),
           const SizedBox(height: 8),
           InkWell(
-            onTap: () => controller.pickImages(),
+            onTap: () => _showCommentMediaSourceOptions(Get.context!, controller),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -739,7 +797,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                   const Icon(Icons.attachment, color: primaryOrange, size: 14),
                   const SizedBox(width: 6),
                   const Text(
-                    "Upload Images",
+                    "Upload Files",
                     style: TextStyle(
                       color: primaryOrange,
                       fontWeight: FontWeight.bold,
@@ -751,43 +809,77 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             ),
           ),
           Obx(
-            () => controller.selectedImages.isNotEmpty
+            () => (controller.selectedImages.isNotEmpty || controller.selectedVideos.isNotEmpty)
                 ? Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(
                       spacing: 8,
-                      children: controller.selectedImages
-                          .map(
-                            (file) => Stack(
-                              children: [
-                                ClipRRect(
+                      runSpacing: 8,
+                      children: [
+                        ...controller.selectedImages.map(
+                          (file) => Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  File(file.path),
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(
+                                    Icons.cancel,
+                                    color: Colors.red,
+                                    size: 18,
+                                  ),
+                                  onPressed: () =>
+                                      controller.selectedImages.remove(file),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...controller.selectedVideos.map(
+                          (file) => Stack(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    File(file.path),
-                                    width: 50,
-                                    height: 50,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  border: Border.all(color: Colors.orange),
                                 ),
-                                Positioned(
-                                  top: -4,
-                                  right: -4,
-                                  child: IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    icon: const Icon(
-                                      Icons.cancel,
-                                      color: Colors.red,
-                                      size: 18,
-                                    ),
-                                    onPressed: () =>
-                                        controller.selectedImages.remove(file),
-                                  ),
+                                child: const Center(
+                                  child: Icon(Icons.videocam, color: Colors.orange, size: 24),
                                 ),
-                              ],
-                            ),
-                          )
-                          .toList(),
+                              ),
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(
+                                    Icons.cancel,
+                                    color: Colors.red,
+                                    size: 18,
+                                  ),
+                                  onPressed: () =>
+                                      controller.selectedVideos.remove(file),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : const SizedBox.shrink(),
@@ -920,17 +1012,43 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         runSpacing: 8,
                         children: images
                             .map(
-                              (img) => InkWell(
-                                onTap: () =>
-                                    _showImagePreview(Get.context!, img.toString()),
-                                child: AppImageView(
-                                  imageUrl: img.toString(),
-                                  width: 50,
-                                  height: 50,
-                                  borderRadius: 6,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                              (img) {
+                                final urlStr = img.toString();
+                                final isVideo = urlStr.toLowerCase().endsWith('.mp4') ||
+                                                urlStr.toLowerCase().endsWith('.mov') ||
+                                                urlStr.toLowerCase().endsWith('.avi') ||
+                                                urlStr.toLowerCase().endsWith('.mkv');
+                                if (isVideo) {
+                                  return InkWell(
+                                    onTap: () {
+                                      launchUrl(Uri.parse(urlStr), mode: LaunchMode.externalApplication);
+                                    },
+                                    child: Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.orange, width: 1),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(Icons.play_circle_fill, color: Colors.orange, size: 24),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return InkWell(
+                                  onTap: () =>
+                                      _showImagePreview(Get.context!, urlStr),
+                                  child: AppImageView(
+                                    imageUrl: urlStr,
+                                    width: 50,
+                                    height: 50,
+                                    borderRadius: 6,
+                                    fit: BoxFit.cover,
+                                  ),
+                                );
+                              }
                             )
                             .toList(),
                       ),
@@ -1010,11 +1128,12 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     final bool initialInternal = c['is_internal'] == "1";
 
     return StatefulBuilder(
-      builder: (context, setState) {
+builder: (context, setState) {
         final TextEditingController editController = TextEditingController(
           text: initialComment,
         );
         List<File> newImages = [];
+        List<File> newVideos = [];
         List<String> existingImages = List<String>.from(
           initialImages.map((e) => e.toString()),
         );
@@ -1050,25 +1169,34 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                   ),
                   const Text('Internal', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 12),
-                  InkWell(
-                    onTap: () => controller.editComment(
-                      commentId: commentId,
-                      comment: editController.text,
-                      newImages: newImages,
-                      internal: isInternal,
-                    ),
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: primaryOrange,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
+                  Obx(() => controller.isLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: primaryOrange),
+                        )
+                      : InkWell(
+                          onTap: () => controller.editComment(
+                            commentId: commentId,
+                            comment: editController.text,
+                            newImages: newImages,
+                            newVideos: newVideos,
+                            internal: isInternal,
+                          ),
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              color: primaryOrange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        )),
                   const SizedBox(width: 12),
-                  InkWell(
-                    onTap: () => controller.toggleEditComment(commentId),
+                  Obx(() => InkWell(
+                    onTap: controller.isLoading.value
+                        ? null
+                        : () => controller.toggleEditComment(commentId),
                     child: const Text(
                       'Cancel',
                       style: TextStyle(
@@ -1077,7 +1205,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         fontSize: 13,
                       ),
                     ),
-                  ),
+                  )),
                 ],
               ),
               const SizedBox(height: 12),
@@ -1178,11 +1306,115 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 ),
                 const SizedBox(height: 12),
               ],
+              if (newVideos.isNotEmpty) ...[
+                const Text(
+                  'New Videos:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: newVideos
+                      .map(
+                        (file) => Stack(
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.videocam, color: Colors.orange, size: 24),
+                              ),
+                            ),
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(
+                                  Icons.cancel,
+                                  color: Colors.red,
+                                  size: 18,
+                                ),
+                                onPressed: () =>
+                                    setState(() => newVideos.remove(file)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
               InkWell(
                 onTap: () async {
-                  final picked = await ImagePicker().pickMultiImage();
-                  setState(
-                    () => newImages.addAll(picked.map((e) => File(e.path))),
+                  Get.bottomSheet(
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.camera_alt),
+                            title: const Text('Take a Photo'),
+                            onTap: () async {
+                              Get.back();
+                              final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+                              if (picked != null) {
+                                setState(() => newImages.add(File(picked.path)));
+                              }
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.photo_library),
+                            title: const Text('Choose Photo from Gallery'),
+                            onTap: () async {
+                              Get.back();
+                              final picked = await ImagePicker().pickMultiImage();
+                              setState(() => newImages.addAll(picked.map((e) => File(e.path))));
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.videocam),
+                            title: const Text('Record a Video'),
+                            onTap: () async {
+                              Get.back();
+                              final picked = await ImagePicker().pickVideo(source: ImageSource.camera);
+                              if (picked != null) {
+                                AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
+                                final compressed = await AppMediaCompressor.compressVideo(File(picked.path));
+                                setState(() => newVideos.add(compressed));
+                                AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+                              }
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.video_library),
+                            title: const Text('Choose Video from Gallery'),
+                            onTap: () async {
+                              Get.back();
+                              final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
+                              if (picked != null) {
+                                AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
+                                final compressed = await AppMediaCompressor.compressVideo(File(picked.path));
+                                setState(() => newVideos.add(compressed));
+                                AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   );
                 },
                 child: const Row(
@@ -1195,7 +1427,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                     ),
                     SizedBox(width: 4),
                     Text(
-                      "Attach Images",
+                      "Attach Files",
                       style: TextStyle(
                         color: primaryOrange,
                         fontWeight: FontWeight.bold,
