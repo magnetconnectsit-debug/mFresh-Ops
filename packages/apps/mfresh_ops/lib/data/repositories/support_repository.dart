@@ -376,6 +376,36 @@ class SupportRepository extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>?> storeSubtasks({
+    required int maintenanceId,
+    required List<String> subtasks,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.storeSubtask,
+        data: {
+          'maintenance_id': maintenanceId,
+          'subtasks': subtasks,
+        },
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> deleteSubtask({required int id}) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.deleteSubtask,
+        data: {'id': id.toString()},
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>?> addComment(dio.FormData data) async {
     try {
       final response = await _apiService.post(
@@ -428,6 +458,38 @@ class SupportRepository extends GetxService {
         },
       );
       return response != null && response['status'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Quick Filters
+  Future<bool> saveFilter({
+    required String name,
+    required Map<String, dynamic> filters,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.saveFilter,
+        data: {
+          'name': name,
+          'filters': filters,
+        },
+      );
+      return response != null && response['success'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<QuickFilter>> getQuickFilters() async {
+    try {
+      final response = await _apiService.get(AppConstants.getFilters);
+      if (response != null && response['success'] == true) {
+        final List data = response['data'] ?? [];
+        return data.map((e) => QuickFilter.fromJson(e)).toList();
+      }
+      return [];
     } catch (e) {
       rethrow;
     }

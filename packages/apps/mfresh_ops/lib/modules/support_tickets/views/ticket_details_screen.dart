@@ -101,6 +101,32 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             child: const Icon(Icons.edit, color: primaryOrange, size: 12),
           ),
         ),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: () => _showAddSubtaskDialog(Get.context!, controller),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: primaryOrange,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_task, color: Colors.white, size: 12),
+                SizedBox(width: 4),
+                Text(
+                  "Add Subtask",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -209,6 +235,75 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               _bottomTableRowWidget("Interest Party", _buildInterestPartyWidget()),
             ],
           ),
+          // ─── Subtasks Section ───────────────────────────────────────────
+          if ((ticket.subtasks ?? []).isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(color: Color(0xFFEEEEEE), height: 1, thickness: 1),
+            ),
+            const Text(
+              "SUBTASKS",
+              style: TextStyle(
+                color: primaryOrange,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...(ticket.subtasks ?? []).map((st) {
+              final bool isDone = st.subtaskStatus == '1';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDone ? const Color(0xFF4CAF50) : Colors.orange.shade100,
+                        border: Border.all(
+                          color: isDone ? const Color(0xFF4CAF50) : Colors.orange,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: isDone
+                          ? const Icon(Icons.check, color: Colors.white, size: 12)
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        st.subtask ?? '',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDone ? Colors.grey : Colors.black87,
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDone
+                            ? const Color(0xFFE8F5E9)
+                            : const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        isDone ? 'Done' : 'Pending',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isDone ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ],
       ),
     );
@@ -606,6 +701,211 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         ),
       ],
     );
+  }
+
+  // --- Add Subtask Dialog ---
+  void _showAddSubtaskDialog(BuildContext context, TicketDetailsController controller) {
+    final List<TextEditingController> controllers = [TextEditingController()];
+
+    Get.dialog(
+      StatefulBuilder(builder: (ctx, setState) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ────────────────────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Create Subtasks',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Get.back(),
+                      child: const Icon(Icons.close, size: 20, color: Colors.black54),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // ── Input rows (cream background) ─────────────────────────
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDF8F2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 260),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(controllers.length, (i) {
+                          final isLast = i == controllers.length - 1;
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+                            child: Row(
+                              children: [
+                                // Text field
+                                Expanded(
+                                  child: Container(
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                                    ),
+                                    child: TextField(
+                                      controller: controllers[i],
+                                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                      decoration: const InputDecoration(
+                                        hintText: 'Enter subtask name',
+                                        hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        isDense: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Delete icon — visible when more than 1 row
+                                if (controllers.length > 1) ...[
+                                  GestureDetector(
+                                    onTap: () {
+                                      final removed = controllers[i];
+                                      setState(() {
+                                        controllers.removeAt(i);
+                                      });
+                                      Future.delayed(const Duration(milliseconds: 300), () => removed.dispose());
+                                    },
+                                    child: Container(
+                                      width: 40,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFEBEE),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Icon(Icons.close, color: Colors.red, size: 18),
+                                    ),
+                                  ),
+                                  if (isLast) const SizedBox(width: 8),
+                                ],
+
+                                // Green "+" button — only on the last row
+                                if (isLast)
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (controllers[i].text.trim().isEmpty) {
+                                        AppCommonToastMessage.show(
+                                          message: 'Please enter subtask',
+                                          type: ToastType.error,
+                                        );
+                                        return;
+                                      }
+                                      setState(() {
+                                        controllers.add(TextEditingController());
+                                      });
+                                    },
+                                    child: Container(
+                                      width: 40,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF34A853),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Icon(Icons.add, color: Colors.white, size: 22),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Save button (blue, right-aligned) ─────────────────────
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Obx(() => SizedBox(
+                    width: 120,
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: controller.isSubtaskLoading.value
+                          ? null
+                          : () async {
+                              final all = controllers
+                                  .map((c) => c.text.trim())
+                                  .where((t) => t.isNotEmpty)
+                                  .toList();
+                              if (all.isEmpty) {
+                                AppCommonToastMessage.show(
+                                  message: 'Please add at least one subtask',
+                                  type: ToastType.error,
+                                );
+                                return;
+                              }
+                              final success = await controller.createSubtasks(all);
+                              if (success) {
+                                Get.back();
+                                AppCommonToastMessage.show(
+                                  message: 'Subtasks saved successfully',
+                                  type: ToastType.success,
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2979FF),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: controller.isSubtaskLoading.value
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text(
+                              'Save',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  )),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+      barrierDismissible: false,
+    ).then((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        for (final c in controllers) {
+          c.dispose();
+        }
+      });
+    });
   }
 
   // --- Comment Input Card ---

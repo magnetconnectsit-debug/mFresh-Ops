@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:core/widgets/app_common_media_source.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class EditTicketScreen extends StatelessWidget {
   const EditTicketScreen({super.key});
@@ -20,21 +21,15 @@ class EditTicketScreen extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: Container(
-            width: Get.width * 0.95,
+            width: Get.width > 700 ? Get.width * 0.7 : Get.width * 0.95,
+            margin: const EdgeInsets.symmetric(vertical: 20),
             constraints: BoxConstraints(
               maxHeight: Get.height * 0.9,
             ),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -44,14 +39,10 @@ class EditTicketScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Obx(() => Text(
-                      "TICKET # ${controller.ticketDetail.value?.caseId ?? controller.ticketDetail.value?.id ?? ''}",
-                      style: const TextStyle(
-                        color: primaryOrange,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    )),
+                    const Text("Update Ticket",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -69,33 +60,166 @@ class EditTicketScreen extends StatelessWidget {
                       children: [
                         _buildFormGrid(context, controller),
                         const SizedBox(height: 12),
+                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                        const SizedBox(height: 12),
 
-                        const Text(
-                          "Subject",
-                          style: TextStyle(
-                            color: primaryOrange,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
+                        const Text("Subject",
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
                         _buildTextField(controller.subjectController, "Subject Line"),
-
+                        
                         const SizedBox(height: 12),
 
-                        const Text(
-                          "Description",
-                          style: TextStyle(
-                            color: primaryOrange,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
+                        const Text("Description",
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
-                        _buildTextField(controller.descriptionController, "Description here", maxLines: 3),
+                        _buildTextField(controller.descriptionController, "Description here", maxLines: 4),
 
-                        const SizedBox(height: 12),
-                        _buildAttachmentsSection(context, controller),
+
+                        // ─── Subtasks Section ─────────────────────────────
+                        Obx(() {
+                          final subtasks = controller.ticketDetail.value?.subtasks ?? [];
+                          if (subtasks.isEmpty) return const SizedBox.shrink();
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 12),
+                              const Text("Subtasks",
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 4),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5F5F5),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  children: subtasks.asMap().entries.map((entry) {
+                                    final st = entry.value;
+                                    final isLast = entry.key == subtasks.length - 1;
+                                    return Obx(() {
+                                      final isChecked = controller.isSubtaskChecked(st.id);
+                                      return Column(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            child: Row(
+                                              children: [
+                                                Checkbox(
+                                                  value: isChecked,
+                                                  activeColor: primaryOrange,
+                                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                  visualDensity: VisualDensity.compact,
+                                                  onChanged: (v) => controller.toggleSubtaskCheck(st.id),
+                                                ),
+                                                Expanded(
+                                                  child: Text(
+                                                    st.subtask ?? '',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isChecked ? Colors.grey : Colors.black87,
+                                                      decoration: isChecked ? TextDecoration.lineThrough : null,
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Status badge
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: isChecked
+                                                        ? const Color(0xFFE8F5E9)
+                                                        : const Color(0xFFFFF3E0),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(
+                                                    isChecked ? 'Done' : 'Pending',
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isChecked
+                                                          ? const Color(0xFF2E7D32)
+                                                          : const Color(0xFFE65100),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                // Delete icon
+                                                InkWell(
+                                                  onTap: controller.isSubtaskLoading.value
+                                                      ? null
+                                                      : () {
+                                                          Get.dialog(
+                                                            AlertDialog(
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(12),
+                                                              ),
+                                                              title: const Text(
+                                                                'Delete Subtask',
+                                                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                                              ),
+                                                              content: Text(
+                                                                'Delete "${st.subtask}"?',
+                                                                style: const TextStyle(fontSize: 12),
+                                                              ),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed: () => Get.back(),
+                                                                  child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+                                                                ),
+                                                                TextButton(
+                                                                  onPressed: () async {
+                                                                    Get.back(); // Close dialog first
+                                                                    final success = await controller.deleteSubtask(st.id);
+                                                                    if (success) {
+                                                                      AppCommonToastMessage.show(
+                                                                        message: 'Subtask deleted successfully',
+                                                                        type: ToastType.success,
+                                                                      );
+                                                                    }
+                                                                  },
+                                                                  child: const Text(
+                                                                    'Delete',
+                                                                    style: TextStyle(
+                                                                      fontSize: 12,
+                                                                      color: Colors.red,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(4),
+                                                    child: Icon(Icons.delete_outline, color: Colors.red, size: 16),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (!isLast)
+                                            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                                        ],
+                                      );
+                                    });
+                                  }).toList(),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                '✓ Check a subtask to mark it as completed (esubtask)',
+                                style: TextStyle(fontSize: 9, color: Colors.grey, fontStyle: FontStyle.italic),
+                              ),
+                            ],
+                          );
+                        }),
+
                       ],
                     ),
                   ),
@@ -112,115 +236,155 @@ class EditTicketScreen extends StatelessWidget {
   }
 
   Widget _buildFormGrid(BuildContext context, TicketDetailsController controller) {
-    return Obx(() => Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Obx(() => Column(
       children: [
-        // Left Column
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _fieldWrapper("Status", _buildDropdown<String>(
-                controller.selectedStatus.value,
-                controller.statusOptions,
-                (v) => controller.selectedStatus.value = v,
-                (item) => item,
-              )),
-              _fieldWrapper("Priority", _buildDropdown<String>(
-                controller.selectedPriority.value,
-                controller.priorityOptions,
-                (v) => controller.selectedPriority.value = v,
-                (item) => item,
-              )),
-              _fieldWrapper("Category", _buildDropdown<SupportCategory>(
-                controller.selectedCategory.value,
-                controller.categories,
-                (v) {
-                  controller.selectedCategory.value = v;
-                  if (v != null) controller.fetchSubCategories(v.categoryId);
-                },
-                (item) => item.categoryName,
-              )),
-              _fieldWrapper("Sub Category", _buildDropdown<SupportSubCategory>(
-                controller.selectedSubCategory.value,
-                controller.subCategories,
-                (v) => controller.selectedSubCategory.value = v,
-                (item) => item.subCategoryName,
-              )),
-              _fieldWrapper("Assignee", _buildDropdown<AssigneeModel>(
-                controller.selectedAssignee.value,
-                controller.assignees,
-                (v) => controller.selectedAssignee.value = v,
-                (item) => item.name,
-              )),
-              _fieldWrapper("Unit", _buildDropdown<SupportUnit>(
-                controller.selectedUnit.value,
-                controller.units,
-                (v) => controller.selectedUnit.value = v,
-                (item) => item.unitName,
-              )),
-              _fieldWrapper("Project", _buildDropdown<SupportProject>(
-                controller.selectedProject.value,
-                controller.projects,
-                (v) => controller.selectedProject.value = v,
-                (item) => item.projectName,
-              )),
-            ],
+        _twoFieldRow(
+          leftLabel: "Status",
+          leftChild: _buildDropdown<String>(
+            controller.selectedStatus.value,
+            controller.statusOptions,
+            (v) => controller.selectedStatus.value = v,
+            (item) => controller.getStatusLabel(item),
           ),
+          rightLabel: "Created By",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.userName ?? "N/A"),
         ),
-        const SizedBox(width: 12),
-        // Right Column
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _fieldWrapper("Created By", _readOnlyBox(controller.ticketDetail.value?.userName ?? "N/A")),
-              _fieldWrapper("Created On", _readOnlyBox(controller.ticketDetail.value?.createdOn ?? "N/A")),
-              _fieldWrapper("Modified On", _readOnlyBox(controller.ticketDetail.value?.modifiedOn ?? "N/A")),
-              _fieldWrapper("Resolved", _readOnlyBox(controller.ticketDetail.value?.resolvedOn ?? "N/A")),
-              _fieldWrapper("Ticket Age", _readOnlyBox(controller.ticketDetail.value?.tktAge ?? "N/A")),
-              _fieldWrapper("Reminder", _buildReminderField(context, controller)),
-              _fieldWrapper("Link Ticket", _buildTextField(TextEditingController(text: "NA"), "Link Ticket")),
-            ],
+        const SizedBox(height: 5),
+        _twoFieldRow(
+          leftLabel: "Priority",
+          leftChild: _buildDropdown<String>(
+            controller.selectedPriority.value,
+            controller.priorityOptions,
+            (v) => controller.selectedPriority.value = v,
+            (item) => controller.getPriorityLabel(item),
           ),
+          rightLabel: "Created On",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.createdOn ?? "N/A", Icons.calendar_today),
+        ),
+        const SizedBox(height: 5),
+        _twoFieldRow(
+          leftLabel: "Category",
+          leftChild: _buildDropdown<SupportCategory>(
+            controller.selectedCategory.value,
+            controller.categories,
+            (v) {
+              controller.selectedCategory.value = v;
+              if (v != null) controller.fetchSubCategories(v.categoryId);
+            },
+            (item) => item.categoryName,
+          ),
+          rightLabel: "Modified On",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.modifiedOn ?? "N/A", Icons.edit_calendar),
+        ),
+        const SizedBox(height: 5),
+        _twoFieldRow(
+          leftLabel: "Sub Category",
+          leftChild: _buildDropdown<SupportSubCategory>(
+            controller.selectedSubCategory.value,
+            controller.subCategories,
+            (v) => controller.selectedSubCategory.value = v,
+            (item) => item.subCategoryName,
+          ),
+          rightLabel: "Resolved",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.resolvedOn ?? "N/A", Icons.check_circle_outline),
+        ),
+        const SizedBox(height: 5),
+        _twoFieldRow(
+          leftLabel: "Assignee",
+          leftChild: _buildDropdown<AssigneeModel>(
+            controller.selectedAssignee.value,
+            controller.assignees,
+            (v) => controller.selectedAssignee.value = v,
+            (item) => item.name,
+          ),
+          rightLabel: "Ticket Age",
+          rightChild: _readOnlyBox(controller.ticketDetail.value?.tktAge ?? "N/A"),
+        ),
+        const SizedBox(height: 5),
+        _twoFieldRow(
+          leftLabel: "Unit",
+          leftChild: _buildDropdown<SupportUnit>(
+            controller.selectedUnit.value,
+            controller.units,
+            (v) => controller.selectedUnit.value = v,
+            (item) => item.unitName,
+          ),
+          rightLabel: "Reminder",
+          rightChild: _buildReminderField(context, controller),
+        ),
+        const SizedBox(height: 5),
+        _twoFieldRow(
+          leftLabel: "Project",
+          leftChild: _buildDropdown<SupportProject>(
+            controller.selectedProject.value,
+            controller.projects,
+            (v) => controller.selectedProject.value = v,
+            (item) => item.projectName,
+          ),
+          rightLabel: "Link Ticket",
+          rightChild: _buildTextField(TextEditingController(text: "NA"), "Link Ticket", verticalPadding: 13),
         ),
       ],
     ));
   }
 
-  Widget _fieldWrapper(String label, Widget child) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 75,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: primaryOrange,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
-            ),
+  Widget _twoFieldRow({
+    required String leftLabel,
+    required Widget leftChild,
+    required String rightLabel,
+    required Widget rightChild,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(leftLabel,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              SizedBox(width: double.infinity, child: leftChild),
+            ],
           ),
-          Expanded(child: child),
-        ],
-      ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(rightLabel,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              SizedBox(width: double.infinity, child: rightChild),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _readOnlyBox(String text) {
+  Widget _readOnlyBox(String text, [IconData? icon]) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
       decoration: BoxDecoration(
         color: const Color(0xffF5F5F5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 10, color: Colors.black87),
-        overflow: TextOverflow.ellipsis,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (icon != null) Icon(icon, size: 14, color: Colors.black54),
+        ],
       ),
     );
   }
@@ -229,10 +393,10 @@ class EditTicketScreen extends StatelessWidget {
     return InkWell(
       onTap: () => _showReminderDialog(context, controller),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         decoration: BoxDecoration(
           color: const Color(0xffF5F5F5),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -241,7 +405,7 @@ class EditTicketScreen extends StatelessWidget {
               child: Text(
                 controller.displayReminder.value,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   color: controller.displayReminder.value == 'Reminder' ? Colors.grey : Colors.black,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -302,7 +466,7 @@ class EditTicketScreen extends StatelessWidget {
                         onChanged: (v) => setModalState(() => tempWhatsApp = v!),
                       ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.notifications_active, color: Colors.black, size: 18),
+                      const Icon(Icons.notifications, color: Colors.black54, size: 18),
                       const SizedBox(width: 4),
                       Checkbox(
                         value: tempApp,
@@ -311,47 +475,55 @@ class EditTicketScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  const Text("Date & Time:",
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryOrange)),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Expanded(
                         child: _modalPickerBox(
-                            text: DateFormat("dd/MM/yyyy").format(tempDate),
-                            icon: Icons.calendar_today,
-                            onTap: () async {
-                              final p = await showDatePicker(
-                                  context: context,
-                                  initialDate: tempDate,
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime(2100));
-                              if (p != null) setModalState(() => tempDate = p);
-                            }),
+                          text: DateFormat("dd MMM, yyyy").format(tempDate),
+                          icon: Icons.calendar_today_outlined,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: tempDate,
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) setModalState(() => tempDate = picked);
+                          },
+                        ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _modalPickerBox(
-                            text: tempTime.format(context),
-                            icon: Icons.arrow_drop_down,
-                            onTap: () async {
-                              final t = await showTimePicker(
-                                  context: context, initialTime: tempTime);
-                              if (t != null) setModalState(() => tempTime = t);
-                            }),
+                          text: tempTime.format(context),
+                          icon: Icons.access_time,
+                          onTap: () async {
+                            final picked = await showTimePicker(
+                              context: context,
+                              initialTime: tempTime,
+                            );
+                            if (picked != null) setModalState(() => tempTime = picked);
+                          },
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade400,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
+                            side: const BorderSide(color: Colors.grey),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Get.back(),
-                          child: const Text("Cancel", style: TextStyle(color: Colors.white, fontSize: 12)),
+                          child: const Text("Cancel", style: TextStyle(color: Colors.black87, fontSize: 12)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -375,7 +547,7 @@ class EditTicketScreen extends StatelessWidget {
                         ),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -389,11 +561,10 @@ class EditTicketScreen extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
+          color: const Color(0xffF5F5F5),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -407,41 +578,41 @@ class EditTicketScreen extends StatelessWidget {
   }
 
   Widget _buildDropdown<T>(T? value, List<T> options, Function(T?) onChanged, String Function(T) labelBuilder) {
-    T? safeValue = value;
-    if (value != null && !options.contains(value)) {
-      safeValue = null;
+    List<T> safeOptions = List.from(options);
+    if (value != null && !safeOptions.contains(value)) {
+      safeOptions.insert(0, value);
     }
     return DropdownButtonFormField<T>(
-      value: safeValue,
+      value: value,
       isExpanded: true,
       icon: const SizedBox.shrink(),
       decoration: _inputDecoration("Select"),
-      items: options.map((e) => DropdownMenuItem(value: e, child: Text(labelBuilder(e), style: const TextStyle(fontSize: 10)))).toList(),
+      items: safeOptions.map((e) => DropdownMenuItem(value: e, child: Text(labelBuilder(e), style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis))).toList(),
       onChanged: onChanged,
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, {double verticalPadding = 10}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 10),
+      hintStyle: const TextStyle(fontSize: 12),
       filled: true,
       fillColor: const Color(0xffF5F5F5),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: verticalPadding),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide.none,
       ),
       isDense: true,
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1}) {
+  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1, double verticalPadding = 10}) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 11),
-      decoration: _inputDecoration(hint),
+      style: const TextStyle(fontSize: 12),
+      decoration: _inputDecoration(hint, verticalPadding: verticalPadding),
     );
   }
 
@@ -454,113 +625,82 @@ class EditTicketScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAttachmentsSection(BuildContext context, TicketDetailsController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAttachmentsContent(BuildContext context, TicketDetailsController controller) {
+    return Obx(() => Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Row(
-          children: [
-            const SizedBox(
-              width: 75,
-              child: Text(
-                "Attachments",
-                style: TextStyle(
-                  color: primaryOrange,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
-                ),
-              ),
+        InkWell(
+          onTap: () => _showMediaSourceOptions(context, controller),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3F0),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: primaryOrange.withValues(alpha: 0.3)),
             ),
-            InkWell(
-              onTap: () => _showMediaSourceOptions(context, controller),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3F0),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: primaryOrange.withValues(alpha: 0.3)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.description, size: 12, color: primaryOrange),
-                    SizedBox(width: 4),
-                    Text(
-                      "Choose files",
-                      style: TextStyle(
-                        color: primaryOrange,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        Obx(() {
-          if (controller.selectedImages.isEmpty &&
-              controller.selectedVideos.isEmpty &&
-              (controller.ticketDetail.value?.attachments == null ||
-                  controller.ticketDetail.value!.attachments!.isEmpty)) {
-            return const SizedBox.shrink();
-          }
-          return Padding(
-            padding: const EdgeInsets.only(left: 75, top: 6),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 4,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (controller.ticketDetail.value?.attachments != null)
-                  ...controller.ticketDetail.value!.attachments!.map((att) {
-                    final filename = att.split('/').last;
-                    final isVideo = filename.toLowerCase().endsWith('.mp4') ||
-                                    filename.toLowerCase().endsWith('.mov') ||
-                                    filename.toLowerCase().endsWith('.avi') ||
-                                    filename.toLowerCase().endsWith('.mkv');
-                    return Chip(
-                      label: Text(filename, style: const TextStyle(fontSize: 8)),
-                      avatar: Icon(
-                        isVideo ? Icons.videocam : Icons.description,
-                        size: 10,
-                        color: primaryOrange,
-                      ),
-                      backgroundColor: const Color(0xFFFFF3F0),
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    );
-                  }),
-                ...controller.selectedImages.map((file) {
-                  final filename = file.path.split('/').last;
-                  return Chip(
-                    label: Text(filename, style: const TextStyle(fontSize: 8)),
-                    avatar: const Icon(Icons.description, size: 10, color: primaryOrange),
-                    backgroundColor: const Color(0xFFFFF3F0),
-                    onDeleted: () => controller.selectedImages.remove(file),
-                    deleteIconColor: Colors.red,
-                    padding: EdgeInsets.zero,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  );
-                }),
-                ...controller.selectedVideos.map((file) {
-                  final filename = file.path.split('/').last;
-                  return Chip(
-                    label: Text(filename, style: const TextStyle(fontSize: 8)),
-                    avatar: const Icon(Icons.videocam, size: 10, color: primaryOrange),
-                    backgroundColor: const Color(0xFFFFF3F0),
-                    onDeleted: () => controller.selectedVideos.remove(file),
-                    deleteIconColor: Colors.red,
-                    padding: EdgeInsets.zero,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  );
-                }),
+                Icon(Icons.add_a_photo, size: 12, color: primaryOrange),
+                SizedBox(width: 4),
+                Text(
+                  "Choose files",
+                  style: TextStyle(
+                    color: primaryOrange,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 9,
+                  ),
+                ),
               ],
             ),
+          ),
+        ),
+        if (controller.ticketDetail.value?.attachments != null)
+          ...controller.ticketDetail.value!.attachments!.map((att) {
+            final filename = att.split('/').last;
+            final isVideo = filename.toLowerCase().endsWith('.mp4') ||
+                            filename.toLowerCase().endsWith('.mov') ||
+                            filename.toLowerCase().endsWith('.avi') ||
+                            filename.toLowerCase().endsWith('.mkv');
+            return Chip(
+              label: Text(filename, style: const TextStyle(fontSize: 10, color: primaryOrange, fontWeight: FontWeight.bold)),
+              avatar: Icon(
+                isVideo ? Icons.videocam : Icons.attach_file,
+                size: 12,
+                color: primaryOrange,
+              ),
+              backgroundColor: const Color(0xFFE0E0E0),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            );
+          }),
+        ...controller.selectedImages.map((file) {
+          final filename = file.path.split('/').last;
+          return Chip(
+            label: Text(filename, style: const TextStyle(fontSize: 10, color: primaryOrange, fontWeight: FontWeight.bold)),
+            avatar: const Icon(Icons.attach_file, size: 12, color: primaryOrange),
+            backgroundColor: const Color(0xFFE0E0E0),
+            onDeleted: () => controller.selectedImages.remove(file),
+            deleteIconColor: Colors.black54,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          );
+        }),
+        ...controller.selectedVideos.map((file) {
+          final filename = file.path.split('/').last;
+          return Chip(
+            label: Text(filename, style: const TextStyle(fontSize: 10, color: primaryOrange, fontWeight: FontWeight.bold)),
+            avatar: const Icon(Icons.videocam, size: 12, color: primaryOrange),
+            backgroundColor: const Color(0xFFE0E0E0),
+            onDeleted: () => controller.selectedVideos.remove(file),
+            deleteIconColor: Colors.black54,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           );
         }),
       ],
-    );
+    ));
   }
 
   Widget _buildBottomActions(TicketDetailsController controller) {

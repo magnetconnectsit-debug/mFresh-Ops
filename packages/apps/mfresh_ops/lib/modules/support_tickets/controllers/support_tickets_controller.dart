@@ -64,6 +64,11 @@ class SupportTicketsController extends GetxController {
   final selectedPriority = Rxn<String>();
   final selectedStatuses = <String>[].obs;
 
+  // Quick Filters
+  final quickFilters = <QuickFilter>[].obs;
+  final selectedQuickFilter = Rxn<QuickFilter>();
+  final isSavingFilter = false.obs;
+
   // Dropdown Options
   List<DropdownOption<SupportCategory>> get categoryOptions => 
     categories.map((e) => DropdownOption(value: e, label: e.categoryName)).toList();
@@ -106,9 +111,12 @@ class SupportTicketsController extends GetxController {
       await fetchCategories();
       await fetchProjects();
       await fetchAssignees(shouldFetchTickets: false); // Don't fetch yet
-      
+
       // Now fetch tickets with all filters applied (including default assignee)
       await fetchTickets();
+
+      // Load quick filters in background
+      fetchQuickFilters();
     } catch (e) {
       debugPrint('Error during initial load: $e');
     } finally {
@@ -243,6 +251,123 @@ class SupportTicketsController extends GetxController {
   }
 
   void applyFilters() {
+    fetchTickets();
+  }
+
+  Future<void> refreshAll() async {
+    try {
+      // Parallel fetch: all metadata + tickets + quick filters
+      await Future.wait([
+        fetchUnits(),
+        fetchCategories(),
+        fetchProjects(),
+        fetchAssignees(shouldFetchTickets: false),
+        fetchQuickFilters(),
+      ]);
+      // Fetch tickets after metadata is ready (to respect current filters)
+      await fetchTickets();
+    } catch (e) {
+      debugPrint('Error during refresh: $e');
+    }
+  }
+
+  Future<void> fetchQuickFilters() async {
+    try {
+      final result = await _supportRepository.getQuickFilters();
+      quickFilters.assignAll(result);
+
+      // Re-sync selected reference so the DropdownButton value matches an
+      // item in the new list (required for == to work after list refresh).
+      final currentId = selectedQuickFilter.value?.id;
+      if (currentId != null) {
+        selectedQuickFilter.value = quickFilters.firstWhereOrNull((f) => f.id == currentId);
+      }
+    } catch (e) {
+      debugPrint('Error fetching quick filters: $e');
+    }
+  }
+
+  Future<void> saveCurrentFilter(String name) async {
+    try {
+      isSavingFilter.value = true;
+
+      // Build the filters payload matching the API format
+      final filtersPayload = {
+        'table_assignee': selectedAssignees.map((a) => a.name).toList(),
+        'mcatid': selectedCategories.map((c) => c.categoryId.toString()).toList(),
+        'submcatid': selectedSubCategory.value?.subCategoryId.toString() ?? '',
+        'selectedUnits': selectedUnits.map((u) => u.unitId.toString()).toList(),
+        'statusid': selectedStatuses,
+        'selectedProject': selectedProjects.map((p) => p.projectId.toString()).toList(),
+        'priorityId': selectedPriority.value ?? '',
+        'globalsearch': searchController.text,
+      };
+
+      final success = await _supportRepository.saveFilter(
+        name: name,
+        filters: filtersPayload,
+      );
+
+      if (success) {
+        AppCommonToastMessage.show(message: 'Filter "$name" saved!', type: ToastType.success);
+        fetchQuickFilters(); // Refresh list
+      } else {
+        AppCommonToastMessage.show(message: 'Failed to save filter', type: ToastType.error);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Error saving filter: $e', type: ToastType.error);
+    } finally {
+      isSavingFilter.value = false;
+    }
+  }
+
+  void applyQuickFilter(QuickFilter filter) {
+    selectedQuickFilter.value = filter;
+    final f = filter.filters;
+
+    // Apply statuses
+    selectedStatuses.assignAll(f.statusid);
+
+    // Apply assignees by name
+    if (f.tableAssignee.isNotEmpty) {
+      final matched = assignees
+          .where((a) => f.tableAssignee.contains(a.name))
+          .toList();
+      selectedAssignees.assignAll(matched);
+    } else {
+      selectedAssignees.clear();
+    }
+
+    // Apply categories
+    if (f.mcatid.isNotEmpty) {
+      final matched = categories
+          .where((c) => f.mcatid.contains(c.categoryId.toString()))
+          .toList();
+      selectedCategories.assignAll(matched);
+    } else {
+      selectedCategories.clear();
+    }
+
+    // Apply projects
+    if (f.selectedProject.isNotEmpty) {
+      final matched = projects
+          .where((p) => f.selectedProject.contains(p.projectId.toString()))
+          .toList();
+      selectedProjects.assignAll(matched);
+    } else {
+      selectedProjects.clear();
+    }
+
+    // Apply units
+    if (f.selectedUnits.isNotEmpty) {
+      final matched = units
+          .where((u) => f.selectedUnits.contains(u.unitId.toString()))
+          .toList();
+      selectedUnits.assignAll(matched);
+    } else {
+      selectedUnits.clear();
+    }
+
     fetchTickets();
   }
 

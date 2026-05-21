@@ -49,8 +49,8 @@ class TicketDetailsController extends GetxController {
   final followUpDate = Rxn<DateTime>();
 
   // Options for dropdowns
-  final statusOptions = ['New', 'WIP', 'Hold', 'Awaited', 'Resolved', 'Closed'];
-  final priorityOptions = ['Low', 'Medium', 'High', 'Top Priority'];
+  final statusOptions = ['0', '1', '5', '4', '2', '3'];
+  final priorityOptions = ['1', '2', '3', '6'];
   final categories = <SupportCategory>[].obs;
   final subCategories = <SupportSubCategory>[].obs;
   final assignees = <AssigneeModel>[].obs;
@@ -61,6 +61,12 @@ class TicketDetailsController extends GetxController {
   final activities = <ActivityModel>[].obs;
   final history = <HistoryModel>[].obs;
   final editingCommentIds = <int>{}.obs;
+
+  // Subtask state
+  final isSubtaskLoading = false.obs;
+  // Subtasks selected (checked) in edit mode — stores subtask IDs
+  final checkedSubtaskIds = <int>{}.obs;
+
 
   @override
   void onInit() {
@@ -77,22 +83,92 @@ class TicketDetailsController extends GetxController {
       // Fetch core details first to show the screen
       await fetchTicketDetails();
 
-      // Fetch metadata in background
-      Future.wait([
+      // Fetch metadata
+      await Future.wait([
         fetchUnits(),
         fetchCategories(),
         fetchProjects(),
         fetchAssignees(),
-      ]).then((_) async {
-        // After fetching categories, fetch subcategories if we have a ticket category
-        if (selectedCategory.value != null) {
-          await fetchSubCategories(selectedCategory.value!.categoryId);
-        }
-      });
+      ]);
+
+      // Map the edit data IDs to dropdown models
+      if (_editData != null) {
+        await _mapDropdownValues(_editData!);
+      }
     } catch (e) {
       debugPrint('Error fetching all data: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  EditSupportTicketData? _editData;
+
+  String getStatusLabel(String id) {
+    switch (id) {
+      case '0': return 'New';
+      case '1': return 'WIP';
+      case '2': return 'Resolved';
+      case '3': return 'Closed';
+      case '4': return 'Hold';
+      case '5': return 'Awaited';
+      default: return id;
+    }
+  }
+
+  String getPriorityLabel(String id) {
+    switch (id) {
+      case '1': return 'Low';
+      case '2': return 'Medium';
+      case '3': return 'High';
+      case '6': return 'Top Priority';
+      default: return id;
+    }
+  }
+
+  Future<void> _mapDropdownValues(EditSupportTicketData editData) async {
+    // 1. Status & Priority
+    if (editData.status != null) {
+      selectedStatus.value = editData.status;
+    }
+    if (editData.priority != null) {
+      selectedPriority.value = editData.priority;
+    }
+
+    // 2. Unit
+    if (editData.unitId != null) {
+      selectedUnit.value = units.firstWhereOrNull(
+        (u) => u.unitId.toString() == editData.unitId,
+      );
+    }
+
+    // 3. Project
+    if (editData.projectId != null) {
+      selectedProject.value = projects.firstWhereOrNull(
+        (p) => p.projectId.toString() == editData.projectId,
+      );
+    }
+
+    // 4. Category
+    if (editData.mcatId != null) {
+      selectedCategory.value = categories.firstWhereOrNull(
+        (c) => c.categoryId.toString() == editData.mcatId,
+      );
+    }
+
+    // 5. Sub Category (Requires fetching subcategories first)
+    if (selectedCategory.value != null && editData.subcatId != null) {
+      await fetchSubCategories(selectedCategory.value!.categoryId);
+      selectedSubCategory.value = subCategories.firstWhereOrNull(
+        (sc) => sc.subCategoryId.toString() == editData.subcatId,
+      );
+    }
+
+    // 6. Assignee
+    if (editData.assignedTo != null) {
+      selectedAssignee.value = assignees.firstWhereOrNull(
+        (a) => a.id.toString() == editData.assignedTo,
+      );
     }
   }
 
@@ -174,6 +250,16 @@ class TicketDetailsController extends GetxController {
       if (response != null) {
         ticketDetail.value = response;
 
+        // Initialize checked subtasks from response
+        if (response.subtasks != null) {
+          checkedSubtaskIds.clear();
+          for (final st in response.subtasks!) {
+            if (st.subtaskStatus == '1') {
+              checkedSubtaskIds.add(st.id);
+            }
+          }
+        }
+
         // Map fields to controllers for editing
         subjectController.text = response.subject ?? '';
         descriptionController.text = response.description ?? '';
@@ -249,8 +335,7 @@ class TicketDetailsController extends GetxController {
         ticketId.value!,
       );
       if (editData != null) {
-        // Here we can set the selected models based on IDs
-        // This requires the models to be fetched first (handled in fetchAllData)
+        _editData = editData;
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to fetch ticket details: $e', type: ToastType.error);
@@ -360,21 +445,11 @@ class TicketDetailsController extends GetxController {
 
       final formData = dio.FormData.fromMap(data);
 
-      // Add attachments using multiple potential backend keys for compatibility
-      for (var file in selectedImages) {
-        final path = file.path;
-        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
-        formData.files.add(MapEntry('ticket_images[]', await dio.MultipartFile.fromFile(path)));
-        formData.files.add(MapEntry('cashier_imgs[]', await dio.MultipartFile.fromFile(path)));
-        formData.files.add(MapEntry('cashier_images[]', await dio.MultipartFile.fromFile(path)));
+      // Add checked subtask IDs as esubtask[]
+      for (final subtaskId in checkedSubtaskIds) {
+        formData.fields.add(MapEntry('esubtask[]', subtaskId.toString()));
       }
-      for (var file in selectedVideos) {
-        final path = file.path;
-        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
-        formData.files.add(MapEntry('ticket_images[]', await dio.MultipartFile.fromFile(path)));
-        formData.files.add(MapEntry('cashier_imgs[]', await dio.MultipartFile.fromFile(path)));
-        formData.files.add(MapEntry('cashier_images[]', await dio.MultipartFile.fromFile(path)));
-      }
+
 
       final response = await _supportRepository.updateSupportTicket(formData);
 
@@ -397,17 +472,17 @@ class TicketDetailsController extends GetxController {
   }
 
   String _getPriorityId(String? priority) {
+    // priority is already stored as an ID string ('1','2','3','6')
+    if (priority != null && ['1', '2', '3', '6'].contains(priority)) {
+      return priority;
+    }
+    // fallback: label-to-id mapping
     switch (priority) {
-      case 'Low':
-        return '1';
-      case 'Medium':
-        return '2';
-      case 'High':
-        return '3';
-      case 'Top Priority':
-        return '6';
-      default:
-        return '2';
+      case 'Low': return '1';
+      case 'Medium': return '2';
+      case 'High': return '3';
+      case 'Top Priority': return '6';
+      default: return '2';
     }
   }
 
@@ -494,6 +569,19 @@ class TicketDetailsController extends GetxController {
       case "Awaited":
         statusId = "5";
         break;
+    }
+
+    // Guard: cannot set Resolved or Closed if any subtask is still pending
+    if (statusName == 'Resolved' || statusName == 'Closed') {
+      final subtasks = ticketDetail.value?.subtasks ?? [];
+      final hasPending = subtasks.any((s) => s.subtaskStatus == '0');
+      if (hasPending) {
+        AppCommonToastMessage.show(
+          message: 'All subtasks must be completed before marking as $statusName.',
+          type: ToastType.error,
+        );
+        return;
+      }
     }
 
     try {
@@ -595,6 +683,69 @@ class TicketDetailsController extends GetxController {
       editingCommentIds.remove(commentId);
     } else {
       editingCommentIds.add(commentId);
+    }
+  }
+
+  // ─── Subtask Helpers ──────────────────────────────────────────────────────
+
+  bool isSubtaskChecked(int id) => checkedSubtaskIds.contains(id);
+
+  void toggleSubtaskCheck(int id) {
+    if (checkedSubtaskIds.contains(id)) {
+      checkedSubtaskIds.remove(id);
+    } else {
+      checkedSubtaskIds.add(id);
+    }
+  }
+
+  Future<bool> createSubtasks(List<String> subtasks) async {
+    if (ticketId.value == null) return false;
+    if (subtasks.isEmpty) {
+      AppCommonToastMessage.show(message: 'Please add at least one subtask', type: ToastType.error);
+      return false;
+    }
+    try {
+      isSubtaskLoading.value = true;
+      final response = await _supportRepository.storeSubtasks(
+        maintenanceId: ticketId.value!,
+        subtasks: subtasks,
+      );
+      if (response != null && response['status'] == true) {
+        await fetchTicketDetails();
+        return true;
+      } else {
+        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to save subtasks', type: ToastType.error);
+        return false;
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Error saving subtasks: $e', type: ToastType.error);
+      return false;
+    } finally {
+      isSubtaskLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteSubtask(int subtaskId) async {
+    try {
+      isSubtaskLoading.value = true;
+      final response = await _supportRepository.deleteSubtask(id: subtaskId);
+      if (response != null && response['status'] == true) {
+        // Remove from checked set if it was checked
+        checkedSubtaskIds.remove(subtaskId);
+        await fetchTicketDetails();
+        return true;
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to delete subtask',
+          type: ToastType.error,
+        );
+        return false;
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Error deleting subtask: $e', type: ToastType.error);
+      return false;
+    } finally {
+      isSubtaskLoading.value = false;
     }
   }
 

@@ -108,6 +108,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.editTicket,
       page: () => const EditTicketScreen(),
+      opaque: false,
       binding: BindingsBuilder(() => Get.lazyPut(() => TicketDetailsController())),
     ),
     GetPage(

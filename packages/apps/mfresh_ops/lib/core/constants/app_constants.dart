@@ -32,6 +32,11 @@ class AppConstants {
   static const String createSupportTicketComment = 'create-support-ticket-comment';
   static const String updateSupportTicketComment = 'update-support-ticket-comment';
   static const String bulkSupportTicketUpdate = 'bulksupport-ticket-update';
+  static const String storeSubtask = 'store-subtask-api';
+  static const String deleteSubtask = 'delete-subtask-api';
+  static const String saveFilter = 'save-filter';
+  static const String getFilters = 'get-filters';
+
   
   // Support Management
   static const String categoryList = 'category-support-ticket-list';

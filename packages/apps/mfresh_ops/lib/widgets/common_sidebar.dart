@@ -58,25 +58,26 @@ class CommonSidebar extends StatelessWidget {
                   route: AppRoutes.profile,
                   currentRoute: currentRoute,
                 ),
+
+                _buildExpandableMenuItem(
+                  icon: Icons.support_agent_outlined,
+                  title: 'Support Ticket',
+                  subItems: [
+                    // 'Support Ticket Dashboard',
+                    'Support Ticket',
+                    'M_Category',
+                    'M_Sub Category',
+                    'M_Projects',
+                    'M_Template',
+                  ],
+                  currentRoute: currentRoute,
+                ),
                 _buildExpandableMenuItem(
                   icon: Icons.task_outlined,
                   title: 'Task Scheduler',
                   subItems: [
                     'All Task',
                     'Daily Task',
-                  ],
-                  currentRoute: currentRoute,
-                ),
-                _buildExpandableMenuItem(
-                  icon: Icons.support_agent_outlined,
-                  title: 'Support Ticket',
-                  subItems: [
-                    'Support Ticket Dashboard',
-                    'Support Ticket',
-                    'M_Category',
-                    'M_Sub Category',
-                    'M_Projects',
-                    'M_Template',
                   ],
                   currentRoute: currentRoute,
                 ),

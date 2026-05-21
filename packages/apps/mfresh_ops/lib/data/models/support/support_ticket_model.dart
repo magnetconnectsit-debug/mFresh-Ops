@@ -72,6 +72,35 @@ class SupportTicketListItem {
   }
 }
 
+class SubtaskModel {
+  final int id;
+  final String? maintenanceId;
+  final String? subtask;
+  final String? subtaskStatus; // "0" = pending, "1" = completed
+  final String? createdAt;
+  final String? updatedAt;
+
+  SubtaskModel({
+    required this.id,
+    this.maintenanceId,
+    this.subtask,
+    this.subtaskStatus,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory SubtaskModel.fromJson(Map<String, dynamic> json) {
+    return SubtaskModel(
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      maintenanceId: json['maintenance_id']?.toString(),
+      subtask: json['subtask']?.toString(),
+      subtaskStatus: json['subtask_status']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
+  }
+}
+
 class SupportTicketDetail {
   final int id;
   final String? caseId;
@@ -96,6 +125,7 @@ class SupportTicketDetail {
   final String? tktAge;
   final List<dynamic>? comments;
   final List<dynamic>? logs;
+  final List<SubtaskModel>? subtasks;
   final int? projectId;
   final int? unitId;
   final int? categoryId;
@@ -129,6 +159,7 @@ class SupportTicketDetail {
     this.tktAge,
     this.comments,
     this.logs,
+    this.subtasks,
     this.projectId,
     this.unitId,
     this.categoryId,
@@ -183,6 +214,9 @@ class SupportTicketDetail {
       tktAge: json['tkt_age'],
       comments: json['comments'],
       logs: json['logs'],
+      subtasks: json['subtasks'] is List
+          ? (json['subtasks'] as List).map((e) => SubtaskModel.fromJson(e)).toList()
+          : [],
       projectId: _parseInt(json['projectid']),
       unitId: _parseInt(json['unit_id']),
       categoryId: _parseInt(json['categoryid']),

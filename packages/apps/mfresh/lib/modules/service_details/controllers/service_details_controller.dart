@@ -504,10 +504,7 @@ class ServiceDetailsController extends GetxController {
       "Payment_status": phonePeData?['code'] ?? "PAYMENT_SUCCESS",
       "provider_reference_id":
           phonePeData?['providerReferenceId'] ?? "ADMIN_MANUAL_CONFIRM",
-      "check_sum":
-          phonePeData?['checksum'] ??
-          phonePeData?['providerReferenceId'] ??
-          "VERIFIED_DIRECT",
+      "check_sum": phonePeData != null ? jsonEncode(phonePeData) : "VERIFIED_DIRECT",
     };
 
     final confirmed = await _commonRepository.confirmSuccessBooking(
