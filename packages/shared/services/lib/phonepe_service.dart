@@ -99,8 +99,7 @@ class PhonePeService extends GetxService {
   }) async {
     try {
       debugPrint("--- PHONEPE SDK TRANSACTION ---");
-      final uniqueTxnId =
-          "${encryptedBookingId}_${DateTime.now().millisecondsSinceEpoch}";
+      final uniqueTxnId = encryptedBookingId;
 
       final payload = {
         "merchantId": _merchantId,
@@ -155,8 +154,7 @@ class PhonePeService extends GetxService {
     required String phone,
   }) async {
     try {
-      final uniqueTxnId =
-          "${encryptedBookingId}_${DateTime.now().millisecondsSinceEpoch}";
+      final uniqueTxnId = encryptedBookingId;
 
       final payload = {
         "merchantId": _merchantId,
