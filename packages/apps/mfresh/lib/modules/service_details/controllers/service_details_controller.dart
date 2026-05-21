@@ -98,7 +98,7 @@ class ServiceDetailsController extends GetxController {
       mobileController.text = user.mob ?? '';
       customerName.value = user.name ?? '';
       customerPhone.value = user.mob ?? '';
-      
+
       // If online_offline_toggle is false, force Online mode
       final canToggle = user.appPermissions?.onlineOfflineToggle ?? false;
       if (!canToggle) {
@@ -112,10 +112,7 @@ class ServiceDetailsController extends GetxController {
   Future<void> refreshData() async {
     await _profileController.fetchProfile();
     resetAll();
-    await Future.wait([
-      _fetchUnitConfig(),
-      fetchServices(),
-    ]);
+    await Future.wait([_fetchUnitConfig(), fetchServices()]);
   }
 
   void resetAll() {
@@ -189,13 +186,16 @@ class ServiceDetailsController extends GetxController {
 
   Future<void> _fetchUnitConfig() async {
     try {
-      final config = await _commonRepository.getUnitConfig(unitId: unitNo.value);
+      final config = await _commonRepository.getUnitConfig(
+        unitId: unitNo.value,
+      );
       if (config != null) {
         printingType.value = config.printingType;
         paperRollSize.value = config.paperRollSize;
-        
+
         debugPrint(
-            "Unit Config Updated: Printing=${printingType.value}, RollSize=${paperRollSize.value}");
+          "Unit Config Updated: Printing=${printingType.value}, RollSize=${paperRollSize.value}",
+        );
       }
     } catch (e) {
       debugPrint("Failed to fetch unit config: $e");
@@ -228,8 +228,14 @@ class ServiceDetailsController extends GetxController {
     }
   }
 
-  Future<bool> verifyMemberOtp({String? phone, String? otp, bool showLoading = true}) async {
-    debugPrint("verifyMemberOtp: phone=$phone, otp=$otp, showLoading=$showLoading");
+  Future<bool> verifyMemberOtp({
+    String? phone,
+    String? otp,
+    bool showLoading = true,
+  }) async {
+    debugPrint(
+      "verifyMemberOtp: phone=$phone, otp=$otp, showLoading=$showLoading",
+    );
     final targetOtp = otp ?? otpController.text.trim();
     if (targetOtp.isEmpty) return false;
 
@@ -317,7 +323,9 @@ class ServiceDetailsController extends GetxController {
       // Automatically send OTP and show bottomsheet
       try {
         isVerifyingMember.value = true;
-        final isValid = await _commonRepository.validateMemberPhone(phone: memberPhone);
+        final isValid = await _commonRepository.validateMemberPhone(
+          phone: memberPhone,
+        );
         if (!isValid) {
           AppCommonToastMessage.show(
             message: "Member phone number not found",
@@ -346,7 +354,9 @@ class ServiceDetailsController extends GetxController {
     }
 
     debugPrint("Proceeding to initiate booking logic...");
-    debugPrint("Payment Mode: ${isOnline.value ? 'Online' : 'Cash'}, External QR: $isExternalQr");
+    debugPrint(
+      "Payment Mode: ${isOnline.value ? 'Online' : 'Cash'}, External QR: $isExternalQr",
+    );
 
     try {
       isLoading.value = true;
@@ -475,11 +485,14 @@ class ServiceDetailsController extends GetxController {
           encryptBookingId,
           phonePeData: {
             'code': 'PAYMENT_SUCCESS',
-            'providerReferenceId': data['Response']?['RRN'] ?? "PINELABS_$bookingId",
+            'providerReferenceId':
+                data['Response']?['RRN'] ?? "PINELABS_$bookingId",
           },
         );
       } else {
-        String errorMsg = data['Response']?['ResponseMessage'] ?? "Payment failed on terminal";
+        String errorMsg =
+            data['Response']?['ResponseMessage'] ??
+            "Payment failed on terminal";
         AppCommonToastMessage.show(
           message: "PineLabs Error: $errorMsg (Code: $responseCode)",
           type: ToastType.error,
@@ -546,16 +559,21 @@ class ServiceDetailsController extends GetxController {
 
       if (sdkResponse != null) {
         final String status = sdkResponse['status']?.toString() ?? "";
-        final String actualTxnId = sdkResponse['transactionId']?.toString() ?? "";
+        final String actualTxnId =
+            sdkResponse['transactionId']?.toString() ?? "";
 
         if (status == 'SUCCESS' || status == 'PENDING') {
           AppCommonToastMessage.show(
-            message: status == 'SUCCESS' ? "Payment initiated!" : "Payment pending...",
+            message: status == 'SUCCESS'
+                ? "Payment initiated!"
+                : "Payment pending...",
             type: ToastType.info,
           );
 
           // Always verify the actual status from the server/PhonePe API
-          debugPrint("Checking PhonePe status for Transaction ID: $actualTxnId");
+          debugPrint(
+            "Checking PhonePe status for Transaction ID: $actualTxnId",
+          );
           final phonePeStatus = await _phonePeService.checkPaymentStatus(
             merchantTransactionId: actualTxnId,
           );
@@ -576,11 +594,18 @@ class ServiceDetailsController extends GetxController {
               );
             } else {
               // Fallback to Server check
-              final bookingDetails = await _commonRepository.getBookingDetails(bookingId: bookingId);
+              final bookingDetails = await _commonRepository.getBookingDetails(
+                bookingId: bookingId,
+              );
               if (bookingDetails != null &&
                   (bookingDetails.paymentStatus.toLowerCase() == 'paid' ||
-                      bookingDetails.paymentStatus.toLowerCase() == 'success')) {
-                await _confirmSuccess(bookingId, encryptBookingId, phonePeData: {'code': 'PAYMENT_SUCCESS'});
+                      bookingDetails.paymentStatus.toLowerCase() ==
+                          'success')) {
+                await _confirmSuccess(
+                  bookingId,
+                  encryptBookingId,
+                  phonePeData: {'code': 'PAYMENT_SUCCESS'},
+                );
               } else {
                 AppCommonToastMessage.show(
                   message: "Payment Status: ${realData['state'] ?? code}",
@@ -724,7 +749,7 @@ class ServiceDetailsController extends GetxController {
               focusedPinTheme: focusedPinTheme,
               onCompleted: (pin) async {
                 if (hasVerified.value) return;
-                
+
                 isVerifying.value = true;
                 final success = await verifyMemberOtp(
                   phone: phone,
@@ -734,7 +759,9 @@ class ServiceDetailsController extends GetxController {
                 isVerifying.value = false;
                 if (success) {
                   hasVerified.value = true;
-                  debugPrint("OTP Verified in onCompleted. Closing via Navigator.pop...");
+                  debugPrint(
+                    "OTP Verified in onCompleted. Closing via Navigator.pop...",
+                  );
                   Navigator.pop(Get.context!, true);
                 }
               },
@@ -747,27 +774,29 @@ class ServiceDetailsController extends GetxController {
                   onPressed: (isVerifying.value || hasVerified.value)
                       ? null
                       : () async {
-                           if (bottomOtpController.text.length < 6) {
-                             AppCommonToastMessage.show(
-                               message: "Please enter 6-digit OTP",
-                               type: ToastType.error,
-                             );
-                             return;
-                           }
-                           
-                           isVerifying.value = true;
-                           final success = await verifyMemberOtp(
-                             phone: phone,
-                             otp: bottomOtpController.text.trim(),
-                             showLoading: false,
-                           );
-                           isVerifying.value = false;
-                           if (success) {
-                             hasVerified.value = true;
-                             debugPrint("OTP Verified via button. Closing via Navigator.pop...");
-                             Navigator.pop(Get.context!, true);
-                           }
-                         },
+                          if (bottomOtpController.text.length < 6) {
+                            AppCommonToastMessage.show(
+                              message: "Please enter 6-digit OTP",
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+
+                          isVerifying.value = true;
+                          final success = await verifyMemberOtp(
+                            phone: phone,
+                            otp: bottomOtpController.text.trim(),
+                            showLoading: false,
+                          );
+                          isVerifying.value = false;
+                          if (success) {
+                            hasVerified.value = true;
+                            debugPrint(
+                              "OTP Verified via button. Closing via Navigator.pop...",
+                            );
+                            Navigator.pop(Get.context!, true);
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -838,7 +867,7 @@ class ServiceDetailsController extends GetxController {
                 style: AppTextStyle.style_18_600(color: AppColors.primary),
               ),
               SizedBox(height: 15.h),
-              
+
               // Mobile Number
               buildBottomSheetField(
                 controller: mobileController,
@@ -858,7 +887,7 @@ class ServiceDetailsController extends GetxController {
                 showLabel: false,
                 icon: Icons.person_outline,
               ),
-              
+
               SizedBox(height: 30.h),
               SizedBox(
                 width: double.infinity,
@@ -929,7 +958,9 @@ class ServiceDetailsController extends GetxController {
                     border: InputBorder.none,
                     isDense: true,
                     hintText: hintText,
-                    hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+                    hintStyle: AppTextStyle.style_12_400(
+                      color: AppColors.grey200,
+                    ),
                   ),
                 ),
               ),

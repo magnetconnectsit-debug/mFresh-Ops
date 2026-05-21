@@ -217,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-/*                    if (!isDesktop)
+                    /*                    if (!isDesktop)
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.0),
                         child: SearchBarTool(),
@@ -408,28 +408,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                     _isProcessingScan = true;
                     final String code = barcodes.first.rawValue!;
-                    
+
                     // Close scanner immediately to feel faster
                     Get.back();
-                    
+
                     // Show a loader on the dashboard while calling API
                     Get.dialog(
-                      const Center(child: CustomAppLoader(size: 60)), 
-                      barrierDismissible: false
+                      const Center(child: CustomAppLoader(size: 60)),
+                      barrierDismissible: false,
                     );
-                    
-                    final result = await dashboardController.handleScannedCode(code);
-                    
+
+                    final result = await dashboardController.handleScannedCode(
+                      code,
+                    );
+
                     if (Get.isDialogOpen ?? false) {
                       Get.back(); // Close loader
                     }
-                    
+
                     if (result != null) {
                       final bool isSuccess = result['StatusCode'] == 200;
                       final String msg = result['ErrorMessage'] ?? "";
                       _showAccessResult(isSuccess, msg);
                     }
-                    
+
                     _isProcessingScan = false;
                   }
                 },
