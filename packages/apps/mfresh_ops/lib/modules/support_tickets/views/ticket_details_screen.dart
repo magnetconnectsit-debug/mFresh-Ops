@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
@@ -10,70 +11,65 @@ import 'package:core/widgets/app_image_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/widgets/custom_app_loader.dart';
+import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:core/widgets/app_common_video_player.dart';
 
 class TicketDetailsScreen extends GetView<TicketDetailsController> {
   const TicketDetailsScreen({super.key});
 
-  static const Color primaryOrange = Color(0xFFFF7043);
-  static const Color secondaryOrange = Color(0xFFFFF3F0);
-  static const Color scaffoldBg = Color(0xFFFAFAFA);
-  static const Color timelineBlue = Color(0xFF90CAF9);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        elevation: 0,
+      backgroundColor: AppColors.scaffoldBg,
+      appBar: const AppCommonAppBar(
         backgroundColor: Colors.white,
-        centerTitle: true,
-        title: const Text(
+        elevation: 0,
+        hasBackButton: true,
+        title: Text(
           "Ticket Details",
           style: TextStyle(
-            color: primaryOrange,
+            color: AppColors.primaryOrange,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Get.back(),
-        ),
       ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryOrange),
-          );
-        }
+      body: SafeArea(
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CustomAppLoader());
+          }
 
-        final ticket = controller.ticketDetail.value;
-        if (ticket == null) {
-          return const Center(child: Text("No Ticket Found"));
-        }
+          final ticket = controller.ticketDetail.value;
+          if (ticket == null) {
+            return const Center(child: Text("No Ticket Found"));
+          }
 
-        return RefreshIndicator(
-          onRefresh: () => controller.fetchTicketDetails(),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Prominent Ticket ID display with outline Edit Icon next to it
-                _buildTicketIdHeader(ticket),
-                const SizedBox(height: 12),
+          return RefreshIndicator(
+            onRefresh: () => controller.fetchTicketDetails(),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Prominent Ticket ID display with outline Edit Icon next to it
+                  _buildTicketIdHeader(ticket),
+                  const SizedBox(height: 12),
 
-                // Ticket Info Card (Blue outline)
-                _buildTicketInfoCard(ticket),
+                  // Ticket Info Card (Blue outline)
+                  _buildTicketInfoCard(ticket),
 
-                // Timeline structure containing comments and activities
-                _buildTimelineFlow(ticket),
-                const SizedBox(height: 24),
-              ],
+                  // Timeline structure containing comments and activities
+                  _buildTimelineFlow(ticket),
+                  const SizedBox(height: 60),
+                ],
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
@@ -81,45 +77,81 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   Widget _buildTicketIdHeader(dynamic ticket) {
     return Row(
       children: [
-        Text(
-          "TICKET ID: ${ticket.caseId ?? ticket.id}",
-          style: const TextStyle(
-            color: primaryOrange,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
+        Expanded(
+          child: Text(
+            "TICKET ID: ${ticket.caseId ?? ticket.id}",
+            style: const TextStyle(
+              color: AppColors.primaryOrange,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         InkWell(
           onTap: () => Get.toNamed(AppRoutes.editTicket, arguments: ticket.id),
           child: Container(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              border: Border.all(color: primaryOrange, width: 1.5),
+              border: Border.all(color: AppColors.primaryOrange, width: 1.5),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Icon(Icons.edit, color: primaryOrange, size: 12),
+            child: const Text(
+              "Edit Ticket",
+              style: TextStyle(
+                color: AppColors.primaryOrange,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         InkWell(
-          onTap: () => _showAddSubtaskDialog(Get.context!, controller),
+          onTap: () => _shareToWhatsApp(ticket),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              color: primaryOrange,
+              color: const Color(0xFF25D366),
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add_task, color: Colors.white, size: 12),
+                Icon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 10),
                 SizedBox(width: 4),
                 Text(
-                  "Add Subtask",
+                  "WhatsApp",
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        InkWell(
+          onTap: () => _showAddSubtaskDialog(Get.context!, controller),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryOrange,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_task, color: Colors.white, size: 10),
+                SizedBox(width: 2),
+                Text(
+                  "Subtask",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -136,9 +168,14 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+        color: const Color(
+          0xFFFFFBF9,
+        ), // Soft warm cream card background matching mockup
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5), // Sky blue border in mockup
+        border: Border.all(
+          color: const Color(0xFF29B6F6),
+          width: 1.5,
+        ), // Sky blue border in mockup
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -152,23 +189,29 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         children: [
           Table(
             columnWidths: const {
-              0: FixedColumnWidth(66),
-              1: FlexColumnWidth(1.0),
+              0: FlexColumnWidth(1.0),
+              1: FlexColumnWidth(1.3),
               2: FixedColumnWidth(8),
-              3: FixedColumnWidth(66),
-              4: FlexColumnWidth(1.4),
+              3: FlexColumnWidth(1.2),
+              4: FlexColumnWidth(1.7),
             },
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: [
               _tableRow(
                 leftLabel: "Status",
-                leftValue: _getStatusLabel(ticket.status ?? "0"),
+                leftWidget: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _statusBlock(ticket.status ?? "0"),
+                ),
                 rightLabel: "Created By",
                 rightValue: ticket.userName ?? "-",
               ),
               _tableRow(
                 leftLabel: "Priority",
-                leftValue: _getPriorityLabel(ticket.priorityId ?? "1"),
+                leftWidget: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _priorityBlock(ticket.priorityId ?? "1"),
+                ),
                 rightLabel: "Created On",
                 rightValue: ticket.createdOn ?? "-",
               ),
@@ -177,10 +220,9 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 leftValue: ticket.category ?? "-",
                 rightLabel: "Modified On",
                 rightValue: ticket.modifiedOn ?? "-",
-                isRightOrange: true,
               ),
               _tableRow(
-                leftLabel: "Sub Category",
+                leftLabel: "S-Category",
                 leftValue: ticket.subcategory ?? "-",
                 rightLabel: "Resolved",
                 rightValue: ticket.resolvedOn ?? "-",
@@ -188,12 +230,11 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               _tableRow(
                 leftLabel: "Assignee",
                 leftValue: ticket.assignedToName ?? "-",
-                isLeftOrange: true,
-                rightLabel: "Follow-up",
+                rightLabel: "Follow-Up",
                 rightValue: ticket.followUp ?? "-",
               ),
               _tableRow(
-                leftLabel: "Unit",
+                leftLabel: "Unit No",
                 leftValue: ticket.unitNo ?? "-",
                 rightLabel: "Ticket Age",
                 rightValue: ticket.tktAge ?? "-",
@@ -202,13 +243,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 leftLabel: "Project",
                 leftValue: ticket.project ?? "-",
                 rightLabel: "Reminder",
-                rightWidget: _reminderWidget(),
+                rightValue: _getReminderText(ticket),
               ),
               _tableRow(
-                leftLabel: "",
-                leftValue: "",
-                rightLabel: "Link Ticket",
-                rightWidget: _linkTicketWidget(),
+                leftLabel: "Linked Tkt",
+                leftValue: "NA",
+                rightLabel: "FW Contacts",
+                rightValue: "NA",
               ),
             ],
           ),
@@ -226,13 +267,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               _bottomTableRow("Subject", ticket.subject ?? "-"),
               _bottomTableRow("Description", ticket.description ?? "-"),
               _bottomTableRowWidget(
-                "Attachments",
+                "Attachments (Before)",
                 _buildAttachmentsWidget([
                   ...?ticket.cashierImages,
                   ...?ticket.attachments,
                 ]),
               ),
-              _bottomTableRowWidget("Interest Party", _buildInterestPartyWidget()),
+              _bottomTableRow("Resolution Comment:", ""),
             ],
           ),
           // ─── Subtasks Section ───────────────────────────────────────────
@@ -244,7 +285,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             const Text(
               "SUBTASKS",
               style: TextStyle(
-                color: primaryOrange,
+                color: AppColors.primaryOrange,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -261,14 +302,22 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       height: 18,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDone ? const Color(0xFF4CAF50) : Colors.orange.shade100,
+                        color: isDone
+                            ? const Color(0xFF4CAF50)
+                            : Colors.orange.shade100,
                         border: Border.all(
-                          color: isDone ? const Color(0xFF4CAF50) : Colors.orange,
+                          color: isDone
+                              ? const Color(0xFF4CAF50)
+                              : Colors.orange,
                           width: 1.5,
                         ),
                       ),
                       child: isDone
-                          ? const Icon(Icons.check, color: Colors.white, size: 12)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 12,
+                            )
                           : null,
                     ),
                     const SizedBox(width: 8),
@@ -278,12 +327,17 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isDone ? Colors.grey : Colors.black87,
-                          decoration: isDone ? TextDecoration.lineThrough : null,
+                          decoration: isDone
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: isDone
                             ? const Color(0xFFE8F5E9)
@@ -295,7 +349,9 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isDone ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                          color: isDone
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFE65100),
                         ),
                       ),
                     ),
@@ -311,63 +367,64 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
 
   TableRow _tableRow({
     required String leftLabel,
-    required String leftValue,
-    bool isLeftOrange = false,
+    String? leftValue,
+    Widget? leftWidget,
     required String rightLabel,
     String? rightValue,
     Widget? rightWidget,
-    bool isRightOrange = false,
   }) {
     return TableRow(
       children: [
-        // Col 0: Left Label
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Text(
             leftLabel,
             style: const TextStyle(
-              color: primaryOrange,
+              color: AppColors.primaryOrange,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ),
-        // Col 1: Left Value
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            leftValue,
-            style: TextStyle(
-              color: isLeftOrange ? primaryOrange : Colors.black87,
-              fontWeight: isLeftOrange ? FontWeight.bold : FontWeight.w500,
-              fontSize: 12,
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child:
+              leftWidget ??
+              Tooltip(
+                message: leftValue ?? "",
+                triggerMode: TooltipTriggerMode.tap,
+                child: Text(
+                  leftValue ?? "",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black87, fontSize: 11),
+                ),
+              ),
         ),
-        // Col 2: Spacer
         const SizedBox(),
-        // Col 3: Right Label
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Text(
             rightLabel,
             style: const TextStyle(
-              color: primaryOrange,
+              color: AppColors.primaryOrange,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ),
-        // Col 4: Right Value or Widget
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: rightWidget ??
-              Text(
-                rightValue ?? "",
-                style: TextStyle(
-                  color: isRightOrange ? primaryOrange : Colors.black87,
-                  fontWeight: isRightOrange ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 12,
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child:
+              rightWidget ??
+              Tooltip(
+                message: rightValue ?? "",
+                triggerMode: TooltipTriggerMode.tap,
+                child: Text(
+                  rightValue ?? "",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black87, fontSize: 11),
                 ),
               ),
         ),
@@ -375,40 +432,27 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     );
   }
 
-  Widget _reminderWidget() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE0E0E0),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Icon(Icons.calendar_today, size: 10, color: Colors.black54),
-        ),
-        const SizedBox(width: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE0E0E0),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Icon(Icons.access_time, size: 10, color: Colors.black54),
-        ),
-      ],
-    );
-  }
+  String _getReminderText(dynamic ticket) {
+    final rem = ticket.reminder;
+    if (rem != null &&
+        rem.reminderDate != null &&
+        rem.reminderDate.toString().isNotEmpty) {
+      String dateStr = rem.reminderDate!;
+      try {
+        final parsed = DateTime.parse(dateStr);
+        dateStr = DateFormat('dd-MMM-yy').format(parsed);
+      } catch (e) {
+        // use as is
+      }
 
-  Widget _linkTicketWidget() {
-    return Container(
-      height: 14,
-      width: 50,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE0E0E0),
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
+      final timeStr = "${rem.reminderTime ?? ''} ${rem.timeType ?? ''}".trim();
+
+      if (timeStr.isNotEmpty) {
+        return "$dateStr | $timeStr";
+      }
+      return dateStr;
+    }
+    return "-";
   }
 
   TableRow _bottomTableRow(String label, String value) {
@@ -419,7 +463,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           child: Text(
             label,
             style: const TextStyle(
-              color: primaryOrange,
+              color: AppColors.primaryOrange,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
@@ -448,16 +492,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           child: Text(
             label,
             style: const TextStyle(
-              color: primaryOrange,
+              color: AppColors.primaryOrange,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: child,
-        ),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: child),
       ],
     );
   }
@@ -477,53 +518,43 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       spacing: 8,
       runSpacing: 6,
       children: attachments.map((att) {
-        final filename = att.toString().split('/').last;
+        final urlStr = att.toString();
+        final isVideo = urlStr.toLowerCase().endsWith('.mp4') ||
+            urlStr.toLowerCase().endsWith('.mov') ||
+            urlStr.toLowerCase().endsWith('.avi') ||
+            urlStr.toLowerCase().endsWith('.mkv');
+            
+        if (isVideo) {
+          return InkWell(
+            onTap: () {
+              _showVideoPreview(Get.context!, urlStr);
+            },
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.orange, width: 1),
+              ),
+              child: const Center(
+                child: Icon(Icons.play_circle_fill, color: Colors.orange, size: 24),
+              ),
+            ),
+          );
+        }
+        
         return InkWell(
-          onTap: () => _showImagePreview(Get.context!, att.toString()),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.attachment_rounded, size: 10, color: primaryOrange),
-                const SizedBox(width: 4),
-                Text(
-                  filename,
-                  style: const TextStyle(
-                    color: primaryOrange,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
+          onTap: () => _showImagePreview(Get.context!, urlStr),
+          child: AppImageView(
+            imageUrl: urlStr,
+            width: 50,
+            height: 50,
+            borderRadius: 6,
+            fit: BoxFit.cover,
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildInterestPartyWidget() {
-    return Container(
-      height: 24,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE0E0E0),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      alignment: Alignment.centerLeft,
-      child: const Text(
-        "Email",
-        style: TextStyle(
-          color: Colors.grey,
-          fontSize: 12,
-        ),
-      ),
     );
   }
 
@@ -561,6 +592,139 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     }
   }
 
+  Widget _statusBlock(String statusVal) {
+    String label = _getStatusLabel(statusVal);
+    Color bgColor = Colors.transparent;
+    Color textColor = Colors.black;
+
+    switch (label) {
+      case "New":
+        bgColor = const Color(0xFFFFC000);
+        textColor = Colors.white;
+        break;
+      case "WIP":
+        bgColor = Colors.white;
+        textColor = Colors.black;
+        break;
+      case "Resolved":
+        bgColor = const Color(0xFF00B050);
+        textColor = Colors.white;
+        break;
+      case "Closed":
+        bgColor = const Color(0xFFC00000);
+        textColor = Colors.white;
+        break;
+      case "Hold":
+        bgColor = const Color(0x9607B8FF);
+        textColor = Colors.black;
+        break;
+      case "Awaited":
+        bgColor = const Color(0x9496F1EF);
+        textColor = Colors.black;
+        break;
+      default:
+        bgColor = Colors.transparent;
+        textColor = Colors.black;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: bgColor == Colors.white
+            ? Border.all(color: Colors.grey.shade300)
+            : null,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
+  Widget _priorityBlock(String priorityVal) {
+    String label = _getPriorityLabel(priorityVal);
+    Color bgColor = Colors.transparent;
+    Color textColor = Colors.black;
+
+    switch (label) {
+      case "Low":
+        bgColor = Colors.white;
+        textColor = Colors.black;
+        break;
+      case "Normal":
+      case "Medium":
+        bgColor = const Color(0xFFFFC000);
+        textColor = Colors.black;
+        break;
+      case "High":
+        bgColor = const Color(0xFFFF0000);
+        textColor = Colors.white;
+        break;
+      case "Top Priority":
+        bgColor = const Color(0xFFC00000);
+        textColor = Colors.white;
+        break;
+      default:
+        bgColor = Colors.transparent;
+        textColor = Colors.black;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: bgColor == Colors.white
+            ? Border.all(color: Colors.grey.shade300)
+            : null,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareToWhatsApp(dynamic ticket) async {
+    final text =
+        "Ticket ID: ${ticket.caseId ?? ticket.id}\n"
+        "Status: ${_getStatusLabel(ticket.status ?? "0")}\n"
+        "Priority: ${_getPriorityLabel(ticket.priorityId ?? "1")}\n"
+        "Subject: ${ticket.subject ?? "-"}\n"
+        "Description: ${ticket.description ?? "-"}";
+
+    final Uri whatsappUri = Uri.parse(
+      "whatsapp://send?text=${Uri.encodeComponent(text)}",
+    );
+
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      } else {
+        AppCommonToastMessage.show(
+          message: 'WhatsApp is not installed on the device',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      debugPrint("WhatsApp Error: $e");
+      AppCommonToastMessage.show(
+        message: 'Could not open WhatsApp',
+        type: ToastType.error,
+      );
+    }
+  }
+
   Widget _buildTimelineFlow(dynamic ticket) {
     final comments = ticket.comments ?? [];
     final logs = ticket.logs ?? [];
@@ -569,134 +733,68 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Spacing & Comments header with vertical timeline segment
-        Stack(
-          children: [
-            Positioned(
-              left: 9,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 1.5,
-                color: Colors.black87,
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(left: 32, top: 12, bottom: 8),
-              child: Text(
-                "Comments",
-                style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
+        const SizedBox(height: 12),
+        _buildCommentInputArea(),
+        const SizedBox(height: 16),
 
-        // Green Dot with Comments Input Area
-        _timelineRow(
-          dotColor: const Color(0xFF4CAF50), // Green dot
-          child: _buildCommentInputArea(),
-          isLast: comments.isEmpty && !hasHistory,
-        ),
-
-        // Red Dots with Comment Items
+        // Comment Items
         ...comments.asMap().entries.map((entry) {
-          final int idx = entry.key;
           final dynamic c = entry.value;
           final int commentId = c['id'] ?? 0;
-          final bool isLast = (idx == comments.length - 1) && !hasHistory;
 
-          return _timelineRow(
-            dotColor: Colors.red,
+          return _commentRow(
             child: Obx(
               () => controller.editingCommentIds.contains(commentId)
                   ? _buildCommentEditForm(controller, c)
                   : _buildCommentItem(controller, c),
             ),
-            isLast: isLast,
           );
         }),
 
         // History section header & table
         if (hasHistory) ...[
-          Stack(
-            children: [
-              Positioned(
-                left: 9,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 1.5,
-                  color: Colors.black87,
+          Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "History",
+                  style: TextStyle(
+                    color: Colors.blueGrey,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 32, top: 16, bottom: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "History",
-                      style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    _historyHeaderTable(),
-                  ],
-                ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                _historyHeaderTable(),
+              ],
+            ),
           ),
-          _timelineRow(
-            dotColor: Colors.red,
-            child: _buildHistoryTable(logs),
-            isLast: true,
-          ),
+          _buildHistoryTable(logs),
         ],
       ],
     );
   }
 
-  Widget _timelineRow({
-    required Color dotColor,
-    required Widget child,
-    bool isLast = false,
-  }) {
+  Widget _commentRow({required Widget child}) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
-        // Vertical line segment for this row (stops at dot center if isLast)
-        Positioned(
-          left: 9,
-          top: 0,
-          bottom: isLast ? null : 0,
-          height: isLast ? 24 : null, // stops exactly at y = 24 (center of dot)
-          child: Container(
-            width: 1.5,
-            color: Colors.black87,
-          ),
-        ),
-        // Timeline dot
         Positioned(
           left: 0,
-          top: 14,
+          top: 12,
           child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              color: dotColor,
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              color: Color(0xFF00C853), // Green dot
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
           ),
         ),
-        // Child Content card padded from the left dot, with bottom margin inside stack
         Padding(
-          padding: const EdgeInsets.only(left: 32, bottom: 16),
+          padding: const EdgeInsets.only(left: 24, bottom: 16),
           child: child,
         ),
       ],
@@ -704,200 +802,256 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   }
 
   // --- Add Subtask Dialog ---
-  void _showAddSubtaskDialog(BuildContext context, TicketDetailsController controller) {
+  void _showAddSubtaskDialog(
+    BuildContext context,
+    TicketDetailsController controller,
+  ) {
     final List<TextEditingController> controllers = [TextEditingController()];
 
     Get.dialog(
-      StatefulBuilder(builder: (ctx, setState) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ────────────────────────────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Create Subtasks',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
+      StatefulBuilder(
+        builder: (ctx, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: Colors.white,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 40,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header ────────────────────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Create Subtasks',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: const Icon(Icons.close, size: 20, color: Colors.black54),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // ── Input rows (cream background) ─────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFDF8F2),
-                    borderRadius: BorderRadius.circular(8),
+                      GestureDetector(
+                        onTap: () => Get.back(),
+                        child: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 260),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(controllers.length, (i) {
-                          final isLast = i == controllers.length - 1;
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
-                            child: Row(
-                              children: [
-                                // Text field
-                                Expanded(
-                                  child: Container(
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFE0E0E0)),
-                                    ),
-                                    child: TextField(
-                                      controller: controllers[i],
-                                      style: const TextStyle(fontSize: 13, color: Colors.black87),
-                                      decoration: const InputDecoration(
-                                        hintText: 'Enter subtask name',
-                                        hintStyle: TextStyle(fontSize: 13, color: Color(0xFFBDBDBD)),
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                        isDense: true,
+                  const SizedBox(height: 16),
+
+                  // ── Input rows (cream background) ─────────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDF8F2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 260),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(controllers.length, (i) {
+                            final isLast = i == controllers.length - 1;
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+                              child: Row(
+                                children: [
+                                  // Text field
+                                  Expanded(
+                                    child: Container(
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: const Color(0xFFE0E0E0),
+                                        ),
+                                      ),
+                                      child: TextField(
+                                        controller: controllers[i],
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black87,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          hintText: 'Enter subtask name',
+                                          hintStyle: TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 12,
+                                          ),
+                                          isDense: true,
+                                        ),
                                       ),
                                     ),
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  // Delete icon — visible when more than 1 row
+                                  if (controllers.length > 1) ...[
+                                    GestureDetector(
+                                      onTap: () {
+                                        final removed = controllers[i];
+                                        setState(() {
+                                          controllers.removeAt(i);
+                                        });
+                                        Future.delayed(
+                                          const Duration(milliseconds: 300),
+                                          () => removed.dispose(),
+                                        );
+                                      },
+                                      child: Container(
+                                        width: 40,
+                                        height: 42,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFFEBEE),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.red,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isLast) const SizedBox(width: 8),
+                                  ],
+
+                                  // Green "+" button — only on the last row
+                                  if (isLast)
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (controllers[i].text
+                                            .trim()
+                                            .isEmpty) {
+                                          AppCommonToastMessage.show(
+                                            message: 'Please enter subtask',
+                                            type: ToastType.error,
+                                          );
+                                          return;
+                                        }
+                                        setState(() {
+                                          controllers.add(
+                                            TextEditingController(),
+                                          );
+                                        });
+                                      },
+                                      child: Container(
+                                        width: 40,
+                                        height: 42,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF34A853),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                          size: 22,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Save button (blue, right-aligned) ─────────────────────
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Obx(
+                      () => SizedBox(
+                        width: 120,
+                        height: 40,
+                        child: ElevatedButton(
+                          onPressed: controller.isSubtaskLoading.value
+                              ? null
+                              : () async {
+                                  final all = controllers
+                                      .map((c) => c.text.trim())
+                                      .where((t) => t.isNotEmpty)
+                                      .toList();
+                                  if (all.isEmpty) {
+                                    AppCommonToastMessage.show(
+                                      message:
+                                          'Please add at least one subtask',
+                                      type: ToastType.error,
+                                    );
+                                    return;
+                                  }
+                                  final success = await controller
+                                      .createSubtasks(all);
+                                  if (success) {
+                                    Get.back();
+                                    AppCommonToastMessage.show(
+                                      message: 'Subtasks saved successfully',
+                                      type: ToastType.success,
+                                    );
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2979FF),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: controller.isSubtaskLoading.value
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Save',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-
-                                // Delete icon — visible when more than 1 row
-                                if (controllers.length > 1) ...[
-                                  GestureDetector(
-                                    onTap: () {
-                                      final removed = controllers[i];
-                                      setState(() {
-                                        controllers.removeAt(i);
-                                      });
-                                      Future.delayed(const Duration(milliseconds: 300), () => removed.dispose());
-                                    },
-                                    child: Container(
-                                      width: 40,
-                                      height: 42,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFEBEE),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: const Icon(Icons.close, color: Colors.red, size: 18),
-                                    ),
-                                  ),
-                                  if (isLast) const SizedBox(width: 8),
-                                ],
-
-                                // Green "+" button — only on the last row
-                                if (isLast)
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (controllers[i].text.trim().isEmpty) {
-                                        AppCommonToastMessage.show(
-                                          message: 'Please enter subtask',
-                                          type: ToastType.error,
-                                        );
-                                        return;
-                                      }
-                                      setState(() {
-                                        controllers.add(TextEditingController());
-                                      });
-                                    },
-                                    child: Container(
-                                      width: 40,
-                                      height: 42,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF34A853),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: const Icon(Icons.add, color: Colors.white, size: 22),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }),
+                        ),
                       ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // ── Save button (blue, right-aligned) ─────────────────────
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Obx(() => SizedBox(
-                    width: 120,
-                    height: 40,
-                    child: ElevatedButton(
-                      onPressed: controller.isSubtaskLoading.value
-                          ? null
-                          : () async {
-                              final all = controllers
-                                  .map((c) => c.text.trim())
-                                  .where((t) => t.isNotEmpty)
-                                  .toList();
-                              if (all.isEmpty) {
-                                AppCommonToastMessage.show(
-                                  message: 'Please add at least one subtask',
-                                  type: ToastType.error,
-                                );
-                                return;
-                              }
-                              final success = await controller.createSubtasks(all);
-                              if (success) {
-                                Get.back();
-                                AppCommonToastMessage.show(
-                                  message: 'Subtasks saved successfully',
-                                  type: ToastType.success,
-                                );
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2979FF),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: controller.isSubtaskLoading.value
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text(
-                              'Save',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                    ),
-                  )),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
       barrierDismissible: false,
     ).then((_) {
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -909,7 +1063,10 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
   }
 
   // --- Comment Input Card ---
-  void _showCommentMediaSourceOptions(BuildContext context, TicketDetailsController controller) {
+  void _showCommentMediaSourceOptions(
+    BuildContext context,
+    TicketDetailsController controller,
+  ) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -962,9 +1119,14 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+        color: const Color(
+          0xFFFFFBF9,
+        ), // Soft warm cream card background matching mockup
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5), // Sky blue border
+        border: Border.all(
+          color: const Color(0xFF29B6F6),
+          width: 1.5,
+        ), // Sky blue border
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -983,7 +1145,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: primaryOrange,
+                  color: AppColors.primaryOrange,
                 ),
               ),
               const Spacer(),
@@ -997,7 +1159,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         controller.isInternal.value
                             ? Icons.check_box_outlined
                             : Icons.crop_square_outlined,
-                        color: primaryOrange,
+                        color: AppColors.primaryOrange,
                         size: 16,
                       ),
                       const SizedBox(width: 4),
@@ -1006,7 +1168,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: primaryOrange,
+                          color: AppColors.primaryOrange,
                         ),
                       ),
                     ],
@@ -1042,7 +1204,10 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: primaryOrange, width: 1),
+                      borderSide: const BorderSide(
+                        color: AppColors.primaryOrange,
+                        width: 1,
+                      ),
                     ),
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1050,22 +1215,38 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.link, color: Colors.blue, size: 20),
-                          onPressed: () => _showCommentMediaSourceOptions(Get.context!, controller),
+                          icon: const Icon(
+                            Icons.link,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                          onPressed: () => _showCommentMediaSourceOptions(
+                            Get.context!,
+                            controller,
+                          ),
                         ),
                         const SizedBox(width: 8),
-                        Obx(() => controller.isLoading.value
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: primaryOrange),
-                              )
-                            : IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.send, color: primaryOrange, size: 20),
-                                onPressed: () => controller.addComment(),
-                              )),
+                        Obx(
+                          () => controller.isLoading.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primaryOrange,
+                                  ),
+                                )
+                              : IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(
+                                    Icons.send,
+                                    color: AppColors.primaryOrange,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => controller.addComment(),
+                                ),
+                        ),
                         const SizedBox(width: 8),
                       ],
                     ),
@@ -1076,13 +1257,16 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
           ),
           const SizedBox(height: 8),
           InkWell(
-            onTap: () => _showCommentMediaSourceOptions(Get.context!, controller),
+            onTap: () =>
+                _showCommentMediaSourceOptions(Get.context!, controller),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3F0),
+                color: AppColors.secondaryOrange,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: primaryOrange.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.primaryOrange.withValues(alpha: 0.3),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -1094,12 +1278,16 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.attachment, color: primaryOrange, size: 14),
+                  const Icon(
+                    Icons.attachment,
+                    color: AppColors.primaryOrange,
+                    size: 14,
+                  ),
                   const SizedBox(width: 6),
                   const Text(
                     "Upload Files",
                     style: TextStyle(
-                      color: primaryOrange,
+                      color: AppColors.primaryOrange,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -1109,7 +1297,9 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
             ),
           ),
           Obx(
-            () => (controller.selectedImages.isNotEmpty || controller.selectedVideos.isNotEmpty)
+            () =>
+                (controller.selectedImages.isNotEmpty ||
+                    controller.selectedVideos.isNotEmpty)
                 ? Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(
@@ -1158,7 +1348,11 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                                   border: Border.all(color: Colors.orange),
                                 ),
                                 child: const Center(
-                                  child: Icon(Icons.videocam, color: Colors.orange, size: 24),
+                                  child: Icon(
+                                    Icons.videocam,
+                                    color: Colors.orange,
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                               Positioned(
@@ -1204,9 +1398,16 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.only(left: 12, right: 12, top: 16, bottom: 12),
+          padding: const EdgeInsets.only(
+            left: 12,
+            right: 12,
+            top: 16,
+            bottom: 12,
+          ),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+            color: const Color(
+              0xFFFFFBF9,
+            ), // Soft warm cream card background matching mockup
             border: Border.all(
               color: const Color(0xFF29B6F6), // Sky blue border
               width: 1.5,
@@ -1236,7 +1437,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                           child: Text(
                             "ACTIVITY",
                             style: TextStyle(
-                              color: primaryOrange,
+                              color: AppColors.primaryOrange,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -1246,7 +1447,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                           child: Text(
                             activityText,
                             style: const TextStyle(
-                              color: primaryOrange, // Orange action text to match mockup
+                              color: AppColors.primaryOrange,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -1259,14 +1460,19 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
+                      icon: const Icon(
+                        Icons.edit,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                       onPressed: () => controller.toggleEditComment(commentId),
                     ),
                 ],
               ),
-              
+
               // Comment section if present
-              if (c['comment'] != null && c['comment'].toString().trim().isNotEmpty) ...[
+              if (c['comment'] != null &&
+                  c['comment'].toString().trim().isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,15 +1482,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       child: Text(
                         "COMMENTS",
                         style: TextStyle(
-                          color: primaryOrange,
+                          color: AppColors.primaryOrange,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: _buildCommentText(c['comment'].toString()),
-                    ),
+                    Expanded(child: _buildCommentText(c['comment'].toString())),
                   ],
                 ),
               ],
@@ -1300,7 +1504,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       child: Text(
                         "ATTACHMENTS",
                         style: TextStyle(
-                          color: primaryOrange,
+                          color: AppColors.primaryOrange,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -1310,47 +1514,51 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: images
-                            .map(
-                              (img) {
-                                final urlStr = img.toString();
-                                final isVideo = urlStr.toLowerCase().endsWith('.mp4') ||
-                                                urlStr.toLowerCase().endsWith('.mov') ||
-                                                urlStr.toLowerCase().endsWith('.avi') ||
-                                                urlStr.toLowerCase().endsWith('.mkv');
-                                if (isVideo) {
-                                  return InkWell(
-                                    onTap: () {
-                                      launchUrl(Uri.parse(urlStr), mode: LaunchMode.externalApplication);
-                                    },
-                                    child: Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.orange, width: 1),
-                                      ),
-                                      child: const Center(
-                                        child: Icon(Icons.play_circle_fill, color: Colors.orange, size: 24),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return InkWell(
-                                  onTap: () =>
-                                      _showImagePreview(Get.context!, urlStr),
-                                  child: AppImageView(
-                                    imageUrl: urlStr,
-                                    width: 50,
-                                    height: 50,
-                                    borderRadius: 6,
-                                    fit: BoxFit.cover,
+                        children: images.map((img) {
+                          final urlStr = img.toString();
+                          final isVideo =
+                              urlStr.toLowerCase().endsWith('.mp4') ||
+                              urlStr.toLowerCase().endsWith('.mov') ||
+                              urlStr.toLowerCase().endsWith('.avi') ||
+                              urlStr.toLowerCase().endsWith('.mkv');
+                          if (isVideo) {
+                            return InkWell(
+                              onTap: () {
+                                _showVideoPreview(Get.context!, urlStr);
+                              },
+                              child: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.orange,
+                                    width: 1,
                                   ),
-                                );
-                              }
-                            )
-                            .toList(),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.play_circle_fill,
+                                    color: Colors.orange,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return InkWell(
+                            onTap: () =>
+                                _showImagePreview(Get.context!, urlStr),
+                            child: AppImageView(
+                              imageUrl: urlStr,
+                              width: 50,
+                              height: 50,
+                              borderRadius: 6,
+                              fit: BoxFit.cover,
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
                   ],
@@ -1385,7 +1593,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     if (!text.contains('@')) {
       return Text(text, style: const TextStyle(fontSize: 12, height: 1.3));
     }
-    
+
     final List<TextSpan> spans = [];
     final words = text.split(' ');
     for (int i = 0; i < words.length; i++) {
@@ -1405,19 +1613,13 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         spans.add(
           TextSpan(
             text: '$word ',
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.black87, fontSize: 12),
           ),
         );
       }
     }
     return RichText(
-      text: TextSpan(
-        children: spans,
-        style: const TextStyle(height: 1.3),
-      ),
+      text: TextSpan(children: spans, style: const TextStyle(height: 1.3)),
     );
   }
 
@@ -1428,7 +1630,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
     final bool initialInternal = c['is_internal'] == "1";
 
     return StatefulBuilder(
-builder: (context, setState) {
+      builder: (context, setState) {
         final TextEditingController editController = TextEditingController(
           text: initialComment,
         );
@@ -1469,43 +1671,50 @@ builder: (context, setState) {
                   ),
                   const Text('Internal', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 12),
-                  Obx(() => controller.isLoading.value
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: primaryOrange),
-                        )
-                      : InkWell(
-                          onTap: () => controller.editComment(
-                            commentId: commentId,
-                            comment: editController.text,
-                            newImages: newImages,
-                            newVideos: newVideos,
-                            internal: isInternal,
-                          ),
-                          child: const Text(
-                            'Save',
-                            style: TextStyle(
-                              color: primaryOrange,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                  Obx(
+                    () => controller.isLoading.value
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primaryOrange,
+                            ),
+                          )
+                        : InkWell(
+                            onTap: () => controller.editComment(
+                              commentId: commentId,
+                              comment: editController.text,
+                              newImages: newImages,
+                              newVideos: newVideos,
+                              internal: isInternal,
+                            ),
+                            child: const Text(
+                              'Save',
+                              style: TextStyle(
+                                color: AppColors.primaryOrange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                        )),
+                  ),
                   const SizedBox(width: 12),
-                  Obx(() => InkWell(
-                    onTap: controller.isLoading.value
-                        ? null
-                        : () => controller.toggleEditComment(commentId),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                  Obx(
+                    () => InkWell(
+                      onTap: controller.isLoading.value
+                          ? null
+                          : () => controller.toggleEditComment(commentId),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  )),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -1534,13 +1743,13 @@ builder: (context, setState) {
                       .map(
                         (url) => Stack(
                           children: [
-                             AppImageView(
-                               imageUrl: url,
-                               width: 50,
-                               height: 50,
-                               borderRadius: 8,
-                               fit: BoxFit.cover,
-                             ),
+                            AppImageView(
+                              imageUrl: url,
+                              width: 50,
+                              height: 50,
+                              borderRadius: 8,
+                              fit: BoxFit.cover,
+                            ),
                             Positioned(
                               top: -4,
                               right: -4,
@@ -1575,7 +1784,7 @@ builder: (context, setState) {
                       .map(
                         (file) => Stack(
                           children: [
-                             ClipRRect(
+                            ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.file(
                                 file,
@@ -1627,7 +1836,11 @@ builder: (context, setState) {
                                 border: Border.all(color: Colors.orange),
                               ),
                               child: const Center(
-                                child: Icon(Icons.videocam, color: Colors.orange, size: 24),
+                                child: Icon(
+                                  Icons.videocam,
+                                  color: Colors.orange,
+                                  size: 24,
+                                ),
                               ),
                             ),
                             Positioned(
@@ -1659,7 +1872,9 @@ builder: (context, setState) {
                       padding: const EdgeInsets.all(20),
                       decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -1669,9 +1884,13 @@ builder: (context, setState) {
                             title: const Text('Take a Photo'),
                             onTap: () async {
                               Get.back();
-                              final picked = await ImagePicker().pickImage(source: ImageSource.camera);
+                              final picked = await ImagePicker().pickImage(
+                                source: ImageSource.camera,
+                              );
                               if (picked != null) {
-                                setState(() => newImages.add(File(picked.path)));
+                                setState(
+                                  () => newImages.add(File(picked.path)),
+                                );
                               }
                             },
                           ),
@@ -1680,8 +1899,13 @@ builder: (context, setState) {
                             title: const Text('Choose Photo from Gallery'),
                             onTap: () async {
                               Get.back();
-                              final picked = await ImagePicker().pickMultiImage();
-                              setState(() => newImages.addAll(picked.map((e) => File(e.path))));
+                              final picked = await ImagePicker()
+                                  .pickMultiImage();
+                              setState(
+                                () => newImages.addAll(
+                                  picked.map((e) => File(e.path)),
+                                ),
+                              );
                             },
                           ),
                           ListTile(
@@ -1689,12 +1913,23 @@ builder: (context, setState) {
                             title: const Text('Record a Video'),
                             onTap: () async {
                               Get.back();
-                              final picked = await ImagePicker().pickVideo(source: ImageSource.camera);
+                              final picked = await ImagePicker().pickVideo(
+                                source: ImageSource.camera,
+                              );
                               if (picked != null) {
-                                AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
-                                final compressed = await AppMediaCompressor.compressVideo(File(picked.path));
+                                AppCommonToastMessage.show(
+                                  message: 'Compressing video...',
+                                  type: ToastType.info,
+                                );
+                                final compressed =
+                                    await AppMediaCompressor.compressVideo(
+                                      File(picked.path),
+                                    );
                                 setState(() => newVideos.add(compressed));
-                                AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+                                AppCommonToastMessage.show(
+                                  message: 'Video compressed successfully',
+                                  type: ToastType.success,
+                                );
                               }
                             },
                           ),
@@ -1703,12 +1938,23 @@ builder: (context, setState) {
                             title: const Text('Choose Video from Gallery'),
                             onTap: () async {
                               Get.back();
-                              final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
+                              final picked = await ImagePicker().pickVideo(
+                                source: ImageSource.gallery,
+                              );
                               if (picked != null) {
-                                AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
-                                final compressed = await AppMediaCompressor.compressVideo(File(picked.path));
+                                AppCommonToastMessage.show(
+                                  message: 'Compressing video...',
+                                  type: ToastType.info,
+                                );
+                                final compressed =
+                                    await AppMediaCompressor.compressVideo(
+                                      File(picked.path),
+                                    );
                                 setState(() => newVideos.add(compressed));
-                                AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+                                AppCommonToastMessage.show(
+                                  message: 'Video compressed successfully',
+                                  type: ToastType.success,
+                                );
                               }
                             },
                           ),
@@ -1722,14 +1968,14 @@ builder: (context, setState) {
                   children: [
                     Icon(
                       Icons.attachment_rounded,
-                      color: primaryOrange,
+                      color: AppColors.primaryOrange,
                       size: 16,
                     ),
                     SizedBox(width: 4),
                     Text(
                       "Attach Files",
                       style: TextStyle(
-                        color: primaryOrange,
+                        color: AppColors.primaryOrange,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -1748,9 +1994,14 @@ builder: (context, setState) {
   Widget _buildHistoryTable(List logs) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF9), // Soft warm cream card background matching mockup
+        color: const Color(
+          0xFFFFFBF9,
+        ), // Soft warm cream card background matching mockup
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5), // Sky blue border
+        border: Border.all(
+          color: const Color(0xFF29B6F6),
+          width: 1.5,
+        ), // Sky blue border
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -1760,22 +2011,19 @@ builder: (context, setState) {
         ],
       ),
       child: Column(
-        children: logs.map(
-          (log) {
-            final int idx = logs.indexOf(log);
-            return Column(
-              children: [
-                _historyRowTable(log),
-                if (idx != logs.length - 1)
-                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
-              ],
-            );
-          },
-        ).toList(),
+        children: logs.map((log) {
+          final int idx = logs.indexOf(log);
+          return Column(
+            children: [
+              _historyRowTable(log),
+              if (idx != logs.length - 1)
+                const Divider(height: 1, color: Color(0xFFEEEEEE)),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
-
 
   Widget _historyHeaderTable() {
     return const Padding(
@@ -1847,7 +2095,7 @@ builder: (context, setState) {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: primaryOrange,
+                    color: AppColors.primaryOrange,
                   ),
                 ),
                 Text(
@@ -1855,7 +2103,7 @@ builder: (context, setState) {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: primaryOrange,
+                    color: AppColors.primaryOrange,
                   ),
                 ),
               ],
@@ -1868,14 +2116,11 @@ builder: (context, setState) {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: primaryOrange,
+                color: AppColors.primaryOrange,
               ),
             ),
           ),
-          Expanded(
-            flex: 5,
-            child: _buildActionSpanText(log),
-          ),
+          Expanded(flex: 5, child: _buildActionSpanText(log)),
         ],
       ),
     );
@@ -1906,12 +2151,19 @@ builder: (context, setState) {
 
     return RichText(
       text: TextSpan(
-        style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.2),
+        style: const TextStyle(
+          fontSize: 11,
+          color: Colors.black87,
+          height: 1.2,
+        ),
         children: [
           const TextSpan(text: "Change "),
           TextSpan(
             text: fieldName,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
           if (oldVal.isNotEmpty) ...[
             const TextSpan(text: " from "),
@@ -1923,7 +2175,10 @@ builder: (context, setState) {
           const TextSpan(text: " to "),
           TextSpan(
             text: newVal,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
           const TextSpan(text: "."),
         ],
@@ -1950,6 +2205,41 @@ builder: (context, setState) {
             Positioned(
               top: 10,
               right: 10,
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVideoPreview(BuildContext context, String videoUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              child: AppCommonVideoPlayer(
+                videoUrl: videoUrl,
+                autoPlay: true,
+                looping: true,
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
               child: CircleAvatar(
                 backgroundColor: Colors.black54,
                 child: IconButton(

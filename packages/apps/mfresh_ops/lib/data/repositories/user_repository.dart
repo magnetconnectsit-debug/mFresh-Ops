@@ -42,9 +42,9 @@ class UserRepository extends GetxService {
       );
       // If profile update returns user data, update local storage
       if (response != null && response['user'] != null) {
-         final user = User.fromJson(response);
-         await _storageService.saveUser(user);
-         return user;
+        final user = User.fromJson(response);
+        await _storageService.saveUser(user);
+        return user;
       }
       return null;
     } catch (e) {

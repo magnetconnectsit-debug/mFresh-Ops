@@ -9,6 +9,13 @@ class AllotmentController extends GetxController {
   final searchController = TextEditingController();
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
+  final isLoading = false.obs;
+
+  Future<void> onRefresh() async {
+    isLoading.value = true;
+    await Future.delayed(const Duration(seconds: 1));
+    isLoading.value = false;
+  }
 
   // Date filters
   final fromDateController = TextEditingController();
@@ -81,21 +88,25 @@ class AllotmentController extends GetxController {
 
   void applyFilters() {
     final query = searchController.text.toLowerCase();
-    
+
     allotmentItems.assignAll(
       allAllotmentItems.where((item) {
-        final matchesSearch = query.isEmpty ||
+        final matchesSearch =
+            query.isEmpty ||
             item.itemName.toLowerCase().contains(query) ||
             item.source.toLowerCase().contains(query) ||
             item.destination.toLowerCase().contains(query) ||
             item.allotmentBy.toLowerCase().contains(query);
-            
+
         return matchesSearch;
       }).toList(),
     );
   }
 
-  Future<void> selectDate(BuildContext context, TextEditingController controller) async {
+  Future<void> selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -115,13 +126,27 @@ class AllotmentController extends GetxController {
       },
     );
     if (picked != null) {
-      controller.text = "${picked.day.toString().padLeft(2, '0')}-${_getMonthName(picked.month)}-${picked.year}";
+      controller.text =
+          "${picked.day.toString().padLeft(2, '0')}-${_getMonthName(picked.month)}-${picked.year}";
       applyFilters();
     }
   }
 
   String _getMonthName(int month) {
-    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const months = [
+      'jan',
+      'feb',
+      'mar',
+      'apr',
+      'may',
+      'jun',
+      'jul',
+      'aug',
+      'sep',
+      'oct',
+      'nov',
+      'dec',
+    ];
     return months[month - 1];
   }
 
@@ -129,8 +154,28 @@ class AllotmentController extends GetxController {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
       title: 'Allotment Report',
-      columns: const ["Date Of Allotment", "Item Name", "Source", "Destination", "Quantity", "M_Unit", "Allotment By"],
-      rows: allotmentItems.map((item) => [item.dateOfAllotment, item.itemName, item.source, item.destination, item.quantity, item.unit, item.allotmentBy]).toList(),
+      columns: const [
+        "Date Of Allotment",
+        "Item Name",
+        "Source",
+        "Destination",
+        "Quantity",
+        "M_Unit",
+        "Allotment By",
+      ],
+      rows: allotmentItems
+          .map(
+            (item) => [
+              item.dateOfAllotment,
+              item.itemName,
+              item.source,
+              item.destination,
+              item.quantity,
+              item.unit,
+              item.allotmentBy,
+            ],
+          )
+          .toList(),
     );
     isExporting.value = false;
   }
@@ -139,14 +184,37 @@ class AllotmentController extends GetxController {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
       title: 'Allotment Report',
-      columns: const ["Date Of Allotment", "Item Name", "Source", "Destination", "Quantity", "M_Unit", "Allotment By"],
-      rows: allotmentItems.map((item) => [item.dateOfAllotment, item.itemName, item.source, item.destination, item.quantity, item.unit, item.allotmentBy]).toList(),
+      columns: const [
+        "Date Of Allotment",
+        "Item Name",
+        "Source",
+        "Destination",
+        "Quantity",
+        "M_Unit",
+        "Allotment By",
+      ],
+      rows: allotmentItems
+          .map(
+            (item) => [
+              item.dateOfAllotment,
+              item.itemName,
+              item.source,
+              item.destination,
+              item.quantity,
+              item.unit,
+              item.allotmentBy,
+            ],
+          )
+          .toList(),
     );
     isExportingPdf.value = false;
   }
 
   void reverseAllotment(AllotmentItemModel item) {
-    AppCommonToastMessage.show(message: "Allotment reversed successfully!", type: ToastType.success);
+    AppCommonToastMessage.show(
+      message: "Allotment reversed successfully!",
+      type: ToastType.success,
+    );
   }
 
   @override

@@ -15,7 +15,7 @@ class CreateTaskDialog extends GetView<TasksController> {
   @override
   Widget build(BuildContext context) {
     final isEdit = task != null;
-    
+
     if (isEdit) {
       controller.titleController.text = task!.title;
       controller.descriptionController.text = task!.description;
@@ -45,12 +45,16 @@ class CreateTaskDialog extends GetView<TasksController> {
                   ),
                   GestureDetector(
                     onTap: () => Get.back(),
-                    child: Icon(Icons.close, color: AppColors.black, size: 20.r),
+                    child: Icon(
+                      Icons.close,
+                      color: AppColors.black,
+                      size: 20.r,
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 12.h),
-              
+
               _buildTextField(
                 controller: controller.titleController,
                 hintText: 'Task Title',
@@ -62,128 +66,182 @@ class CreateTaskDialog extends GetView<TasksController> {
                 maxLines: 2,
               ),
               SizedBox(height: 8.h),
-              
+
               Row(
                 children: [
                   Expanded(
-                    child: Obx(() => AppCommonDropdown<TaskProject>(
-                      hintText: 'Project',
-                      options: controller.projects.map((e) => DropdownOption(value: e, label: e.projectName)).toList(),
-                      value: controller.selectedProjectForCreate.value,
-                      onChanged: (val) => controller.selectedProjectForCreate.value = val,
-                      height: 30.h,
-                      style: AppTextStyle.style_10_500(color: AppColors.black),
-                    )),
+                    child: Obx(
+                      () => AppCommonDropdown<TaskProject>(
+                        hintText: 'Project',
+                        options: controller.projects
+                            .map(
+                              (e) => DropdownOption(
+                                value: e,
+                                label: e.projectName,
+                              ),
+                            )
+                            .toList(),
+                        value: controller.selectedProjectForCreate.value,
+                        onChanged: (val) =>
+                            controller.selectedProjectForCreate.value = val,
+                        height: 30.h,
+                        style: AppTextStyle.style_10_500(
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
                   ),
                   SizedBox(width: 8.w),
                   Expanded(
-                    child: Obx(() => AppCommonDropdown<AssigneeModel>(
-                      hintText: 'Assignee',
-                      options: controller.assignees.map((e) => DropdownOption(value: e, label: e.name)).toList(),
-                      value: controller.selectedAssigneeForCreate.value,
-                      onChanged: (val) => controller.selectedAssigneeForCreate.value = val,
-                      height: 30.h,
-                      style: AppTextStyle.style_10_500(color: AppColors.black),
-                    )),
+                    child: Obx(
+                      () => AppCommonDropdown<AssigneeModel>(
+                        hintText: 'Assignee',
+                        options: controller.assignees
+                            .map((e) => DropdownOption(value: e, label: e.name))
+                            .toList(),
+                        value: controller.selectedAssigneeForCreate.value,
+                        onChanged: (val) =>
+                            controller.selectedAssigneeForCreate.value = val,
+                        height: 30.h,
+                        style: AppTextStyle.style_10_500(
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 8.h),
-              
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Obx(() => _buildDateTimeField(
-                      label: 'Start Date', 
-                      icon: Icons.calendar_today_outlined, 
-                      value: controller.selectedStartDate.value != null 
-                        ? "${controller.selectedStartDate.value!.day}-${controller.selectedStartDate.value!.month}-${controller.selectedStartDate.value!.year}"
-                        : null,
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (date != null) controller.selectedStartDate.value = date;
-                      },
-                    )),
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    flex: 2,
-                    child: Obx(() => _buildDateTimeField(
-                      label: 'Time', 
-                      icon: Icons.keyboard_arrow_down,
-                      value: controller.selectedStartTime.value?.format(context),
-                      onTap: () async {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) controller.selectedStartTime.value = time;
-                      },
-                    )),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              
+
               Row(
                 children: [
                   Expanded(
                     flex: 3,
-                    child: Obx(() => _buildDateTimeField(
-                      label: 'End Date', 
-                      icon: Icons.calendar_today_outlined,
-                      value: controller.selectedEndDate.value != null 
-                        ? "${controller.selectedEndDate.value!.day}-${controller.selectedEndDate.value!.month}-${controller.selectedEndDate.value!.year}"
-                        : null,
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: controller.selectedStartDate.value ?? DateTime.now(),
-                          firstDate: controller.selectedStartDate.value ?? DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (date != null) controller.selectedEndDate.value = date;
-                      },
-                    )),
+                    child: Obx(
+                      () => _buildDateTimeField(
+                        label: 'Start Date',
+                        icon: Icons.calendar_today_outlined,
+                        value: controller.selectedStartDate.value != null
+                            ? "${controller.selectedStartDate.value!.day}-${controller.selectedStartDate.value!.month}-${controller.selectedStartDate.value!.year}"
+                            : null,
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                          );
+                          if (date != null) {
+                            controller.selectedStartDate.value = date;
+                          }
+                        },
+                      ),
+                    ),
                   ),
                   SizedBox(width: 8.w),
                   Expanded(
                     flex: 2,
-                    child: Obx(() => _buildDateTimeField(
-                      label: 'Time', 
-                      icon: Icons.keyboard_arrow_down,
-                      value: controller.selectedEndTime.value?.format(context),
-                      onTap: () async {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) controller.selectedEndTime.value = time;
-                      },
-                    )),
+                    child: Obx(
+                      () => _buildDateTimeField(
+                        label: 'Time',
+                        icon: Icons.keyboard_arrow_down,
+                        value: controller.selectedStartTime.value?.format(
+                          context,
+                        ),
+                        onTap: () async {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (time != null) {
+                            controller.selectedStartTime.value = time;
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 8.h),
-              
+
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Obx(
+                      () => _buildDateTimeField(
+                        label: 'End Date',
+                        icon: Icons.calendar_today_outlined,
+                        value: controller.selectedEndDate.value != null
+                            ? "${controller.selectedEndDate.value!.day}-${controller.selectedEndDate.value!.month}-${controller.selectedEndDate.value!.year}"
+                            : null,
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate:
+                                controller.selectedStartDate.value ??
+                                DateTime.now(),
+                            firstDate:
+                                controller.selectedStartDate.value ??
+                                DateTime.now(),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                          );
+                          if (date != null) {
+                            controller.selectedEndDate.value = date;
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    flex: 2,
+                    child: Obx(
+                      () => _buildDateTimeField(
+                        label: 'Time',
+                        icon: Icons.keyboard_arrow_down,
+                        value: controller.selectedEndTime.value?.format(
+                          context,
+                        ),
+                        onTap: () async {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (time != null) {
+                            controller.selectedEndTime.value = time;
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+
               Row(
                 children: [
                   Expanded(
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Photo Required', style: AppTextStyle.style_10_600(color: AppColors.black)),
+                        Text(
+                          'Photo Required',
+                          style: AppTextStyle.style_10_600(
+                            color: AppColors.black,
+                          ),
+                        ),
                         SizedBox(width: 6.w),
-                        Obx(() => _buildSwitch(
-                          controller.photoRequired.value, 
-                          (val) => controller.photoRequired.value = val
-                        )),
+                        Obx(
+                          () => _buildSwitch(
+                            controller.photoRequired.value,
+                            (val) => controller.photoRequired.value = val,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -191,47 +249,64 @@ class CreateTaskDialog extends GetView<TasksController> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Recurring Task', style: AppTextStyle.style_10_600(color: AppColors.black)),
+                        Text(
+                          'Recurring Task',
+                          style: AppTextStyle.style_10_600(
+                            color: AppColors.black,
+                          ),
+                        ),
                         SizedBox(width: 6.w),
-                        Obx(() => _buildSwitch(
-                          controller.isRecurring.value, 
-                          (val) => controller.isRecurring.value = val
-                        )),
+                        Obx(
+                          () => _buildSwitch(
+                            controller.isRecurring.value,
+                            (val) => controller.isRecurring.value = val,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 8.h),
-              
+
               Row(
                 children: [
-                  Text('Approval Required', style: AppTextStyle.style_10_600(color: AppColors.black)),
+                  Text(
+                    'Approval Required',
+                    style: AppTextStyle.style_10_600(color: AppColors.black),
+                  ),
                   SizedBox(width: 8.w),
-                  Obx(() => _buildSwitch(
-                    controller.approvalRequired.value, 
-                    (val) => controller.approvalRequired.value = val
-                  )),
+                  Obx(
+                    () => _buildSwitch(
+                      controller.approvalRequired.value,
+                      (val) => controller.approvalRequired.value = val,
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 10.h),
-              
-              Obx(() => Opacity(
-                opacity: controller.approvalRequired.value ? 1.0 : 0.5,
-                child: AbsorbPointer(
-                  absorbing: !controller.approvalRequired.value,
-                  child: AppCommonDropdown<AssigneeModel>(
-                    hintText: 'Approver Name/ Team',
-                    options: controller.assignees.map((e) => DropdownOption(value: e, label: e.name)).toList(),
-                    value: controller.selectedApproverForCreate.value,
-                    onChanged: (val) => controller.selectedApproverForCreate.value = val,
-                    height: 30.h,
-                    style: AppTextStyle.style_10_500(color: AppColors.black),
+
+              Obx(
+                () => Opacity(
+                  opacity: controller.approvalRequired.value ? 1.0 : 0.5,
+                  child: AbsorbPointer(
+                    absorbing: !controller.approvalRequired.value,
+                    child: AppCommonDropdown<AssigneeModel>(
+                      hintText: 'Approver Name/ Team',
+                      options: controller.assignees
+                          .map((e) => DropdownOption(value: e, label: e.name))
+                          .toList(),
+                      value: controller.selectedApproverForCreate.value,
+                      onChanged: (val) =>
+                          controller.selectedApproverForCreate.value = val,
+                      height: 30.h,
+                      style: AppTextStyle.style_10_500(color: AppColors.black),
+                    ),
                   ),
                 ),
-              )),
+              ),
               SizedBox(height: 16.h),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -241,10 +316,17 @@ class CreateTaskDialog extends GetView<TasksController> {
                       onPressed: () => Get.back(),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.borderColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.r)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
                         padding: EdgeInsets.symmetric(vertical: 8.h),
                       ),
-                      child: Text('Cancel', style: AppTextStyle.style_11_600(color: AppColors.black)),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyle.style_11_600(
+                          color: AppColors.black,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(width: 10.w),
@@ -255,24 +337,39 @@ class CreateTaskDialog extends GetView<TasksController> {
                         final data = {
                           "title": controller.titleController.text,
                           "description": controller.descriptionController.text,
-                          "project_id": controller.selectedProjectForCreate.value?.projectId,
-                          "assignee_id": controller.selectedAssigneeForCreate.value?.id,
-                          "approver_id": controller.selectedApproverForCreate.value?.id,
-                          "photo_required": controller.photoRequired.value ? 1 : 0,
-                          "approval_required": controller.approvalRequired.value ? 1 : 0,
+                          "project_id": controller
+                              .selectedProjectForCreate
+                              .value
+                              ?.projectId,
+                          "assignee_id":
+                              controller.selectedAssigneeForCreate.value?.id,
+                          "approver_id":
+                              controller.selectedApproverForCreate.value?.id,
+                          "photo_required": controller.photoRequired.value
+                              ? 1
+                              : 0,
+                          "approval_required": controller.approvalRequired.value
+                              ? 1
+                              : 0,
                           "is_recurring": controller.isRecurring.value ? 1 : 0,
                         };
                         controller.createTask(data);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isEdit ? AppColors.info : AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.r)),
+                        backgroundColor: isEdit
+                            ? AppColors.info
+                            : AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
                         padding: EdgeInsets.symmetric(vertical: 8.h),
                         elevation: 0,
                       ),
                       child: Text(
-                        isEdit ? 'Submit' : 'Create Task', 
-                        style: AppTextStyle.style_11_600(color: AppColors.white),
+                        isEdit ? 'Submit' : 'Create Task',
+                        style: AppTextStyle.style_11_600(
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -285,7 +382,11 @@ class CreateTaskDialog extends GetView<TasksController> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hintText, int maxLines = 1}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    int maxLines = 1,
+  }) {
     return Container(
       height: maxLines > 1 ? null : 30.h,
       decoration: BoxDecoration(
@@ -295,11 +396,16 @@ class CreateTaskDialog extends GetView<TasksController> {
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        textAlignVertical: maxLines > 1 ? TextAlignVertical.top : TextAlignVertical.center,
+        textAlignVertical: maxLines > 1
+            ? TextAlignVertical.top
+            : TextAlignVertical.center,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: AppTextStyle.style_10_500(color: AppColors.grey200),
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: maxLines > 1 ? 6.h : 4.h),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 10.w,
+            vertical: maxLines > 1 ? 6.h : 4.h,
+          ),
           border: InputBorder.none,
           isDense: true,
         ),
@@ -308,7 +414,12 @@ class CreateTaskDialog extends GetView<TasksController> {
     );
   }
 
-  Widget _buildDateTimeField({required String label, IconData? icon, String? value, VoidCallback? onTap}) {
+  Widget _buildDateTimeField({
+    required String label,
+    IconData? icon,
+    String? value,
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -324,7 +435,9 @@ class CreateTaskDialog extends GetView<TasksController> {
             Expanded(
               child: Text(
                 value ?? label,
-                style: AppTextStyle.style_10_500(color: value != null ? AppColors.black : AppColors.grey200),
+                style: AppTextStyle.style_10_500(
+                  color: value != null ? AppColors.black : AppColors.grey200,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

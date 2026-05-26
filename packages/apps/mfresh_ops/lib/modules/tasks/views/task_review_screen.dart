@@ -16,7 +16,9 @@ class TaskReviewScreen extends GetView<TasksController> {
   @override
   Widget build(BuildContext context) {
     final TaskItem task = Get.arguments;
-    final bool isApproverView = task.status.toLowerCase() == 'review' || task.status.toLowerCase() == 'pending';
+    final bool isApproverView =
+        task.status.toLowerCase() == 'review' ||
+        task.status.toLowerCase() == 'pending';
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -38,29 +40,38 @@ class TaskReviewScreen extends GetView<TasksController> {
               style: AppTextStyle.style_14_600(color: AppColors.black),
             ),
             SizedBox(height: 12.h),
-            Obx(() => Wrap(
-              spacing: 12.w,
-              runSpacing: 12.h,
-              children: [
-                ...controller.attachments.asMap().entries.map((entry) {
-                  return _buildImageItem(entry.value.path, () => controller.removeAttachment(entry.key));
-                }),
-                if (controller.attachments.length < 5)
-                  _buildUploadPlaceholder(),
-              ],
-            )),
+            Obx(
+              () => Wrap(
+                spacing: 12.w,
+                runSpacing: 12.h,
+                children: [
+                  ...controller.attachments.asMap().entries.map((entry) {
+                    return _buildImageItem(
+                      entry.value.path,
+                      () => controller.removeAttachment(entry.key),
+                    );
+                  }),
+                  if (controller.attachments.length < 5)
+                    _buildUploadPlaceholder(),
+                ],
+              ),
+            ),
             SizedBox(height: 24.h),
-            
+
             AppCommonTextField(
-              controller: TextEditingController(text: isApproverView ? 'Both Mirror are cleaned.' : ''),
+              controller: TextEditingController(
+                text: isApproverView ? 'Both Mirror are cleaned.' : '',
+              ),
               hintText: 'Enter Comments',
               titleText: 'Comments',
               maxLines: 3,
               height: 80.h,
-              style: isApproverView ? AppTextStyle.style_14_400(color: AppColors.grey400) : null,
+              style: isApproverView
+                  ? AppTextStyle.style_14_400(color: AppColors.grey400)
+                  : null,
             ),
             SizedBox(height: 24.h),
-            
+
             if (isApproverView) ...[
               AppCommonTextField(
                 controller: TextEditingController(),
@@ -77,11 +88,18 @@ class TaskReviewScreen extends GetView<TasksController> {
                       onPressed: () => Get.back(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.red,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
                         padding: EdgeInsets.symmetric(vertical: 14.h),
                         elevation: 0,
                       ),
-                      child: Text('Reject', style: AppTextStyle.style_15_600(color: AppColors.white)),
+                      child: Text(
+                        'Reject',
+                        style: AppTextStyle.style_15_600(
+                          color: AppColors.white,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(width: 16.w),
@@ -90,11 +108,18 @@ class TaskReviewScreen extends GetView<TasksController> {
                       onPressed: () => Get.back(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
                         padding: EdgeInsets.symmetric(vertical: 14.h),
                         elevation: 0,
                       ),
-                      child: Text('Approve', style: AppTextStyle.style_15_600(color: AppColors.white)),
+                      child: Text(
+                        'Approve',
+                        style: AppTextStyle.style_15_600(
+                          color: AppColors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -103,22 +128,44 @@ class TaskReviewScreen extends GetView<TasksController> {
               SizedBox(height: 24.h),
               Row(
                 children: [
-                  _buildSmallButton('Delete', AppColors.grey50, AppColors.black, () {}),
+                  _buildSmallButton(
+                    'Delete',
+                    AppColors.grey50,
+                    AppColors.black,
+                    () {},
+                  ),
                   SizedBox(width: 8.w),
-                  _buildSmallButton('Cancel', AppColors.grey50, AppColors.black, () => Get.back()),
+                  _buildSmallButton(
+                    'Cancel',
+                    AppColors.grey50,
+                    AppColors.black,
+                    () => Get.back(),
+                  ),
                   SizedBox(width: 8.w),
-                  _buildSmallButton('Update', AppColors.red, AppColors.white, () {}),
+                  _buildSmallButton(
+                    'Update',
+                    AppColors.red,
+                    AppColors.white,
+                    () {},
+                  ),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () => Get.back(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.info,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                         elevation: 0,
                       ),
-                      child: Text('Submit', style: AppTextStyle.style_14_600(color: AppColors.white)),
+                      child: Text(
+                        'Submit',
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -139,7 +186,10 @@ class TaskReviewScreen extends GetView<TasksController> {
           height: 80.w,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.r),
-            image: DecorationImage(image: FileImage(File(path)), fit: BoxFit.cover),
+            image: DecorationImage(
+              image: FileImage(File(path)),
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         Positioned(
@@ -149,7 +199,10 @@ class TaskReviewScreen extends GetView<TasksController> {
             onTap: onDelete,
             child: Container(
               padding: EdgeInsets.all(2.r),
-              decoration: const BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                shape: BoxShape.circle,
+              ),
               child: Icon(Icons.close, size: 12.r, color: AppColors.black),
             ),
           ),
@@ -166,14 +219,20 @@ class TaskReviewScreen extends GetView<TasksController> {
         height: 80.w,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.grey100, style: BorderStyle.solid),
+          border: Border.all(
+            color: AppColors.grey100,
+            style: BorderStyle.solid,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add, color: AppColors.grey300, size: 24.r),
             SizedBox(height: 4.h),
-            Text('Upload', style: AppTextStyle.style_10_400(color: AppColors.grey300)),
+            Text(
+              'Upload',
+              style: AppTextStyle.style_10_400(color: AppColors.grey300),
+            ),
           ],
         ),
       ),
@@ -191,13 +250,24 @@ class TaskReviewScreen extends GetView<TasksController> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Select Image Source', style: AppTextStyle.style_16_600(color: AppColors.black)),
+            Text(
+              'Select Image Source',
+              style: AppTextStyle.style_16_600(color: AppColors.black),
+            ),
             SizedBox(height: 20.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildPickerOption(Icons.camera_alt, 'Camera', ImageSource.camera),
-                _buildPickerOption(Icons.photo_library, 'Gallery', ImageSource.gallery),
+                _buildPickerOption(
+                  Icons.camera_alt,
+                  'Camera',
+                  ImageSource.camera,
+                ),
+                _buildPickerOption(
+                  Icons.photo_library,
+                  'Gallery',
+                  ImageSource.gallery,
+                ),
               ],
             ),
             SizedBox(height: 20.h),
@@ -230,7 +300,12 @@ class TaskReviewScreen extends GetView<TasksController> {
     );
   }
 
-  Widget _buildSmallButton(String text, Color bgColor, Color textColor, VoidCallback onTap) {
+  Widget _buildSmallButton(
+    String text,
+    Color bgColor,
+    Color textColor,
+    VoidCallback onTap,
+  ) {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(

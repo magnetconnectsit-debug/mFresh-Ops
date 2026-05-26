@@ -16,7 +16,7 @@ class SplashController extends GetxController {
     await Future.delayed(const Duration(seconds: 2));
 
     final token = _storageService.getToken();
-    
+
     if (token != null && token.isNotEmpty) {
       Get.offAllNamed(AppRoutes.home);
     } else {

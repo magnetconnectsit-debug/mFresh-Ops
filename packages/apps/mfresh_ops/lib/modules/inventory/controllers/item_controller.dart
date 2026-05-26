@@ -8,6 +8,13 @@ class ItemController extends GetxController {
   final searchController = TextEditingController();
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
+  final isLoading = false.obs;
+
+  Future<void> onRefresh() async {
+    isLoading.value = true;
+    await Future.delayed(const Duration(seconds: 1));
+    isLoading.value = false;
+  }
 
   final itemNameController = TextEditingController();
   final itemIdController = TextEditingController();
@@ -18,17 +25,86 @@ class ItemController extends GetxController {
   final selectedCategory = RxnString();
 
   final measurementOptions = ['Litre', 'Piece', 'Packet', 'Kg', 'Gram'].obs;
-  final categoryOptions = ['Cleaning', 'Toiletries', 'Stationery', 'Others'].obs;
+  final categoryOptions = [
+    'Cleaning',
+    'Toiletries',
+    'Stationery',
+    'Others',
+  ].obs;
 
   final allItems = <ItemModel>[
-    ItemModel(siNo: 1, itemName: 'Hand Wash', itemId: '2001', measurement: 'Litre', category: 'Toiletries', lowQuantityStore: '10', lowQuantityUnit: '2'),
-    ItemModel(siNo: 2, itemName: 'Body Wash', itemId: '2002', measurement: 'Litre', category: 'Toiletries', lowQuantityStore: '5', lowQuantityUnit: '1'),
-    ItemModel(siNo: 3, itemName: 'Shampoo - Sachet', itemId: '2003', measurement: 'Piece', category: 'Toiletries', lowQuantityStore: '100', lowQuantityUnit: '20'),
-    ItemModel(siNo: 4, itemName: 'Floor Cleaner', itemId: '2004', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '20', lowQuantityUnit: '5'),
-    ItemModel(siNo: 5, itemName: 'Toilet Cleaner', itemId: '2005', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '15', lowQuantityUnit: '3'),
-    ItemModel(siNo: 6, itemName: 'Glass Cleaner', itemId: '2006', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '10', lowQuantityUnit: '2'),
-    ItemModel(siNo: 7, itemName: 'Phenyl', itemId: '2007', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '50', lowQuantityUnit: '10'),
-    ItemModel(siNo: 8, itemName: 'Garbage Bag - Small', itemId: '2009', measurement: 'Packet', category: 'Cleaning', lowQuantityStore: '30', lowQuantityUnit: '5'),
+    ItemModel(
+      siNo: 1,
+      itemName: 'Hand Wash',
+      itemId: '2001',
+      measurement: 'Litre',
+      category: 'Toiletries',
+      lowQuantityStore: '10',
+      lowQuantityUnit: '2',
+    ),
+    ItemModel(
+      siNo: 2,
+      itemName: 'Body Wash',
+      itemId: '2002',
+      measurement: 'Litre',
+      category: 'Toiletries',
+      lowQuantityStore: '5',
+      lowQuantityUnit: '1',
+    ),
+    ItemModel(
+      siNo: 3,
+      itemName: 'Shampoo - Sachet',
+      itemId: '2003',
+      measurement: 'Piece',
+      category: 'Toiletries',
+      lowQuantityStore: '100',
+      lowQuantityUnit: '20',
+    ),
+    ItemModel(
+      siNo: 4,
+      itemName: 'Floor Cleaner',
+      itemId: '2004',
+      measurement: 'Litre',
+      category: 'Cleaning',
+      lowQuantityStore: '20',
+      lowQuantityUnit: '5',
+    ),
+    ItemModel(
+      siNo: 5,
+      itemName: 'Toilet Cleaner',
+      itemId: '2005',
+      measurement: 'Litre',
+      category: 'Cleaning',
+      lowQuantityStore: '15',
+      lowQuantityUnit: '3',
+    ),
+    ItemModel(
+      siNo: 6,
+      itemName: 'Glass Cleaner',
+      itemId: '2006',
+      measurement: 'Litre',
+      category: 'Cleaning',
+      lowQuantityStore: '10',
+      lowQuantityUnit: '2',
+    ),
+    ItemModel(
+      siNo: 7,
+      itemName: 'Phenyl',
+      itemId: '2007',
+      measurement: 'Litre',
+      category: 'Cleaning',
+      lowQuantityStore: '50',
+      lowQuantityUnit: '10',
+    ),
+    ItemModel(
+      siNo: 8,
+      itemName: 'Garbage Bag - Small',
+      itemId: '2009',
+      measurement: 'Packet',
+      category: 'Cleaning',
+      lowQuantityStore: '30',
+      lowQuantityUnit: '5',
+    ),
   ].obs;
 
   final filteredItems = <ItemModel>[].obs;
@@ -63,7 +139,11 @@ class ItemController extends GetxController {
     await AppExportUtils.exportToExcel(
       title: 'Items Report',
       columns: const ["SI No", "Item Name", "Item Id", "Measurement"],
-      rows: filteredItems.map((item) => [item.siNo, item.itemName, item.itemId, item.measurement]).toList(),
+      rows: filteredItems
+          .map(
+            (item) => [item.siNo, item.itemName, item.itemId, item.measurement],
+          )
+          .toList(),
     );
     isExporting.value = false;
   }
@@ -73,15 +153,19 @@ class ItemController extends GetxController {
     await AppExportUtils.exportToPdf(
       title: 'Items Report',
       columns: const ["SI No", "Item Name", "Item Id", "Measurement"],
-      rows: filteredItems.map((item) => [item.siNo, item.itemName, item.itemId, item.measurement]).toList(),
+      rows: filteredItems
+          .map(
+            (item) => [item.siNo, item.itemName, item.itemId, item.measurement],
+          )
+          .toList(),
     );
     isExportingPdf.value = false;
   }
 
   void addItem() {
-    if (itemNameController.text.isNotEmpty && 
-        itemIdController.text.isNotEmpty && 
-        selectedMeasurement.value != null && 
+    if (itemNameController.text.isNotEmpty &&
+        itemIdController.text.isNotEmpty &&
+        selectedMeasurement.value != null &&
         selectedCategory.value != null) {
       final newItem = ItemModel(
         siNo: allItems.length + 1,
@@ -96,9 +180,15 @@ class ItemController extends GetxController {
       applyFilters();
       clearControllers();
       Get.back();
-      AppCommonToastMessage.show(message: "Item added successfully!", type: ToastType.success);
+      AppCommonToastMessage.show(
+        message: "Item added successfully!",
+        type: ToastType.success,
+      );
     } else {
-      AppCommonToastMessage.show(message: "Please fill all required fields", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Please fill all required fields",
+        type: ToastType.error,
+      );
     }
   }
 
@@ -115,7 +205,10 @@ class ItemController extends GetxController {
     allItems[index] = updatedItem;
     applyFilters();
     Get.back();
-    AppCommonToastMessage.show(message: "Item updated successfully!", type: ToastType.success);
+    AppCommonToastMessage.show(
+      message: "Item updated successfully!",
+      type: ToastType.success,
+    );
   }
 
   @override

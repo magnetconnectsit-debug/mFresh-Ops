@@ -11,7 +11,7 @@ class AppConfig {
   /// 1. Debug Mode + 'dev' -> All TEST
   /// 2. Release Mode + 'dev' -> PROD Base URL, TEST Payment/AppID
   /// 3. Release Mode + 'prod' -> All PROD
-  
+
   static bool get isDevToggle => Get.find<SettingsService>().isDevMode.value;
 
   // Base URL: Test URL in Debug Mode, Production URL in Release Mode
@@ -29,5 +29,5 @@ class AppConfig {
       : '71c39b94aad8435c96f81b1f5324c9c7'; // UAT
 
   // PhonePe Environment Toggle
-  static bool get isPhonePeProduction => _isProdEnv; 
+  static bool get isPhonePeProduction => _isProdEnv;
 }

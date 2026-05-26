@@ -22,6 +22,8 @@ class AppCommonDropdown<T> extends StatelessWidget {
   final TextStyle? style;
   final TextStyle? hintStyle;
   final TextAlign textAlign;
+  final Color? fillColor;
+  final Color? borderColor;
   
   // Multi-select properties
   final bool isMultiSelect;
@@ -47,6 +49,8 @@ class AppCommonDropdown<T> extends StatelessWidget {
     this.style,
     this.hintStyle,
     this.textAlign = TextAlign.center,
+    this.fillColor,
+    this.borderColor,
     this.isMultiSelect = false,
     this.selectedValues,
     this.options,
@@ -95,6 +99,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
         onChanged: onChanged,
         validator: validator,
         isExpanded: true,
+        itemHeight: null,
         icon: Icon(
           Icons.keyboard_arrow_down_rounded,
           color: AppColors.grey300,
@@ -110,9 +115,9 @@ class AppCommonDropdown<T> extends StatelessWidget {
                 vertical: 0,
               ),
           filled: true,
-          fillColor: AppColors.white,
-          border: _buildBorder(color: AppColors.borderColor),
-          enabledBorder: _buildBorder(color: AppColors.borderColor),
+          fillColor: fillColor ?? AppColors.white,
+          border: _buildBorder(color: borderColor ?? AppColors.borderColor),
+          enabledBorder: _buildBorder(color: borderColor ?? AppColors.borderColor),
           focusedBorder: _buildBorder(color: AppColors.primary),
           errorBorder: _buildBorder(color: AppColors.red),
           focusedErrorBorder: _buildBorder(color: AppColors.red),
@@ -166,9 +171,9 @@ class AppCommonDropdown<T> extends StatelessWidget {
         constraints: BoxConstraints(minHeight: height ?? 32.h),
         padding: contentPadding ?? EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: fillColor ?? AppColors.white,
           borderRadius: BorderRadius.circular(4.r),
-          border: Border.all(color: AppColors.borderColor, width: 1.0),
+          border: Border.all(color: borderColor ?? AppColors.borderColor, width: 1.0),
         ),
         child: Row(
           children: [

@@ -13,6 +13,7 @@ export 'widgets/app_image_view.dart';
 export 'widgets/custom_app_loader.dart';
 export 'utils/app_common_toast_message.dart';
 export 'widgets/app_common_webview.dart';
+export 'widgets/app_common_video_player.dart';
 
 
 

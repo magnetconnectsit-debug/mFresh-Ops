@@ -3,10 +3,7 @@ class TaskProject {
   final int projectId;
   final String projectName;
 
-  TaskProject({
-    required this.projectId,
-    required this.projectName,
-  });
+  TaskProject({required this.projectId, required this.projectName});
 
   factory TaskProject.fromJson(Map<String, dynamic> json) {
     return TaskProject(
@@ -60,9 +57,7 @@ class TaskGroup {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is TaskGroup &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is TaskGroup && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
@@ -154,7 +149,8 @@ class TaskItem {
       id: json['id'] ?? 0,
       taskCode: json['task_code'] ?? '',
       projectId: json['prj_id']?.toString() ?? '',
-      groupId: json['s_groupId']?.toString() ?? json['s_groupid']?.toString() ?? '',
+      groupId:
+          json['s_groupId']?.toString() ?? json['s_groupid']?.toString() ?? '',
       taskType: json['task_type'] ?? '',
       unitId: json['unitID']?.toString() ?? '',
       assignTo: json['assign_to']?.toString() ?? '',
@@ -216,7 +212,9 @@ class TaskListResponse {
       lastPage: json['last_page'] ?? 1,
       perPage: json['per_page'] ?? 20,
       totalRecords: json['total_records'] ?? 0,
-      data: (json['data'] as List?)?.map((e) => TaskItem.fromJson(e)).toList() ?? [],
+      data:
+          (json['data'] as List?)?.map((e) => TaskItem.fromJson(e)).toList() ??
+          [],
     );
   }
 }
@@ -236,7 +234,9 @@ class DailyTaskResponse {
     return DailyTaskResponse(
       status: json['status'] ?? false,
       counts: Map<String, int>.from(json['counts'] ?? {}),
-      tasks: (json['tasks'] as List?)?.map((e) => TaskItem.fromJson(e)).toList() ?? [],
+      tasks:
+          (json['tasks'] as List?)?.map((e) => TaskItem.fromJson(e)).toList() ??
+          [],
     );
   }
 }
@@ -246,11 +246,7 @@ class TaskDetailResponse {
   final String message;
   final TaskItem? data;
 
-  TaskDetailResponse({
-    required this.status,
-    required this.message,
-    this.data,
-  });
+  TaskDetailResponse({required this.status, required this.message, this.data});
 
   factory TaskDetailResponse.fromJson(Map<String, dynamic> json) {
     return TaskDetailResponse(
@@ -260,4 +256,5 @@ class TaskDetailResponse {
     );
   }
 }
+
 // endregion

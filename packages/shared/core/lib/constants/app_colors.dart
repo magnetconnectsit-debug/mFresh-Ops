@@ -238,7 +238,19 @@ class AppColors {
   static const Color greyMedium = Color(0xFF626262);
   static const Color pineOrange = Color(0xFFFF5722);
   static const Color pineBlue = Color(0xFF1A9FD9);
-//endregion
+  
+  static const Color primaryGreen = Color(0xFF1B8E6A);
+  static const Color secondaryGreen = Color(0xFF38B289);
+  static const Color primaryBlue = Color(0xFF0096C7);
+  static const Color secondaryBlue = Color(0xFF00A8E8);
+  //endregion
+
+  //region Support Tickets Colors
+  static const Color primaryOrange = Color(0xFFFF7043);
+  static const Color secondaryOrange = Color(0xFFFFF3F0);
+  static const Color scaffoldBg = Color(0xFFFAFAFA);
+  static const Color timelineBlue = Color(0xFF90CAF9);
+  //endregion
 }
 
 // endregion

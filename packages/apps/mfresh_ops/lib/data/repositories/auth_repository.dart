@@ -8,27 +8,27 @@ class AuthRepository extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
 
-  Future<User?> login({required String mobile, required String password}) async {
+  Future<User?> login({
+    required String mobile,
+    required String password,
+  }) async {
     try {
       final response = await _apiService.post(
         AppConstants.login,
-        data: {
-          'mobile': mobile,
-          'password': password,
-        },
+        data: {'mobile': mobile, 'password': password},
       );
 
       if (response != null && response['token'] != null) {
         final String token = response['token'];
         final String? refreshToken = response['refresh_token'];
         final user = User.fromJson(response);
-        
+
         await _storageService.saveToken(token);
         if (refreshToken != null) {
           await _storageService.saveRefreshToken(refreshToken);
         }
         await _storageService.saveUser(user);
-        
+
         return user;
       }
       return null;
@@ -68,19 +68,16 @@ class AuthRepository extends GetxService {
     try {
       final response = await _apiService.post(
         AppConstants.verifyOtp,
-        data: {
-          'phone_no': mobile,
-          'otp': otp,
-        },
+        data: {'phone_no': mobile, 'otp': otp},
       );
 
       if (response != null && response['data'] != null) {
         final user = User.fromJson(response['data']);
         final String token = response['data']['access_token'] ?? '';
-        
+
         await _storageService.saveToken(token);
         await _storageService.saveUser(user);
-        
+
         return user;
       }
       return null;

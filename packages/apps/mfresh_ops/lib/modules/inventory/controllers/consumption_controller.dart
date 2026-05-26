@@ -9,6 +9,24 @@ class ConsumptionController extends GetxController {
   final searchController = TextEditingController();
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
+  final isLoading = false.obs;
+
+  Future<void> onRefresh() async {
+    isLoading.value = true;
+    
+    // Reset filters
+    fromDateController.clear();
+    toDateController.clear();
+    selectedUnits.clear();
+    selectedItems.clear();
+    selectedStores.clear();
+    searchController.clear();
+    
+    applyFilters();
+    
+    await Future.delayed(const Duration(seconds: 1));
+    isLoading.value = false;
+  }
 
   // Date filters
   final fromDateController = TextEditingController();
@@ -47,7 +65,9 @@ class ConsumptionController extends GetxController {
       source: 'MM25002',
       category: 'C_Cleaning Items',
       item: 'Floor Cleaner',
-      quantity: '500 ml',
+      consumedQty: '500',
+      mUnit: 'ml',
+      createdBy: 'Tapas Ranjan',
     ),
     ConsumptionItemModel(
       consumedOn: '29-apr-2026',
@@ -57,7 +77,9 @@ class ConsumptionController extends GetxController {
       source: 'MM25003',
       category: 'Other Consumption',
       item: 'Waste Bin',
-      quantity: '1 pcs',
+      consumedQty: '1',
+      mUnit: 'pcs',
+      createdBy: 'Chinmay Mohapatra',
     ),
     ConsumptionItemModel(
       consumedOn: '29-apr-2026',
@@ -67,7 +89,9 @@ class ConsumptionController extends GetxController {
       source: 'MM25003',
       category: 'C_Personal Care',
       item: 'Hand Wash',
-      quantity: '300 ml',
+      consumedQty: '300',
+      mUnit: 'ml',
+      createdBy: 'Manoj Dash',
     ),
     ConsumptionItemModel(
       consumedOn: '29-apr-2026',
@@ -77,7 +101,9 @@ class ConsumptionController extends GetxController {
       source: 'MM25005',
       category: 'Other Consumption',
       item: 'Mop',
-      quantity: '1 pcs',
+      consumedQty: '1',
+      mUnit: 'pcs',
+      createdBy: 'Admin User',
     ),
     ConsumptionItemModel(
       consumedOn: '29-apr-2026',
@@ -87,7 +113,9 @@ class ConsumptionController extends GetxController {
       source: 'MM25002',
       category: 'Other Consumption',
       item: 'Bucket',
-      quantity: '2 pcs',
+      consumedQty: '2',
+      mUnit: 'pcs',
+      createdBy: 'Chinmay Mohapatra',
     ),
     ConsumptionItemModel(
       consumedOn: '29-apr-2026',
@@ -97,7 +125,9 @@ class ConsumptionController extends GetxController {
       source: 'MM25003',
       category: 'C_Cleaning Tools',
       item: 'Broom',
-      quantity: '1 pcs',
+      consumedQty: '1',
+      mUnit: 'pcs',
+      createdBy: 'Manoj Dash',
     ),
   ];
 
@@ -119,21 +149,24 @@ class ConsumptionController extends GetxController {
 
   void applyFilters() {
     final query = searchController.text.toLowerCase();
-    
+
     consumptionItems.assignAll(
       allConsumptionItems.where((item) {
         // Search filter
-        final matchesSearch = query.isEmpty ||
+        final matchesSearch =
+            query.isEmpty ||
             item.item.toLowerCase().contains(query) ||
             item.source.toLowerCase().contains(query) ||
             item.category.toLowerCase().contains(query);
-            
+
         // Unit filter
-        final matchesUnit = selectedUnits.isEmpty || selectedUnits.contains(item.source);
-        
+        final matchesUnit =
+            selectedUnits.isEmpty || selectedUnits.contains(item.source);
+
         // Item filter
-        final matchesItem = selectedItems.isEmpty || selectedItems.contains(item.item);
-        
+        final matchesItem =
+            selectedItems.isEmpty || selectedItems.contains(item.item);
+
         return matchesSearch && matchesUnit && matchesItem;
       }).toList(),
     );
@@ -143,8 +176,34 @@ class ConsumptionController extends GetxController {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
       title: 'Consumption Report',
-      columns: const ["Consumed On", "State", "District", "Source Type", "Source", "Category", "Item", "Quantity"],
-      rows: consumptionItems.map((item) => [item.consumedOn, item.state, item.district, item.sourceType, item.source, item.category, item.item, item.quantity]).toList(),
+      columns: const [
+        "Consumed On",
+        "State",
+        "District",
+        "Source Type",
+        "Source",
+        "Category",
+        "Item",
+        "Consumed Qty",
+        "M_Unit",
+        "Created By",
+      ],
+      rows: consumptionItems
+          .map(
+            (item) => [
+              item.consumedOn,
+              item.state,
+              item.district,
+              item.sourceType,
+              item.source,
+              item.category,
+              item.item,
+              item.consumedQty,
+              item.mUnit,
+              item.createdBy,
+            ],
+          )
+          .toList(),
     );
     isExporting.value = false;
   }
@@ -153,13 +212,42 @@ class ConsumptionController extends GetxController {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
       title: 'Consumption Report',
-      columns: const ["Consumed On", "State", "District", "Source Type", "Source", "Category", "Item", "Quantity"],
-      rows: consumptionItems.map((item) => [item.consumedOn, item.state, item.district, item.sourceType, item.source, item.category, item.item, item.quantity]).toList(),
+      columns: const [
+        "Consumed On",
+        "State",
+        "District",
+        "Source Type",
+        "Source",
+        "Category",
+        "Item",
+        "Consumed Qty",
+        "M_Unit",
+        "Created By",
+      ],
+      rows: consumptionItems
+          .map(
+            (item) => [
+              item.consumedOn,
+              item.state,
+              item.district,
+              item.sourceType,
+              item.source,
+              item.category,
+              item.item,
+              item.consumedQty,
+              item.mUnit,
+              item.createdBy,
+            ],
+          )
+          .toList(),
     );
     isExportingPdf.value = false;
   }
 
-  Future<void> selectDate(BuildContext context, TextEditingController controller) async {
+  Future<void> selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -179,13 +267,27 @@ class ConsumptionController extends GetxController {
       },
     );
     if (picked != null) {
-      controller.text = "${picked.day.toString().padLeft(2, '0')}-${_getMonthName(picked.month)}-${picked.year}";
+      controller.text =
+          "${picked.day.toString().padLeft(2, '0')}-${_getMonthName(picked.month)}-${picked.year}";
       applyFilters();
     }
   }
 
   String _getMonthName(int month) {
-    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const months = [
+      'jan',
+      'feb',
+      'mar',
+      'apr',
+      'may',
+      'jun',
+      'jul',
+      'aug',
+      'sep',
+      'oct',
+      'nov',
+      'dec',
+    ];
     return months[month - 1];
   }
 
@@ -206,7 +308,9 @@ class ConsumptionItemModel {
   final String source;
   final String category;
   final String item;
-  final String quantity;
+  final String consumedQty;
+  final String mUnit;
+  final String createdBy;
 
   ConsumptionItemModel({
     required this.consumedOn,
@@ -216,6 +320,8 @@ class ConsumptionItemModel {
     required this.source,
     required this.category,
     required this.item,
-    required this.quantity,
+    required this.consumedQty,
+    required this.mUnit,
+    required this.createdBy,
   });
 }

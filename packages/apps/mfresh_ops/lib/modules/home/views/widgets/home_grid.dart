@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 
 class HomeGrid extends StatelessWidget {
@@ -23,7 +24,7 @@ class HomeGrid extends StatelessWidget {
         subtitle: 'Daily operations',
         icon: Icons.assignment_rounded,
         gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-        route: AppRoutes.allTasks,
+        route: null,
       ),
       GridItemData(
         title: 'Inventory',
@@ -58,93 +59,97 @@ class HomeGrid extends StatelessWidget {
   }
 
   Widget _buildGridCard(GridItemData item) {
-    return GestureDetector(
-      onTap: () {
-        if (item.route != null) {
-          Get.toNamed(item.route!);
-        } else {
-          Get.snackbar(
-            'Coming Soon',
-            '${item.title} module is under development',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppColors.info,
-            colorText: AppColors.white,
-            margin: EdgeInsets.all(16.r),
-          );
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1.r),
-          boxShadow: [
-            BoxShadow(
-              color: item.gradient.first.withValues(alpha: 0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.05),
+          width: 1.r,
         ),
-        child: ClipRRect(
+        boxShadow: [
+          BoxShadow(
+            color: item.gradient.first.withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24.r),
+        child: InkWell(
           borderRadius: BorderRadius.circular(24.r),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                top: -20,
-                child: Container(
-                  width: 80.r,
-                  height: 80.r,
-                  decoration: BoxDecoration(
-                    color: item.gradient.first.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
+          onTap: () {
+            if (item.route != null) {
+              Get.toNamed(item.route!);
+            } else {
+              AppCommonToastMessage.show(
+                message: '${item.title} is comming soon....',
+                type: ToastType.info,
+              );
+            }
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24.r),
+            child: Stack(
+              children: [
+                Positioned(
+                  right: -20,
+                  top: -20,
+                  child: Container(
+                    width: 80.r,
+                    height: 80.r,
+                    decoration: BoxDecoration(
+                      color: item.gradient.first.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(20.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(12.r),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: item.gradient,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                Padding(
+                  padding: EdgeInsets.all(20.r),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12.r),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: item.gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16.r),
                         ),
-                        borderRadius: BorderRadius.circular(16.r),
+                        child: Icon(item.icon, color: Colors.white, size: 28.r),
                       ),
-                      child: Icon(
-                        item.icon,
-                        color: Colors.white,
-                        size: 28.r,
+                      SizedBox(height: 8.h),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              item.title,
+                              style: AppTextStyle.style_14_700(
+                                color: AppColors.black,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              item.subtitle,
+                              style: AppTextStyle.style_10_400(
+                                color: AppColors.grey300,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            item.title,
-                            style: AppTextStyle.style_14_700(color: AppColors.black),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            item.subtitle,
-                            style: AppTextStyle.style_10_400(color: AppColors.grey300),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -19,6 +19,22 @@ class SupportTemplateController extends GetxController {
   final allTemplates = <SupportTemplateModel>[].obs;
   final filteredTemplates = <SupportTemplateModel>[].obs;
 
+  // Pagination
+  final currentPage = 1.obs;
+  final itemsPerPage = 10.obs;
+
+  List<SupportTemplateModel> get paginatedTemplates {
+    final startIndex = (currentPage.value - 1) * itemsPerPage.value;
+    final endIndex = startIndex + itemsPerPage.value;
+    if (startIndex >= filteredTemplates.length) return [];
+    return filteredTemplates.sublist(
+      startIndex,
+      endIndex > filteredTemplates.length ? filteredTemplates.length : endIndex,
+    );
+  }
+
+  int get totalPages => (filteredTemplates.length / itemsPerPage.value).ceil();
+
   @override
   void onInit() {
     super.onInit();
@@ -52,6 +68,25 @@ class SupportTemplateController extends GetxController {
             t.description.toLowerCase().contains(query);
       }).toList(),
     );
+    currentPage.value = 1;
+  }
+
+  void nextPage() {
+    if (currentPage.value < totalPages) {
+      currentPage.value++;
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage.value = page;
+    }
   }
 
   void openAddForm() {
@@ -67,7 +102,7 @@ class SupportTemplateController extends GetxController {
     editingTemplateId.value = template.id;
   }
 
-  Future<void> submitForm() async {
+  Future<bool> submitForm() async {
     final name = templateNameController.text.trim();
     final desc = descriptionController.text.trim();
 
@@ -76,7 +111,7 @@ class SupportTemplateController extends GetxController {
         message: "Template Name is required",
         type: ToastType.error,
       );
-      return;
+      return false;
     }
 
     if (desc.isEmpty) {
@@ -84,7 +119,7 @@ class SupportTemplateController extends GetxController {
         message: "Description is required",
         type: ToastType.error,
       );
-      return;
+      return false;
     }
 
     isLoading.value = true;
@@ -102,6 +137,8 @@ class SupportTemplateController extends GetxController {
             message: "Template updated successfully!",
             type: ToastType.success,
           );
+          clearControllers();
+          return true;
         } else {
           AppCommonToastMessage.show(
             message: "Failed to update template",
@@ -117,6 +154,8 @@ class SupportTemplateController extends GetxController {
             message: "Template added successfully!",
             type: ToastType.success,
           );
+          clearControllers();
+          return true;
         } else {
           AppCommonToastMessage.show(
             message: "Failed to add template",
@@ -124,7 +163,6 @@ class SupportTemplateController extends GetxController {
           );
         }
       }
-      clearControllers();
     } catch (e) {
       AppCommonToastMessage.show(
         message: "Error submitting template: $e",
@@ -133,6 +171,7 @@ class SupportTemplateController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+    return false;
   }
 
   void clearControllers() {

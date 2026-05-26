@@ -33,7 +33,7 @@ class LoginScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Main Content
           SafeArea(
             child: Padding(
@@ -65,29 +65,31 @@ class LoginScreen extends StatelessWidget {
                     hintText: 'Enter your username',
                     keyboardType: TextInputType.text,
                   ),
-                  
+
                   SizedBox(height: 8.h),
-                  
+
                   // Password Field
-                  Obx(() => AppCommonTextField(
-                    controller: controller.passwordController,
-                    titleText: 'Password',
-                    hintText: 'Enter your password',
-                    obscureText: controller.obscurePassword.value,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        controller.obscurePassword.value 
-                            ? Icons.visibility_off_outlined 
-                            : Icons.visibility_outlined,
-                        color: AppColors.grey400,
-                        size: 20.sp,
+                  Obx(
+                    () => AppCommonTextField(
+                      controller: controller.passwordController,
+                      titleText: 'Password',
+                      hintText: 'Enter your password',
+                      obscureText: controller.obscurePassword.value,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          controller.obscurePassword.value
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: AppColors.grey400,
+                          size: 20.sp,
+                        ),
+                        onPressed: controller.togglePasswordVisibility,
                       ),
-                      onPressed: controller.togglePasswordVisibility,
                     ),
-                  )),
-                  
+                  ),
+
                   SizedBox(height: 8.h),
-                  
+
                   // Remember Me & Forget Password
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -97,17 +99,23 @@ class LoginScreen extends StatelessWidget {
                           SizedBox(
                             width: 20.w,
                             height: 20.w,
-                            child: Obx(() => Checkbox(
-                              value: controller.rememberMe.value,
-                              onChanged: controller.toggleRememberMe,
-                              activeColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                            )),
+                            child: Obx(
+                              () => Checkbox(
+                                value: controller.rememberMe.value,
+                                onChanged: controller.toggleRememberMe,
+                                activeColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                              ),
+                            ),
                           ),
                           SizedBox(width: 8.w),
                           Text(
                             'Remember Me',
-                            style: AppTextStyle.style_12_400(color: AppColors.grey400),
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey400,
+                            ),
                           ),
                         ],
                       ),
@@ -115,38 +123,46 @@ class LoginScreen extends StatelessWidget {
                         onTap: () {},
                         child: Text(
                           'Forget Password',
-                          style: AppTextStyle.style_12_600(color: AppColors.primary),
+                          style: AppTextStyle.style_12_600(
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: 12.h),
-                  
+
                   // Login Button
-                  Obx(() => AppCommonButton(
-                    text: 'Login',
-                    isLoading: controller.isLoading.value,
-                    onPressed: controller.login,
-                  )),
-                  
+                  Obx(
+                    () => AppCommonButton(
+                      text: 'Login',
+                      isLoading: controller.isLoading.value,
+                      onPressed: controller.login,
+                    ),
+                  ),
+
                   SizedBox(height: 24.h),
-                  
+
                   // mFresh Ops
                   Center(
                     child: Text(
                       'mFresh Ops',
-                      style: AppTextStyle.style_20_600(color: AppColors.primary),
+                      style: AppTextStyle.style_20_600(
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
-                  
+
                   const Spacer(),
-                  
+
                   // Footer
                   Center(
                     child: Text(
                       '© 2024 ALL RIGHTS RESERVED',
-                      style: AppTextStyle.style_12_400(color: AppColors.grey400),
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey400,
+                      ),
                     ),
                   ),
                   SizedBox(height: 16.h),

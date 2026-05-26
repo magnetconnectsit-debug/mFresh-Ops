@@ -7,6 +7,8 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_export_button.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/store_room_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 
@@ -24,38 +26,180 @@ class StoreRoomScreen extends StatelessWidget {
         hasBackButton: false,
         showAppDrawer: true,
         title: Text(
-          'Store\nRooms',
+          'Store Rooms',
           style: AppTextStyle.style_16_700(color: AppColors.black),
         ),
-        actions: [
-          AppCommonExportButton(
-            onExportExcel: () => controller.exportToExcel(),
-            onExportPdf: () => controller.exportToPdf(),
-            height: 32.h,
-          ),
-          SizedBox(width: 2.w),
-          AppCommonButton(
-            text: 'Add Store',
-            onPressed: () => _showAddDialog(context, controller),
-            height: 32.h,
-            width: 90.w,
-            textSize: 10.sp,
-          ),
-          SizedBox(width: 16.w),
-        ],
+        actions: [SizedBox(width: 16.w)],
       ),
       drawer: const CommonSidebar(),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            child: Row(
+              children: [
+                Container(
+                  height: 28.h,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primaryBlue, AppColors.secondaryBlue],
+                    ),
+                    borderRadius: BorderRadius.circular(4.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryBlue.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => _showAddDialog(context, controller),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    ),
+                    child: Text(
+                      'Add Store',
+                      style: AppTextStyle.style_12_600(color: AppColors.white),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Container(
+                  height: 28.h,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
+                    ),
+                    borderRadius: BorderRadius.circular(4.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () => controller.exportToExcel(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    ),
+                    child: Text(
+                      'Export Excel',
+                      style: AppTextStyle.style_12_600(color: AppColors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
-            child: Obx(
-              () => ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                itemCount: controller.filteredStores.length,
-                itemBuilder: (context, index) {
-                  final store = controller.filteredStores[index];
-                  return _buildStoreCard(context, controller, store, index);
-                },
+            child: AppRefreshIndicator(
+              onRefresh: () => controller.onRefresh(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Obx(() {
+                  final isTableLoading = controller.isLoading.value;
+                  final stores = isTableLoading
+                      ? List.generate(
+                          10,
+                          (index) => StoreRoomModel(
+                            siNo: index + 1,
+                            storeName: 'Loading Store Name',
+                          ),
+                        )
+                      : controller.filteredStores;
+
+                  if (stores.isEmpty) {
+                    return Padding(
+                      padding: EdgeInsets.all(32.r),
+                      child: Center(
+                        child: Text(
+                          'No stores found',
+                          style: AppTextStyle.style_14_400(
+                            color: AppColors.grey300,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Skeletonizer(
+                        enabled: isTableLoading,
+                        child: Table(
+                          columnWidths: const {
+                            0: IntrinsicColumnWidth(), // Sl No
+                            1: FlexColumnWidth(1), // Store Name
+                            2: IntrinsicColumnWidth(), // Action
+                          },
+                          border: TableBorder.all(
+                            color: AppColors.grey50,
+                            width: 1,
+                          ),
+                          defaultVerticalAlignment:
+                              TableCellVerticalAlignment.middle,
+                          children: [
+                            TableRow(
+                              decoration: const BoxDecoration(
+                                color: AppColors.white,
+                              ),
+                              children: [
+                                _buildHeaderCell('Sl No'),
+                                _buildHeaderCell('Store Name'),
+                                _buildHeaderCell('Action'),
+                              ],
+                            ),
+                            ...stores.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final store = entry.value;
+                              return TableRow(
+                                decoration: const BoxDecoration(
+                                  color: AppColors.white,
+                                ),
+                                children: [
+                                  _buildDataCell(store.siNo.toString()),
+                                  _buildDataCell(store.storeName),
+                                  isTableLoading
+                                      ? _buildDataCell('')
+                                      : _buildEditButton(
+                                          context,
+                                          controller,
+                                          store,
+                                          index,
+                                        ),
+                                ],
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'Showing 1 to ${controller.filteredStores.length} of ${controller.filteredStores.length} entries',
+                        style: AppTextStyle.style_14_400(
+                          color: AppColors.black,
+                        ),
+                      ),
+                      SizedBox(height: 32.h),
+                    ],
+                  );
+                }),
               ),
             ),
           ),
@@ -64,55 +208,39 @@ class StoreRoomScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStoreCard(
+  Widget _buildHeaderCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_700(color: AppColors.black),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_400(color: AppColors.black),
+      ),
+    );
+  }
+
+  Widget _buildEditButton(
     BuildContext context,
     StoreRoomController controller,
     StoreRoomModel store,
     int index,
   ) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              store.siNo.toString(),
-              style: AppTextStyle.style_12_500(color: AppColors.primary),
-            ),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Text(
-              store.storeName,
-              style: AppTextStyle.style_14_600(color: AppColors.black),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Edit',
-            onPressed: () => _showEditDialog(context, controller, store, index),
-            height: 28.h,
-            width: 60.w,
-            textSize: 10.sp,
-            buttonColor: AppColors.primary,
-          ),
-        ],
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      child: Center(
+        child: InkWell(
+          onTap: () => _showEditDialog(context, controller, store, index),
+          child: Icon(Icons.edit_square, color: AppColors.primary, size: 16.r),
+        ),
       ),
     );
   }

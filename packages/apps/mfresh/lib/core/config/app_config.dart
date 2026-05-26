@@ -31,5 +31,5 @@ class AppConfig {
       ? '6458835ce3374a60af722c4d51f2ba8f' // LIVE
       : '71c39b94aad8435c96f81b1f5324c9c7'; // UAT
 
-  static bool get isPhonePeProduction => false;
+  static bool get isPhonePeProduction => true;
 }

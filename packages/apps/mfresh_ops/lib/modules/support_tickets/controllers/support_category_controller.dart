@@ -6,7 +6,7 @@ import 'package:mfresh_ops/data/repositories/support_repository.dart';
 
 class SupportCategoryController extends GetxController {
   final SupportRepository _supportRepository = Get.find<SupportRepository>();
-  
+
   final isSearching = false.obs;
   final isLoading = false.obs;
   final searchController = TextEditingController();
@@ -14,6 +14,22 @@ class SupportCategoryController extends GetxController {
 
   final allCategories = <SupportCategoryModel>[].obs;
   final filteredCategories = <SupportCategoryModel>[].obs;
+
+  // Pagination
+  final currentPage = 1.obs;
+  final itemsPerPage = 10.obs;
+
+  List<SupportCategoryModel> get paginatedCategories {
+    final startIndex = (currentPage.value - 1) * itemsPerPage.value;
+    final endIndex = startIndex + itemsPerPage.value;
+    if (startIndex >= filteredCategories.length) return [];
+    return filteredCategories.sublist(
+      startIndex,
+      endIndex > filteredCategories.length ? filteredCategories.length : endIndex,
+    );
+  }
+
+  int get totalPages => (filteredCategories.length / itemsPerPage.value).ceil();
 
   @override
   void onInit() {
@@ -53,59 +69,88 @@ class SupportCategoryController extends GetxController {
         return query.isEmpty || cat.categoryName.toLowerCase().contains(query);
       }).toList(),
     );
+    currentPage.value = 1; // Reset to page 1 on search
   }
 
-  Future<void> addCategory() async {
+  void nextPage() {
+    if (currentPage.value < totalPages) {
+      currentPage.value++;
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage.value = page;
+    }
+  }
+
+  Future<bool> addCategory() async {
     if (categoryNameController.text.trim().isNotEmpty) {
       try {
-        final success = await _supportRepository.addCategory(categoryNameController.text.trim());
+        final success = await _supportRepository.addCategory(
+          categoryNameController.text.trim(),
+        );
         if (success) {
           fetchCategories();
           categoryNameController.clear();
-          Get.back();
           AppCommonToastMessage.show(
             message: "Category added successfully!",
             type: ToastType.success,
           );
+          return true;
         }
       } catch (e) {
         AppCommonToastMessage.show(
           message: "Failed to add category: $e",
           type: ToastType.error,
         );
+        return false;
       }
     } else {
       AppCommonToastMessage.show(
         message: "Please enter category name",
         type: ToastType.error,
       );
+      return false;
     }
+    return false;
   }
 
-  Future<void> editCategory(int index, String newName) async {
+  Future<bool> editCategory(int index, String newName) async {
     if (newName.trim().isNotEmpty) {
       try {
         final category = filteredCategories[index];
-        final success = await _supportRepository.updateCategory(category.id, newName.trim());
+        final success = await _supportRepository.updateCategory(
+          category.id,
+          newName.trim(),
+        );
         if (success) {
           fetchCategories();
           categoryNameController.clear();
-          Get.back();
           AppCommonToastMessage.show(
             message: "Category updated successfully!",
             type: ToastType.success,
           );
+          return true;
         }
       } catch (e) {
         AppCommonToastMessage.show(
           message: "Failed to update category: $e",
           type: ToastType.error,
         );
+        return false;
       }
     }
+    return false;
   }
 
-  Future<void> deleteCategory(int index) async {
+  Future<bool> deleteCategory(int index) async {
     try {
       final category = filteredCategories[index];
       final success = await _supportRepository.deleteCategory(category.id);
@@ -115,13 +160,16 @@ class SupportCategoryController extends GetxController {
           message: "Category deleted successfully!",
           type: ToastType.success,
         );
+        return true;
       }
     } catch (e) {
       AppCommonToastMessage.show(
         message: "Failed to delete category: $e",
         type: ToastType.error,
       );
+      return false;
     }
+    return false;
   }
 
   @override

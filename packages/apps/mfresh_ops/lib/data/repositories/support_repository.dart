@@ -47,7 +47,9 @@ class SupportRepository extends GetxService {
     }
   }
 
-  Future<List<SupportSubCategory>> getSupportSubCategories(int categoryId) async {
+  Future<List<SupportSubCategory>> getSupportSubCategories(
+    int categoryId,
+  ) async {
     try {
       final response = await _apiService.post(
         AppConstants.supportSubcategories,
@@ -83,7 +85,7 @@ class SupportRepository extends GetxService {
           "selectedUnits": unitIds,
           "statusid": statusIds,
           "globalsearch": globalSearch,
-          "assignee": assigneeIds
+          "assignee": assigneeIds,
         },
       );
       if (response != null && response['status'] == true) {
@@ -383,10 +385,7 @@ class SupportRepository extends GetxService {
     try {
       final response = await _apiService.post(
         AppConstants.storeSubtask,
-        data: {
-          'maintenance_id': maintenanceId,
-          'subtasks': subtasks,
-        },
+        data: {'maintenance_id': maintenanceId, 'subtasks': subtasks},
       );
       return response;
     } catch (e) {
@@ -436,10 +435,7 @@ class SupportRepository extends GetxService {
     try {
       final response = await _apiService.post(
         AppConstants.templateStore,
-        data: {
-          'template_subject': subject,
-          'template_descp': descp,
-        },
+        data: {'template_subject': subject, 'template_descp': descp},
       );
       return response != null && response['status'] == true;
     } catch (e) {
@@ -471,10 +467,7 @@ class SupportRepository extends GetxService {
     try {
       final response = await _apiService.post(
         AppConstants.saveFilter,
-        data: {
-          'name': name,
-          'filters': filters,
-        },
+        data: {'name': name, 'filters': filters},
       );
       return response != null && response['success'] == true;
     } catch (e) {

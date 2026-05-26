@@ -10,18 +10,17 @@ class SupportSubCategoryModel {
   });
 
   factory SupportSubCategoryModel.fromJson(Map<String, dynamic> json) {
+    final catIdValue = json['mcat_id'] ?? json['cat_id'];
     return SupportSubCategoryModel(
       id: json['id'] ?? 0,
-      catId: json['cat_id'] is String ? int.tryParse(json['cat_id']) ?? 0 : json['cat_id'] ?? 0,
+      catId: catIdValue is String
+          ? int.tryParse(catIdValue) ?? 0
+          : catIdValue ?? 0,
       subCategory: json['sub_cat'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'cat_id': catId,
-      'sub_cat': subCategory,
-    };
+    return {'id': id, 'cat_id': catId, 'sub_cat': subCategory};
   }
 }

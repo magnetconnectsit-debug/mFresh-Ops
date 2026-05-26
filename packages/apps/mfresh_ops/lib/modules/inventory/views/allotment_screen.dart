@@ -8,6 +8,8 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_common_export_button.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/allotment_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 
@@ -48,210 +50,310 @@ class AllotmentScreen extends StatelessWidget {
         ],
       ),
       drawer: const CommonSidebar(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFiltersSection(context, controller),
-          Expanded(
-            child: Obx(
-              () => ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                itemCount: controller.allotmentItems.length,
-                itemBuilder: (context, index) {
-                  final item = controller.allotmentItems[index];
-                  return _buildAllotmentCard(controller, item);
-                },
-              ),
-            ),
+      body: AppRefreshIndicator(
+        onRefresh: () async {
+          // Reset filters and refresh
+          controller.fromDateController.clear();
+          controller.toDateController.clear();
+          await controller.onRefresh();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildFiltersSection(context, controller),
+              _buildActionButtons(controller),
+              Obx(() {
+                final isTableLoading = controller.isLoading.value;
+                final items = isTableLoading
+                  ? List.generate(
+                      5,
+                      (index) => AllotmentItemModel(
+                        dateOfAllotment: 'Loading Date...',
+                        itemName: 'Loading Item Name',
+                        source: 'Loading Source',
+                        destination: 'Loading Destination',
+                        quantity: '0',
+                        unit: 'units',
+                        allotmentBy: 'Loading...',
+                      )
+                    )
+                  : controller.allotmentItems;
+
+                if (items.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.all(32.r),
+                    child: Center(
+                      child: Text('No allotments found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+                    ),
+                  );
+                }
+
+                return _buildTable(controller, isTableLoading, items);
+              }),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildAllotmentCard(AllotmentController controller, AllotmentItemModel item) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                item.dateOfAllotment,
-                style: AppTextStyle.style_10_600(color: AppColors.grey300),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: Text(
-                  'By: ${item.allotmentBy}',
-                  style: AppTextStyle.style_10_600(color: AppColors.info),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            item.itemName,
-            style: AppTextStyle.style_14_700(color: AppColors.black),
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Expanded(
-                child: _buildLocationBox('Source', item.source, AppColors.grey300),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.w),
-                child: Icon(Icons.arrow_forward, size: 16.r, color: AppColors.primary),
-              ),
-              Expanded(
-                child: _buildLocationBox('Destination', item.destination, AppColors.primary),
-              ),
-            ],
-          ),
-          Divider(height: 24.h, color: AppColors.grey50),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quantity',
-                    style: AppTextStyle.style_10_600(color: AppColors.grey300),
-                  ),
-                  Text(
-                    '${item.quantity} ${item.unit}',
-                    style: AppTextStyle.style_12_700(color: AppColors.black),
-                  ),
-                ],
-              ),
-              _buildReverseButton(controller, item),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationBox(String label, String value, Color color) {
+  Widget _buildTable(AllotmentController controller, bool isTableLoading, List<AllotmentItemModel> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyle.style_10_600(color: AppColors.grey300),
+        Container(
+          margin: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4.r),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4.r),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: MediaQuery.of(Get.context!).size.width - 32.w),
+                child: Skeletonizer(
+                  enabled: isTableLoading,
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    columnWidths: const {
+                      0: IntrinsicColumnWidth(), // Date Of Allotment
+                      1: IntrinsicColumnWidth(), // Item Name
+                      2: IntrinsicColumnWidth(), // Source
+                      3: IntrinsicColumnWidth(), // Destination
+                      4: IntrinsicColumnWidth(), // Quantity
+                      5: IntrinsicColumnWidth(), // M_Unit
+                      6: IntrinsicColumnWidth(), // Allotment By
+                    },
+                    border: TableBorder.symmetric(
+                      inside: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    children: [
+                      TableRow(
+                        decoration: const BoxDecoration(color: AppColors.white),
+                        children: [
+                          _buildHeaderCell('Date Of Allotment'),
+                          _buildHeaderCell('Item Name'),
+                          _buildHeaderCell('Source'),
+                          _buildHeaderCell('Destination'),
+                          _buildHeaderCell('Quantity'),
+                          _buildHeaderCell('M_Unit'),
+                          _buildHeaderCell('Allotment By'),
+                        ],
+                      ),
+                      ...items.map((item) {
+                        return TableRow(
+                          children: [
+                            _buildDataCell(item.dateOfAllotment),
+                            _buildDataCell(item.itemName),
+                            _buildDataCell(item.source),
+                            _buildDataCell(item.destination),
+                            _buildDataCell(item.quantity),
+                            _buildDataCell(item.unit),
+                            _buildDataCell(item.allotmentBy),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-        Text(
-          value,
-          style: AppTextStyle.style_11_600(color: color),
-          overflow: TextOverflow.ellipsis,
+        SizedBox(height: 16.h),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            'Showing 1 to ${controller.allotmentItems.length} of ${controller.allotmentItems.length} entries',
+            style: AppTextStyle.style_14_400(color: AppColors.black),
+          ),
         ),
+        SizedBox(height: 16.h),
       ],
     );
   }
 
+  Widget _buildHeaderCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_700(color: AppColors.black),
+      ),
+    );
+  }
 
-  Widget _buildFiltersSection(BuildContext context, AllotmentController controller) {
+  Widget _buildDataCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_400(color: AppColors.black),
+      ),
+    );
+  }
+
+  Widget _buildFiltersSection(
+    BuildContext context,
+    AllotmentController controller,
+  ) {
     return Container(
-      margin: EdgeInsets.all(16.r),
-      padding: EdgeInsets.all(16.r),
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.all(6.r),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+          int crossAxis = isMobile ? 2 : 4;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 8.h),
+                child: Text(
+                  'Filters',
+                  style: AppTextStyle.style_14_600(color: AppColors.black),
+                ),
+              ),
+              GridView(
+                padding: EdgeInsets.zero,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxis,
+                  crossAxisSpacing: 8.w,
+                  mainAxisSpacing: 8.h,
+                  mainAxisExtent: 32.h,
+                ),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _buildDatePickerField(
+                    'From Month',
+                    controller.fromDateController,
+                    () => controller.selectDate(
+                      context,
+                      controller.fromDateController,
+                    ),
+                  ),
+                  _buildDatePickerField(
+                    'To Month',
+                    controller.toDateController,
+                    () => controller.selectDate(
+                      context,
+                      controller.toDateController,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(AllotmentController controller) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: Row(
         children: [
-          Text(
-            'Filters',
-            style: AppTextStyle.style_16_700(color: AppColors.black),
+          AppCommonButton(
+            text: 'Apply',
+            onPressed: () => controller.applyFilters(),
+            height: 28.h,
+            width: 80.w,
+            textSize: 12.sp,
           ),
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              Expanded(
-                child: AppCommonTextField(
-                  controller: controller.fromDateController,
-                  titleText: 'From Month',
-                  hintText: 'dd-mm-yyyy',
-                  height: 32.h,
-                  readOnly: true,
-                  suffixIcon: Icon(Icons.calendar_today_outlined, size: 16.r),
-                  onTap: () => controller.selectDate(context, controller.fromDateController),
+          SizedBox(width: 10.w),
+          Container(
+            height: 28.h,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
+              ),
+              borderRadius: BorderRadius.circular(4.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () => controller.exportToExcel(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: AppCommonTextField(
-                  controller: controller.toDateController,
-                  titleText: 'To Month',
-                  hintText: 'dd-mm-yyyy',
-                  height: 32.h,
-                  readOnly: true,
-                  suffixIcon: Icon(Icons.calendar_today_outlined, size: 16.r),
-                  onTap: () => controller.selectDate(context, controller.toDateController),
-                ),
+              child: Text(
+                'Export Excel',
+                style: AppTextStyle.style_12_600(color: AppColors.white),
               ),
-            ],
+            ),
           ),
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              AppCommonButton(
-                text: 'Apply',
-                onPressed: () => controller.applyFilters(),
-                height: 32.h,
-                width: 80.w,
-                textSize: 12.sp,
-              ),
-              SizedBox(width: 10.w),
-              AppCommonExportButton(
-                onExportExcel: () => controller.exportToExcel(),
-                onExportPdf: () => controller.exportToPdf(),
-                height: 32.h,
-              ),
-            ],
-          ),
+          const Spacer(),
         ],
       ),
     );
   }
 
-
-  Widget _buildReverseButton(AllotmentController controller, AllotmentItemModel item) {
-    return AppCommonButton(
-      text: 'Reverse',
-      onPressed: () => controller.reverseAllotment(item),
-      height: 28.h,
-      width: 70.w,
-      textSize: 10.sp,
-      buttonColor: AppColors.red,
+  Widget _buildDatePickerField(String label, TextEditingController controller, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(color: AppColors.grey50),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(color: AppColors.grey50),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, value, child) {
+                  return Text(
+                    value.text.isEmpty ? label : value.text,
+                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
+              ),
+            ),
+            Icon(Icons.calendar_today_outlined, size: 14.r, color: AppColors.grey300),
+          ],
+        ),
+      ),
     );
   }
 }

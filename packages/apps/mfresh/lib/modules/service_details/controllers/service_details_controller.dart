@@ -456,7 +456,7 @@ class ServiceDetailsController extends GetxController {
 
       final paymentPayload = {
         "Header": {
-          "ApplicationId": "com.mFresh", // Whitelisted ID
+          "ApplicationId": "com.example.mangnet_connect", // Whitelisted ID
           "UserId": "user1234",
           "MethodId": "1001",
           "VersionNo": "1.0",

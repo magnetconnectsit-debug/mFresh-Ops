@@ -67,7 +67,6 @@ class TicketDetailsController extends GetxController {
   // Subtasks selected (checked) in edit mode — stores subtask IDs
   final checkedSubtaskIds = <int>{}.obs;
 
-
   @override
   void onInit() {
     super.onInit();
@@ -106,23 +105,35 @@ class TicketDetailsController extends GetxController {
 
   String getStatusLabel(String id) {
     switch (id) {
-      case '0': return 'New';
-      case '1': return 'WIP';
-      case '2': return 'Resolved';
-      case '3': return 'Closed';
-      case '4': return 'Hold';
-      case '5': return 'Awaited';
-      default: return id;
+      case '0':
+        return 'New';
+      case '1':
+        return 'WIP';
+      case '2':
+        return 'Resolved';
+      case '3':
+        return 'Closed';
+      case '4':
+        return 'Hold';
+      case '5':
+        return 'Awaited';
+      default:
+        return id;
     }
   }
 
   String getPriorityLabel(String id) {
     switch (id) {
-      case '1': return 'Low';
-      case '2': return 'Medium';
-      case '3': return 'High';
-      case '6': return 'Top Priority';
-      default: return id;
+      case '1':
+        return 'Low';
+      case '2':
+        return 'Medium';
+      case '3':
+        return 'High';
+      case '6':
+        return 'Top Priority';
+      default:
+        return id;
     }
   }
 
@@ -338,7 +349,10 @@ class TicketDetailsController extends GetxController {
         _editData = editData;
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to fetch ticket details: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to fetch ticket details: $e',
+        type: ToastType.error,
+      );
     }
   }
 
@@ -347,14 +361,22 @@ class TicketDetailsController extends GetxController {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
         isLoading.value = true;
-        AppCommonToastMessage.show(message: 'Compressing images...', type: ToastType.info);
+        AppCommonToastMessage.show(
+          message: 'Compressing images...',
+          type: ToastType.info,
+        );
         for (var image in images) {
-          final compressed = await AppMediaCompressor.compressImage(File(image.path));
+          final compressed = await AppMediaCompressor.compressImage(
+            File(image.path),
+          );
           selectedImages.add(compressed);
         }
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to pick images: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to pick images: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -365,12 +387,20 @@ class TicketDetailsController extends GetxController {
       final XFile? image = await _picker.pickImage(source: ImageSource.camera);
       if (image != null) {
         isLoading.value = true;
-        AppCommonToastMessage.show(message: 'Compressing image...', type: ToastType.info);
-        final compressed = await AppMediaCompressor.compressImage(File(image.path));
+        AppCommonToastMessage.show(
+          message: 'Compressing image...',
+          type: ToastType.info,
+        );
+        final compressed = await AppMediaCompressor.compressImage(
+          File(image.path),
+        );
         selectedImages.add(compressed);
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to capture image: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to capture image: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -385,13 +415,24 @@ class TicketDetailsController extends GetxController {
       final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
       if (video != null) {
         isLoading.value = true;
-        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
-        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        AppCommonToastMessage.show(
+          message: 'Compressing video...',
+          type: ToastType.info,
+        );
+        final compressed = await AppMediaCompressor.compressVideo(
+          File(video.path),
+        );
         selectedVideos.add(compressed);
-        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Video compressed successfully',
+          type: ToastType.success,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to pick/compress video: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to pick/compress video: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -402,13 +443,24 @@ class TicketDetailsController extends GetxController {
       final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
       if (video != null) {
         isLoading.value = true;
-        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
-        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        AppCommonToastMessage.show(
+          message: 'Compressing video...',
+          type: ToastType.info,
+        );
+        final compressed = await AppMediaCompressor.compressVideo(
+          File(video.path),
+        );
         selectedVideos.add(compressed);
-        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Video compressed successfully',
+          type: ToastType.success,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to record/compress video: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to record/compress video: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -425,6 +477,42 @@ class TicketDetailsController extends GetxController {
       final storage = Get.find<StorageService>();
       final user = storage.getUser();
 
+      final statusName = getStatusLabel(selectedStatus.value ?? "0");
+      final isResolvedOrClosed = (statusName == 'Resolved' || statusName == 'Closed');
+
+      // Validation 1: To change status except resolved/closed, we need follow up date
+      if (!isResolvedOrClosed) {
+        if (followUpDate.value == null) {
+          AppCommonToastMessage.show(
+            message: 'Please provide a follow-up date for this status.',
+            type: ToastType.error,
+          );
+          isLoading.value = false;
+          return;
+        }
+      }
+
+      // Validation 2: To change status to resolved/closed, all subtasks must be completed
+      if (isResolvedOrClosed) {
+        final subtasks = ticketDetail.value?.subtasks ?? [];
+        final hasUnchecked = subtasks.any((s) => !checkedSubtaskIds.contains(s.id));
+        if (hasUnchecked) {
+          AppCommonToastMessage.show(
+            message: 'All subtasks must be completed before marking as $statusName.',
+            type: ToastType.error,
+          );
+          isLoading.value = false;
+          return;
+        }
+      }
+
+      String formattedReminderTime = '';
+      if (reminderTime.value != null) {
+        final now = DateTime.now();
+        final dt = DateTime(now.year, now.month, now.day, reminderTime.value!.hour, reminderTime.value!.minute);
+        formattedReminderTime = DateFormat('hh:mm-a').format(dt).toUpperCase(); // e.g. "10:30-PM"
+      }
+
       final Map<String, dynamic> data = {
         'ticket_id': ticketId.value.toString(),
         'unit': selectedUnit.value?.unitId.toString() ?? '',
@@ -438,9 +526,10 @@ class TicketDetailsController extends GetxController {
         'userid': user?.id.toString() ?? '',
         'created_by': ticketDetail.value?.createdBy.toString() ?? '',
         'assigned_to': selectedAssignee.value?.id.toString() ?? '',
-        'follow_up': '',
-        'reminder_date': '', // Add date picker if needed
-        'reminder_time': '', // Add time picker if needed
+        'status': selectedStatus.value ?? '',
+        'follow_up': followUpDate.value != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(followUpDate.value!) : '',
+        'reminder_date': reminderDate.value != null ? DateFormat('yyyy-MM-dd').format(reminderDate.value!) : '',
+        'reminder_time': formattedReminderTime,
       };
 
       final formData = dio.FormData.fromMap(data);
@@ -450,21 +539,29 @@ class TicketDetailsController extends GetxController {
         formData.fields.add(MapEntry('esubtask[]', subtaskId.toString()));
       }
 
-
       final response = await _supportRepository.updateSupportTicket(formData);
 
       if (response != null && response['status'] == true) {
         selectedImages.clear();
         selectedVideos.clear();
         Get.back();
-        AppCommonToastMessage.show(message: 'Ticket updated successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Ticket updated successfully',
+          type: ToastType.success,
+        );
         // Refresh details
         fetchTicketDetails();
       } else {
-        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to update ticket', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to update ticket',
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'An error occurred: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'An error occurred: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
       AppMediaCompressor.clearCache();
@@ -478,18 +575,26 @@ class TicketDetailsController extends GetxController {
     }
     // fallback: label-to-id mapping
     switch (priority) {
-      case 'Low': return '1';
-      case 'Medium': return '2';
-      case 'High': return '3';
-      case 'Top Priority': return '6';
-      default: return '2';
+      case 'Low':
+        return '1';
+      case 'Medium':
+        return '2';
+      case 'High':
+        return '3';
+      case 'Top Priority':
+        return '6';
+      default:
+        return '2';
     }
   }
 
   Future<void> addComment() async {
     final text = commentController.text.trim();
     if (text.isEmpty && selectedImages.isEmpty && selectedVideos.isEmpty) {
-      AppCommonToastMessage.show(message: 'Please enter a comment or attach an image/video', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Please enter a comment or attach an image/video',
+        type: ToastType.error,
+      );
       return;
     }
 
@@ -531,13 +636,22 @@ class TicketDetailsController extends GetxController {
         selectedImages.clear();
         selectedVideos.clear();
         isInternal.value = false;
-        AppCommonToastMessage.show(message: 'Comment added successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Comment added successfully',
+          type: ToastType.success,
+        );
         fetchTicketDetails();
       } else {
-        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to add comment', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to add comment',
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to add comment: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to add comment: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
       AppMediaCompressor.clearCache();
@@ -577,7 +691,8 @@ class TicketDetailsController extends GetxController {
       final hasPending = subtasks.any((s) => s.subtaskStatus == '0');
       if (hasPending) {
         AppCommonToastMessage.show(
-          message: 'All subtasks must be completed before marking as $statusName.',
+          message:
+              'All subtasks must be completed before marking as $statusName.',
           type: ToastType.error,
         );
         return;
@@ -607,13 +722,22 @@ class TicketDetailsController extends GetxController {
       );
 
       if (success) {
-        AppCommonToastMessage.show(message: 'Status updated to $statusName', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Status updated to $statusName',
+          type: ToastType.success,
+        );
         fetchTicketDetails();
       } else {
-        AppCommonToastMessage.show(message: 'Failed to update status', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: 'Failed to update status',
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to update status: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to update status: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -665,13 +789,22 @@ class TicketDetailsController extends GetxController {
       final success = await _supportRepository.updateTicketComment(formData);
       if (success) {
         editingCommentIds.remove(commentId);
-        AppCommonToastMessage.show(message: 'Comment updated successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Comment updated successfully',
+          type: ToastType.success,
+        );
         fetchTicketDetails();
       } else {
-        AppCommonToastMessage.show(message: 'Failed to update comment', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: 'Failed to update comment',
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to update comment: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to update comment: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
       AppMediaCompressor.clearCache();
@@ -701,7 +834,10 @@ class TicketDetailsController extends GetxController {
   Future<bool> createSubtasks(List<String> subtasks) async {
     if (ticketId.value == null) return false;
     if (subtasks.isEmpty) {
-      AppCommonToastMessage.show(message: 'Please add at least one subtask', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Please add at least one subtask',
+        type: ToastType.error,
+      );
       return false;
     }
     try {
@@ -714,11 +850,17 @@ class TicketDetailsController extends GetxController {
         await fetchTicketDetails();
         return true;
       } else {
-        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to save subtasks', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to save subtasks',
+          type: ToastType.error,
+        );
         return false;
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Error saving subtasks: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Error saving subtasks: $e',
+        type: ToastType.error,
+      );
       return false;
     } finally {
       isSubtaskLoading.value = false;
@@ -742,7 +884,10 @@ class TicketDetailsController extends GetxController {
         return false;
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Error deleting subtask: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Error deleting subtask: $e',
+        type: ToastType.error,
+      );
       return false;
     } finally {
       isSubtaskLoading.value = false;

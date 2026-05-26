@@ -19,7 +19,7 @@ class DailyTasksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Ensuring we get the same controller instance and refresh it
     final controller = Get.put(TasksController());
-    
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
@@ -50,10 +50,16 @@ class DailyTasksScreen extends StatelessWidget {
             final status = task.status.toLowerCase();
             if (controller.activeTab.value == 0) {
               // Active: Everything except completed and review
-              return status != 'completed' && status != 'approved' && status != 'review' && status != 'under_review';
+              return status != 'completed' &&
+                  status != 'approved' &&
+                  status != 'review' &&
+                  status != 'under_review';
             } else {
               // Completed: Only completed and review
-              return status == 'completed' || status == 'approved' || status == 'review' || status == 'under_review';
+              return status == 'completed' ||
+                  status == 'approved' ||
+                  status == 'review' ||
+                  status == 'under_review';
             }
           }).toList();
 
@@ -64,9 +70,21 @@ class DailyTasksScreen extends StatelessWidget {
                 spacing: 12.w,
                 runSpacing: 4.h,
                 children: [
-                  _buildStatItem('${controller.taskCounts['active'] ?? 0}', 'Active', AppColors.orange1),
-                  _buildStatItem('${controller.taskCounts['completed'] ?? 0}', 'Completed', AppColors.green),
-                  _buildStatItem('${controller.taskCounts['overdue'] ?? 0}', 'Overdue', AppColors.error),
+                  _buildStatItem(
+                    '${controller.taskCounts['active'] ?? 0}',
+                    'Active',
+                    AppColors.orange1,
+                  ),
+                  _buildStatItem(
+                    '${controller.taskCounts['completed'] ?? 0}',
+                    'Completed',
+                    AppColors.green,
+                  ),
+                  _buildStatItem(
+                    '${controller.taskCounts['overdue'] ?? 0}',
+                    'Overdue',
+                    AppColors.error,
+                  ),
                 ],
               ),
               SizedBox(height: 12.h),
@@ -81,14 +99,16 @@ class DailyTasksScreen extends StatelessWidget {
               SizedBox(height: 8.h),
               _buildTabs(controller),
               SizedBox(height: 12.h),
-              
+
               if (displayTasks.isEmpty && !controller.isLoading.value)
                 Center(
                   child: Padding(
                     padding: EdgeInsets.only(top: 50.h),
                     child: Text(
                       'No tasks found',
-                      style: AppTextStyle.style_12_400(color: AppColors.grey200),
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey200,
+                      ),
                     ),
                   ),
                 )
@@ -129,27 +149,43 @@ class DailyTasksScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Obx(() => AppCommonDropdown<TaskProject>(
-                  hintText: 'Project',
-                  options: controller.projects.map((e) => DropdownOption(value: e, label: e.projectName)).toList(),
-                  selectedValues: controller.selectedProjects,
-                  onMultiSelectChanged: (val) => controller.selectedProjects.assignAll(val),
-                  isMultiSelect: true,
-                  style: AppTextStyle.style_10_600(color: AppColors.black),
-                  hintStyle: AppTextStyle.style_10_600(color: AppColors.black),
-                )),
+                child: Obx(
+                  () => AppCommonDropdown<TaskProject>(
+                    hintText: 'Project',
+                    options: controller.projects
+                        .map(
+                          (e) => DropdownOption(value: e, label: e.projectName),
+                        )
+                        .toList(),
+                    selectedValues: controller.selectedProjects,
+                    onMultiSelectChanged: (val) =>
+                        controller.selectedProjects.assignAll(val),
+                    isMultiSelect: true,
+                    style: AppTextStyle.style_10_600(color: AppColors.black),
+                    hintStyle: AppTextStyle.style_10_600(
+                      color: AppColors.black,
+                    ),
+                  ),
+                ),
               ),
               SizedBox(width: 8.w),
               Expanded(
-                child: Obx(() => AppCommonDropdown<SupportUnit>(
-                  hintText: 'Store (Unit)',
-                  options: controller.units.map((e) => DropdownOption(value: e, label: e.unitName)).toList(),
-                  selectedValues: controller.selectedUnits,
-                  onMultiSelectChanged: (val) => controller.selectedUnits.assignAll(val),
-                  isMultiSelect: true,
-                  style: AppTextStyle.style_10_600(color: AppColors.black),
-                  hintStyle: AppTextStyle.style_10_600(color: AppColors.black),
-                )),
+                child: Obx(
+                  () => AppCommonDropdown<SupportUnit>(
+                    hintText: 'Store (Unit)',
+                    options: controller.units
+                        .map((e) => DropdownOption(value: e, label: e.unitName))
+                        .toList(),
+                    selectedValues: controller.selectedUnits,
+                    onMultiSelectChanged: (val) =>
+                        controller.selectedUnits.assignAll(val),
+                    isMultiSelect: true,
+                    style: AppTextStyle.style_10_600(color: AppColors.black),
+                    hintStyle: AppTextStyle.style_10_600(
+                      color: AppColors.black,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -157,27 +193,41 @@ class DailyTasksScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Obx(() => AppCommonDropdown<TaskGroup>(
-                  hintText: 'Group',
-                  options: controller.groups.map((e) => DropdownOption(value: e, label: e.roleName)).toList(),
-                  selectedValues: controller.selectedGroups,
-                  onMultiSelectChanged: (val) => controller.selectedGroups.assignAll(val),
-                  isMultiSelect: true,
-                  style: AppTextStyle.style_10_600(color: AppColors.black),
-                  hintStyle: AppTextStyle.style_10_600(color: AppColors.black),
-                )),
+                child: Obx(
+                  () => AppCommonDropdown<TaskGroup>(
+                    hintText: 'Group',
+                    options: controller.groups
+                        .map((e) => DropdownOption(value: e, label: e.roleName))
+                        .toList(),
+                    selectedValues: controller.selectedGroups,
+                    onMultiSelectChanged: (val) =>
+                        controller.selectedGroups.assignAll(val),
+                    isMultiSelect: true,
+                    style: AppTextStyle.style_10_600(color: AppColors.black),
+                    hintStyle: AppTextStyle.style_10_600(
+                      color: AppColors.black,
+                    ),
+                  ),
+                ),
               ),
               SizedBox(width: 8.w),
               Expanded(
-                child: Obx(() => AppCommonDropdown<AssigneeModel>(
-                  hintText: 'Assignee',
-                  options: controller.assignees.map((e) => DropdownOption(value: e, label: e.name)).toList(),
-                  selectedValues: controller.selectedAssignees,
-                  onMultiSelectChanged: (val) => controller.selectedAssignees.assignAll(val),
-                  isMultiSelect: true,
-                  style: AppTextStyle.style_10_600(color: AppColors.black),
-                  hintStyle: AppTextStyle.style_10_600(color: AppColors.black),
-                )),
+                child: Obx(
+                  () => AppCommonDropdown<AssigneeModel>(
+                    hintText: 'Assignee',
+                    options: controller.assignees
+                        .map((e) => DropdownOption(value: e, label: e.name))
+                        .toList(),
+                    selectedValues: controller.selectedAssignees,
+                    onMultiSelectChanged: (val) =>
+                        controller.selectedAssignees.assignAll(val),
+                    isMultiSelect: true,
+                    style: AppTextStyle.style_10_600(color: AppColors.black),
+                    hintStyle: AppTextStyle.style_10_600(
+                      color: AppColors.black,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -185,17 +235,28 @@ class DailyTasksScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _buildFilterButton('Reset', AppColors.white, AppColors.black, onTap: () {
-                controller.selectedProjects.clear();
-                controller.selectedGroups.clear();
-                controller.selectedUnits.clear();
-                controller.selectedAssignees.clear();
-                controller.refreshData();
-              }, borderColor: AppColors.borderColor),
+              _buildFilterButton(
+                'Reset',
+                AppColors.white,
+                AppColors.black,
+                onTap: () {
+                  controller.selectedProjects.clear();
+                  controller.selectedGroups.clear();
+                  controller.selectedUnits.clear();
+                  controller.selectedAssignees.clear();
+                  controller.refreshData();
+                },
+                borderColor: AppColors.borderColor,
+              ),
               SizedBox(width: 8.w),
-              _buildFilterButton('Apply', AppColors.info, AppColors.white, onTap: () {
-                controller.refreshData();
-              }),
+              _buildFilterButton(
+                'Apply',
+                AppColors.info,
+                AppColors.white,
+                onTap: () {
+                  controller.refreshData();
+                },
+              ),
             ],
           ),
         ],
@@ -203,7 +264,13 @@ class DailyTasksScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterButton(String label, Color bgColor, Color textColor, {required VoidCallback onTap, Color? borderColor}) {
+  Widget _buildFilterButton(
+    String label,
+    Color bgColor,
+    Color textColor, {
+    required VoidCallback onTap,
+    Color? borderColor,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -213,10 +280,7 @@ class DailyTasksScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(4.r),
           border: borderColor != null ? Border.all(color: borderColor) : null,
         ),
-        child: Text(
-          label,
-          style: AppTextStyle.style_9_400(color: textColor),
-        ),
+        child: Text(label, style: AppTextStyle.style_9_400(color: textColor)),
       ),
     );
   }
@@ -252,15 +316,9 @@ class DailyTasksScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
-        Text(
-          count,
-          style: AppTextStyle.style_12_700(color: color),
-        ),
+        Text(count, style: AppTextStyle.style_12_700(color: color)),
         SizedBox(width: 3.w),
-        Text(
-          label,
-          style: AppTextStyle.style_10_500(color: AppColors.black),
-        ),
+        Text(label, style: AppTextStyle.style_10_500(color: AppColors.black)),
       ],
     );
   }
@@ -273,48 +331,56 @@ class DailyTasksScreen extends StatelessWidget {
         color: AppColors.toggleColorTab,
         borderRadius: BorderRadius.circular(6.r),
       ),
-      child: Obx(() => Row(
-        children: [
-          Expanded(
-            child: _buildTabItem(
-              title: 'Active',
-              isSelected: controller.activeTab.value == 0,
-              onTap: () => controller.changeTab(0),
+      child: Obx(
+        () => Row(
+          children: [
+            Expanded(
+              child: _buildTabItem(
+                title: 'Active',
+                isSelected: controller.activeTab.value == 0,
+                onTap: () => controller.changeTab(0),
+              ),
             ),
-          ),
-          Expanded(
-            child: _buildTabItem(
-              title: 'Completed',
-              isSelected: controller.activeTab.value == 1,
-              onTap: () => controller.changeTab(1),
+            Expanded(
+              child: _buildTabItem(
+                title: 'Completed',
+                isSelected: controller.activeTab.value == 1,
+                onTap: () => controller.changeTab(1),
+              ),
             ),
-          ),
-        ],
-      )),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildTabItem({required String title, required bool isSelected, required VoidCallback onTap}) {
+  Widget _buildTabItem({
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: isSelected ? AppColors.white : AppColors.transparent,
           borderRadius: BorderRadius.circular(4.r),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Center(
           child: Text(
             title,
-            style: isSelected 
-              ? AppTextStyle.style_11_600(color: AppColors.black)
-              : AppTextStyle.style_11_500(color: AppColors.black2),
+            style: isSelected
+                ? AppTextStyle.style_11_600(color: AppColors.black)
+                : AppTextStyle.style_11_500(color: AppColors.black2),
           ),
         ),
       ),
@@ -326,34 +392,34 @@ class DailyTasksScreen extends StatelessWidget {
     String statusText = task.status;
 
     switch (task.status.toLowerCase()) {
-      case 'overdue': 
-        statusBg = AppColors.error; 
+      case 'overdue':
+        statusBg = AppColors.error;
         statusText = 'Overdue';
         break;
       case 'pending':
       case 'due':
-        statusBg = AppColors.red; 
+        statusBg = AppColors.red;
         statusText = 'Due';
         break;
       case 'upcoming':
-        statusBg = AppColors.orange1; 
+        statusBg = AppColors.orange1;
         statusText = 'Upcoming';
         break;
       case 'review':
       case 'under_review':
-        statusBg = AppColors.orange900; 
+        statusBg = AppColors.orange900;
         statusText = 'Review';
         break;
       case 'completed':
       case 'approved':
-        statusBg = AppColors.green; 
+        statusBg = AppColors.green;
         statusText = 'Completed';
         break;
       case 'rejected':
         statusBg = AppColors.black;
         statusText = 'Rejected';
         break;
-      default: 
+      default:
         statusBg = AppColors.black2;
     }
 
@@ -362,7 +428,10 @@ class DailyTasksScreen extends StatelessWidget {
         final status = task.status.toLowerCase();
         if (status == 'review' || status == 'under_review') {
           Get.dialog(TaskSubmissionDialog(task: task, isReview: true));
-        } else if (status == 'due' || status == 'overdue' || status == 'pending' || status == 'rejected') {
+        } else if (status == 'due' ||
+            status == 'overdue' ||
+            status == 'pending' ||
+            status == 'rejected') {
           Get.dialog(TaskSubmissionDialog(task: task, isReview: false));
         } else if (status != 'completed' && status != 'approved') {
           Get.dialog(CreateTaskDialog(task: task));
@@ -382,70 +451,88 @@ class DailyTasksScreen extends StatelessWidget {
             ),
           ],
         ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: task.title,
-                        style: AppTextStyle.style_12_700(color: AppColors.black),
-                      ),
-                      if (task.project != null || task.groupNames != null) ...[
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      children: [
                         TextSpan(
-                          text: '  •  ',
-                          style: AppTextStyle.style_10_400(color: AppColors.black2),
+                          text: task.title,
+                          style: AppTextStyle.style_12_700(
+                            color: AppColors.black,
+                          ),
                         ),
-                        TextSpan(
-                          text: task.project ?? task.groupNames ?? '',
-                          style: AppTextStyle.style_10_400(color: AppColors.black2),
-                        ),
+                        if (task.project != null ||
+                            task.groupNames != null) ...[
+                          TextSpan(
+                            text: '  •  ',
+                            style: AppTextStyle.style_10_400(
+                              color: AppColors.black2,
+                            ),
+                          ),
+                          TextSpan(
+                            text: task.project ?? task.groupNames ?? '',
+                            style: AppTextStyle.style_10_400(
+                              color: AppColors.black2,
+                            ),
+                          ),
+                        ],
                       ],
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  Wrap(
+                    spacing: 10.w,
+                    runSpacing: 3.h,
+                    children: [
+                      _buildIconText(
+                        Icons.access_time,
+                        '${task.startTime} - ${task.endTime}',
+                      ),
+                      _buildIconText(
+                        Icons.calendar_today,
+                        task.scheduleDateTime,
+                      ),
+                      if (task.assigneeName != null &&
+                          task.assigneeName!.isNotEmpty)
+                        _buildIconText(
+                          Icons.person_outline,
+                          task.assigneeName!,
+                        ),
                     ],
                   ),
-                ),
-                SizedBox(height: 6.h),
-                Wrap(
-                  spacing: 10.w,
-                  runSpacing: 3.h,
-                  children: [
-                    _buildIconText(Icons.access_time, '${task.startTime} - ${task.endTime}'),
-                    _buildIconText(Icons.calendar_today, task.scheduleDateTime),
-                    if (task.assigneeName != null && task.assigneeName!.isNotEmpty)
-                      _buildIconText(Icons.person_outline, task.assigneeName!),
-                  ],
+                ],
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 75.w,
+                  height: 24.h,
+                  decoration: BoxDecoration(
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  child: Center(
+                    child: Text(
+                      statusText,
+                      style: AppTextStyle.style_10_700(color: AppColors.white),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-          SizedBox(width: 8.w),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 75.w,
-                height: 24.h,
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: Center(
-                  child: Text(
-                    statusText,
-                    style: AppTextStyle.style_10_700(color: AppColors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   Widget _buildIconText(IconData icon, String text) {
@@ -482,15 +569,30 @@ class DailyTasksScreen extends StatelessWidget {
                 SizedBox(height: 8.h),
                 Row(
                   children: [
-                    Container(width: 60.w, height: 8.h, color: AppColors.grey50),
+                    Container(
+                      width: 60.w,
+                      height: 8.h,
+                      color: AppColors.grey50,
+                    ),
                     SizedBox(width: 10.w),
-                    Container(width: 60.w, height: 8.h, color: AppColors.grey50),
+                    Container(
+                      width: 60.w,
+                      height: 8.h,
+                      color: AppColors.grey50,
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          Container(width: 75.w, height: 24.h, decoration: BoxDecoration(color: AppColors.grey50, borderRadius: BorderRadius.circular(4.r))),
+          Container(
+            width: 75.w,
+            height: 24.h,
+            decoration: BoxDecoration(
+              color: AppColors.grey50,
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+          ),
         ],
       ),
     );

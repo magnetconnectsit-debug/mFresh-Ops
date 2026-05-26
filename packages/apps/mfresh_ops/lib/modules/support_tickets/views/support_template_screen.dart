@@ -61,170 +61,194 @@ class SupportTemplateScreen extends StatelessWidget {
     BuildContext context,
     SupportTemplateController controller,
   ) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16.r),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search Box & Add Template Button Row
-          Row(
-            children: [
-              AppCommonButton(
-                text: "Add Template",
-                onPressed: () {
-                  controller.openAddForm();
-                  controller.isFormScreenOpen.value = true;
-                },
-                width: 55.w,
-                height: 35.h,
-                buttonColor: AppColors.blue600,
-              ),
-              SizedBox(width: 4.w),
-              Expanded(
-                child: TextField(
-                  controller: controller.searchController,
-                  decoration: InputDecoration(
-                    hintText: "Search Templates...",
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 14.sp,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 10.h,
-                    ),
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6.r),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6.r),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6.r),
-                      borderSide: const BorderSide(color: Color(0xFF009FDE)),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-
-          // Grid Table
-          Obx(
-            () => Table(
-              border: TableBorder.all(color: Colors.grey.shade200, width: 1),
-              columnWidths: {
-                0: FixedColumnWidth(60.w),
-                1: const FlexColumnWidth(),
-                2: FixedColumnWidth(100.w),
+    return RefreshIndicator(
+      onRefresh: () => controller.fetchTemplates(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(16.r),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Add Template Button
+            InkWell(
+              onTap: () {
+                controller.openAddForm();
+                controller.isFormScreenOpen.value = true;
               },
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              children: [
-                // Header Row
-                TableRow(
-                  decoration: BoxDecoration(color: Colors.grey.shade50),
-                  children: [
-                    _buildTableCell("SI No.", isHeader: true),
-                    _buildTableCell("Templates", isHeader: true),
-                    _buildTableCell("Action", isHeader: true),
+              borderRadius: BorderRadius.circular(6.r),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16A3B8), // Web mockup cyan
+                  borderRadius: BorderRadius.circular(6.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
-                // Data Rows
-                ...controller.filteredTemplates.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final template = entry.value;
-                  return TableRow(
-                    children: [
-                      _buildTableCell((index + 1).toString()),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 8.h,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  template.templateName,
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    color: Colors.black87,
+                child: Text(
+                  'Add Template',
+                  style: AppTextStyle.style_14_500(color: Colors.white),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            
+            // Search Box
+            TextField(
+              controller: controller.searchController,
+              decoration: InputDecoration(
+                hintText: 'Search Templates...',
+                hintStyle: AppTextStyle.style_14_400(color: AppColors.grey300),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: const BorderSide(color: Color(0xFF16A3B8)),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            
+            // Data Table
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4.r),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4.r),
+                child: Table(
+                  border: TableBorder.symmetric(
+                    inside: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  columnWidths: {
+                    0: FixedColumnWidth(60.w),
+                    1: const FlexColumnWidth(),
+                    2: FixedColumnWidth(90.w),
+                  },
+                  children: [
+                    // Header
+                    TableRow(
+                      children: [
+                        _buildHeaderCell('Sl No.'),
+                        _buildHeaderCell('Templates'),
+                        _buildHeaderCell('Action'),
+                      ],
+                    ),
+                    // Data Rows
+                    ...controller.paginatedTemplates.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final template = entry.value;
+                      final actualIndex = ((controller.currentPage.value - 1) * controller.itemsPerPage.value) + index;
+                      return TableRow(
+                        children: [
+                          _buildDataCell('${actualIndex + 1}'),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    template.templateName,
+                                    style: AppTextStyle.style_14_400(color: AppColors.black),
                                   ),
                                 ),
-                              ),
-                              if (template.description.isNotEmpty) ...[
-                                SizedBox(width: 4.w),
-                                InkWell(
-                                  onTap: () =>
-                                      _showDescriptionDialog(context, template),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(4.r),
-                                    child: Icon(
-                                      Icons.zoom_out_map,
-                                      size: 16.r,
-                                      color: Colors.grey.shade600,
+                                if (template.description.isNotEmpty) ...[
+                                  SizedBox(width: 4.w),
+                                  InkWell(
+                                    onTap: () => _showDescriptionDialog(context, template),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(4.r),
+                                      child: Icon(
+                                        Icons.zoom_out_map,
+                                        size: 16.r,
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
                                   ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                            child: Row(
+                              children: [
+                                _buildOutlinedIconButton(
+                                  Icons.edit,
+                                  () {
+                                    controller.openEditForm(template);
+                                    controller.isFormScreenOpen.value = true;
+                                  },
                                 ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4.h),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  controller.openEditForm(template);
-                                  controller.isFormScreenOpen.value = true;
-                                },
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color: AppColors.blue,
-                                ),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                iconSize: 20.r,
-                              ),
-                              // SizedBox(width: 8.w),
-                              // IconButton(
-                              //   onPressed: () => _showDeleteConfirmation(context, controller, template.id),
-                              //   icon: const Icon(Icons.delete, color: Colors.red),
-                              //   padding: EdgeInsets.zero,
-                              //   constraints: const BoxConstraints(),
-                              //   iconSize: 20.r,
-                              // ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-              ],
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
             ),
-          ),
-          SizedBox(height: 12.h),
+            
+            SizedBox(height: 24.h),
+            // Pagination
+            Obx(() {
+              final totalItems = controller.filteredTemplates.length;
+              final startItem = totalItems == 0 ? 0 : ((controller.currentPage.value - 1) * controller.itemsPerPage.value) + 1;
+              final endItem = (startItem + controller.itemsPerPage.value - 1).clamp(0, totalItems);
 
-          // Pagination Info Text
-          Obx(
-            () => Text(
-              controller.filteredTemplates.isEmpty
-                  ? "Showing 1 to 0 of 0"
-                  : "Showing 1 to ${controller.filteredTemplates.length} of ${controller.filteredTemplates.length}",
-              style: TextStyle(fontSize: 12.sp, color: AppColors.black87),
-            ),
-          ),
-        ],
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Showing $startItem to $endItem of $totalItems entries',
+                      style: AppTextStyle.style_12_400(color: AppColors.black),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Flexible(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildPaginationButton('←', false, controller.previousPage),
+                          // Generate page buttons
+                          ...List.generate(controller.totalPages, (index) {
+                            final pageNumber = index + 1;
+                            return _buildPaginationButton(
+                              pageNumber.toString(),
+                              controller.currentPage.value == pageNumber,
+                              () => controller.goToPage(pageNumber),
+                            );
+                          }),
+                          _buildPaginationButton('→', false, controller.nextPage),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -280,17 +304,58 @@ class SupportTemplateScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTableCell(String text, {bool isHeader = false}) {
-    return TableCell(
+  Widget _buildHeaderCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_700(color: AppColors.black),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_400(color: AppColors.black),
+      ),
+    );
+  }
+
+  Widget _buildOutlinedIconButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-        alignment: isHeader ? Alignment.centerLeft : Alignment.centerLeft,
+        padding: EdgeInsets.all(4.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Icon(icon, size: 14.r, color: const Color(0xFF64748B)),
+      ),
+    );
+  }
+
+  Widget _buildPaginationButton(String text, bool isActive, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        margin: EdgeInsets.only(left: 4.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
+          border: Border.all(color: isActive ? Colors.blue.shade600 : Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
         child: Text(
           text,
-          style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-            color: Colors.black87,
+          style: AppTextStyle.style_12_500(
+            color: isActive ? Colors.white : Colors.blue.shade600,
           ),
         ),
       ),
@@ -324,7 +389,7 @@ class SupportTemplateScreen extends StatelessWidget {
         actions: [
           AppCommonButton(
             text: 'Close',
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.pop(context),
             width: 80.w,
             height: 36.h,
           ),

@@ -20,7 +20,7 @@ class CreateTicketController extends GetxController {
   final occurredDate = DateTime.now().obs;
   final isLoading = false.obs;
   final isCompressingMedia = false.obs;
-  
+
   // Dropdown Selections
   final selectedUnit = Rxn<SupportUnit>();
   final selectedCategory = Rxn<SupportCategory>();
@@ -38,7 +38,7 @@ class CreateTicketController extends GetxController {
   final selectedAssignee = Rxn<AssigneeModel>();
   final templates = <SupportTemplateModel>[].obs;
   final selectedTemplate = Rxn<SupportTemplateModel>();
-  
+
   // Reminder Logic
   final reminderDate = Rxn<DateTime>();
   final reminderTime = Rxn<TimeOfDay>();
@@ -91,7 +91,9 @@ class CreateTicketController extends GetxController {
     try {
       final user = _storageService.getUser();
       if (user == null) return;
-      final result = await _commonRepository.getAllAssignees(mainId: user.id.toString());
+      final result = await _commonRepository.getAllAssignees(
+        mainId: user.id.toString(),
+      );
       assignees.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching assignees: $e');
@@ -127,7 +129,9 @@ class CreateTicketController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
-      final result = await _supportRepository.getSupportSubCategories(categoryId);
+      final result = await _supportRepository.getSupportSubCategories(
+        categoryId,
+      );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
@@ -146,7 +150,7 @@ class CreateTicketController extends GetxController {
   final reminderController = TextEditingController();
   final subjectController = TextEditingController();
   final descriptionController = TextEditingController();
-  
+
   final selectedImages = <XFile>[].obs;
   final selectedVideos = <File>[].obs;
   final ImagePicker _picker = ImagePicker();
@@ -168,14 +172,18 @@ class CreateTicketController extends GetxController {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
         isCompressingMedia.value = true;
-        AppCommonToastMessage.show(message: 'Compressing images...', type: ToastType.info);
         for (var image in images) {
-          final compressed = await AppMediaCompressor.compressImage(File(image.path));
+          final compressed = await AppMediaCompressor.compressImage(
+            File(image.path),
+          );
           selectedImages.add(XFile(compressed.path));
         }
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to pick images: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to pick images: $e',
+        type: ToastType.error,
+      );
     } finally {
       isCompressingMedia.value = false;
     }
@@ -186,12 +194,16 @@ class CreateTicketController extends GetxController {
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
         isCompressingMedia.value = true;
-        AppCommonToastMessage.show(message: 'Compressing image...', type: ToastType.info);
-        final compressed = await AppMediaCompressor.compressImage(File(photo.path));
+        final compressed = await AppMediaCompressor.compressImage(
+          File(photo.path),
+        );
         selectedImages.add(XFile(compressed.path));
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to take photo: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to take photo: $e',
+        type: ToastType.error,
+      );
     } finally {
       isCompressingMedia.value = false;
     }
@@ -206,13 +218,16 @@ class CreateTicketController extends GetxController {
       final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
       if (video != null) {
         isCompressingMedia.value = true;
-        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
-        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        final compressed = await AppMediaCompressor.compressVideo(
+          File(video.path),
+        );
         selectedVideos.add(compressed);
-        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to pick/compress video: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to pick/compress video: $e',
+        type: ToastType.error,
+      );
     } finally {
       isCompressingMedia.value = false;
     }
@@ -223,13 +238,16 @@ class CreateTicketController extends GetxController {
       final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
       if (video != null) {
         isCompressingMedia.value = true;
-        AppCommonToastMessage.show(message: 'Compressing video...', type: ToastType.info);
-        final compressed = await AppMediaCompressor.compressVideo(File(video.path));
+        final compressed = await AppMediaCompressor.compressVideo(
+          File(video.path),
+        );
         selectedVideos.add(compressed);
-        AppCommonToastMessage.show(message: 'Video compressed successfully', type: ToastType.success);
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to record/compress video: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to record/compress video: $e',
+        type: ToastType.error,
+      );
     } finally {
       isCompressingMedia.value = false;
     }
@@ -240,30 +258,38 @@ class CreateTicketController extends GetxController {
   }
 
   Future<void> createTicket() async {
-    if (selectedUnit.value == null || 
-        selectedCategory.value == null || 
+    if (selectedUnit.value == null ||
+        selectedCategory.value == null ||
         subjectController.text.isEmpty) {
-      AppCommonToastMessage.show(message: 'Please fill all required fields', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Please fill all required fields',
+        type: ToastType.error,
+      );
       return;
     }
 
     try {
       isLoading.value = true;
       final user = _storageService.getUser();
-      
+
       final Map<String, dynamic> data = {
         'unit': selectedUnit.value!.unitId.toString(),
         'categoryid': selectedCategory.value!.categoryId.toString(),
-        'projectid': selectedProject.value?.projectId.toString() ?? '8', // Default as per example if null
-        'subcategoryid': selectedSubCategory.value?.subCategoryId.toString() ?? '',
+        'projectid':
+            selectedProject.value?.projectId.toString() ??
+            '8', // Default as per example if null
+        'subcategoryid':
+            selectedSubCategory.value?.subCategoryId.toString() ?? '',
         'priority': _getPriorityId(selectedPriority.value),
         'subject': subjectController.text,
         'description': descriptionController.text,
         'comment': reminderController.text,
         'userid': user?.id.toString() ?? '',
         'assigned_to': selectedAssignee.value?.id.toString() ?? '',
-        'reminder_date': '${occurredDate.value.year}-${occurredDate.value.month}-${occurredDate.value.day}',
-        'reminder_time': '10:30-AM', // Hardcoded as placeholder or add time picker
+        'reminder_date':
+            '${occurredDate.value.year}-${occurredDate.value.month}-${occurredDate.value.day}',
+        'reminder_time':
+            '10:30-AM', // Hardcoded as placeholder or add time picker
         'whatsapp_notification': '1',
         'app_notification': '1',
         'folder_path': 'images/maintenance',
@@ -274,33 +300,44 @@ class CreateTicketController extends GetxController {
       // Add attachments
       for (var file in selectedImages) {
         final path = file.path;
-        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(
+          MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)),
+        );
       }
       for (var file in selectedVideos) {
         final path = file.path;
-        formData.files.add(MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)));
+        formData.files.add(
+          MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)),
+        );
       }
 
       final response = await _supportRepository.createSupportTicket(formData);
-      
+
       if (response != null && response['status'] == true) {
         Get.back();
-        AppCommonToastMessage.show(message: 'Ticket created successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Ticket created successfully',
+          type: ToastType.success,
+        );
         // Refresh ticket list
         if (Get.isRegistered<SupportTicketsController>()) {
           Get.find<SupportTicketsController>().fetchTickets();
         }
       } else {
         final rawMsg = response?['message']?.toString() ?? '';
-        final cleanMsg = (rawMsg.toLowerCase().contains('sqlstate') || 
-                           rawMsg.toLowerCase().contains('database') || 
-                           rawMsg.toLowerCase().contains('exception'))
+        final cleanMsg =
+            (rawMsg.toLowerCase().contains('sqlstate') ||
+                rawMsg.toLowerCase().contains('database') ||
+                rawMsg.toLowerCase().contains('exception'))
             ? 'Failed to create ticket. Please try again later.'
             : (rawMsg.isNotEmpty ? rawMsg : 'Failed to create ticket');
         AppCommonToastMessage.show(message: cleanMsg, type: ToastType.error);
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: AppUtils.parseError(e), type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: AppUtils.parseError(e),
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
       AppMediaCompressor.clearCache();
@@ -309,11 +346,16 @@ class CreateTicketController extends GetxController {
 
   String _getPriorityId(String? priority) {
     switch (priority) {
-      case 'Low': return '1';
-      case 'Medium': return '2';
-      case 'High': return '3';
-      case 'Top Priority': return '6';
-      default: return '2';
+      case 'Low':
+        return '1';
+      case 'Medium':
+        return '2';
+      case 'High':
+        return '3';
+      case 'Top Priority':
+        return '6';
+      default:
+        return '2';
     }
   }
 }

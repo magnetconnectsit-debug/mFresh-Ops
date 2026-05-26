@@ -1,8 +1,8 @@
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/data/repositories/auth_repository.dart';
-import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh/routes/app_routes.dart';
 
 class SignupController extends GetxController {
   final AuthRepository _authRepository = Get.find<AuthRepository>();
@@ -11,7 +11,7 @@ class SignupController extends GetxController {
   final emailController = TextEditingController();
   final mobileController = TextEditingController();
   final passwordController = TextEditingController();
-  
+
   final obscurePassword = true.obs;
   final isLoading = false.obs;
 
@@ -44,7 +44,8 @@ class SignupController extends GetxController {
       );
 
       if (response != null) {
-        final successMsg = response['message'] ?? "Account created successfully";
+        final successMsg =
+            response['message'] ?? "Account created successfully";
         AppCommonToastMessage.show(
           message: successMsg,
           type: ToastType.success,

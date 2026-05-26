@@ -40,7 +40,9 @@ class QuickFilter {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is QuickFilter && runtimeType == other.runtimeType && id == other.id;
+      other is QuickFilter &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
 
   @override
   int get hashCode => id.hashCode;
@@ -68,19 +70,19 @@ class QuickFilterData {
   });
 
   factory QuickFilterData.fromJson(Map<String, dynamic> json) {
-    List<String> _toStringList(dynamic v) {
+    List<String> toStringList(dynamic v) {
       if (v == null) return [];
       if (v is List) return v.map((e) => e.toString()).toList();
       return [];
     }
 
     return QuickFilterData(
-      tableAssignee: _toStringList(json['table_assignee']),
-      mcatid: _toStringList(json['mcatid']),
+      tableAssignee: toStringList(json['table_assignee']),
+      mcatid: toStringList(json['mcatid']),
       submcatid: json['submcatid']?.toString(),
-      selectedUnits: _toStringList(json['selectedUnits']),
-      statusid: _toStringList(json['statusid']),
-      selectedProject: _toStringList(json['selectedProject']),
+      selectedUnits: toStringList(json['selectedUnits']),
+      statusid: toStringList(json['statusid']),
+      selectedProject: toStringList(json['selectedProject']),
       priorityId: json['priorityId']?.toString(),
       globalsearch: json['globalsearch']?.toString(),
     );

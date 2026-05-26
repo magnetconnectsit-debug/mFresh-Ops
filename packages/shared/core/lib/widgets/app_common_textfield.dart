@@ -31,6 +31,8 @@ class AppCommonTextField extends StatelessWidget {
   final bool? enabled;
   final bool readOnly;
   final VoidCallback? onTap;
+  final Color? fillColor;
+  final EdgeInsetsGeometry? contentPadding;
 
   // endregion
 
@@ -59,6 +61,8 @@ class AppCommonTextField extends StatelessWidget {
     this.enabled,
     this.readOnly = false,
     this.onTap,
+    this.fillColor,
+    this.contentPadding,
   });
 
   // endregion
@@ -89,6 +93,7 @@ class AppCommonTextField extends StatelessWidget {
           ),
         SizedBox(
           width: width,
+          height: height,
           child: TextFormField(
             controller: controller,
             keyboardType: keyboardType,
@@ -113,12 +118,12 @@ class AppCommonTextField extends StatelessWidget {
               counterText: '',
               hintStyle: AppTextStyle.style_14_400(color: AppColors.grey200),
               labelStyle: AppTextStyle.style_14_500(color: AppColors.black300),
-              contentPadding: EdgeInsets.symmetric(
+              contentPadding: contentPadding ?? EdgeInsets.symmetric(
                 horizontal: 16.w,
                 vertical: 12.h,
               ),
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: fillColor ?? AppColors.background,
               border: _buildBorder(color: AppColors.borderColor),
               enabledBorder: _buildBorder(color: AppColors.borderColor),
               focusedBorder: _buildBorder(color: AppColors.primary, width: 1.5),

@@ -18,7 +18,7 @@ class SupportCategoryScreen extends StatelessWidget {
     final controller = Get.put(SupportCategoryController());
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         hasBackButton: false,
@@ -27,84 +27,287 @@ class SupportCategoryScreen extends StatelessWidget {
           'Support Categories',
           style: AppTextStyle.style_14_600(color: AppColors.black),
         ),
-        actions: [
-          AppCommonButton(
-            text: 'Add Category',
-            onPressed: () => _showAddDialog(context, controller),
-            height: 32.h,
-            width: 85.w,
-            textSize: 10.sp,
-          ),
-          SizedBox(width: 8.w),
-        ],
       ),
       drawer: const CommonSidebar(),
       body: Obx(
         () => controller.isLoading.value
             ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                padding: EdgeInsets.all(16.r),
-                itemCount: controller.filteredCategories.length,
-                itemBuilder: (context, index) {
-                  final category = controller.filteredCategories[index];
-                  return _buildCategoryCard(context, controller, category, index);
-                },
+            : RefreshIndicator(
+                onRefresh: () => controller.fetchCategories(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.all(16.r),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Add Categories Button
+                      InkWell(
+                        onTap: () => _showAddDialog(context, controller),
+                        borderRadius: BorderRadius.circular(6.r),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 6.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16A3B8),
+                            borderRadius: BorderRadius.circular(6.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Add Categories',
+                            style: AppTextStyle.style_14_500(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Search Box
+                      TextField(
+                        controller: controller.searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search categories...',
+                          hintStyle: AppTextStyle.style_14_400(
+                            color: AppColors.grey300,
+                          ),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 8.h,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6.r),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6.r),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6.r),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF16A3B8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Data Table
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4.r),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4.r),
+                          child: Table(
+                            border: TableBorder.symmetric(
+                              inside: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            columnWidths: {
+                              0: FixedColumnWidth(60.w),
+                              1: const FlexColumnWidth(),
+                              2: FixedColumnWidth(90.w),
+                            },
+                            children: [
+                              // Header
+                              TableRow(
+                                children: [
+                                  _buildHeaderCell('Sl No.'),
+                                  _buildHeaderCell('Category'),
+                                  _buildHeaderCell('Action'),
+                                ],
+                              ),
+                              // Data Rows
+                              ...controller.paginatedCategories
+                                  .asMap()
+                                  .entries
+                                  .map((entry) {
+                                    final index = entry.key;
+                                    final category = entry.value;
+                                    final actualIndex =
+                                        ((controller.currentPage.value - 1) *
+                                            controller.itemsPerPage.value) +
+                                        index;
+                                    return TableRow(
+                                      children: [
+                                        _buildDataCell('${actualIndex + 1}'),
+                                        _buildDataCell(category.categoryName),
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 12.w,
+                                            vertical: 4.h,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              _buildOutlinedIconButton(
+                                                Icons.edit,
+                                                () => _showEditDialog(
+                                                  context,
+                                                  controller,
+                                                  category,
+                                                  actualIndex,
+                                                ),
+                                              ),
+                                              SizedBox(width: 6.w),
+                                              _buildOutlinedIconButton(
+                                                Icons.delete_outline,
+                                                () => _showDeleteConfirmation(
+                                                  context,
+                                                  controller,
+                                                  actualIndex,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 24.h),
+                      // Pagination
+                      Obx(() {
+                        final totalItems = controller.filteredCategories.length;
+                        final startItem = totalItems == 0
+                            ? 0
+                            : ((controller.currentPage.value - 1) *
+                                      controller.itemsPerPage.value) +
+                                  1;
+                        final endItem =
+                            (startItem + controller.itemsPerPage.value - 1)
+                                .clamp(0, totalItems);
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Showing $startItem to $endItem of $totalItems entries',
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.black,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Flexible(
+                              flex: 2,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildPaginationButton(
+                                      '←',
+                                      false,
+                                      controller.previousPage,
+                                    ),
+                                    // Generate page buttons
+                                    ...List.generate(controller.totalPages, (
+                                      index,
+                                    ) {
+                                      final pageNumber = index + 1;
+                                      return _buildPaginationButton(
+                                        pageNumber.toString(),
+                                        controller.currentPage.value ==
+                                            pageNumber,
+                                        () => controller.goToPage(pageNumber),
+                                      );
+                                    }),
+                                    _buildPaginationButton(
+                                      '→',
+                                      false,
+                                      controller.nextPage,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                ),
               ),
       ),
     );
   }
 
-  Widget _buildCategoryCard(
-    BuildContext context,
-    SupportCategoryController controller,
-    SupportCategoryModel category,
-    int index,
-  ) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  Widget _buildHeaderCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_700(color: AppColors.black),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              category.id.toString(),
-              style: AppTextStyle.style_12_700(color: AppColors.primary),
-            ),
+    );
+  }
+
+  Widget _buildDataCell(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_400(color: AppColors.black),
+      ),
+    );
+  }
+
+  Widget _buildOutlinedIconButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        padding: EdgeInsets.all(4.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Icon(icon, size: 14.r, color: const Color(0xFF64748B)),
+      ),
+    );
+  }
+
+  Widget _buildPaginationButton(
+    String text,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        margin: EdgeInsets.only(left: 4.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
+          border: Border.all(
+            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              category.categoryName,
-              style: AppTextStyle.style_14_600(color: AppColors.black),
-            ),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Text(
+          text,
+          style: AppTextStyle.style_12_500(
+            color: isActive ? Colors.white : Colors.blue.shade600,
           ),
-          IconButton(
-            onPressed: () =>
-                _showEditDialog(context, controller, category, index),
-            icon: Icon(Icons.edit_outlined, color: AppColors.info, size: 20.r),
-          ),
-          IconButton(
-            onPressed: () =>
-                _showDeleteConfirmation(context, controller, index),
-            icon: Icon(Icons.delete_outline, color: AppColors.red, size: 20.r),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -117,8 +320,11 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         title: Text('Add Category', style: AppTextStyle.style_18_700()),
         content: Column(
@@ -133,7 +339,7 @@ class SupportCategoryScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
               style: AppTextStyle.style_14_500(color: AppColors.grey300),
@@ -141,7 +347,12 @@ class SupportCategoryScreen extends StatelessWidget {
           ),
           AppCommonButton(
             text: 'Submit',
-            onPressed: () => controller.addCategory(),
+            onPressed: () async {
+              final success = await controller.addCategory();
+              if (success && context.mounted) {
+                Navigator.pop(context);
+              }
+            },
             width: 90.w,
             height: 36.h,
           ),
@@ -160,8 +371,11 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         title: Text('Edit Category', style: AppTextStyle.style_18_700()),
         content: Column(
@@ -176,7 +390,7 @@ class SupportCategoryScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
               style: AppTextStyle.style_14_500(color: AppColors.grey300),
@@ -184,10 +398,15 @@ class SupportCategoryScreen extends StatelessWidget {
           ),
           AppCommonButton(
             text: 'Update',
-            onPressed: () => controller.editCategory(
-              index,
-              controller.categoryNameController.text,
-            ),
+            onPressed: () async {
+              final success = await controller.editCategory(
+                index,
+                controller.categoryNameController.text,
+              );
+              if (success && context.mounted) {
+                Navigator.pop(context);
+              }
+            },
             width: 90.w,
             height: 36.h,
           ),
@@ -204,8 +423,11 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         title: Text('Delete Category', style: AppTextStyle.style_16_700()),
         content: Text(
@@ -214,16 +436,18 @@ class SupportCategoryScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
               style: AppTextStyle.style_14_500(color: AppColors.grey300),
             ),
           ),
           TextButton(
-            onPressed: () {
-              Get.back();
-              controller.deleteCategory(index);
+            onPressed: () async {
+              final success = await controller.deleteCategory(index);
+              if (success && context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: Text(
               'Delete',

@@ -39,6 +39,7 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_subcatego
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_projects_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_template_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_template_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_dashboard_controller.dart';
 
 class AppPages {
   static final pages = [
@@ -47,12 +48,16 @@ class AppPages {
     GetPage(
       name: DevRoutes.devPasscode,
       page: () => const DevPasscodeScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => DevPasscodeController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => DevPasscodeController()),
+      ),
     ),
     GetPage(
       name: DevRoutes.devSettings,
       page: () => const DevSettingsScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => DevSettingsController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => DevSettingsController()),
+      ),
     ),
     GetPage(
       name: DevRoutes.logViewer,
@@ -60,56 +65,78 @@ class AppPages {
       binding: BindingsBuilder(() => Get.lazyPut(() => LogViewerController())),
     ),
     GetPage(name: AppRoutes.home, page: () => const HomeScreen()),
-    GetPage(name: AppRoutes.notifications, page: () => const NotificationScreen()),
+    GetPage(
+      name: AppRoutes.notifications,
+      page: () => const NotificationScreen(),
+    ),
     GetPage(name: AppRoutes.allTasks, page: () => const AllTasksScreen()),
     GetPage(name: AppRoutes.dailyTasks, page: () => const DailyTasksScreen()),
     GetPage(
       name: AppRoutes.supportTickets,
       page: () => const SupportTicketsScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => SupportTicketsController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportTicketsController()),
+      ),
     ),
     GetPage(name: AppRoutes.createTask, page: () => const CreateTaskScreen()),
     GetPage(name: AppRoutes.taskReview, page: () => const TaskReviewScreen()),
     GetPage(
       name: AppRoutes.createSupportTicket,
       page: () => const CreateTicketScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => CreateTicketController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => CreateTicketController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.ticketDetails,
       page: () => const TicketDetailsScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => TicketDetailsController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => TicketDetailsController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.supportDashboard,
       page: () => const SupportDashboardScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportDashboardController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.supportCategory,
       page: () => const SupportCategoryScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => SupportCategoryController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportCategoryController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.supportSubCategory,
       page: () => const SupportSubCategoryScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => SupportSubCategoryController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportSubCategoryController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.supportProjects,
       page: () => const SupportProjectsScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => SupportProjectsController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportProjectsController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.supportTemplate,
       page: () => const SupportTemplateScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => SupportTemplateController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportTemplateController()),
+      ),
     ),
     GetPage(name: AppRoutes.profile, page: () => const ProfileScreen()),
     GetPage(
       name: AppRoutes.editTicket,
       page: () => const EditTicketScreen(),
       opaque: false,
-      binding: BindingsBuilder(() => Get.lazyPut(() => TicketDetailsController())),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => TicketDetailsController()),
+      ),
     ),
     GetPage(
       name: AppRoutes.storeInventory,

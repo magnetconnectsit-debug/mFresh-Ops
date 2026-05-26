@@ -4,10 +4,10 @@ import 'package:hive/hive.dart';
 class User extends HiveObject {
   @HiveField(0)
   final int id;
-  
+
   @HiveField(1)
   final String? name;
-  
+
   @HiveField(2)
   final String? email;
 
@@ -51,12 +51,14 @@ class User extends HiveObject {
 
   factory User.fromJson(Map<String, dynamic> json) {
     final userData = json['user'] ?? json;
-    final List<String> permissions = json['permissions'] != null 
-        ? List<String>.from(json['permissions']) 
+    final List<String> permissions = json['permissions'] != null
+        ? List<String>.from(json['permissions'])
         : [];
 
     return User(
-      id: userData['id'] is int ? userData['id'] : int.parse(userData['id'].toString()),
+      id: userData['id'] is int
+          ? userData['id']
+          : int.parse(userData['id'].toString()),
       name: userData['name'],
       email: userData['email'],
       role: userData['role']?.toString(),
@@ -64,8 +66,8 @@ class User extends HiveObject {
       uimage: userData['uimage'],
       permissions: permissions,
       securityGroupIds: userData['security_group_ids']?.toString(),
-      activeStatus: userData['Active_status'] is int 
-          ? userData['Active_status'] 
+      activeStatus: userData['Active_status'] is int
+          ? userData['Active_status']
           : int.tryParse(userData['Active_status']?.toString() ?? ''),
       createdAt: userData['created_at'],
       updatedAt: userData['updated_at'],

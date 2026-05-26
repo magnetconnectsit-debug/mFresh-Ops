@@ -18,7 +18,7 @@ class AppConstants {
   static const String allAssignee = 'all-assignee';
   static const String sendOtp = 'customer/send-otp';
   static const String verifyOtp = 'customer/login-with-otp';
-  
+
   // Support Tickets
   static const String supportUnits = 'support-units';
   static const String supportCategory = 'support-category';
@@ -29,15 +29,16 @@ class AppConstants {
   static const String editSupportTicket = 'edit-support-ticket';
   static const String updateSupportTicket = 'update-support-ticket';
   static const String allSupportTickets = 'all-supporttickets';
-  static const String createSupportTicketComment = 'create-support-ticket-comment';
-  static const String updateSupportTicketComment = 'update-support-ticket-comment';
+  static const String createSupportTicketComment =
+      'create-support-ticket-comment';
+  static const String updateSupportTicketComment =
+      'update-support-ticket-comment';
   static const String bulkSupportTicketUpdate = 'bulksupport-ticket-update';
   static const String storeSubtask = 'store-subtask-api';
   static const String deleteSubtask = 'delete-subtask-api';
   static const String saveFilter = 'save-filter';
   static const String getFilters = 'get-filters';
 
-  
   // Support Management
   static const String categoryList = 'category-support-ticket-list';
   static const String categoryStore = 'category-support-ticket-store';

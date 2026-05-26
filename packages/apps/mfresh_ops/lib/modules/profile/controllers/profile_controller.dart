@@ -28,7 +28,7 @@ class ProfileController extends GetxController {
     // Load from storage first
     user.value = _storageService.getUser();
     _populateControllers();
-    
+
     // Then fetch from API
     fetchProfile();
   }
@@ -88,7 +88,7 @@ class ProfileController extends GetxController {
       final updatedUser = await _userRepository.updateProfile(
         name: nameController.text.trim(),
       );
-      
+
       if (passwordController.text.isNotEmpty) {
         await _userRepository.updatePassword(passwordController.text.trim());
       }

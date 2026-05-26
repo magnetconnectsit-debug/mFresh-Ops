@@ -17,9 +17,12 @@ class SupportTicketListItem {
   final String? project;
   final String? unitNo;
   final String? assignedTo;
+  final String? assignedToName;
   final String? comment;
   final String? followUp;
   final String? district;
+  final String? tktAge;
+  final String? resolvedOn;
 
   SupportTicketListItem({
     required this.id,
@@ -40,9 +43,12 @@ class SupportTicketListItem {
     this.project,
     this.unitNo,
     this.assignedTo,
+    this.assignedToName,
     this.comment,
     this.followUp,
     this.district,
+    this.tktAge,
+    this.resolvedOn,
   });
 
   factory SupportTicketListItem.fromJson(Map<String, dynamic> json) {
@@ -65,9 +71,12 @@ class SupportTicketListItem {
       project: json['project'],
       unitNo: json['qrcodeId']?.toString(),
       assignedTo: json['assigned_to']?.toString(),
+      assignedToName: json['assigned_to_name']?.toString(),
       comment: json['comment'],
       followUp: json['follow_up'],
       district: json['district'],
+      tktAge: json['tkt_age'],
+      resolvedOn: json['resolved_on'],
     );
   }
 }
@@ -91,7 +100,9 @@ class SubtaskModel {
 
   factory SubtaskModel.fromJson(Map<String, dynamic> json) {
     return SubtaskModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       maintenanceId: json['maintenance_id']?.toString(),
       subtask: json['subtask']?.toString(),
       subtaskStatus: json['subtask_status']?.toString(),
@@ -215,7 +226,9 @@ class SupportTicketDetail {
       comments: json['comments'],
       logs: json['logs'],
       subtasks: json['subtasks'] is List
-          ? (json['subtasks'] as List).map((e) => SubtaskModel.fromJson(e)).toList()
+          ? (json['subtasks'] as List)
+                .map((e) => SubtaskModel.fromJson(e))
+                .toList()
           : [],
       projectId: _parseInt(json['projectid']),
       unitId: _parseInt(json['unit_id']),
@@ -364,15 +377,18 @@ class SupportTicketListResponse {
       status: json['status'] ?? false,
       message: json['message'] ?? '',
       totalTickets: json['totalTickets'] ?? 0,
-      projectCounts: (json['projectCounts'] as List?)
+      projectCounts:
+          (json['projectCounts'] as List?)
               ?.map((e) => ProjectCount.fromJson(e))
               .toList() ??
           [],
-      unitCounts: (json['unitCounts'] as List?)
+      unitCounts:
+          (json['unitCounts'] as List?)
               ?.map((e) => UnitCount.fromJson(e))
               .toList() ??
           [],
-      data: (json['data'] as List?)
+      data:
+          (json['data'] as List?)
               ?.map((e) => SupportTicketListItem.fromJson(e))
               .toList() ??
           [],

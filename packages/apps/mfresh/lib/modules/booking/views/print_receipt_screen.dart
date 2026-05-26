@@ -13,7 +13,7 @@ class PrintReceiptScreen extends StatelessWidget {
   final BookingDetailsModel booking;
   final String? encryptedBookingId;
   final int rollSize;
-  
+
   const PrintReceiptScreen({
     super.key,
     required this.booking,
@@ -59,7 +59,7 @@ class PrintReceiptScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
               child: Column(
@@ -74,41 +74,68 @@ class PrintReceiptScreen extends StatelessWidget {
                         debugPrint("Receipt Preview Logo Load Error: $error");
                         return Text(
                           'mFresh',
-                          style: AppTextStyle.style_24_600(color: const Color(0xFFF15A22)),
+                          style: AppTextStyle.style_24_600(
+                            color: const Color(0xFFF15A22),
+                          ),
                         );
                       },
                     ),
                   ),
                   SizedBox(height: 20.h),
-                  
+
                   // Unit Info
-                  _buildLeftAlignedRow('Unit No.: ${booking.unitNo}', isBold: true),
+                  _buildLeftAlignedRow(
+                    'Unit No.: ${booking.unitNo}',
+                    isBold: true,
+                  ),
                   _buildLeftAlignedRow('Location: ${booking.fullAddress}'),
                   _buildDivider(),
-                  
+
                   // Booking Details
                   _buildLeftAlignedRow('Booking ID: ${booking.bookingId}'),
-                  _buildLeftAlignedRow('Date & Time: ${_formatDate(booking.bookingTimeDate)}'),
-                  _buildLeftAlignedRow('Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}'),
+                  _buildLeftAlignedRow(
+                    'Date & Time: ${_formatDate(booking.bookingTimeDate)}',
+                  ),
+                  _buildLeftAlignedRow(
+                    'Payment: ${booking.paymentMode == 1
+                        ? 'CASH'
+                        : booking.paymentMode == 2
+                        ? 'UPI'
+                        : 'QR'}',
+                  ),
                   _buildDivider(),
-                  
+
                   // Service specific to this receipt
-                  _buildLeftAlignedRow('${service.servicesName} (QTY: 1)', isBold: true),
+                  _buildLeftAlignedRow(
+                    '${service.servicesName} (QTY: 1)',
+                    isBold: true,
+                  ),
                   _buildLeftAlignedRow('Unit Price: ₹ ${service.price}'),
-                  
+
                   _buildDivider(),
-                  
+
                   // Total for THIS receipt
-                  _buildLeftAlignedRow('TOTAL AMOUNT: ₹ ${service.price}', isBold: true, fontSize: 16),
+                  _buildLeftAlignedRow(
+                    'TOTAL AMOUNT: ₹ ${service.price}',
+                    isBold: true,
+                    fontSize: 16,
+                  ),
                   const SizedBox(height: 20),
-                  
+
                   // QR Code
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('SCAN AT UNIT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                        const Text(
+                          'SCAN AT UNIT',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         Container(
                           padding: EdgeInsets.all(8.w),
@@ -116,25 +143,33 @@ class PrintReceiptScreen extends StatelessWidget {
                             border: Border.all(color: Colors.black12),
                           ),
                           child: Image.network(
-                            'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent(jsonEncode({
-                              "BookingID": encryptedBookingId ?? booking.bookingId,
-                              "DeviceID": 'NA',
-                              "AccessDate": booking.bookingTimeDate,
-                            }))}',
+                            'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent(jsonEncode({"BookingID": encryptedBookingId ?? booking.bookingId, "DeviceID": 'NA', "AccessDate": booking.bookingTimeDate}))}',
                             width: 120.w,
                             height: 120.w,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.qr_code, size: 100),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.qr_code, size: 100),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text('Thank you for using mFresh!', style: TextStyle(fontSize: 9, fontStyle: FontStyle.italic)),
+                  const Text(
+                    'Thank you for using mFresh!',
+                    style: TextStyle(fontSize: 9, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    '--------------------------------',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      color: Colors.grey,
+                    ),
+                  ),
                 ],
               ),
             ),
-            
+
             // Thermal Paper Bottom
             SizedBox(
               height: 20.h,
@@ -176,19 +211,28 @@ class PrintReceiptScreen extends StatelessWidget {
                 children: [
                   ...booking.services.expand((service) {
                     final qty = int.tryParse(service.quantity) ?? 1;
-                    return List.generate(qty, (index) => _buildReceiptCard(service));
+                    return List.generate(
+                      qty,
+                      (index) => _buildReceiptCard(service),
+                    );
                   }),
                 ],
               ),
             ),
           ),
-          
+
           // Action Buttons
           Container(
             padding: EdgeInsets.all(20.w),
             decoration: const BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -208,7 +252,11 @@ class PrintReceiptScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      PrintUtil.shareSystem(booking, encryptedBookingId, rollSize: rollSize);
+                      PrintUtil.shareSystem(
+                        booking,
+                        encryptedBookingId,
+                        rollSize: rollSize,
+                      );
                     },
                     icon: const Icon(Icons.share),
                     label: const Text('Share Now'),
@@ -227,7 +275,11 @@ class PrintReceiptScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLeftAlignedRow(String text, {bool isBold = false, double fontSize = 12}) {
+  Widget _buildLeftAlignedRow(
+    String text, {
+    bool isBold = false,
+    double fontSize = 12,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.h),
       child: SizedBox(

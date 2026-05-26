@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.mFresh"
+    namespace = "com.example.mangnet_connect"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.mFresh"
+        applicationId = "com.example.mangnet_connect"
         minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode

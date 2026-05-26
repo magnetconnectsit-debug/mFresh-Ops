@@ -9,6 +9,13 @@ class StoreRoomController extends GetxController {
   final storeNameController = TextEditingController();
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
+  final isLoading = false.obs;
+
+  Future<void> onRefresh() async {
+    isLoading.value = true;
+    await Future.delayed(const Duration(seconds: 1));
+    isLoading.value = false;
+  }
 
   final allStores = <StoreRoomModel>[
     StoreRoomModel(siNo: 1, storeName: 'Store_Puri'),
@@ -35,8 +42,7 @@ class StoreRoomController extends GetxController {
     final query = searchController.text.toLowerCase();
     filteredStores.assignAll(
       allStores.where((store) {
-        return query.isEmpty ||
-            store.storeName.toLowerCase().contains(query);
+        return query.isEmpty || store.storeName.toLowerCase().contains(query);
       }).toList(),
     );
   }
@@ -46,7 +52,9 @@ class StoreRoomController extends GetxController {
     await AppExportUtils.exportToExcel(
       title: 'Store Rooms Report',
       columns: const ["SI No", "Store Name"],
-      rows: filteredStores.map((store) => [store.siNo, store.storeName]).toList(),
+      rows: filteredStores
+          .map((store) => [store.siNo, store.storeName])
+          .toList(),
     );
     isExporting.value = false;
   }
@@ -56,7 +64,9 @@ class StoreRoomController extends GetxController {
     await AppExportUtils.exportToPdf(
       title: 'Store Rooms Report',
       columns: const ["SI No", "Store Name"],
-      rows: filteredStores.map((store) => [store.siNo, store.storeName]).toList(),
+      rows: filteredStores
+          .map((store) => [store.siNo, store.storeName])
+          .toList(),
     );
     isExportingPdf.value = false;
   }
@@ -71,18 +81,30 @@ class StoreRoomController extends GetxController {
       applyFilters();
       storeNameController.clear();
       Get.back();
-      AppCommonToastMessage.show(message: "Store added successfully!", type: ToastType.success);
+      AppCommonToastMessage.show(
+        message: "Store added successfully!",
+        type: ToastType.success,
+      );
     } else {
-      AppCommonToastMessage.show(message: "Please enter store name", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Please enter store name",
+        type: ToastType.error,
+      );
     }
   }
 
   void editStore(int index, String newName) {
     if (newName.isNotEmpty) {
-      allStores[index] = StoreRoomModel(siNo: allStores[index].siNo, storeName: newName);
+      allStores[index] = StoreRoomModel(
+        siNo: allStores[index].siNo,
+        storeName: newName,
+      );
       applyFilters();
       Get.back();
-      AppCommonToastMessage.show(message: "Store updated successfully!", type: ToastType.success);
+      AppCommonToastMessage.show(
+        message: "Store updated successfully!",
+        type: ToastType.success,
+      );
     }
   }
 

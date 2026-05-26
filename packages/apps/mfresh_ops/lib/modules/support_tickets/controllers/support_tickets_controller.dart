@@ -16,6 +16,7 @@ class SupportTicketsController extends GetxController {
   final unitCounts = <UnitCount>[].obs;
   final totalTickets = 0.obs;
   final isLoading = false.obs;
+  final isRefreshing = false.obs;
 
   final selectedTickets = <int>{}.obs;
   final expandedSubjectTickets = <int>{}.obs;
@@ -70,26 +71,30 @@ class SupportTicketsController extends GetxController {
   final isSavingFilter = false.obs;
 
   // Dropdown Options
-  List<DropdownOption<SupportCategory>> get categoryOptions => 
-    categories.map((e) => DropdownOption(value: e, label: e.categoryName)).toList();
-  
-  List<DropdownOption<SupportSubCategory>> get subCategoryOptions => 
-    subCategories.map((e) => DropdownOption(value: e, label: e.subCategoryName)).toList();
-  
-  List<DropdownOption<SupportProject>> get projectOptions => 
-    projects.map((e) => DropdownOption(value: e, label: e.projectName)).toList();
-  
-  List<DropdownOption<SupportUnit>> get unitOptions => 
-    units.map((e) => DropdownOption(value: e, label: e.unitName)).toList();
-  
-  List<DropdownOption<AssigneeModel>> get assigneeOptions => 
-    assignees.map((e) => DropdownOption(value: e, label: e.name)).toList();
-  
-  List<DropdownOption<String>> get priorityOptions => 
-    priorities.map((e) => DropdownOption(value: e, label: e)).toList();
-  
-  List<DropdownOption<String>> get statusOptions => 
-    statuses.map((e) => DropdownOption(value: e, label: e)).toList();
+  List<DropdownOption<SupportCategory>> get categoryOptions => categories
+      .map((e) => DropdownOption(value: e, label: e.categoryName))
+      .toList();
+
+  List<DropdownOption<SupportSubCategory>> get subCategoryOptions =>
+      subCategories
+          .map((e) => DropdownOption(value: e, label: e.subCategoryName))
+          .toList();
+
+  List<DropdownOption<SupportProject>> get projectOptions => projects
+      .map((e) => DropdownOption(value: e, label: e.projectName))
+      .toList();
+
+  List<DropdownOption<SupportUnit>> get unitOptions =>
+      units.map((e) => DropdownOption(value: e, label: e.unitName)).toList();
+
+  List<DropdownOption<AssigneeModel>> get assigneeOptions =>
+      assignees.map((e) => DropdownOption(value: e, label: e.name)).toList();
+
+  List<DropdownOption<String>> get priorityOptions =>
+      priorities.map((e) => DropdownOption(value: e, label: e)).toList();
+
+  List<DropdownOption<String>> get statusOptions =>
+      statuses.map((e) => DropdownOption(value: e, label: e)).toList();
 
   @override
   void onInit() {
@@ -166,7 +171,9 @@ class SupportTicketsController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
-      final result = await _supportRepository.getSupportSubCategories(categoryId);
+      final result = await _supportRepository.getSupportSubCategories(
+        categoryId,
+      );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
@@ -178,17 +185,23 @@ class SupportTicketsController extends GetxController {
       final storage = Get.find<StorageService>();
       final user = storage.getUser();
       if (user == null) return;
-      
-      final result = await Get.find<CommonRepository>().getAllAssignees(mainId: user.id.toString());
+
+      final result = await Get.find<CommonRepository>().getAllAssignees(
+        mainId: user.id.toString(),
+      );
       assignees.assignAll(result);
 
       // Default select the current user
       if (selectedAssignees.isEmpty) {
-        var currentUser = assignees.firstWhereOrNull((a) => a.id.toString() == user.id.toString());
-        
+        var currentUser = assignees.firstWhereOrNull(
+          (a) => a.id.toString() == user.id.toString(),
+        );
+
         // If current user not in list, add them manually so they can be selected
         if (currentUser == null) {
-          debugPrint('fetchAssignees: Current user ${user.id} not in list, adding manually');
+          debugPrint(
+            'fetchAssignees: Current user ${user.id} not in list, adding manually',
+          );
           currentUser = AssigneeModel(id: user.id, name: user.name ?? 'Me');
           assignees.insert(0, currentUser);
         }
@@ -212,7 +225,7 @@ class SupportTicketsController extends GetxController {
     selectedPriority.value = null;
     selectedStatuses.clear();
     subCategories.clear();
-    
+
     searchController.clear();
     searchQuery.value = '';
     isSearching.value = false;
@@ -220,13 +233,21 @@ class SupportTicketsController extends GetxController {
     final storage = Get.find<StorageService>();
     final user = storage.getUser();
     if (user != null) {
-      var currentUser = assignees.firstWhereOrNull((a) => a.id.toString() == user.id.toString());
+      var currentUser = assignees.firstWhereOrNull(
+        (a) => a.id.toString() == user.id.toString(),
+      );
       if (currentUser != null) {
         selectedAssignees.assignAll([currentUser]);
       }
     }
 
     fetchTickets();
+  }
+
+  String getAssigneeName(String? assignedToId) {
+    if (assignedToId == null || assignedToId.isEmpty) return '';
+    final assignee = assignees.firstWhereOrNull((a) => a.id.toString() == assignedToId);
+    return assignee?.name ?? assignedToId;
   }
 
   void removeFilter(dynamic item) {
@@ -256,6 +277,7 @@ class SupportTicketsController extends GetxController {
 
   Future<void> refreshAll() async {
     try {
+      isRefreshing.value = true;
       // Parallel fetch: all metadata + tickets + quick filters
       await Future.wait([
         fetchUnits(),
@@ -268,6 +290,8 @@ class SupportTicketsController extends GetxController {
       await fetchTickets();
     } catch (e) {
       debugPrint('Error during refresh: $e');
+    } finally {
+      isRefreshing.value = false;
     }
   }
 
@@ -280,7 +304,9 @@ class SupportTicketsController extends GetxController {
       // item in the new list (required for == to work after list refresh).
       final currentId = selectedQuickFilter.value?.id;
       if (currentId != null) {
-        selectedQuickFilter.value = quickFilters.firstWhereOrNull((f) => f.id == currentId);
+        selectedQuickFilter.value = quickFilters.firstWhereOrNull(
+          (f) => f.id == currentId,
+        );
       }
     } catch (e) {
       debugPrint('Error fetching quick filters: $e');
@@ -294,11 +320,15 @@ class SupportTicketsController extends GetxController {
       // Build the filters payload matching the API format
       final filtersPayload = {
         'table_assignee': selectedAssignees.map((a) => a.name).toList(),
-        'mcatid': selectedCategories.map((c) => c.categoryId.toString()).toList(),
+        'mcatid': selectedCategories
+            .map((c) => c.categoryId.toString())
+            .toList(),
         'submcatid': selectedSubCategory.value?.subCategoryId.toString() ?? '',
         'selectedUnits': selectedUnits.map((u) => u.unitId.toString()).toList(),
         'statusid': selectedStatuses,
-        'selectedProject': selectedProjects.map((p) => p.projectId.toString()).toList(),
+        'selectedProject': selectedProjects
+            .map((p) => p.projectId.toString())
+            .toList(),
         'priorityId': selectedPriority.value ?? '',
         'globalsearch': searchController.text,
       };
@@ -309,13 +339,22 @@ class SupportTicketsController extends GetxController {
       );
 
       if (success) {
-        AppCommonToastMessage.show(message: 'Filter "$name" saved!', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Filter "$name" saved!',
+          type: ToastType.success,
+        );
         fetchQuickFilters(); // Refresh list
       } else {
-        AppCommonToastMessage.show(message: 'Failed to save filter', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: 'Failed to save filter',
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Error saving filter: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Error saving filter: $e',
+        type: ToastType.error,
+      );
     } finally {
       isSavingFilter.value = false;
     }
@@ -374,11 +413,15 @@ class SupportTicketsController extends GetxController {
   Future<void> fetchTickets() async {
     try {
       isLoading.value = true;
-      debugPrint('fetchTickets: Fetching with assigneeIds: ${selectedAssignees.map((e) => e.id).toList()}');
+      debugPrint(
+        'fetchTickets: Fetching with assigneeIds: ${selectedAssignees.map((e) => e.id).toList()}',
+      );
       final response = await _supportRepository.getAllSupportTickets(
         globalSearch: searchController.text,
         mcatIds: selectedCategories.map((e) => e.categoryId).toList(),
-        subMcatIds: selectedSubCategory.value != null ? [selectedSubCategory.value!.subCategoryId] : [],
+        subMcatIds: selectedSubCategory.value != null
+            ? [selectedSubCategory.value!.subCategoryId]
+            : [],
         projectIds: selectedProjects.map((e) => e.projectId).toList(),
         unitIds: selectedUnits.map((e) => e.unitId).toList(),
         statusIds: [], // Need mapping if numeric
@@ -391,7 +434,10 @@ class SupportTicketsController extends GetxController {
         totalTickets.value = response.totalTickets;
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to fetch tickets: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to fetch tickets: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -401,7 +447,7 @@ class SupportTicketsController extends GetxController {
     isSearching.value = !isSearching.value;
     searchQuery.value = '';
     searchController.clear();
-    
+
     if (isSearching.value) {
       Future.delayed(const Duration(milliseconds: 100), () {
         searchFocusNode.requestFocus();
@@ -455,18 +501,22 @@ class SupportTicketsController extends GetxController {
         "Posted Date",
       ];
 
-      List<List<dynamic>> rows = filteredTickets.map((ticket) => [
-        ticket.id,
-        ticket.unitNo ?? '',
-        ticket.subject ?? '',
-        ticket.project ?? '',
-        ticket.mCategory ?? '',
-        ticket.subCat ?? '',
-        ticket.statusLabel ?? '',
-        ticket.priorityLabel ?? '',
-        ticket.assignedTo ?? '',
-        ticket.postedDate ?? '',
-      ]).toList();
+      List<List<dynamic>> rows = filteredTickets
+          .map(
+            (ticket) => [
+              ticket.id,
+              ticket.unitNo ?? '',
+              ticket.subject ?? '',
+              ticket.project ?? '',
+              ticket.mCategory ?? '',
+              ticket.subCat ?? '',
+              ticket.statusLabel ?? '',
+              ticket.priorityLabel ?? '',
+              ticket.assignedTo ?? '',
+              ticket.postedDate ?? '',
+            ],
+          )
+          .toList();
 
       if (isPdf) {
         await AppExportUtils.exportToPdf(
@@ -482,9 +532,13 @@ class SupportTicketsController extends GetxController {
         );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to export tickets: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to export tickets: $e',
+        type: ToastType.error,
+      );
     }
   }
+
   // Bulk Edit Dialog Variables
   final bulkSelectedUnit = Rxn<SupportUnit>();
   final bulkEnableUnit = false.obs;
@@ -507,7 +561,9 @@ class SupportTicketsController extends GetxController {
 
   Future<void> fetchBulkSubCategories(int categoryId) async {
     try {
-      final result = await _supportRepository.getSupportSubCategories(categoryId);
+      final result = await _supportRepository.getSupportSubCategories(
+        categoryId,
+      );
       bulkSubCategories.assignAll(result);
       bulkSelectedSubCategory.value = null; // reset
     } catch (e) {
@@ -533,19 +589,28 @@ class SupportTicketsController extends GetxController {
 
   Future<void> submitBulkEdit() async {
     if (selectedTickets.isEmpty) {
-      AppCommonToastMessage.show(message: 'Please select at least one ticket', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Please select at least one ticket',
+        type: ToastType.error,
+      );
       return;
     }
 
-    bool hasUpdates = (bulkEnableUnit.value && bulkSelectedUnit.value != null) ||
-                      (bulkEnablePriority.value && bulkSelectedPriority.value != null) ||
-                      (bulkEnableStatus.value && bulkSelectedStatus.value != null) ||
-                      (bulkEnableCategory.value && bulkSelectedCategory.value != null) ||
-                      (bulkEnableSubCategory.value && bulkSelectedSubCategory.value != null) ||
-                      (bulkEnableAssignee.value && bulkSelectedAssignee.value != null);
+    bool hasUpdates =
+        (bulkEnableUnit.value && bulkSelectedUnit.value != null) ||
+        (bulkEnablePriority.value && bulkSelectedPriority.value != null) ||
+        (bulkEnableStatus.value && bulkSelectedStatus.value != null) ||
+        (bulkEnableCategory.value && bulkSelectedCategory.value != null) ||
+        (bulkEnableSubCategory.value &&
+            bulkSelectedSubCategory.value != null) ||
+        (bulkEnableAssignee.value && bulkSelectedAssignee.value != null);
 
     if (!hasUpdates) {
-      AppCommonToastMessage.show(message: 'Please check at least one field and select a value to update.', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message:
+            'Please check at least one field and select a value to update.',
+        type: ToastType.error,
+      );
       return;
     }
 
@@ -575,8 +640,10 @@ class SupportTicketsController extends GetxController {
       if (bulkEnableCategory.value && bulkSelectedCategory.value != null) {
         data["mcatid"] = bulkSelectedCategory.value!.categoryId.toString();
       }
-      if (bulkEnableSubCategory.value && bulkSelectedSubCategory.value != null) {
-        data["bsubmcatid"] = bulkSelectedSubCategory.value!.subCategoryId.toString();
+      if (bulkEnableSubCategory.value &&
+          bulkSelectedSubCategory.value != null) {
+        data["bsubmcatid"] = bulkSelectedSubCategory.value!.subCategoryId
+            .toString();
       }
       if (bulkEnableAssignee.value && bulkSelectedAssignee.value != null) {
         data["assignid"] = bulkSelectedAssignee.value!.id.toString();
@@ -586,13 +653,22 @@ class SupportTicketsController extends GetxController {
       if (response != null && response['status'] == true) {
         Get.back(); // close dialog
         selectedTickets.clear();
-        AppCommonToastMessage.show(message: response['message'] ?? 'Tickets updated successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: response['message'] ?? 'Tickets updated successfully',
+          type: ToastType.success,
+        );
         fetchTickets();
       } else {
-        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to update tickets', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to update tickets',
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'An error occurred: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'An error occurred: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -600,23 +676,35 @@ class SupportTicketsController extends GetxController {
 
   String _getPriorityId(String? priority) {
     switch (priority) {
-      case 'Low': return '1';
-      case 'Medium': return '2';
-      case 'High': return '3';
-      case 'Top Priority': return '6';
-      default: return '2';
+      case 'Low':
+        return '1';
+      case 'Medium':
+        return '2';
+      case 'High':
+        return '3';
+      case 'Top Priority':
+        return '6';
+      default:
+        return '2';
     }
   }
 
   String _getStatusId(String? status) {
     switch (status) {
-      case 'New': return '0';
-      case 'WIP': return '1';
-      case 'Resolved': return '2';
-      case 'Closed': return '3';
-      case 'Hold': return '4';
-      case 'Awaited': return '5';
-      default: return '0';
+      case 'New':
+        return '0';
+      case 'WIP':
+        return '1';
+      case 'Resolved':
+        return '2';
+      case 'Closed':
+        return '3';
+      case 'Hold':
+        return '4';
+      case 'Awaited':
+        return '5';
+      default:
+        return '0';
     }
   }
 }

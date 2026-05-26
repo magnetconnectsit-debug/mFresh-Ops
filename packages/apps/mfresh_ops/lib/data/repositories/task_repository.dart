@@ -10,7 +10,8 @@ class TaskRepository extends GetxService {
   Future<List<TaskProject>> getTaskProjects() async {
     try {
       final response = await _apiService.post(AppConstants.taskProjectList);
-      if (response != null && (response['status'] == 'success' || response['status'] == true)) {
+      if (response != null &&
+          (response['status'] == 'success' || response['status'] == true)) {
         final List data = response['data'] ?? [];
         return data.map((e) => TaskProject.fromJson(e)).toList();
       }
@@ -22,9 +23,7 @@ class TaskRepository extends GetxService {
 
   Future<List<TaskGroup>> getTaskGroups(String mainId) async {
     try {
-      final response = await _apiService.get(
-        AppConstants.taskGroupList,
-      );
+      final response = await _apiService.get(AppConstants.taskGroupList);
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
         return data.map((e) => TaskGroup.fromJson(e)).toList();
@@ -79,7 +78,10 @@ class TaskRepository extends GetxService {
 
   Future<DailyTaskResponse?> getDailyTasks() async {
     try {
-      final response = await _apiService.post(AppConstants.dailyTasks, data: {});
+      final response = await _apiService.post(
+        AppConstants.dailyTasks,
+        data: {},
+      );
       if (response != null && response['status'] == true) {
         return DailyTaskResponse.fromJson(response);
       }
@@ -149,14 +151,14 @@ class TaskRepository extends GetxService {
     }
   }
 
-  Future<TaskDetailResponse?> getTaskEditDetails(String taskId, String instanceId) async {
+  Future<TaskDetailResponse?> getTaskEditDetails(
+    String taskId,
+    String instanceId,
+  ) async {
     try {
       final response = await _apiService.post(
         AppConstants.editTask,
-        data: {
-          "instance_id": instanceId,
-          "task_id": taskId,
-        },
+        data: {"instance_id": instanceId, "task_id": taskId},
       );
       if (response != null && response['status'] == true) {
         return TaskDetailResponse.fromJson(response);

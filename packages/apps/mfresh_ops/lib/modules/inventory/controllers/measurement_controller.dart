@@ -8,6 +8,14 @@ class MeasurementController extends GetxController {
   final measurements = <String>['Litre', 'Packet', 'Piece', 'Pair', 'Kg'].obs;
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
+  final isLoading = false.obs;
+
+  Future<void> onRefresh() async {
+    isLoading.value = true;
+    // Mock refresh delay
+    await Future.delayed(const Duration(seconds: 1));
+    isLoading.value = false;
+  }
 
   void addMeasurement() {
     final name = measurementNameController.text.trim();
@@ -15,9 +23,15 @@ class MeasurementController extends GetxController {
       measurements.add(name);
       measurementNameController.clear();
       Get.back();
-      AppCommonToastMessage.show(message: "Measurement added successfully!", type: ToastType.success);
+      AppCommonToastMessage.show(
+        message: "Measurement added successfully!",
+        type: ToastType.success,
+      );
     } else {
-      AppCommonToastMessage.show(message: "Please enter measurement name", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Please enter measurement name",
+        type: ToastType.error,
+      );
     }
   }
 
@@ -26,13 +40,19 @@ class MeasurementController extends GetxController {
       measurements[index] = newName;
       measurementNameController.clear();
       Get.back();
-      AppCommonToastMessage.show(message: "Measurement updated successfully!", type: ToastType.success);
+      AppCommonToastMessage.show(
+        message: "Measurement updated successfully!",
+        type: ToastType.success,
+      );
     }
   }
 
   void deleteMeasurement(int index) {
     measurements.removeAt(index);
-    AppCommonToastMessage.show(message: "Measurement deleted successfully!", type: ToastType.success);
+    AppCommonToastMessage.show(
+      message: "Measurement deleted successfully!",
+      type: ToastType.success,
+    );
   }
 
   Future<void> exportToExcel() async {
@@ -40,7 +60,11 @@ class MeasurementController extends GetxController {
     await AppExportUtils.exportToExcel(
       title: 'Measurements Report',
       columns: const ["SI No", "Measurement Name"],
-      rows: measurements.asMap().entries.map((e) => [e.key + 1, e.value]).toList(),
+      rows: measurements
+          .asMap()
+          .entries
+          .map((e) => [e.key + 1, e.value])
+          .toList(),
     );
     isExporting.value = false;
   }
@@ -50,7 +74,11 @@ class MeasurementController extends GetxController {
     await AppExportUtils.exportToPdf(
       title: 'Measurements Report',
       columns: const ["SI No", "Measurement Name"],
-      rows: measurements.asMap().entries.map((e) => [e.key + 1, e.value]).toList(),
+      rows: measurements
+          .asMap()
+          .entries
+          .map((e) => [e.key + 1, e.value])
+          .toList(),
     );
     isExportingPdf.value = false;
   }

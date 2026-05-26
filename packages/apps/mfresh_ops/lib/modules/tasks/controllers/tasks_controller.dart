@@ -23,11 +23,7 @@ class TasksController extends GetxController {
   // region Data Lists
   final tasks = <TaskItem>[].obs;
   final dailyTasks = <TaskItem>[].obs;
-  final taskCounts = {
-    'active': 0,
-    'completed': 0,
-    'overdue': 0,
-  }.obs;
+  final taskCounts = {'active': 0, 'completed': 0, 'overdue': 0}.obs;
 
   final scrollController = ScrollController();
 
@@ -53,7 +49,8 @@ class TasksController extends GetxController {
   void onInit() {
     super.onInit();
     scrollController.addListener(() {
-      if (scrollController.position.pixels >= scrollController.position.maxScrollExtent - 200) {
+      if (scrollController.position.pixels >=
+          scrollController.position.maxScrollExtent - 200) {
         if (isFiltered) {
           fetchTasks(isLoadMore: true);
         }
@@ -62,11 +59,11 @@ class TasksController extends GetxController {
     refreshData();
   }
 
-  bool get isFiltered => 
-    selectedProjects.isNotEmpty || 
-    selectedGroups.isNotEmpty || 
-    selectedUnits.isNotEmpty || 
-    selectedAssignees.isNotEmpty;
+  bool get isFiltered =>
+      selectedProjects.isNotEmpty ||
+      selectedGroups.isNotEmpty ||
+      selectedUnits.isNotEmpty ||
+      selectedAssignees.isNotEmpty;
 
   Future<void> refreshData() async {
     await fetchAllData();
@@ -90,7 +87,7 @@ class TasksController extends GetxController {
   Future<void> fetchInitialList() async {
     final currentRoute = Get.currentRoute;
     debugPrint('TasksController: fetchInitialList for route: $currentRoute');
-    
+
     // As per latest request, All Tasks screen uses daily-tasks API
     if (currentRoute.contains(AppRoutes.allTasks)) {
       await fetchDailyTasks();
@@ -136,7 +133,9 @@ class TasksController extends GetxController {
     try {
       final user = _storageService.getUser();
       if (user != null) {
-        final data = await _commonRepository.getAllAssignees(mainId: user.id.toString());
+        final data = await _commonRepository.getAllAssignees(
+          mainId: user.id.toString(),
+        );
         assignees.assignAll(data);
       }
     } catch (e) {
@@ -152,7 +151,8 @@ class TasksController extends GetxController {
         // When using daily-tasks, we assign them to the main 'tasks' list for UI consistency
         tasks.assignAll(response.tasks);
         taskCounts.assignAll(response.counts);
-        hasMore.value = false; // daily-tasks usually isn't paginated the same way
+        hasMore.value =
+            false; // daily-tasks usually isn't paginated the same way
       }
     } catch (e) {
       debugPrint('Error fetching daily tasks: $e');
@@ -186,7 +186,7 @@ class TasksController extends GetxController {
         } else {
           tasks.addAll(response.data);
         }
-        
+
         hasMore.value = response.currentPage < response.lastPage;
         if (hasMore.value) {
           currentPage.value++;
@@ -226,24 +226,33 @@ class TasksController extends GetxController {
 
       for (var file in attachments) {
         if (file is XFile) {
-          formData.files.add(MapEntry(
-            'taskimages[]',
-            await dio.MultipartFile.fromFile(file.path),
-          ));
+          formData.files.add(
+            MapEntry(
+              'taskimages[]',
+              await dio.MultipartFile.fromFile(file.path),
+            ),
+          );
         }
       }
 
-      final response = isUpdate 
-        ? await _taskRepository.saveTaskDraft(formData)
-        : await _taskRepository.submitTask(formData);
+      final response = isUpdate
+          ? await _taskRepository.saveTaskDraft(formData)
+          : await _taskRepository.submitTask(formData);
 
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar('Success', response['message'] ?? 'Task ${isUpdate ? 'updated' : 'submitted'} successfully');
+        Get.snackbar(
+          'Success',
+          response['message'] ??
+              'Task ${isUpdate ? 'updated' : 'submitted'} successfully',
+        );
         fetchDailyTasks();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to ${isUpdate ? 'update' : 'submit'} task: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to ${isUpdate ? 'update' : 'submit'} task: $e',
+      );
     } finally {
       isLoading.value = false;
     }
@@ -327,14 +336,18 @@ class TasksController extends GetxController {
         'Status',
       ];
 
-      final List<List<dynamic>> rows = tasks.map((task) => [
-        task.scheduleDateTime.split(' ').first,
-        task.instanceCode ?? task.taskCode,
-        task.title,
-        task.project ?? 'N/A',
-        task.assigneeName ?? 'Unassigned',
-        task.status.toUpperCase(),
-      ]).toList();
+      final List<List<dynamic>> rows = tasks
+          .map(
+            (task) => [
+              task.scheduleDateTime.split(' ').first,
+              task.instanceCode ?? task.taskCode,
+              task.title,
+              task.project ?? 'N/A',
+              task.assigneeName ?? 'Unassigned',
+              task.status.toUpperCase(),
+            ],
+          )
+          .toList();
 
       if (isPdf) {
         await AppExportUtils.exportToPdf(
@@ -408,16 +421,27 @@ class TasksController extends GetxController {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildPickerOption(Icons.camera_alt, 'Camera', ImageSource.camera),
-                _buildPickerOption(Icons.photo_library, 'Gallery', ImageSource.gallery),
+                _buildPickerOption(
+                  Icons.camera_alt,
+                  'Camera',
+                  ImageSource.camera,
+                ),
+                _buildPickerOption(
+                  Icons.photo_library,
+                  'Gallery',
+                  ImageSource.gallery,
+                ),
               ],
             ),
           ),
         );
         return;
       }
-      
-      final XFile? image = await _picker.pickImage(source: source, imageQuality: 80);
+
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
       if (image != null) {
         attachments.add(image);
       }
@@ -430,7 +454,10 @@ class TasksController extends GetxController {
     return GestureDetector(
       onTap: () async {
         Get.back();
-        final XFile? image = await _picker.pickImage(source: source, imageQuality: 80);
+        final XFile? image = await _picker.pickImage(
+          source: source,
+          imageQuality: 80,
+        );
         if (image != null) {
           attachments.add(image);
         }

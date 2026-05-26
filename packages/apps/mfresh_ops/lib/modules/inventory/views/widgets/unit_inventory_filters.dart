@@ -1,0 +1,108 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
+import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
+
+class UnitInventoryFilters extends StatelessWidget {
+  const UnitInventoryFilters({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.find<UnitInventoryController>();
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: AppColors.grey50),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+          int crossAxis = isMobile ? 2 : 4;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Filter',
+                style: AppTextStyle.style_14_600(color: AppColors.black),
+              ),
+              SizedBox(height: 8.h),
+              GridView(
+                padding: EdgeInsets.zero,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxis,
+                  crossAxisSpacing: 16.w,
+                  mainAxisSpacing: 8.h,
+                  mainAxisExtent: 32.h,
+                ),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  Obx(
+                    () => MultiSelectDropdownWidget<String>(
+                      hint: 'Unit(s)',
+                      isSingleSelect: false,
+                      selectedValues: controller.selectedUnits.toList().toSet(),
+                      items: controller.unitOptions
+                          .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                value: e.value,
+                                child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
+                              ))
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedUnits.assignAll(values.toList());
+                        controller.applyFilters();
+                      },
+                    ),
+                  ),
+                  Obx(
+                    () => MultiSelectDropdownWidget<String>(
+                      hint: 'Item(s)',
+                      isSingleSelect: false,
+                      selectedValues: controller.selectedItems.toList().toSet(),
+                      items: controller.itemOptions
+                          .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                value: e.value,
+                                child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
+                              ))
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedItems.assignAll(values.toList());
+                        controller.applyFilters();
+                      },
+                    ),
+                  ),
+                  Obx(
+                    () => MultiSelectDropdownWidget<String>(
+                      hint: 'Select Category',
+                      isSingleSelect: false,
+                      selectedValues: controller.selectedCategories.toList().toSet(),
+                      items: controller.categoryOptions
+                          .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                value: e.value,
+                                child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
+                              ))
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedCategories.assignAll(values.toList());
+                        controller.applyFilters();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

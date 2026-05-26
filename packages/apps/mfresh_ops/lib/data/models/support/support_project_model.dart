@@ -2,10 +2,7 @@ class SupportProjectModel {
   final int id;
   final String project;
 
-  SupportProjectModel({
-    required this.id,
-    required this.project,
-  });
+  SupportProjectModel({required this.id, required this.project});
 
   factory SupportProjectModel.fromJson(Map<String, dynamic> json) {
     return SupportProjectModel(
@@ -15,9 +12,6 @@ class SupportProjectModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'project': project,
-    };
+    return {'id': id, 'project': project};
   }
 }

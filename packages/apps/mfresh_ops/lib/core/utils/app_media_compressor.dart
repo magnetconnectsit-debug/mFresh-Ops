@@ -32,13 +32,17 @@ class AppMediaCompressor {
         targetWidth: targetWidth,
       );
       final frameInfo = await codec.getNextFrame();
-      final byteData = await frameInfo.image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await frameInfo.image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       if (byteData != null) {
         final compressedBytes = byteData.buffer.asUint8List();
         final tempDir = await getTemporaryDirectory();
-        final tempFile = File('${tempDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.png');
+        final tempFile = File(
+          '${tempDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
         await tempFile.writeAsBytes(compressedBytes);
-        
+
         // Only return if it's actually smaller in size
         if (await tempFile.length() < await file.length()) {
           return tempFile;

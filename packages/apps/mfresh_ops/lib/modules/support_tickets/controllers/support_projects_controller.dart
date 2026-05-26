@@ -15,6 +15,22 @@ class SupportProjectsController extends GetxController {
   final allProjects = <SupportProjectModel>[].obs;
   final filteredProjects = <SupportProjectModel>[].obs;
 
+  // Pagination
+  final currentPage = 1.obs;
+  final itemsPerPage = 10.obs;
+
+  List<SupportProjectModel> get paginatedProjects {
+    final startIndex = (currentPage.value - 1) * itemsPerPage.value;
+    final endIndex = startIndex + itemsPerPage.value;
+    if (startIndex >= filteredProjects.length) return [];
+    return filteredProjects.sublist(
+      startIndex,
+      endIndex > filteredProjects.length ? filteredProjects.length : endIndex,
+    );
+  }
+
+  int get totalPages => (filteredProjects.length / itemsPerPage.value).ceil();
+
   @override
   void onInit() {
     super.onInit();
@@ -53,54 +69,82 @@ class SupportProjectsController extends GetxController {
         return query.isEmpty || proj.project.toLowerCase().contains(query);
       }).toList(),
     );
+    currentPage.value = 1;
   }
 
-  Future<void> addProject() async {
+  void nextPage() {
+    if (currentPage.value < totalPages) {
+      currentPage.value++;
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage.value = page;
+    }
+  }
+
+  Future<bool> addProject() async {
     if (projectNameController.text.trim().isNotEmpty) {
       try {
-        final success = await _supportRepository.addProject(projectNameController.text.trim());
+        final success = await _supportRepository.addProject(
+          projectNameController.text.trim(),
+        );
         if (success) {
           fetchProjects();
           projectNameController.clear();
-          Get.back();
           AppCommonToastMessage.show(
             message: "Project added successfully!",
             type: ToastType.success,
           );
+          return true;
         }
       } catch (e) {
         AppCommonToastMessage.show(
           message: "Failed to add project: $e",
           type: ToastType.error,
         );
+        return false;
       }
     }
+    return false;
   }
 
-  Future<void> editProject(int index, String newName) async {
+  Future<bool> editProject(int index, String newName) async {
     if (newName.trim().isNotEmpty) {
       try {
         final project = filteredProjects[index];
-        final success = await _supportRepository.updateProject(project.id, newName.trim());
+        final success = await _supportRepository.updateProject(
+          project.id,
+          newName.trim(),
+        );
         if (success) {
           fetchProjects();
           projectNameController.clear();
-          Get.back();
           AppCommonToastMessage.show(
             message: "Project updated successfully!",
             type: ToastType.success,
           );
+          return true;
         }
       } catch (e) {
         AppCommonToastMessage.show(
           message: "Failed to update project: $e",
           type: ToastType.error,
         );
+        return false;
       }
     }
+    return false;
   }
 
-  Future<void> deleteProject(int index) async {
+  Future<bool> deleteProject(int index) async {
     try {
       final project = filteredProjects[index];
       final success = await _supportRepository.deleteProject(project.id);
@@ -110,13 +154,16 @@ class SupportProjectsController extends GetxController {
           message: "Project deleted successfully!",
           type: ToastType.success,
         );
+        return true;
       }
     } catch (e) {
       AppCommonToastMessage.show(
         message: "Failed to delete project: $e",
         type: ToastType.error,
       );
+      return false;
     }
+    return false;
   }
 
   @override
