@@ -13,6 +13,7 @@ import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/task_repository.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:dev/views/widgets/floating_logger_button.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -60,6 +61,7 @@ Future<void> initServices() async {
   Get.put(CommonRepository());
   Get.put(SupportRepository());
   Get.put(TaskRepository());
+  Get.put(InventoryRepository());
 }
 
 class OpsApp extends StatelessWidget {

@@ -74,6 +74,7 @@ class SupportRepository extends GetxService {
     List<int> statusIds = const [],
     String globalSearch = "",
     List<int> assigneeIds = const [],
+    List<int> priorityIds = const [],
   }) async {
     try {
       final response = await _apiService.post(
@@ -86,6 +87,7 @@ class SupportRepository extends GetxService {
           "statusid": statusIds,
           "globalsearch": globalSearch,
           "assignee": assigneeIds,
+          "priorityId": priorityIds,
         },
       );
       if (response != null && response['status'] == true) {

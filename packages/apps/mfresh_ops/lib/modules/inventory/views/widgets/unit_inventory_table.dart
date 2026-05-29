@@ -6,6 +6,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/inventory/views/widgets/store_inventory_dialogs.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class UnitInventoryTable extends StatefulWidget {
   const UnitInventoryTable({super.key});
@@ -30,6 +31,13 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<UnitInventoryController>();
+
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      final canAllocate = userPermissions.contains('U_Inv_Allot');
+      final canConsume = userPermissions.contains('U_Inv_Consume');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,39 +122,43 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
                             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                             child: Row(
                               children: [
-                                SizedBox(
-                                  height: 18.h,
-                                  child: ElevatedButton(
-                                    onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                      elevation: 0,
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                if (canAllocate) ...[
+                                  SizedBox(
+                                    height: 18.h,
+                                    child: ElevatedButton(
+                                      onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                        elevation: 0,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text('Allocate', style: AppTextStyle.style_10_500(color: Colors.white)),
                                     ),
-                                    child: Text('Allocate', style: AppTextStyle.style_10_500(color: Colors.white)),
                                   ),
-                                ),
-                                SizedBox(width: 4.w),
-                                SizedBox(
-                                  height: 18.h,
-                                  child: ElevatedButton(
-                                    onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE53935),
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                      elevation: 0,
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  SizedBox(width: 4.w),
+                                ],
+                                if (canConsume) ...[
+                                  SizedBox(
+                                    height: 18.h,
+                                    child: ElevatedButton(
+                                      onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFE53935),
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                        elevation: 0,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text('Consume', style: AppTextStyle.style_10_500(color: Colors.white)),
                                     ),
-                                    child: Text('Consume', style: AppTextStyle.style_10_500(color: Colors.white)),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
@@ -209,6 +221,7 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
           }),
         ],
     );
+    });
   }
 
   Widget _buildHeaderCell(String text) {

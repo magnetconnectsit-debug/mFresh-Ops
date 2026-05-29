@@ -11,6 +11,7 @@ import '../controllers/unit_inventory_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'widgets/unit_inventory_filters.dart';
 import 'widgets/unit_inventory_table.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class UnitInventoryScreen extends StatelessWidget {
   const UnitInventoryScreen({super.key});
@@ -71,20 +72,29 @@ class UnitInventoryScreen extends StatelessWidget {
 
   Widget _buildActionButtons(BuildContext context) {
     final controller = Get.find<UnitInventoryController>();
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      final canExport = userPermissions.contains('U_Inv_export');
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         children: [
-          AppCommonButton(
-            text: 'Export Excel',
-            buttonColor: const Color(0xFF26A69A), // Green color matching screenshot
-            width: 100.w,
-            height: 28.h,
-            onPressed: () => controller.exportToExcel(),
-          ),
+          if (canExport) ...[
+            AppCommonButton(
+              text: 'Export Excel',
+              buttonColor: const Color(0xFF26A69A), // Green color matching screenshot
+              width: 100.w,
+              height: 28.h,
+              onPressed: () => controller.exportToExcel(),
+            ),
+          ],
           const Spacer(),
         ],
       ),
     );
+    });
   }
 }

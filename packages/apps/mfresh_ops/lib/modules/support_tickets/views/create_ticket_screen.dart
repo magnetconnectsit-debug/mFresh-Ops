@@ -10,6 +10,7 @@ import 'package:core/widgets/app_common_media_source.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'widgets/multi_select_dropdown.dart';
 
 class CreateTicketScreen extends StatelessWidget {
   const CreateTicketScreen({super.key});
@@ -72,15 +73,16 @@ class CreateTicketScreen extends StatelessWidget {
                   _buildFormGrid(context, controller),
                   SizedBox(height: 12.h),
 
-                  const Text(
-                    "Subject*",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
+                  _buildLabel("Subject*"),
                   SizedBox(height: 4.h),
-                  _buildTextField(
-                    controller.subjectController,
-                    "Subject Line",
-                    maxLines: 2,
+                  Obx(
+                    () => _buildTextField(
+                      controller.subjectController,
+                      "Subject Line",
+                      maxLines: 2,
+                      hasError: controller.showValidationErrors.value &&
+                          controller.subjectController.text.trim().isEmpty,
+                    ),
                   ),
 
                   SizedBox(height: 8.h),
@@ -138,11 +140,27 @@ class CreateTicketScreen extends StatelessWidget {
                         ),
                       ),
                       rightLabel: "Template",
-                      rightChild: _buildDropdown<SupportTemplateModel>(
-                        controller.selectedTemplate.value,
-                        controller.templates,
-                        (v) => controller.onTemplateSelected(v),
-                        (item) => item.templateName,
+                      rightChild: MultiSelectDropdownWidget<SupportTemplateModel>(
+                        hint: "Select",
+                        isSingleSelect: true,
+                        showSearch: true,
+                        height: 32.h,
+                        selectedValues: controller.selectedTemplate.value != null
+                            ? {controller.selectedTemplate.value!}
+                            : {},
+                        items: controller.templates
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item,
+                                child: Text(item.templateName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (values) {
+                          controller.onTemplateSelected(
+                            values.isNotEmpty ? values.first : null,
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -181,60 +199,189 @@ class CreateTicketScreen extends StatelessWidget {
             leftLabel: "Occurred*",
             leftChild: _buildOccurredField(context, controller),
             rightLabel: "Unit*",
-            rightChild: _buildDropdown<SupportUnit>(
-              controller.selectedUnit.value,
-              controller.units,
-              (v) => controller.selectedUnit.value = v,
-              (item) => item.unitName,
+            rightChild: MultiSelectDropdownWidget<SupportUnit>(
+              hint: "Select",
+              isSingleSelect: true,
+              showSearch: true,
+              height: 32.h,
+              selectedValues: controller.selectedUnit.value != null
+                  ? {controller.selectedUnit.value!}
+                  : {},
+              items: controller.units
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item.unitName),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedUnit.value =
+                    values.isNotEmpty ? values.first : null;
+              },
+              hasError: controller.showValidationErrors.value &&
+                  controller.selectedUnit.value == null,
             ),
           ),
           SizedBox(height: 5.h),
           _twoFieldRow(
             leftLabel: "Category*",
-            leftChild: _buildDropdown<SupportCategory>(
-              controller.selectedCategory.value,
-              controller.categories,
-              (v) => controller.onCategorySelected(v),
-              (item) => item.categoryName,
+            leftChild: MultiSelectDropdownWidget<SupportCategory>(
+              hint: "Select",
+              isSingleSelect: true,
+              showSearch: true,
+              height: 32.h,
+              selectedValues: controller.selectedCategory.value != null
+                  ? {controller.selectedCategory.value!}
+                  : {},
+              items: controller.categories
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item.categoryName),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.onCategorySelected(
+                  values.isNotEmpty ? values.first : null,
+                );
+              },
+              hasError: controller.showValidationErrors.value &&
+                  controller.selectedCategory.value == null,
             ),
             rightLabel: "S-Category",
-            rightChild: _buildDropdown<SupportSubCategory>(
-              controller.selectedSubCategory.value,
-              controller.subCategories,
-              (v) => controller.selectedSubCategory.value = v,
-              (item) => item.subCategoryName,
+            rightChild: MultiSelectDropdownWidget<SupportSubCategory>(
+              hint: "Select",
+              isSingleSelect: true,
+              showSearch: true,
+              height: 32.h,
+              selectedValues: controller.selectedSubCategory.value != null
+                  ? {controller.selectedSubCategory.value!}
+                  : {},
+              items: controller.subCategories
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item.subCategoryName),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedSubCategory.value =
+                    values.isNotEmpty ? values.first : null;
+              },
             ),
           ),
           SizedBox(height: 5.h),
           _twoFieldRow(
             leftLabel: "Priority",
-            leftChild: _buildDropdown<String>(
-              controller.selectedPriority.value,
-              controller.priorities,
-              (v) => controller.selectedPriority.value = v,
-              (item) => item,
+            leftChild: MultiSelectDropdownWidget<String>(
+              hint: "Select",
+              isSingleSelect: true,
+              showSearch: true,
+              height: 32.h,
+              selectedValues: controller.selectedPriority.value != null
+                  ? {controller.selectedPriority.value!}
+                  : {},
+              items: controller.priorities
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedPriority.value =
+                    values.isNotEmpty ? values.first : null;
+              },
             ),
             rightLabel: "Project*",
-            rightChild: _buildDropdown<SupportProject>(
-              controller.selectedProject.value,
-              controller.projects,
-              (v) => controller.selectedProject.value = v,
-              (item) => item.projectName,
+            rightChild: MultiSelectDropdownWidget<SupportProject>(
+              hint: "Select",
+              isSingleSelect: true,
+              showSearch: true,
+              height: 32.h,
+              selectedValues: controller.selectedProject.value != null
+                  ? {controller.selectedProject.value!}
+                  : {},
+              items: controller.projects
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item.projectName),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedProject.value =
+                    values.isNotEmpty ? values.first : null;
+              },
+              hasError: controller.showValidationErrors.value &&
+                  controller.selectedProject.value == null,
             ),
           ),
           SizedBox(height: 5.h),
           _twoFieldRow(
             leftLabel: "Assignee*",
-            leftChild: _buildDropdown<AssigneeModel>(
-              controller.selectedAssignee.value,
-              controller.assignees,
-              (v) => controller.selectedAssignee.value = v,
-              (item) => item.name,
+            leftChild: MultiSelectDropdownWidget<AssigneeModel>(
+              hint: "Select",
+              isSingleSelect: true,
+              showSearch: true,
+              height: 32.h,
+              selectedValues: controller.selectedAssignee.value != null
+                  ? {controller.selectedAssignee.value!}
+                  : {},
+              items: controller.assignees
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedAssignee.value =
+                    values.isNotEmpty ? values.first : null;
+              },
+              hasError: controller.showValidationErrors.value &&
+                  controller.selectedAssignee.value == null,
             ),
             rightLabel: "Reminder",
             rightChild: _buildReminderField(context, controller),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    if (text.endsWith('*')) {
+      final labelText = text.substring(0, text.length - 1);
+      return Text.rich(
+        TextSpan(
+          text: labelText,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+          children: const [
+            TextSpan(
+              text: ' *',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+    }
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: Colors.black,
       ),
     );
   }
@@ -252,13 +399,7 @@ class CreateTicketScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                leftLabel,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              _buildLabel(leftLabel),
               SizedBox(height: 4.h),
               SizedBox(width: double.infinity, child: leftChild),
             ],
@@ -269,13 +410,7 @@ class CreateTicketScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                rightLabel,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              _buildLabel(rightLabel),
               SizedBox(height: 4.h),
               SizedBox(width: double.infinity, child: rightChild),
             ],
@@ -292,7 +427,8 @@ class CreateTicketScreen extends StatelessWidget {
     return InkWell(
       onTap: () => controller.selectDate(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        height: 32.h,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: const Color(0xffF5F5F5),
           borderRadius: BorderRadius.circular(10.r),
@@ -320,7 +456,8 @@ class CreateTicketScreen extends StatelessWidget {
     return InkWell(
       onTap: () => _showReminderDialog(context, controller),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        height: 32.h,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: const Color(0xffF5F5F5),
           borderRadius: BorderRadius.circular(10.r),
@@ -551,46 +688,31 @@ class CreateTicketScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDropdown<T>(
-    T? value,
-    List<T> options,
-    Function(T?) onChanged,
-    String Function(T) labelBuilder,
-  ) {
-    T? safeValue = value;
-    if (value != null && !options.contains(value)) {
-      safeValue = null;
-    }
-    return DropdownButtonFormField<T>(
-      initialValue: safeValue,
-      isExpanded: true,
-      icon: const SizedBox.shrink(),
-      decoration: _inputDecoration("Select"),
-      items: options
-          .map(
-            (e) => DropdownMenuItem(
-              value: e,
-              child: Text(
-                labelBuilder(e),
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, {bool hasError = false}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 12),
+      hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
       filled: true,
       fillColor: const Color(0xffF5F5F5),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: BorderSide.none,
+        borderSide: hasError
+            ? const BorderSide(color: Colors.red, width: 1.5)
+            : BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: hasError
+            ? const BorderSide(color: Colors.red, width: 1.5)
+            : BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.r),
+        borderSide: BorderSide(
+          color: hasError ? Colors.red : const Color(0xffF15A24),
+          width: 1.5,
+        ),
       ),
       isDense: true,
     );
@@ -600,12 +722,13 @@ class CreateTicketScreen extends StatelessWidget {
     TextEditingController controller,
     String hint, {
     int maxLines = 1,
+    bool hasError = false,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       style: const TextStyle(fontSize: 12),
-      decoration: _inputDecoration(hint),
+      decoration: _inputDecoration(hint, hasError: hasError),
     );
   }
 

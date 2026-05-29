@@ -6,6 +6,8 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_co
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/widgets/app_common_app_bar.dart';
+import 'widgets/multi_select_dropdown.dart';
 
 class EditTicketScreen extends StatelessWidget {
   const EditTicketScreen({super.key});
@@ -16,16 +18,16 @@ class EditTicketScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF9),
-      appBar: AppBar(
+      appBar: AppCommonAppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: false,
+        hasBackButton: true,
         title: Obx(
           () => RichText(
             text: TextSpan(
               children: [
                 const TextSpan(
-                  text: "Ticket ",
+                  text: "Edit Ticket ",
                   style: TextStyle(
                     color: AppColors.primaryOrange,
                     fontSize: 18,
@@ -44,10 +46,6 @@ class EditTicketScreen extends StatelessWidget {
               ],
             ),
           ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Get.back(),
         ),
       ),
       body: SafeArea(
@@ -323,10 +321,10 @@ class EditTicketScreen extends StatelessWidget {
     return Obx(
       () => Table(
         columnWidths: const {
-          0: FlexColumnWidth(1.0),
+          0: FlexColumnWidth(1.4),
           1: FlexColumnWidth(1.5),
           2: FixedColumnWidth(8),
-          3: FlexColumnWidth(1.0),
+          3: FlexColumnWidth(1.4),
           4: FlexColumnWidth(1.5),
         },
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -497,7 +495,11 @@ class EditTicketScreen extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -570,6 +572,7 @@ class EditTicketScreen extends StatelessWidget {
                     color: controller.followUpDate.value == null
                         ? Colors.grey
                         : Colors.black87,
+                    fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -853,41 +856,34 @@ class EditTicketScreen extends StatelessWidget {
     Function(T?) onChanged,
     String Function(T) labelBuilder,
   ) {
-    List<T> safeOptions = List.from(options);
-    if (value != null && !safeOptions.contains(value)) {
-      safeOptions.insert(0, value);
-    }
-    return Container(
+    return MultiSelectDropdownWidget<T>(
+      hint: "Select",
+      isSingleSelect: true,
+      showSearch: true,
       height: 30,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey[300]!),
+      selectedValues: value != null ? {value} : {},
+      selectedTextStyle: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          icon: const SizedBox.shrink(),
-          isDense: true,
-          hint: const Text("Select", style: TextStyle(fontSize: 11)),
-          items: safeOptions
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(
-                    labelBuilder(e),
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+      items: options
+          .map(
+            (item) => DropdownMenuItem<T>(
+              value: item,
+              child: Text(
+                labelBuilder(item),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
-              )
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ),
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (values) {
+        onChanged(values.isNotEmpty ? values.first : null);
+      },
     );
   }
 
@@ -932,10 +928,10 @@ class EditTicketScreen extends StatelessWidget {
         child: TextField(
           controller: controller,
           maxLines: 1,
-          style: const TextStyle(fontSize: 12),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           decoration: InputDecoration.collapsed(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 11),
+            hintStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ),
       );
@@ -943,7 +939,7 @@ class EditTicketScreen extends StatelessWidget {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 12),
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
       decoration: _inputDecoration(hint, verticalPadding: verticalPadding),
     );
   }

@@ -17,7 +17,6 @@ class LoginScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.white,
-      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Positioned(
@@ -36,138 +35,145 @@ class LoginScreen extends StatelessWidget {
 
           // Main Content
           SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: GestureDetector(
-                      onTap: controller.handleLogoTap,
-                      child: Image.asset(
-                        AppImages.appLogo,
-                        width: 200.w,
-                        height: 200.w,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'Login',
-                    style: AppTextStyle.style_22_600(color: AppColors.black),
-                  ),
-                  SizedBox(height: 12.h),
-                  // Username Field
-                  AppCommonTextField(
-                    controller: controller.usernameController,
-                    titleText: 'Username',
-                    hintText: 'Enter your username',
-                    keyboardType: TextInputType.text,
-                  ),
-
-                  SizedBox(height: 8.h),
-
-                  // Password Field
-                  Obx(
-                    () => AppCommonTextField(
-                      controller: controller.passwordController,
-                      titleText: 'Password',
-                      hintText: 'Enter your password',
-                      obscureText: controller.obscurePassword.value,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          controller.obscurePassword.value
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.grey400,
-                          size: 20.sp,
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: GestureDetector(
+                            onTap: controller.handleLogoTap,
+                            child: Image.asset(
+                              AppImages.appLogo,
+                              width: 200.w,
+                              height: 200.w,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                        onPressed: controller.togglePasswordVisibility,
-                      ),
-                    ),
-                  ),
+                        SizedBox(height: 8.h),
+                        Text(
+                          'Login',
+                          style: AppTextStyle.style_22_600(color: AppColors.black),
+                        ),
+                        SizedBox(height: 12.h),
+                        // Username Field
+                        AppCommonTextField(
+                          controller: controller.usernameController,
+                          titleText: 'Username',
+                          hintText: 'Enter your username',
+                          keyboardType: TextInputType.text,
+                        ),
 
-                  SizedBox(height: 8.h),
+                        SizedBox(height: 8.h),
 
-                  // Remember Me & Forget Password
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 20.w,
-                            height: 20.w,
-                            child: Obx(
-                              () => Checkbox(
-                                value: controller.rememberMe.value,
-                                onChanged: controller.toggleRememberMe,
-                                activeColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4.r),
+                        // Password Field
+                        Obx(
+                          () => AppCommonTextField(
+                            controller: controller.passwordController,
+                            titleText: 'Password',
+                            hintText: 'Enter your password',
+                            obscureText: controller.obscurePassword.value,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                controller.obscurePassword.value
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.grey400,
+                                size: 20.sp,
+                              ),
+                              onPressed: controller.togglePasswordVisibility,
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 8.h),
+
+                        // Remember Me & Forget Password
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 20.w,
+                                  height: 20.w,
+                                  child: Obx(
+                                    () => Checkbox(
+                                      value: controller.rememberMe.value,
+                                      onChanged: controller.toggleRememberMe,
+                                      activeColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'Remember Me',
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.grey400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            InkWell(
+                              onTap: () {},
+                              child: Text(
+                                'Forget Password',
+                                style: AppTextStyle.style_12_600(
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+
+                        SizedBox(height: 12.h),
+
+                        // Login Button
+                        Obx(
+                          () => AppCommonButton(
+                            text: 'Login',
+                            isLoading: controller.isLoading.value,
+                            onPressed: controller.login,
                           ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Remember Me',
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // mFresh Ops
+                        Center(
+                          child: Text(
+                            'mFresh Ops',
+                            style: AppTextStyle.style_20_600(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+
+                        const Spacer(),
+
+                        // Footer
+                        Center(
+                          child: Text(
+                            '© 2024 ALL RIGHTS RESERVED',
                             style: AppTextStyle.style_12_400(
                               color: AppColors.grey400,
                             ),
                           ),
-                        ],
-                      ),
-                      InkWell(
-                        onTap: () {},
-                        child: Text(
-                          'Forget Password',
-                          style: AppTextStyle.style_12_600(
-                            color: AppColors.primary,
-                          ),
                         ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 12.h),
-
-                  // Login Button
-                  Obx(
-                    () => AppCommonButton(
-                      text: 'Login',
-                      isLoading: controller.isLoading.value,
-                      onPressed: controller.login,
+                        SizedBox(height: 16.h),
+                      ],
                     ),
                   ),
-
-                  SizedBox(height: 24.h),
-
-                  // mFresh Ops
-                  Center(
-                    child: Text(
-                      'mFresh Ops',
-                      style: AppTextStyle.style_20_600(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Footer
-                  Center(
-                    child: Text(
-                      '© 2024 ALL RIGHTS RESERVED',
-                      style: AppTextStyle.style_12_400(
-                        color: AppColors.grey400,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

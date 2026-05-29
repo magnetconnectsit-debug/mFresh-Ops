@@ -44,15 +44,15 @@ class AppCommonExcelViewer extends StatelessWidget {
             onPressed: _shareFile,
             icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
           ),
-          IconButton(
-            onPressed: () {
-              AppCommonToastMessage.show(
-                message: 'File already saved at: $filePath',
-                type: ToastType.success,
-              );
-            },
-            icon: Icon(Icons.download_rounded, color: AppColors.primary, size: 24.sp),
-          ),
+          // IconButton(
+          //   onPressed: () {
+          //     AppCommonToastMessage.show(
+          //       message: 'File already saved at: $filePath',
+          //       type: ToastType.success,
+          //     );
+          //   },
+          //   icon: Icon(Icons.download_rounded, color: AppColors.primary, size: 24.sp),
+          // ),
           SizedBox(width: 8.w),
         ],
       ),

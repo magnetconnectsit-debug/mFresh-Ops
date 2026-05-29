@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
 import 'store_inventory_dialogs.dart';
 
@@ -32,148 +33,159 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
   Widget build(BuildContext context) {
     final controller = Get.find<InventoryController>();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          margin: EdgeInsets.symmetric(horizontal: 16.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4.r),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-          child: Obx(() {
-            if (controller.inventoryItems.isEmpty && !controller.isLoading.value) {
-                            return Padding(
-                              padding: EdgeInsets.all(20.r),
-                              child: const Text('No inventory items found.'),
-                            );
-                          }
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
 
-                          final itemsToRender = controller.isLoading.value
-                              ? List.generate(
-                                  10,
-                                  (index) => InventoryItemModel(
-                                    id: index,
-                                    store: 'Store_Dummy',
-                                    item: 'Loading Item',
-                                    category: 'Category_Dummy',
-                                    quantity: '0',
-                                    unit: 'pcs',
-                                  ),
-                                )
-                              : controller.paginatedItems;
+      final canAllocate = userPermissions.contains('S_Inv_Allot');
+      final canConsume = userPermissions.contains('S_Inv_Consume');
 
-                          return Skeletonizer(
-                            enabled: controller.isLoading.value,
-                            child: Table(
-                              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                              border: TableBorder.symmetric(
-                                inside: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              columnWidths: {
-                                0: FixedColumnWidth(150.w),
-                                1: FixedColumnWidth(110.w),
-                                2: FixedColumnWidth(120.w),
-                                3: FixedColumnWidth(110.w),
-                                4: FixedColumnWidth(60.w),
-                                5: FixedColumnWidth(60.w),
-                              },
-                              children: [
-                                TableRow(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4.r),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4.r),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Obx(() {
+                  if (controller.inventoryItems.isEmpty && !controller.isLoading.value) {
+                    return Padding(
+                      padding: EdgeInsets.all(20.r),
+                      child: const Text('No inventory items found.'),
+                    );
+                  }
+
+                  final itemsToRender = controller.isLoading.value
+                      ? List.generate(
+                          10,
+                          (index) => InventoryItemModel(
+                            id: index,
+                            store: 'Store_Dummy',
+                            item: 'Loading Item',
+                            category: 'Category_Dummy',
+                            quantity: '0',
+                            unit: 'pcs',
+                          ),
+                        )
+                      : controller.paginatedItems;
+
+                  return Skeletonizer(
+                    enabled: controller.isLoading.value,
+                    child: Table(
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      border: TableBorder.symmetric(
+                        inside: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      columnWidths: {
+                        0: FixedColumnWidth(150.w),
+                        1: FixedColumnWidth(110.w),
+                        2: FixedColumnWidth(120.w),
+                        3: FixedColumnWidth(110.w),
+                        4: FixedColumnWidth(60.w),
+                        5: FixedColumnWidth(60.w),
+                      },
+                      children: [
+                        TableRow(
+                          children: [
+                            _buildHeaderCell('Action'),
+                            _buildHeaderCell('Store'),
+                            _buildHeaderCell('Item'),
+                            _buildHeaderCell('Category'),
+                            _buildHeaderCell('Qty'),
+                            _buildHeaderCell('Unit'),
+                          ],
+                        ),
+                        ...itemsToRender.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
+                          final key = '${item.store}_${item.item}_${item.category}_$index';
+                          final isExpanded = _expandedRows.contains(key);
+
+                          return TableRow(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                                child: Row(
                                   children: [
-                                    _buildHeaderCell('Action'),
-                                    _buildHeaderCell('Store'),
-                                    _buildHeaderCell('Item'),
-                                    _buildHeaderCell('Category'),
-                                    _buildHeaderCell('Qty'),
-                                    _buildHeaderCell('Unit'),
-                                  ],
-                                ),
-                                ...itemsToRender.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final item = entry.value;
-                                  final key = '${item.store}_${item.item}_${item.category}_$index';
-                                  final isExpanded = _expandedRows.contains(key);
-
-                                  return TableRow(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                                        child: Row(
-                                          children: [
-                                            SizedBox(
-                                              height: 18.h,
-                                              child: ElevatedButton(
-                                                onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.blue,
-                                                  foregroundColor: Colors.white,
-                                                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                                  elevation: 0,
-                                                  minimumSize: Size.zero,
-                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                ),
-                                                child: Text('Allocate', style: AppTextStyle.style_10_500(color: Colors.white)),
-                                              ),
-                                            ),
-                                            SizedBox(width: 4.w),
-                                            SizedBox(
-                                              height: 18.h,
-                                              child: ElevatedButton(
-                                                onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFFE53935),
-                                                  foregroundColor: Colors.white,
-                                                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                                  elevation: 0,
-                                                  minimumSize: Size.zero,
-                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                ),
-                                                child: Text('Consume', style: AppTextStyle.style_10_500(color: Colors.white)),
-                                              ),
-                                            ),
-                                          ],
+                                    if (canAllocate) ...[
+                                      SizedBox(
+                                        height: 18.h,
+                                        child: ElevatedButton(
+                                          onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            foregroundColor: Colors.white,
+                                            padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                            elevation: 0,
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          ),
+                                          child: Text('Allocate', style: AppTextStyle.style_10_500(color: Colors.white)),
                                         ),
                                       ),
-                                      _buildDataCell(item.store, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.item, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.category, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key), textColor: item.isQntyLow ? Colors.red : null),
-                                      _buildDataCell(item.unit, isExpanded, () => _toggleRow(key), textColor: item.isUnitLow ? Colors.red : null),
+                                      SizedBox(width: 4.w),
                                     ],
-                                  );
-                                }),
-                              ],
-                            ),
+                                    if (canConsume) ...[
+                                      SizedBox(
+                                        height: 18.h,
+                                        child: ElevatedButton(
+                                          onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFE53935),
+                                            foregroundColor: Colors.white,
+                                            padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                            elevation: 0,
+                                            minimumSize: Size.zero,
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          ),
+                                          child: Text('Consume', style: AppTextStyle.style_10_500(color: Colors.white)),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              _buildDataCell(item.store, isExpanded, () => _toggleRow(key)),
+                              _buildDataCell(item.item, isExpanded, () => _toggleRow(key)),
+                              _buildDataCell(item.category, isExpanded, () => _toggleRow(key)),
+                              _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key), textColor: item.isQntyLow ? Colors.red : null),
+                              _buildDataCell(item.unit, isExpanded, () => _toggleRow(key), textColor: item.isUnitLow ? Colors.red : null),
+                            ],
                           );
                         }),
-                      ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Obx(() {
+            final totalItems = controller.inventoryItems.length;
+            final startItem = totalItems == 0 ? 0 : ((controller.currentPage.value - 1) * controller.itemsPerPage.value) + 1;
+            final endItem = (startItem + controller.itemsPerPage.value - 1).clamp(0, totalItems);
+
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Showing $startItem to $endItem of $totalItems entries',
+                      style: AppTextStyle.style_12_400(color: AppColors.black),
                     ),
                   ),
-            SizedBox(height: 12.h),
-            Obx(() {
-              final totalItems = controller.inventoryItems.length;
-              final startItem = totalItems == 0 ? 0 : ((controller.currentPage.value - 1) * controller.itemsPerPage.value) + 1;
-              final endItem = (startItem + controller.itemsPerPage.value - 1).clamp(0, totalItems);
-
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Showing $startItem to $endItem of $totalItems entries',
-                        style: AppTextStyle.style_12_400(color: AppColors.black),
-                      ),
-                    ),
                   SizedBox(width: 8.w),
                   Flexible(
                     flex: 2,
@@ -197,11 +209,12 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                     ),
                   ),
                 ],
-                ),
-              );
-            }),
-          ],
-        );
+              ),
+            );
+          }),
+        ],
+      );
+    });
   }
 
   Widget _buildHeaderCell(String text) {

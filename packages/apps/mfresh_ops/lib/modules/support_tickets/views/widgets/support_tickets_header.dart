@@ -1,3 +1,4 @@
+// region SupportTicketsHeader
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -9,13 +10,16 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_c
 class SupportTicketsHeader extends StatelessWidget {
   final SupportTicketsController controller;
   final bool showSkeleton;
+  final bool canViewFilter;
 
   const SupportTicketsHeader({
     super.key,
     required this.controller,
     required this.showSkeleton,
+    required this.canViewFilter,
   });
 
+  // region build
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,37 +41,6 @@ class SupportTicketsHeader extends StatelessWidget {
                   () => Text(
                     "Total Tickets: ${controller.totalTickets.value}",
                     style: AppTextStyle.style_14_600(color: AppColors.grey900),
-                  ),
-                ),
-              ),
-            ),
-            Skeletonizer(
-              enabled: showSkeleton,
-              child: InkWell(
-                onTap: () => controller.resetFilters(),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 4.h,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF9E9E9E), Color(0xFF757575)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    borderRadius: BorderRadius.circular(8.r),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    "Reset Filter",
-                    style: AppTextStyle.style_14_600(color: AppColors.white),
                   ),
                 ),
               ),
@@ -138,4 +111,6 @@ class SupportTicketsHeader extends StatelessWidget {
       ],
     );
   }
+  // endregion
 }
+// endregion

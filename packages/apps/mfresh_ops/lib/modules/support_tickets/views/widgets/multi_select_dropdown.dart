@@ -13,6 +13,8 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
   final bool showSearch;
   final bool isSingleSelect;
   final double? height;
+  final bool hasError;
+  final TextStyle? selectedTextStyle;
 
   const MultiSelectDropdownWidget({
     super.key,
@@ -22,9 +24,11 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.hint,
-    this.showSearch = false,
+    this.showSearch = true,
     this.isSingleSelect = false,
     this.height,
+    this.hasError = false,
+    this.selectedTextStyle,
   });
 
   @override
@@ -37,10 +41,6 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
         final Size size = renderBox.size;
         final Rect buttonRect = offset & size;
 
-        final searchController = TextEditingController();
-        final scrollController = ScrollController();
-        Set<T> tempSelected = Set<T>.from(selectedValues);
-
         await showMenu(
           context: context,
           color: AppColors.white,
@@ -52,111 +52,19 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
             PopupMenuItem(
               enabled: false,
               padding: EdgeInsets.zero,
-              child: Container(
-                constraints: BoxConstraints(
-                  minWidth: size.width,
-                  maxWidth: MediaQuery.of(context).size.width * 0.9,
-                  maxHeight: 300.h,
-                ),
-                color: AppColors.white,
-                child: StatefulBuilder(
-                  builder: (context, setState) {
-                    List<DropdownMenuItem<T>> displayedItems = items;
-                    if (showSearch && searchController.text.isNotEmpty) {
-                      displayedItems = items.where((item) {
-                        final text = item.child is Text
-                            ? (item.child as Text).data ?? ''
-                            : item.child.toString();
-                        return text.toLowerCase().contains(
-                          searchController.text.toLowerCase(),
-                        );
-                      }).toList();
-                    }
-
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (showSearch)
-                          Padding(
-                            padding: EdgeInsets.all(4.r),
-                            child: TextField(
-                              controller: searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Search ${(label ?? title ?? '').toLowerCase()}...',
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8.w,
-                                  vertical: 4.h,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                              ),
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                        ConstrainedBox(
-                          constraints: BoxConstraints(maxHeight: 150.h),
-                          child: Scrollbar(
-                            controller: scrollController,
-                            thumbVisibility: true,
-                            child: SingleChildScrollView(
-                              controller: scrollController,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: displayedItems.map((item) {
-                                  final value = item.value;
-                                  if (isSingleSelect) {
-                                    return ListTile(
-                                      title: item.child,
-                                      selected: tempSelected.contains(value),
-                                      onTap: () {
-                                        setState(() {
-                                          tempSelected.clear();
-                                          tempSelected.add(value as T);
-                                        });
-                                        onChanged(Set<T>.from(tempSelected));
-                                        Navigator.pop(context);
-                                      },
-                                      dense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
-                                    );
-                                  }
-                                  return CheckboxListTile(
-                                    title: item.child,
-                                    value: tempSelected.contains(value),
-                                    onChanged: (checked) {
-                                      setState(() {
-                                        if (checked == true) {
-                                          tempSelected.add(value as T);
-                                        } else {
-                                          tempSelected.remove(value);
-                                        }
-                                      });
-                                      onChanged(Set<T>.from(tempSelected));
-                                    },
-                                    dense: true,
-                                    controlAffinity:
-                                        ListTileControlAffinity.leading,
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+              child: _MultiSelectMenuContent<T>(
+                label: label,
+                title: title,
+                selectedValues: selectedValues,
+                items: items,
+                onChanged: onChanged,
+                showSearch: showSearch,
+                isSingleSelect: isSingleSelect,
+                width: size.width,
               ),
             ),
           ],
         );
-
-        searchController.dispose();
-        scrollController.dispose();
       },
       child: height != null
         ? Container(
@@ -164,7 +72,10 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 8.w),
             decoration: BoxDecoration(
               color: AppColors.white,
-              border: Border.all(color: AppColors.borderColor),
+              border: Border.all(
+                color: hasError ? Colors.red : AppColors.borderColor,
+                width: hasError ? 1.5 : 1.0,
+              ),
               borderRadius: BorderRadius.circular(4.r),
             ),
             child: Row(
@@ -186,7 +97,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                                 return 'Selected';
                               })()
                             : '${selectedValues.length} selected',
-                    style: AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp),
+                    style: selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -205,8 +116,27 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
               labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
               isDense: true,
               contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: label != null ? 4.h : 8.h),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4.r), borderSide: const BorderSide(color: AppColors.borderColor)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4.r), borderSide: const BorderSide(color: AppColors.borderColor)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4.r),
+                borderSide: BorderSide(
+                  color: hasError ? Colors.red : AppColors.borderColor,
+                  width: hasError ? 1.5 : 1.0,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4.r),
+                borderSide: BorderSide(
+                  color: hasError ? Colors.red : AppColors.borderColor,
+                  width: hasError ? 1.5 : 1.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4.r),
+                borderSide: BorderSide(
+                  color: hasError ? Colors.red : const Color(0xffF15A24),
+                  width: 1.5,
+                ),
+              ),
             ),
             child: Text(
               selectedValues.isEmpty
@@ -223,7 +153,9 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                           return 'Selected';
                         })()
                       : '${selectedValues.length} selected',
-              style: AppTextStyle.style_12_400(color: AppColors.grey900),
+              style: selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
     );
@@ -244,5 +176,172 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
       );
     }
     return dropdownContent;
+  }
+}
+
+class _MultiSelectMenuContent<T> extends StatefulWidget {
+  final String? label;
+  final String? title;
+  final Set<T> selectedValues;
+  final List<DropdownMenuItem<T>> items;
+  final Function(Set<T>) onChanged;
+  final bool showSearch;
+  final bool isSingleSelect;
+  final double width;
+
+  const _MultiSelectMenuContent({
+    super.key,
+    this.label,
+    this.title,
+    required this.selectedValues,
+    required this.items,
+    required this.onChanged,
+    required this.showSearch,
+    required this.isSingleSelect,
+    required this.width,
+  });
+
+  @override
+  State<_MultiSelectMenuContent<T>> createState() => _MultiSelectMenuContentState<T>();
+}
+
+class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> {
+  late final TextEditingController _searchController;
+  late final ScrollController _scrollController;
+  late Set<T> _tempSelected;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _scrollController = ScrollController();
+    _tempSelected = Set<T>.from(widget.selectedValues);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<DropdownMenuItem<T>> displayedItems = widget.items;
+    if (widget.showSearch && _searchController.text.isNotEmpty) {
+      displayedItems = widget.items.where((item) {
+        final text = item.child is Text
+            ? (item.child as Text).data ?? ''
+            : item.child.toString();
+        return text.toLowerCase().contains(
+          _searchController.text.toLowerCase(),
+        );
+      }).toList();
+    }
+
+    return Container(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      constraints: BoxConstraints(
+        minWidth: widget.width,
+        maxWidth: MediaQuery.of(context).size.width * 0.9,
+        maxHeight: 300.h + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      color: AppColors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.showSearch)
+            Padding(
+              padding: EdgeInsets.all(4.r),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search ${(widget.label ?? widget.title ?? '').toLowerCase()}...',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8.w,
+                    vertical: 4.h,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 150.h),
+            child: Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: displayedItems.map((item) {
+                    final value = item.value;
+                    if (widget.isSingleSelect) {
+                      return ListTile(
+                        title: item.child,
+                        selected: _tempSelected.contains(value),
+                        onTap: () {
+                          setState(() {
+                            _tempSelected.clear();
+                            _tempSelected.add(value as T);
+                          });
+                          widget.onChanged(Set<T>.from(_tempSelected));
+                          Navigator.pop(context);
+                        },
+                        dense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                      );
+                    }
+                    return CheckboxListTile(
+                      title: item.child,
+                      value: _tempSelected.contains(value),
+                      onChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            _tempSelected.add(value as T);
+                          } else {
+                            _tempSelected.remove(value);
+                          }
+                        });
+                      },
+                      dense: true,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+          if (!widget.isSingleSelect)
+            Padding(
+              padding: EdgeInsets.all(8.r),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xffF15A24),
+                  minimumSize: Size(double.infinity, 30.h),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+                onPressed: () {
+                  widget.onChanged(Set<T>.from(_tempSelected));
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Done',
+                  style: AppTextStyle.style_12_500(color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

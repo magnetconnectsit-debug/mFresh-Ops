@@ -75,6 +75,19 @@ class AppConstants {
   static const String editTask = 'edit-task';
   static const String updateTask = 'update-task';
   static const String deleteTask = 'delete-Task';
+
+  // Inventory
+  static const String invGetStates = 'inv-get-states';
+  static const String invStatesWiseDistrict = 'inv-states-Wise-District';
+  static const String invStores = 'inv-stores';
+  static const String invCategory = 'inv-Category';
+  static const String inventoryAllItems = 'inventory/all-items';
+  static const String invStoreStockView = 'inv-Store-stock-View';
+  static const String invStoreToUnitAllocate = 'inv-Store-To-Unit-Allocate';
+  static const String inventoryConsume = 'inventory/consume';
+  static const String inventoryUnitStock = 'inventory/Unit/Stock';
+  static const String invCategoryWiseItem = 'inv-Category-wise-Item';
+  static const String invEntryStoreStock = 'inv-entry-store-stock';
   // endregion
 
   // region Hive Keys

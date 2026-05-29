@@ -5,19 +5,25 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class HomeGrid extends StatelessWidget {
   const HomeGrid({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<GridItemData> items = [
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+    final List<GridItemData> allItems = [
       GridItemData(
         title: 'Support Ticket',
         subtitle: 'Manage helpdesk',
         icon: Icons.support_agent_rounded,
         gradient: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
         route: AppRoutes.supportTickets,
+        permissionKey: 'maintenance_panel',
       ),
       GridItemData(
         title: 'Task Scheduler',
@@ -25,13 +31,15 @@ class HomeGrid extends StatelessWidget {
         icon: Icons.assignment_rounded,
         gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
         route: null,
+        permissionKey: 'Task_Sheduler_Pannel',
       ),
       GridItemData(
         title: 'Inventory',
         subtitle: 'Stock & Items',
         icon: Icons.inventory_2_rounded,
         gradient: const [Color(0xFF10B981), Color(0xFF059669)],
-        route: AppRoutes.storeInventory,
+        route: null,
+        permissionKey: 'inventory_panel',
       ),
       GridItemData(
         title: 'Reports',
@@ -39,8 +47,14 @@ class HomeGrid extends StatelessWidget {
         icon: Icons.analytics_rounded,
         gradient: const [Color(0xFFEF4444), Color(0xFFDC2626)],
         route: null,
+        permissionKey: 'Report_Pannel',
       ),
     ];
+
+    final items = allItems.where((item) {
+      if (item.permissionKey == null) return true;
+      return userPermissions.contains(item.permissionKey);
+    }).toList();
 
     return GridView.builder(
       shrinkWrap: true,
@@ -56,6 +70,7 @@ class HomeGrid extends StatelessWidget {
         return _buildGridCard(items[index]);
       },
     );
+    });
   }
 
   Widget _buildGridCard(GridItemData item) {
@@ -163,6 +178,7 @@ class GridItemData {
   final IconData icon;
   final List<Color> gradient;
   final String? route;
+  final String? permissionKey;
 
   GridItemData({
     required this.title,
@@ -170,5 +186,6 @@ class GridItemData {
     required this.icon,
     required this.gradient,
     this.route,
+    this.permissionKey,
   });
 }

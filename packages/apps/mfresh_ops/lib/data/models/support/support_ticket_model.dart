@@ -19,6 +19,8 @@ class SupportTicketListItem {
   final String? assignedTo;
   final String? assignedToName;
   final String? comment;
+  final String? latestComment;
+  final String? latestCommentUser;
   final String? followUp;
   final String? district;
   final String? tktAge;
@@ -45,6 +47,8 @@ class SupportTicketListItem {
     this.assignedTo,
     this.assignedToName,
     this.comment,
+    this.latestComment,
+    this.latestCommentUser,
     this.followUp,
     this.district,
     this.tktAge,
@@ -73,6 +77,8 @@ class SupportTicketListItem {
       assignedTo: json['assigned_to']?.toString(),
       assignedToName: json['assigned_to_name']?.toString(),
       comment: json['comment'],
+      latestComment: json['latest_comment'],
+      latestCommentUser: json['latest_comment_user'],
       followUp: json['follow_up'],
       district: json['district'],
       tktAge: json['tkt_age'],

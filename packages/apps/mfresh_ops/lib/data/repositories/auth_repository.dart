@@ -7,6 +7,14 @@ import 'package:mfresh_ops/data/models/user.dart';
 class AuthRepository extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
+  final rxUserPermissions = <String>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final user = _storageService.getUser() as User?;
+    rxUserPermissions.assignAll(user?.permissions ?? []);
+  }
 
   Future<User?> login({
     required String mobile,
@@ -34,6 +42,22 @@ class AuthRepository extends GetxService {
       return null;
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<User?> fetchProfile() async {
+    try {
+      final response = await _apiService.get(AppConstants.profile);
+
+      if (response != null && response['user'] != null) {
+        final user = User.fromJson(response);
+        await _storageService.saveUser(user);
+        rxUserPermissions.assignAll(user.permissions ?? []);
+        return user;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
@@ -13,7 +14,14 @@ class UnitInventoryFilters extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<UnitInventoryController>();
 
-    return Container(
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      final canFilterUnit = userPermissions.contains('U_Inv_Multi_Unit_Filter');
+      final canFilterItem = userPermissions.contains('U_Inv_Multi_Item_Filter');
+
+      return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
@@ -46,57 +54,61 @@ class UnitInventoryFilters extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  Obx(
-                    () => MultiSelectDropdownWidget<String>(
-                      hint: 'Unit(s)',
-                      isSingleSelect: false,
-                      selectedValues: controller.selectedUnits.toList().toSet(),
-                      items: controller.unitOptions
-                          .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
-                                value: e.value,
-                                child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
-                              ))
-                          .toList(),
-                      onChanged: (values) {
-                        controller.selectedUnits.assignAll(values.toList());
-                        controller.applyFilters();
-                      },
+                  if (canFilterUnit) ...[
+                    Obx(
+                      () => MultiSelectDropdownWidget<String>(
+                        hint: 'Unit(s)',
+                        isSingleSelect: false,
+                        selectedValues: controller.selectedUnits.toList().toSet(),
+                        items: controller.unitOptions
+                            .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                  value: e.value,
+                                  child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
+                                ))
+                            .toList(),
+                        onChanged: (values) {
+                          controller.selectedUnits.assignAll(values.toList());
+                          controller.applyFilters();
+                        },
+                      ),
                     ),
-                  ),
-                  Obx(
-                    () => MultiSelectDropdownWidget<String>(
-                      hint: 'Item(s)',
-                      isSingleSelect: false,
-                      selectedValues: controller.selectedItems.toList().toSet(),
-                      items: controller.itemOptions
-                          .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
-                                value: e.value,
-                                child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
-                              ))
-                          .toList(),
-                      onChanged: (values) {
-                        controller.selectedItems.assignAll(values.toList());
-                        controller.applyFilters();
-                      },
+                  ],
+                  if (canFilterItem) ...[
+                    Obx(
+                      () => MultiSelectDropdownWidget<String>(
+                        hint: 'Item(s)',
+                        isSingleSelect: false,
+                        selectedValues: controller.selectedItems.toList().toSet(),
+                        items: controller.itemOptions
+                            .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                  value: e.value,
+                                  child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
+                                ))
+                            .toList(),
+                        onChanged: (values) {
+                          controller.selectedItems.assignAll(values.toList());
+                          controller.applyFilters();
+                        },
+                      ),
                     ),
-                  ),
-                  Obx(
-                    () => MultiSelectDropdownWidget<String>(
-                      hint: 'Select Category',
-                      isSingleSelect: false,
-                      selectedValues: controller.selectedCategories.toList().toSet(),
-                      items: controller.categoryOptions
-                          .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
-                                value: e.value,
-                                child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
-                              ))
-                          .toList(),
-                      onChanged: (values) {
-                        controller.selectedCategories.assignAll(values.toList());
-                        controller.applyFilters();
-                      },
+                    Obx(
+                      () => MultiSelectDropdownWidget<String>(
+                        hint: 'Select Category',
+                        isSingleSelect: false,
+                        selectedValues: controller.selectedCategories.toList().toSet(),
+                        items: controller.categoryOptions
+                            .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                  value: e.value,
+                                  child: Text(e.label, style: AppTextStyle.style_10_400(color: AppColors.grey900)),
+                                ))
+                            .toList(),
+                        onChanged: (values) {
+                          controller.selectedCategories.assignAll(values.toList());
+                          controller.applyFilters();
+                        },
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ],
@@ -104,5 +116,6 @@ class UnitInventoryFilters extends StatelessWidget {
         },
       ),
     );
+    });
   }
 }

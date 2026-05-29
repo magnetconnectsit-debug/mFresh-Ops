@@ -9,6 +9,12 @@ class InventoryItemModel {
   final bool isLowStock;
   final String lowQnty;
   final String lowQntyUnit;
+  final String stateId;
+  final String districtId;
+  final String categoryId;
+  final String itemId;
+  final String measurementUnitId;
+  final String sourceId;
 
   InventoryItemModel({
     required this.id,
@@ -21,6 +27,12 @@ class InventoryItemModel {
     this.isLowStock = false,
     this.lowQnty = '0',
     this.lowQntyUnit = '0',
+    this.stateId = '',
+    this.districtId = '',
+    this.categoryId = '',
+    this.itemId = '',
+    this.measurementUnitId = '',
+    this.sourceId = '',
   });
 
   bool get isQntyLow {
@@ -50,6 +62,12 @@ class InventoryItemModel {
       isLowStock: json['is_low_stock'] == true,
       lowQnty: json['low_qnty']?.toString() ?? '0',
       lowQntyUnit: json['low_qnty_unit']?.toString() ?? '0',
+      stateId: json['state_id']?.toString() ?? '',
+      districtId: json['district_id']?.toString() ?? '',
+      categoryId: json['categoryID']?.toString() ?? '',
+      itemId: json['item_id']?.toString() ?? '',
+      measurementUnitId: json['measurement_unit_id']?.toString() ?? '',
+      sourceId: json['restroom_id']?.toString() ?? json['store_id']?.toString() ?? '',
     );
   }
 }

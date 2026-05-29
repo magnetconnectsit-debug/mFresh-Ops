@@ -46,10 +46,15 @@ class CreateTicketController extends GetxController {
   final appNotification = true.obs;
   final displayReminder = 'Reminder'.obs;
 
+  final subjectText = ''.obs;
+
   @override
   void onInit() {
     super.onInit();
     fetchAllData();
+    subjectController.addListener(() {
+      subjectText.value = subjectController.text;
+    });
   }
 
   Future<void> fetchAllData() async {
@@ -62,10 +67,44 @@ class CreateTicketController extends GetxController {
         fetchProjects(),
         fetchTemplates(),
       ]);
+
+      // Set default selections
+      _setDefaults();
     } catch (e) {
       debugPrint('Error fetching dropdown data: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void _setDefaults() {
+    // Unit: default to "Other"
+    if (selectedUnit.value == null && units.isNotEmpty) {
+      final otherUnit = units.firstWhereOrNull(
+        (u) => u.unitName.toLowerCase() == 'other',
+      );
+      if (otherUnit != null) selectedUnit.value = otherUnit;
+    }
+
+    // Category: default to "Other"
+    if (selectedCategory.value == null && categories.isNotEmpty) {
+      final otherCategory = categories.firstWhereOrNull(
+        (c) => c.categoryName.toLowerCase() == 'other',
+      );
+      if (otherCategory != null) onCategorySelected(otherCategory);
+    }
+
+    // Priority: default to "Medium"
+    if (selectedPriority.value == null && priorities.isNotEmpty) {
+      selectedPriority.value = 'Medium';
+    }
+
+    // Project: default to "mFresh"
+    if (selectedProject.value == null && projects.isNotEmpty) {
+      final mfreshProject = projects.firstWhereOrNull(
+        (p) => p.projectName.toLowerCase() == 'mfresh',
+      );
+      if (mfreshProject != null) selectedProject.value = mfreshProject;
     }
   }
 
@@ -257,16 +296,22 @@ class CreateTicketController extends GetxController {
     selectedVideos.removeAt(index);
   }
 
+  final showValidationErrors = false.obs;
+
   Future<void> createTicket() async {
     if (selectedUnit.value == null ||
         selectedCategory.value == null ||
-        subjectController.text.isEmpty) {
+        selectedProject.value == null ||
+        selectedAssignee.value == null ||
+        subjectController.text.trim().isEmpty) {
+      showValidationErrors.value = true;
       AppCommonToastMessage.show(
         message: 'Please fill all required fields',
         type: ToastType.error,
       );
       return;
     }
+    showValidationErrors.value = false;
 
     try {
       isLoading.value = true;

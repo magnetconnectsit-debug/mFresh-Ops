@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
-import 'package:services/api_services.dart';
+import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class UnitInventoryController extends GetxController {
-  final ApiService _apiService = Get.find<ApiService>();
+  final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
 
   final isSearching = false.obs;
   final isLoading = false.obs;
@@ -34,7 +37,7 @@ class UnitInventoryController extends GetxController {
 
   Future<void> fetchSupportUnits() async {
     try {
-      final response = await _apiService.post('support-units', data: {});
+      final response = await _inventoryRepository.getSupportUnits();
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
         final units = data.map((e) => DropdownOption(
@@ -50,7 +53,7 @@ class UnitInventoryController extends GetxController {
 
   Future<void> fetchSupportCategories() async {
     try {
-      final response = await _apiService.post('inv-Category', data: {});
+      final response = await _inventoryRepository.getCategories();
       if (response != null && response['status'] == 'success') {
         final List data = response['data'] ?? [];
         final categories = data.map((e) => DropdownOption(
@@ -66,7 +69,7 @@ class UnitInventoryController extends GetxController {
 
   Future<void> fetchSupportItems() async {
     try {
-      final response = await _apiService.post('inventory/all-items', data: {});
+      final response = await _inventoryRepository.getAllItems();
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
         final items = data.map((e) => DropdownOption(
@@ -83,13 +86,7 @@ class UnitInventoryController extends GetxController {
   Future<void> fetchUnitInventory() async {
     isLoading.value = true;
     try {
-      final response = await _apiService.post('inventory/Unit/Stock', data: {
-        "item_id": "",
-        "unit_id": "",
-        "category_id": "",
-        "state_id": "",
-        "district_id": "",
-      });
+      final response = await _inventoryRepository.getUnitInventoryStock();
 
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
@@ -153,6 +150,11 @@ class UnitInventoryController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      await Get.find<AuthRepository>().fetchProfile();
+    } catch (e) {
+      debugPrint('Error fetching profile: $e');
+    }
     await Future.wait([
       fetchSupportUnits(),
       fetchSupportCategories(),
@@ -198,6 +200,64 @@ class UnitInventoryController extends GetxController {
     searchController.dispose();
     super.onClose();
   }
+
+  Future<void> allocateStock(UnitInventoryModel item, String qty, String destType, String destId) async {
+    try {
+      final response = await _inventoryRepository.allocateStock({
+        "source_type": "unit",
+        "source_id": int.tryParse(item.unitId) ?? 0,
+        "item_id": int.tryParse(item.itemId) ?? 0,
+        "destination_type": destType,
+        "destination_id": int.tryParse(destId) ?? 0,
+        "state_id": int.tryParse(item.stateId) ?? 0,
+        "district_id": int.tryParse(item.districtId) ?? 0,
+        "allotment_qty": int.tryParse(qty) ?? 0,
+        "measurement_unit_id": int.tryParse(item.measurementUnitId) ?? 0,
+        "categoryID": int.tryParse(item.categoryId) ?? 0,
+      });
+      if (response != null && response['status'] == true) {
+        AppCommonToastMessage.show(message: response['message'] ?? 'Inventory allocated successfully.', type: ToastType.success);
+        await fetchUnitInventory();
+      } else {
+        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to allocate inventory.', type: ToastType.error);
+      }
+    } catch (e) {
+      debugPrint('Error allocating unit stock: $e');
+      String errorMsg = 'An error occurred during allocation.';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('message')) {
+          errorMsg = data['message']?.toString() ?? errorMsg;
+        }
+      }
+      AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
+    }
+  }
+
+  Future<void> consumeStock(UnitInventoryModel item, String qty) async {
+    try {
+      final response = await _inventoryRepository.consumeStock({
+
+        "source_type": "unit",
+        "source_id": int.tryParse(item.unitId) ?? 0,
+        "item_id": int.tryParse(item.itemId) ?? 0,
+        "consumption_qty": int.tryParse(qty) ?? 0,
+        "state_id": int.tryParse(item.stateId) ?? 0,
+        "district_id": int.tryParse(item.districtId) ?? 0,
+        "measurement_unit_id": int.tryParse(item.measurementUnitId) ?? 0,
+        "category_id": int.tryParse(item.categoryId) ?? 0,
+      });
+      if (response != null && (response['status'] == true || response['status'] == 'success')) {
+        AppCommonToastMessage.show(message: response['message'] ?? 'Inventory consumed successfully.', type: ToastType.success);
+        await fetchUnitInventory();
+      } else {
+        AppCommonToastMessage.show(message: response?['message'] ?? 'Failed to consume inventory.', type: ToastType.error);
+      }
+    } catch (e) {
+      debugPrint('Error consuming unit stock: $e');
+      AppCommonToastMessage.show(message: 'An error occurred during consumption.', type: ToastType.error);
+    }
+  }
 }
 
 class UnitInventoryModel {
@@ -208,6 +268,12 @@ class UnitInventoryModel {
   final String quantity;
   final String lowQntyUnit;
   final String mUnit;
+  final String stateId;
+  final String districtId;
+  final String categoryId;
+  final String itemId;
+  final String measurementUnitId;
+  final String unitId;
 
   UnitInventoryModel({
     required this.id,
@@ -217,6 +283,12 @@ class UnitInventoryModel {
     required this.quantity,
     required this.lowQntyUnit,
     required this.mUnit,
+    this.stateId = '',
+    this.districtId = '',
+    this.categoryId = '',
+    this.itemId = '',
+    this.measurementUnitId = '',
+    this.unitId = '',
   });
 
   bool get isQntyLow {
@@ -229,12 +301,11 @@ class UnitInventoryModel {
   static String _mapMeasurementUnit(dynamic id) {
     switch (id.toString()) {
       case '1': return 'Litre';
-      case '2': return 'Kg';
+      case '2': return 'Packet';
       case '3': return 'pcs';
       case '4': return 'Box';
-      case '5': return 'Packet';
       case '6': return 'Pair';
-      case '7': return 'Gram';
+      case '7': return 'Kg';
       default: return 'pcs';
     }
   }
@@ -248,6 +319,12 @@ class UnitInventoryModel {
       quantity: json['allotment_qty']?.toString() ?? '0',
       lowQntyUnit: json['low_qnty_unit']?.toString() ?? '0',
       mUnit: json['m_unit']?.toString() ?? json['measurement_unit_name']?.toString() ?? _mapMeasurementUnit(json['measurement_unit_id']),
+      stateId: json['state_id']?.toString() ?? '',
+      districtId: json['district_id']?.toString() ?? '',
+      categoryId: json['categoryID']?.toString() ?? '',
+      itemId: json['item_id']?.toString() ?? '',
+      measurementUnitId: json['measurement_unit_id']?.toString() ?? '',
+      unitId: json['destination_id']?.toString() ?? '',
     );
   }
 }

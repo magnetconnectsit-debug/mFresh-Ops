@@ -1,9 +1,11 @@
+// region SupportTicketsController
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:core/utils/app_common_toast_message.dart';
@@ -62,7 +64,7 @@ class SupportTicketsController extends GetxController {
   final selectedProjects = <SupportProject>[].obs;
   final selectedUnits = <SupportUnit>[].obs;
   final selectedAssignees = <AssigneeModel>[].obs;
-  final selectedPriority = Rxn<String>();
+  final selectedPriorities = <String>[].obs;
   final selectedStatuses = <String>[].obs;
 
   // Quick Filters
@@ -96,18 +98,23 @@ class SupportTicketsController extends GetxController {
   List<DropdownOption<String>> get statusOptions =>
       statuses.map((e) => DropdownOption(value: e, label: e)).toList();
 
+  // region onInit
   @override
   void onInit() {
     super.onInit();
     _initialLoad();
   }
+  // endregion
 
+  // region onClose
   @override
   void onClose() {
     searchFocusNode.dispose();
     super.onClose();
   }
+  // endregion
 
+  // region _initialLoad
   Future<void> _initialLoad() async {
     try {
       isLoading.value = true;
@@ -128,7 +135,9 @@ class SupportTicketsController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 
+  // region API Fetch Methods
   Future<void> fetchFilterData() async {
     try {
       await Future.wait([
@@ -191,55 +200,29 @@ class SupportTicketsController extends GetxController {
       );
       assignees.assignAll(result);
 
-      // Default select the current user
-      if (selectedAssignees.isEmpty) {
-        var currentUser = assignees.firstWhereOrNull(
-          (a) => a.id.toString() == user.id.toString(),
-        );
-
-        // If current user not in list, add them manually so they can be selected
-        if (currentUser == null) {
-          debugPrint(
-            'fetchAssignees: Current user ${user.id} not in list, adding manually',
-          );
-          currentUser = AssigneeModel(id: user.id, name: user.name ?? 'Me');
-          assignees.insert(0, currentUser);
-        }
-
-        selectedAssignees.assignAll([currentUser]);
-        if (shouldFetchTickets) {
-          fetchTickets();
-        }
+      if (shouldFetchTickets) {
+        fetchTickets();
       }
     } catch (e) {
       debugPrint('Error fetching assignees: $e');
     }
   }
+  // endregion
 
+  // region Filter Helpers
   void resetFilters() {
     selectedCategories.clear();
     selectedSubCategory.value = null;
     selectedProjects.clear();
     selectedUnits.clear();
     selectedAssignees.clear();
-    selectedPriority.value = null;
+    selectedPriorities.clear(); // Updated
     selectedStatuses.clear();
     subCategories.clear();
 
     searchController.clear();
     searchQuery.value = '';
     isSearching.value = false;
-
-    final storage = Get.find<StorageService>();
-    final user = storage.getUser();
-    if (user != null) {
-      var currentUser = assignees.firstWhereOrNull(
-        (a) => a.id.toString() == user.id.toString(),
-      );
-      if (currentUser != null) {
-        selectedAssignees.assignAll([currentUser]);
-      }
-    }
 
     fetchTickets();
   }
@@ -266,7 +249,7 @@ class SupportTicketsController extends GetxController {
     } else if (item is AssigneeModel) {
       selectedAssignees.remove(item);
     } else if (item is String) {
-      if (selectedPriority.value == item) selectedPriority.value = null;
+      selectedPriorities.remove(item); // Updated
       selectedStatuses.remove(item);
     }
   }
@@ -274,10 +257,19 @@ class SupportTicketsController extends GetxController {
   void applyFilters() {
     fetchTickets();
   }
+  // endregion
 
+  // region refreshAll
   Future<void> refreshAll() async {
     try {
       isRefreshing.value = true;
+
+      try {
+        await Get.find<AuthRepository>().fetchProfile();
+      } catch (e) {
+        debugPrint('Error fetching profile: $e');
+      }
+
       // Parallel fetch: all metadata + tickets + quick filters
       await Future.wait([
         fetchUnits(),
@@ -294,7 +286,9 @@ class SupportTicketsController extends GetxController {
       isRefreshing.value = false;
     }
   }
+  // endregion
 
+  // region Quick Filter Methods
   Future<void> fetchQuickFilters() async {
     try {
       final result = await _supportRepository.getQuickFilters();
@@ -305,7 +299,7 @@ class SupportTicketsController extends GetxController {
       final currentId = selectedQuickFilter.value?.id;
       if (currentId != null) {
         selectedQuickFilter.value = quickFilters.firstWhereOrNull(
-          (f) => f.id == currentId,
+              (f) => f.id == currentId,
         );
       }
     } catch (e) {
@@ -329,7 +323,7 @@ class SupportTicketsController extends GetxController {
         'selectedProject': selectedProjects
             .map((p) => p.projectId.toString())
             .toList(),
-        'priorityId': selectedPriority.value ?? '',
+        'priorityId': selectedPriorities.join(','), // Updated here to handle list
         'globalsearch': searchController.text,
       };
 
@@ -409,7 +403,9 @@ class SupportTicketsController extends GetxController {
 
     fetchTickets();
   }
+  // endregion
 
+  // region fetchTickets
   Future<void> fetchTickets() async {
     try {
       isLoading.value = true;
@@ -424,8 +420,13 @@ class SupportTicketsController extends GetxController {
             : [],
         projectIds: selectedProjects.map((e) => e.projectId).toList(),
         unitIds: selectedUnits.map((e) => e.unitId).toList(),
-        statusIds: [], // Need mapping if numeric
+        statusIds: selectedStatuses
+            .map((e) => int.tryParse(e) ?? 0)
+            .toList(),
         assigneeIds: selectedAssignees.map((e) => e.id).toList(),
+        priorityIds: selectedPriorities
+            .map((e) => int.tryParse(_getPriorityId(e)) ?? 2)
+            .toList(),
       );
       if (response != null) {
         tickets.assignAll(response.data);
@@ -442,7 +443,9 @@ class SupportTicketsController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 
+  // region Selection & UI Toggles
   void toggleSearch() {
     isSearching.value = !isSearching.value;
     searchQuery.value = '';
@@ -468,6 +471,7 @@ class SupportTicketsController extends GetxController {
     if (expandedSubjectTickets.contains(id)) {
       expandedSubjectTickets.remove(id);
     } else {
+      expandedSubjectTickets.clear();
       expandedSubjectTickets.add(id);
     }
     expandedSubjectTickets.refresh();
@@ -484,7 +488,9 @@ class SupportTicketsController extends GetxController {
       selectedTickets.refresh();
     }
   }
+  // endregion
 
+  // region exportTickets
   Future<void> exportTickets({bool isPdf = false}) async {
     try {
       // Prepare Data
@@ -504,18 +510,18 @@ class SupportTicketsController extends GetxController {
       List<List<dynamic>> rows = filteredTickets
           .map(
             (ticket) => [
-              ticket.id,
-              ticket.unitNo ?? '',
-              ticket.subject ?? '',
-              ticket.project ?? '',
-              ticket.mCategory ?? '',
-              ticket.subCat ?? '',
-              ticket.statusLabel ?? '',
-              ticket.priorityLabel ?? '',
-              ticket.assignedTo ?? '',
-              ticket.postedDate ?? '',
-            ],
-          )
+          ticket.id,
+          ticket.unitNo ?? '',
+          ticket.subject ?? '',
+          ticket.project ?? '',
+          ticket.mCategory ?? '',
+          ticket.subCat ?? '',
+          ticket.statusLabel ?? '',
+          ticket.priorityLabel ?? '',
+          ticket.assignedTo ?? '',
+          ticket.postedDate ?? '',
+        ],
+      )
           .toList();
 
       if (isPdf) {
@@ -538,8 +544,9 @@ class SupportTicketsController extends GetxController {
       );
     }
   }
+  // endregion
 
-  // Bulk Edit Dialog Variables
+  // region Bulk Edit Variables & Methods
   final bulkSelectedUnit = Rxn<SupportUnit>();
   final bulkEnableUnit = false.obs;
 
@@ -598,17 +605,17 @@ class SupportTicketsController extends GetxController {
 
     bool hasUpdates =
         (bulkEnableUnit.value && bulkSelectedUnit.value != null) ||
-        (bulkEnablePriority.value && bulkSelectedPriority.value != null) ||
-        (bulkEnableStatus.value && bulkSelectedStatus.value != null) ||
-        (bulkEnableCategory.value && bulkSelectedCategory.value != null) ||
-        (bulkEnableSubCategory.value &&
-            bulkSelectedSubCategory.value != null) ||
-        (bulkEnableAssignee.value && bulkSelectedAssignee.value != null);
+            (bulkEnablePriority.value && bulkSelectedPriority.value != null) ||
+            (bulkEnableStatus.value && bulkSelectedStatus.value != null) ||
+            (bulkEnableCategory.value && bulkSelectedCategory.value != null) ||
+            (bulkEnableSubCategory.value &&
+                bulkSelectedSubCategory.value != null) ||
+            (bulkEnableAssignee.value && bulkSelectedAssignee.value != null);
 
     if (!hasUpdates) {
       AppCommonToastMessage.show(
         message:
-            'Please check at least one field and select a value to update.',
+        'Please check at least one field and select a value to update.',
         type: ToastType.error,
       );
       return;
@@ -673,7 +680,9 @@ class SupportTicketsController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 
+  // region Helpers
   String _getPriorityId(String? priority) {
     switch (priority) {
       case 'Low':
@@ -707,8 +716,10 @@ class SupportTicketsController extends GetxController {
         return '0';
     }
   }
+// endregion
 }
 
+// region TicketModel
 class TicketModel {
   final String id;
   final String unitNo;
@@ -738,3 +749,4 @@ class TicketModel {
     required this.tktAge,
   });
 }
+// endregion

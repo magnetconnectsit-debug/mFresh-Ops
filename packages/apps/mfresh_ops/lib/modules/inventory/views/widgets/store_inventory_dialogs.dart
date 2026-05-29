@@ -4,11 +4,13 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
+import 'package:core/utils/app_common_toast_message.dart';
+import 'package:services/api_services.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
+import '../../controllers/unit_inventory_controller.dart';
 
 class StoreInventoryDialogs {
   static Widget _buildGreyField(String label, String hint) {
@@ -56,7 +58,7 @@ class StoreInventoryDialogs {
     );
   }
 
-  static Widget _buildWhiteInput(String label, String hint) {
+  static Widget _buildWhiteInput(String label, String hint, {TextEditingController? controller, bool readOnly = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -65,18 +67,23 @@ class StoreInventoryDialogs {
         Container(
           height: 28.h,
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: readOnly ? const Color(0xFFF1F5F9) : AppColors.white,
             border: Border.all(color: AppColors.grey100),
             borderRadius: BorderRadius.circular(4.r),
           ),
           child: TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            readOnly: readOnly,
+            textAlignVertical: TextAlignVertical.center,
+            style: AppTextStyle.style_12_400(color: AppColors.grey900),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppTextStyle.style_12_400(color: AppColors.grey500),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
               isDense: true,
             ),
           ),
@@ -85,7 +92,7 @@ class StoreInventoryDialogs {
     );
   }
 
-  static Widget _buildSmallVerticalWhiteField(String label, String hint, {bool isInput = false}) {
+  static Widget _buildSmallVerticalWhiteField(String label, String hint, {bool isInput = false, TextEditingController? controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -102,6 +109,8 @@ class StoreInventoryDialogs {
           ),
           child: isInput 
             ? TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   hintText: hint,
                   hintStyle: AppTextStyle.style_12_400(color: AppColors.grey500),
@@ -127,9 +136,31 @@ class StoreInventoryDialogs {
     final selectedStore = RxnString();
     final selectedCategory = RxnString();
 
-    final packetController = TextEditingController(text: '2');
-    final pieceController = TextEditingController(text: '10');
-    final consumptionController = TextEditingController(text: '20');
+    final packetController = TextEditingController();
+    final pieceController = TextEditingController();
+    final consumptionController = TextEditingController();
+
+    // Reset controllers and apply default values when the selected item changes
+    controller.selectedAddItemName.listen((itemId) {
+      packetController.clear();
+      pieceController.clear();
+      consumptionController.clear();
+    });
+
+    void calculateQty() {
+      final selectedId = controller.selectedAddItemName.value;
+      if (selectedId != null) {
+        final unit = (controller.itemUnits[selectedId] ?? '').toLowerCase();
+        if (unit == 'packet' || unit == 'box') {
+          final pkts = double.tryParse(packetController.text) ?? 0;
+          final pcs = double.tryParse(pieceController.text) ?? 0;
+          final total = pkts * pcs;
+          consumptionController.text = total > 0 ? (total % 1 == 0 ? total.toInt().toString() : total.toString()) : '';
+        }
+      }
+    }
+    packetController.addListener(calculateQty);
+    pieceController.addListener(calculateQty);
 
     showDialog(
       context: context,
@@ -142,9 +173,6 @@ class StoreInventoryDialogs {
         child: Container(
           padding: EdgeInsets.all(20.r),
         child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,7 +292,7 @@ class StoreInventoryDialogs {
                       onChanged: (values) {
                         final v = values.isNotEmpty ? values.first : null;
                         selectedCategory.value = v;
-                        controller.selectedAddItemName.value = null;
+                        controller.onCategorySelected(v);
                       },
                     )),
                   ),
@@ -291,43 +319,109 @@ class StoreInventoryDialogs {
                 ),
               ),
               Obx(() {
-                if (controller.selectedAddItemName.value == null) {
+                final selectedId = controller.selectedAddItemName.value;
+                if (selectedId == null) {
                   return const SizedBox();
                 }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 10.h),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: AppCommonTextField(
-                            controller: packetController,
-                            titleText: 'Packet',
-                            hintText: '2',
+                final unit = (controller.itemUnits[selectedId] ?? '').toLowerCase();
+
+                if (unit == 'litre') {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.h),
+                      _buildWhiteInput(
+                        'Consumption Quantity (ml)',
+                        'Enter in ml',
+                        controller: consumptionController,
+                      ),
+                    ],
+                  );
+                } else if (unit == 'piece' || unit == 'pcs') {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.h),
+                      _buildWhiteInput(
+                        'Consumption Quantity',
+                        'Enter Pieces',
+                        controller: consumptionController,
+                      ),
+                    ],
+                  );
+                } else if (unit == 'packet' || unit == 'box') {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.h),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _buildWhiteInput(
+                              'Packets',
+                              'Enter Packets',
+                              controller: packetController,
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          flex: 3,
-                          child: AppCommonTextField(
-                            controller: pieceController,
-                            titleText: 'Piece (per Packet)',
-                            hintText: '10',
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            flex: 3,
+                            child: _buildWhiteInput(
+                              'Piece (per Pkt)',
+                              'Enter pieces per packet',
+                              controller: pieceController,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-                    AppCommonTextField(
-                      controller: consumptionController,
-                      titleText: 'Consumption Qty.',
-                      hintText: '20',
-                    ),
-                  ],
-                );
+                        ],
+                      ),
+                      SizedBox(height: 16.h),
+                      _buildWhiteInput(
+                        'Consumption Qty',
+                        'Auto Calc (Pkt x Pcs)',
+                        controller: consumptionController,
+                        readOnly: true,
+                      ),
+                    ],
+                  );
+                } else if (unit == 'pair') {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.h),
+                      _buildWhiteInput(
+                        'Consumption Quantity (Pair)',
+                        'Enter Pairs',
+                        controller: consumptionController,
+                      ),
+                    ],
+                  );
+                } else if (unit == 'kg') {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.h),
+                      _buildWhiteInput(
+                        'Consumption Quantity (g)',
+                        'Enter in grams',
+                        controller: consumptionController,
+                      ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.h),
+                      _buildWhiteInput(
+                        'Consumption Qty.',
+                        'Enter Qty.',
+                        controller: consumptionController,
+                      ),
+                    ],
+                  );
+                }
               }),
               SizedBox(height: 24.h),
               Row(
@@ -346,7 +440,73 @@ class StoreInventoryDialogs {
                     width: 100.w,
                     height: 28.h,
                     buttonColor: AppColors.info,
-                    onPressed: () => Get.back(),
+                    onPressed: () async {
+                      if (selectedState.value == null) {
+                        AppCommonToastMessage.show(message: 'Please select state', type: ToastType.error);
+                        return;
+                      }
+                      if (selectedDistrict.value == null) {
+                        AppCommonToastMessage.show(message: 'Please select district', type: ToastType.error);
+                        return;
+                      }
+                      if (selectedStore.value == null) {
+                        AppCommonToastMessage.show(message: 'Please select store', type: ToastType.error);
+                        return;
+                      }
+                      if (selectedCategory.value == null) {
+                        AppCommonToastMessage.show(message: 'Please select category', type: ToastType.error);
+                        return;
+                      }
+                      if (controller.selectedAddItemName.value == null) {
+                        AppCommonToastMessage.show(message: 'Please select item', type: ToastType.error);
+                        return;
+                      }
+
+                      final itemId = controller.selectedAddItemName.value!;
+                      final unit = (controller.itemUnits[itemId] ?? '').toLowerCase();
+
+                      String packetQty = "";
+                      String pieceQty = "";
+                      String literQty = "";
+
+                      if (unit == 'litre') {
+                        literQty = consumptionController.text;
+                        if (literQty.isEmpty) {
+                          AppCommonToastMessage.show(message: 'Please enter consumption quantity', type: ToastType.error);
+                          return;
+                        }
+                      } else if (unit == 'packet' || unit == 'box') {
+                        packetQty = packetController.text;
+                        pieceQty = pieceController.text;
+                        if (packetQty.isEmpty) {
+                          AppCommonToastMessage.show(message: 'Please enter packets quantity', type: ToastType.error);
+                          return;
+                        }
+                        if (pieceQty.isEmpty) {
+                          AppCommonToastMessage.show(message: 'Please enter pieces per packet quantity', type: ToastType.error);
+                          return;
+                        }
+                      } else {
+                        // pcs / pieces, kg, pair, gram, etc.
+                        pieceQty = consumptionController.text;
+                        if (pieceQty.isEmpty) {
+                          AppCommonToastMessage.show(message: 'Please enter quantity', type: ToastType.error);
+                          return;
+                        }
+                      }
+
+                      Get.back();
+                      await controller.addStoreStock(
+                        stateId: selectedState.value!,
+                        districtId: selectedDistrict.value!,
+                        storeId: selectedStore.value!,
+                        categoryId: selectedCategory.value!,
+                        itemId: itemId,
+                        packetQty: packetQty,
+                        pieceQty: pieceQty,
+                        literQty: literQty,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -363,6 +523,45 @@ class StoreInventoryDialogs {
     final allocateDestinationType = RxnString();
     final allocateDestination = RxnString();
     final destinationOptions = <DropdownOption<String>>[].obs;
+    final qtyController = TextEditingController();
+
+    Future<void> updateDestinations(String? type) async {
+      allocateDestination.value = null;
+      destinationOptions.clear();
+      if (type == null) return;
+      
+      final apiService = Get.find<ApiService>();
+      if (type == 'unit') {
+        try {
+          final response = await apiService.post('support-units', data: {});
+          if (response != null && response['status'] == true) {
+            final List data = response['data'] ?? [];
+            destinationOptions.assignAll(data.map((e) => DropdownOption<String>(
+              value: e['unitid']?.toString() ?? e['id']?.toString() ?? '', 
+              label: e['unitname']?.toString() ?? '',
+            )).toList());
+          }
+        } catch (e) {
+          debugPrint('Error fetching units in dialog: $e');
+        }
+      } else if (type == 'store') {
+        try {
+          final response = await apiService.post('inv-stores', data: {
+            'state': item.stateId?.toString() ?? '',
+            'district': item.districtId?.toString() ?? '',
+          });
+          if (response != null && response['status'] == 'success') {
+            final List data = response['data'] ?? [];
+            destinationOptions.assignAll(data.map((e) => DropdownOption<String>(
+              value: e['storeid']?.toString() ?? '', 
+              label: e['storeroom_name']?.toString() ?? '',
+            )).toList());
+          }
+        } catch (e) {
+          debugPrint('Error fetching stores in dialog: $e');
+        }
+      }
+    }
     
     showDialog(
       context: context,
@@ -375,9 +574,6 @@ class StoreInventoryDialogs {
         child: Container(
           padding: EdgeInsets.all(20.r),
           child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,7 +649,11 @@ class StoreInventoryDialogs {
                         DropdownMenuItem(value: 'unit', child: Text('Unit', style: AppTextStyle.style_12_400(color: AppColors.grey900))),
                         DropdownMenuItem(value: 'store', child: Text('Store', style: AppTextStyle.style_12_400(color: AppColors.grey900))),
                       ],
-                      onChanged: (values) => allocateDestinationType.value = values.isNotEmpty ? values.first : null,
+                      onChanged: (values) {
+                        final type = values.isNotEmpty ? values.first : null;
+                        allocateDestinationType.value = type;
+                        updateDestinations(type);
+                      },
                     )),
                   ),
                   SizedBox(width: 12.w),
@@ -473,7 +673,22 @@ class StoreInventoryDialogs {
               SizedBox(height: 10.h),
               SizedBox(
                 width: 180.w,
-                child: _buildWhiteInput('Allocate Qty. (Consumption)', 'Enter Qty.'),
+                child: (() {
+                  final unit = (item is InventoryItemModel ? item.unit : (item as UnitInventoryModel).mUnit).toLowerCase();
+                  if (unit == 'litre') {
+                    return _buildWhiteInput('Allocate Quantity (ml)', 'Enter in ml', controller: qtyController);
+                  } else if (unit == 'piece' || unit == 'pcs') {
+                    return _buildWhiteInput('Allocate Quantity', 'Enter Pieces', controller: qtyController);
+                  } else if (unit == 'pair') {
+                    return _buildWhiteInput('Allocate Quantity (Pair)', 'Enter Pairs', controller: qtyController);
+                  } else if (unit == 'kg') {
+                    return _buildWhiteInput('Allocate Quantity (g)', 'Enter in grams', controller: qtyController);
+                  } else if (unit == 'packet' || unit == 'box') {
+                    return _buildWhiteInput('Allocate Quantity (Packet)', 'Enter Packets', controller: qtyController);
+                  } else {
+                    return _buildWhiteInput('Allocate Qty. (Consumption)', 'Enter Qty.', controller: qtyController);
+                  }
+                })(),
               ),
 
               SizedBox(height: 16.h),
@@ -493,7 +708,41 @@ class StoreInventoryDialogs {
                     width: 100.w,
                     height: 28.h,
                     buttonColor: AppColors.info,
-                    onPressed: () => Get.back(),
+                    onPressed: () async {
+                      final qty = qtyController.text;
+                      if (qty.isEmpty) {
+                        AppCommonToastMessage.show(message: 'Please enter quantity', type: ToastType.error);
+                        return;
+                      }
+                      final enteredQty = double.tryParse(qty) ?? 0;
+                      final availableQty = double.tryParse(item.quantity?.toString() ?? '0') ?? 0;
+                      if (enteredQty <= 0) {
+                        AppCommonToastMessage.show(message: 'Please enter a valid quantity greater than 0', type: ToastType.error);
+                        return;
+                      }
+                      if (enteredQty > availableQty) {
+                        AppCommonToastMessage.show(message: 'Not enough quantity available. Maximum: $availableQty', type: ToastType.error);
+                        return;
+                      }
+                      if (allocateDestinationType.value == null || allocateDestination.value == null) {
+                        AppCommonToastMessage.show(message: 'Please select destination', type: ToastType.error);
+                        return;
+                      }
+                      Get.back(); // Close dialog first to avoid Get.back() hitting the snackbar overlay
+                      if (item is InventoryItemModel) {
+                        final controller = Get.find<InventoryController>();
+                        await controller.allocateStock(item, qty, allocateDestinationType.value!, allocateDestination.value!);
+                      } else {
+                        // We might need to get UnitInventoryController
+                        // but let's assume it's registered
+                        try {
+                          final controller = Get.find<UnitInventoryController>();
+                          await controller.allocateStock(item, qty, allocateDestinationType.value!, allocateDestination.value!);
+                        } catch(e) {
+                          AppCommonToastMessage.show(message: 'Controller not found', type: ToastType.error);
+                        }
+                      }
+                    },
                   ),
                 ],
               ),
@@ -507,6 +756,7 @@ class StoreInventoryDialogs {
   }
 
   static void showConsumptionSheet(BuildContext context, dynamic item) {
+    final qtyController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -518,9 +768,6 @@ class StoreInventoryDialogs {
         child: Container(
           padding: EdgeInsets.all(20.r),
           child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,13 +802,29 @@ class StoreInventoryDialogs {
               ),
               SizedBox(height: 10.h),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: _buildSmallVerticalWhiteField('Available Qty.', '${item.quantity}'),
                   ),
                   SizedBox(width: 12.w),
                   Expanded(
-                    child: _buildSmallVerticalWhiteField('Consumption Qty.', 'Enter Qty.', isInput: true),
+                    child: (() {
+                      final unit = (item is InventoryItemModel ? item.unit : (item as UnitInventoryModel).mUnit).toLowerCase();
+                      if (unit == 'litre') {
+                        return _buildSmallVerticalWhiteField('Consumption Quantity (ml)', 'Enter in ml', isInput: true, controller: qtyController);
+                      } else if (unit == 'piece' || unit == 'pcs') {
+                        return _buildSmallVerticalWhiteField('Consumption Quantity', 'Enter Pieces', isInput: true, controller: qtyController);
+                      } else if (unit == 'pair') {
+                        return _buildSmallVerticalWhiteField('Consumption Quantity (Pair)', 'Enter Pairs', isInput: true, controller: qtyController);
+                      } else if (unit == 'kg') {
+                        return _buildSmallVerticalWhiteField('Consumption Quantity (g)', 'Enter in grams', isInput: true, controller: qtyController);
+                      } else if (unit == 'packet' || unit == 'box') {
+                        return _buildSmallVerticalWhiteField('Consumption Quantity (Packet)', 'Enter Packets', isInput: true, controller: qtyController);
+                      } else {
+                        return _buildSmallVerticalWhiteField('Consumption Qty.', 'Enter Qty.', isInput: true, controller: qtyController);
+                      }
+                    })(),
                   ),
                 ],
               ),
@@ -583,7 +846,35 @@ class StoreInventoryDialogs {
                     width: 100.w,
                     height: 28.h,
                     buttonColor: AppColors.info,
-                    onPressed: () => Get.back(),
+                    onPressed: () async {
+                      final qty = qtyController.text;
+                      if (qty.isEmpty) {
+                        AppCommonToastMessage.show(message: 'Please enter quantity', type: ToastType.error);
+                        return;
+                      }
+                      final enteredQty = double.tryParse(qty) ?? 0;
+                      final availableQty = double.tryParse(item.quantity?.toString() ?? '0') ?? 0;
+                      if (enteredQty <= 0) {
+                        AppCommonToastMessage.show(message: 'Please enter a valid quantity greater than 0', type: ToastType.error);
+                        return;
+                      }
+                      if (enteredQty > availableQty) {
+                        AppCommonToastMessage.show(message: 'Not enough quantity available. Maximum: $availableQty', type: ToastType.error);
+                        return;
+                      }
+                      Get.back(); // Close dialog first to avoid Get.back() hitting the snackbar overlay
+                      if (item is InventoryItemModel) {
+                        final controller = Get.find<InventoryController>();
+                        await controller.consumeStock(item, qty);
+                      } else {
+                        try {
+                          final controller = Get.find<UnitInventoryController>();
+                          await controller.consumeStock(item, qty);
+                        } catch(e) {
+                          AppCommonToastMessage.show(message: 'Controller not found', type: ToastType.error);
+                        }
+                      }
+                    },
                   ),
                 ],
               ),

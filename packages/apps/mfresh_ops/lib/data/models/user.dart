@@ -51,9 +51,16 @@ class User extends HiveObject {
 
   factory User.fromJson(Map<String, dynamic> json) {
     final userData = json['user'] ?? json;
-    final List<String> permissions = json['permissions'] != null
-        ? List<String>.from(json['permissions'])
-        : [];
+    final List<String> permissions = [];
+    if (json['permissions'] is Map) {
+      json['permissions'].forEach((key, value) {
+        if (value == true || value == 'true' || value == 1) {
+          permissions.add(key.toString());
+        }
+      });
+    } else if (json['permissions'] is List) {
+      permissions.addAll(List<String>.from(json['permissions']));
+    }
 
     return User(
       id: userData['id'] is int

@@ -1,3 +1,4 @@
+// region SupportTicketsScreen
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -6,17 +7,19 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/custom_app_loader.dart';
-import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 
 import 'widgets/support_tickets_header.dart';
 import 'widgets/support_filter_section.dart';
 import 'widgets/support_action_buttons.dart';
 import 'widgets/support_tickets_table.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class SupportTicketsScreen extends StatelessWidget {
   const SupportTicketsScreen({super.key});
 
+  // region build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<SupportTicketsController>();
@@ -52,6 +55,12 @@ class SupportTicketsScreen extends StatelessWidget {
       drawer: const CommonSidebar(),
       body: SafeArea(
         child: Obx(() {
+          final authRepo = Get.find<AuthRepository>();
+          final userPermissions = authRepo.rxUserPermissions;
+
+          final canViewTable = userPermissions.contains('maintenance_table');
+          final canViewFilter = userPermissions.contains('maintenance_filter');
+
           // Use skeletonizer for initial loading
           final showSkeleton =
               controller.isLoading.value && controller.tickets.isEmpty;
@@ -75,15 +84,18 @@ class SupportTicketsScreen extends StatelessWidget {
                               SupportTicketsHeader(
                                 controller: controller,
                                 showSkeleton: showSkeleton,
+                                canViewFilter: canViewFilter, // Added this line
                               ),
                               SizedBox(height: 6.h),
-                              Skeletonizer(
-                                enabled: showSkeleton,
-                                child: SupportFilterSection(
-                                  controller: controller,
+                              if (canViewFilter) ...[
+                                Skeletonizer(
+                                  enabled: showSkeleton,
+                                  child: SupportFilterSection(
+                                    controller: controller,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 6.h),
+                                SizedBox(height: 6.h),
+                              ],
                               Skeletonizer(
                                 enabled: showSkeleton,
                                 child: SupportActionButtons(
@@ -97,15 +109,17 @@ class SupportTicketsScreen extends StatelessWidget {
                       ),
                     ];
                   },
-                  body: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      10.w,
-                      controller.isSearching.value ? 10.h : 0,
-                      10.w,
-                      0,
-                    ),
-                    child: SupportTicketsTable(controller: controller),
-                  ),
+                  body: canViewTable
+                      ? Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            10.w,
+                            controller.isSearching.value ? 10.h : 0,
+                            10.w,
+                            0,
+                          ),
+                          child: SupportTicketsTable(controller: controller),
+                        )
+                      : const SizedBox.shrink(),
                 ),
                 // Show custom app loader overlay only if not refreshing
                 if (controller.isLoading.value &&
@@ -118,4 +132,6 @@ class SupportTicketsScreen extends StatelessWidget {
       ),
     );
   }
+  // endregion
 }
+// endregion
