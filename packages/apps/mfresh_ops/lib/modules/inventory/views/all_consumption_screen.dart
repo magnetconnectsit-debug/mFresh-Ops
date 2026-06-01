@@ -9,6 +9,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/consumption_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class AllConsumptionScreen extends StatelessWidget {
   const AllConsumptionScreen({super.key});
@@ -60,9 +61,8 @@ class AllConsumptionScreen extends StatelessWidget {
             children: [
               _buildFiltersSection(context, controller),
               _buildActionButtons(controller),
-              Obx(
-                () => _buildTable(controller),
-              ),
+              Obx(() => _buildTable(controller)),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 32.h),
             ],
           ),
         ),
@@ -72,11 +72,15 @@ class AllConsumptionScreen extends StatelessWidget {
 
   Widget _buildTable(ConsumptionController controller) {
     final isTableLoading = controller.isLoading.value;
+    final authRepo = Get.find<AuthRepository>();
+    final hasReverse = authRepo.rxUserPermissions.contains('consumption_reverse');
+
     final items = isTableLoading
         ? List.generate(
             10,
             (index) => ConsumptionItemModel(
-              consumedOn: '2023-01-01',
+              id: index,
+              consumedOn: '01-jan-2023',
               state: 'State_Dummy',
               district: 'District_Dummy',
               sourceType: 'Store',
@@ -86,6 +90,7 @@ class AllConsumptionScreen extends StatelessWidget {
               consumedQty: '0',
               mUnit: 'pcs',
               createdBy: 'User',
+              isReversed: 0,
             ),
           )
         : controller.consumptionItems;
@@ -94,7 +99,10 @@ class AllConsumptionScreen extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.all(32.r),
         child: Center(
-          child: Text('No consumption records found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+          child: Text(
+            'No consumption records found',
+            style: AppTextStyle.style_14_400(color: AppColors.grey300),
+          ),
         ),
       );
     }
@@ -113,98 +121,182 @@ class AllConsumptionScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(4.r),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: MediaQuery.of(Get.context!).size.width - 32.w),
-              child: Skeletonizer(
-                enabled: isTableLoading,
-                child: Table(
-                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                  columnWidths: const {
-                    0: IntrinsicColumnWidth(), // Consumed On
-                    1: IntrinsicColumnWidth(), // State
-                    2: IntrinsicColumnWidth(), // District
-                    3: IntrinsicColumnWidth(), // Source Type
-                    4: IntrinsicColumnWidth(), // Source
-                    5: IntrinsicColumnWidth(), // Category
-                    6: IntrinsicColumnWidth(), // Item
-                    7: IntrinsicColumnWidth(), // Consumed Qty
-                    8: IntrinsicColumnWidth(), // M_Unit
-                    9: IntrinsicColumnWidth(), // Created By
-                    10: IntrinsicColumnWidth(), // Action
-                  },
-                  border: TableBorder.symmetric(
-                    inside: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  children: [
-                    TableRow(
-                      decoration: const BoxDecoration(color: AppColors.white),
-                      children: [
-                        _buildHeaderCell('Consumed On'),
-                        _buildHeaderCell('State'),
-                        _buildHeaderCell('District'),
-                        _buildHeaderCell('Source Type'),
-                        _buildHeaderCell('Source'),
-                        _buildHeaderCell('Category'),
-                        _buildHeaderCell('Item'),
-                        _buildHeaderCell('Consumed Qty'),
-                        _buildHeaderCell('M_Unit'),
-                        _buildHeaderCell('Created By'),
-                        _buildHeaderCell('Action'),
-                      ],
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: MediaQuery.of(Get.context!).size.width - 32.w,
+                ),
+                child: Skeletonizer(
+                  enabled: isTableLoading,
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    columnWidths: {
+                      0: const IntrinsicColumnWidth(), // Consumed On
+                      1: const IntrinsicColumnWidth(), // State
+                      2: const IntrinsicColumnWidth(), // District
+                      3: const IntrinsicColumnWidth(), // Source Type
+                      4: const IntrinsicColumnWidth(), // Source
+                      5: const IntrinsicColumnWidth(), // Category
+                      6: const IntrinsicColumnWidth(), // Item
+                      7: const IntrinsicColumnWidth(), // Consumed Qty
+                      8: const IntrinsicColumnWidth(), // M_Unit
+                      9: const IntrinsicColumnWidth(), // Created By
+                      if (hasReverse) 10: const IntrinsicColumnWidth(), // Action
+                    },
+                    border: TableBorder.symmetric(
+                      inside: BorderSide(color: Colors.grey.shade300),
                     ),
-                    ...items.map((item) {
-                      return TableRow(
+                    children: [
+                      TableRow(
+                        decoration: const BoxDecoration(color: AppColors.white),
                         children: [
-                          _buildDataCell(item.consumedOn),
-                          _buildDataCell(item.state),
-                          _buildDataCell(item.district),
-                          _buildDataCell(item.sourceType),
-                          _buildDataCell(item.source),
-                          _buildDataCell(item.category),
-                          _buildDataCell(item.item),
-                          _buildDataCell(item.consumedQty),
-                          _buildDataCell(item.mUnit),
-                          _buildDataCell(item.createdBy),
-                          Container(
-                            margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-                            height: 18.h,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFE53935), Color(0xFFC62828)],
-                              ),
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () => _showReverseDialog(Get.context!, controller, item),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              ),
-                              child: Text('Reverse', style: AppTextStyle.style_12_500(color: AppColors.white)),
-                            ),
-                          ),
+                          _buildHeaderCell('Consumed On'),
+                          _buildHeaderCell('State'),
+                          _buildHeaderCell('District'),
+                          _buildHeaderCell('Source Type'),
+                          _buildHeaderCell('Source'),
+                          _buildHeaderCell('Category'),
+                          _buildHeaderCell('Item'),
+                          _buildHeaderCell('Consumed Qty'),
+                          _buildHeaderCell('M_Unit'),
+                          _buildHeaderCell('Created By'),
+                          if (hasReverse) _buildHeaderCell('Action'),
                         ],
-                      );
-                    }),
-                  ],
+                      ),
+                      ...items.map((item) {
+                        return TableRow(
+                          children: [
+                            _buildDataCell(item.consumedOn),
+                            _buildDataCell(item.state),
+                            _buildDataCell(item.district),
+                            _buildDataCell(item.sourceType),
+                            _buildDataCell(item.source),
+                            _buildDataCell(item.category),
+                            _buildDataCell(item.item),
+                            _buildDataCell(item.consumedQty),
+                            _buildDataCell(item.mUnit),
+                            _buildDataCell(item.createdBy),
+                            if (hasReverse)
+                              Container(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: 4.w,
+                                  vertical: 2.h,
+                                ),
+                                height: 18.h,
+                                decoration: BoxDecoration(
+                                  gradient: item.isReversed == 1
+                                      ? const LinearGradient(
+                                          colors: [
+                                            Color(0xFFB0BEC5),
+                                            Color(0xFF90A4AE),
+                                          ],
+                                        )
+                                      : const LinearGradient(
+                                          colors: [
+                                            Color(0xFFE53935),
+                                            Color(0xFFC62828),
+                                          ],
+                                        ),
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: item.isReversed == 1
+                                      ? null
+                                      : () => _showReverseDialog(
+                                            Get.context!,
+                                            controller,
+                                            item,
+                                          ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white70,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16.w,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    item.isReversed == 1 ? 'Reversed' : 'Reverse',
+                                    style: AppTextStyle.style_12_500(
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-        SizedBox(height: 16.h),
+        SizedBox(height: 12.h),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            'Showing 1 to ${controller.consumptionItems.length} of ${controller.allConsumptionItems.length} entries',
-            style: AppTextStyle.style_14_400(color: AppColors.black),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildPaginationButton('←', false, controller.previousPage),
+                    ...List.generate(controller.totalPages.value, (index) {
+                      final pageNumber = index + 1;
+                      return _buildPaginationButton(
+                        pageNumber.toString(),
+                        controller.currentPage.value == pageNumber,
+                        () => controller.goToPage(pageNumber),
+                      );
+                    }),
+                    _buildPaginationButton('→', false, controller.nextPage),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                'Showing ${controller.totalEntries.value == 0 ? 0 : (controller.currentPage.value - 1) * controller.perPage.value + 1} to ${(controller.currentPage.value * controller.perPage.value).clamp(0, controller.totalEntries.value)} of ${controller.totalEntries.value} entries',
+                style: AppTextStyle.style_12_400(color: AppColors.black),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 16.h),
       ],
+    );
+  }
+
+  Widget _buildPaginationButton(
+    String text,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        margin: EdgeInsets.only(left: 4.w),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
+          border: Border.all(
+            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
+          ),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Text(
+          text,
+          style: AppTextStyle.style_12_500(
+            color: isActive ? Colors.white : Colors.blue.shade600,
+          ),
+        ),
+      ),
     );
   }
 
@@ -299,7 +391,9 @@ class AllConsumptionScreen extends StatelessWidget {
                               value: opt.value,
                               child: Text(
                                 opt.label,
-                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
+                                ),
                               ),
                             ),
                           )
@@ -320,7 +414,9 @@ class AllConsumptionScreen extends StatelessWidget {
                               value: opt.value,
                               child: Text(
                                 opt.label,
-                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
+                                ),
                               ),
                             ),
                           )
@@ -341,7 +437,9 @@ class AllConsumptionScreen extends StatelessWidget {
                               value: opt.value,
                               child: Text(
                                 opt.label,
-                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
+                                ),
                               ),
                             ),
                           )
@@ -386,7 +484,9 @@ class AllConsumptionScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
               child: Text(
@@ -396,12 +496,51 @@ class AllConsumptionScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          Obx(
+            () => Container(
+              height: 28.h,
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: controller.perPage.value,
+                  dropdownColor: Colors.white,
+                  style: AppTextStyle.style_12_500(color: AppColors.black),
+                  icon: Icon(
+                    Icons.arrow_drop_down,
+                    size: 16.r,
+                    color: Colors.grey.shade600,
+                  ),
+                  items: [10, 20, 50, 100].map((int val) {
+                    return DropdownMenuItem<int>(
+                      value: val,
+                      child: Text('$val per page'),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.perPage.value = val;
+                      controller.applyFilters();
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDatePickerField(String label, TextEditingController controller, VoidCallback onTap) {
+  Widget _buildDatePickerField(
+    String label,
+    TextEditingController controller,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
@@ -435,20 +574,30 @@ class AllConsumptionScreen extends StatelessWidget {
                 },
               ),
             ),
-            Icon(Icons.calendar_today_outlined, size: 14.r, color: AppColors.grey300),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 14.r,
+              color: AppColors.grey300,
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _showReverseDialog(BuildContext context, ConsumptionController controller, ConsumptionItemModel item) {
+  void _showReverseDialog(
+    BuildContext context,
+    ConsumptionController controller,
+    ConsumptionItemModel item,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         return Dialog(
           backgroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
             child: Column(
@@ -459,7 +608,10 @@ class AllConsumptionScreen extends StatelessWidget {
                   height: 80.r,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFF8BB86), width: 4.w),
+                    border: Border.all(
+                      color: const Color(0xFFF8BB86),
+                      width: 4.w,
+                    ),
                   ),
                   child: Center(
                     child: Text(
@@ -475,13 +627,17 @@ class AllConsumptionScreen extends StatelessWidget {
                 SizedBox(height: 24.h),
                 Text(
                   'Confirm Reverse',
-                  style: AppTextStyle.style_14_600(color: const Color(0xFF545454)).copyWith(fontSize: 22.sp),
+                  style: AppTextStyle.style_14_600(
+                    color: const Color(0xFF545454),
+                  ).copyWith(fontSize: 22.sp),
                 ),
                 SizedBox(height: 12.h),
                 Text(
                   'This will reverse the consumption and restore stock.',
                   textAlign: TextAlign.center,
-                  style: AppTextStyle.style_14_400(color: const Color(0xFF545454)),
+                  style: AppTextStyle.style_14_400(
+                    color: const Color(0xFF545454),
+                  ),
                 ),
                 SizedBox(height: 24.h),
                 Row(
@@ -489,20 +645,26 @@ class AllConsumptionScreen extends StatelessWidget {
                   children: [
                     ElevatedButton(
                       onPressed: () {
+                        debugPrint('Yes, Reverse it! button tapped in Dialog');
+                        controller.reverseConsumption(item);
                         Get.back();
-                        // TODO: Implement reverse action using controller
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD33333),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4.r),
                         ),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 8.h,
+                        ),
                         elevation: 0,
                       ),
                       child: Text(
                         'Yes, Reverse it!',
-                        style: AppTextStyle.style_14_600(color: AppColors.white),
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                     SizedBox(width: 12.w),
@@ -513,12 +675,17 @@ class AllConsumptionScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4.r),
                         ),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 8.h,
+                        ),
                         elevation: 0,
                       ),
                       child: Text(
                         'Cancel',
-                        style: AppTextStyle.style_14_600(color: AppColors.white),
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                   ],

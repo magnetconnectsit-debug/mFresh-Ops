@@ -9,6 +9,7 @@ import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/allotment_controller.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class AllotmentScreen extends StatelessWidget {
   const AllotmentScreen({super.key});
@@ -96,7 +97,14 @@ class AllotmentScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTable(AllotmentController controller, bool isTableLoading, List<AllotmentItemModel> items) {
+  Widget _buildTable(
+    AllotmentController controller,
+    bool isTableLoading,
+    List<AllotmentItemModel> items,
+  ) {
+    final authRepo = Get.find<AuthRepository>();
+    final hasReverse = authRepo.rxUserPermissions.contains('allotment_reverse');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -112,20 +120,22 @@ class AllotmentScreen extends StatelessWidget {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: MediaQuery.of(Get.context!).size.width - 32.w),
+                constraints: BoxConstraints(
+                  minWidth: MediaQuery.of(Get.context!).size.width - 32.w,
+                ),
                 child: Skeletonizer(
                   enabled: isTableLoading,
                   child: Table(
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    columnWidths: const {
-                      0: IntrinsicColumnWidth(), // Date Of Allotment
-                      1: IntrinsicColumnWidth(), // Item Name
-                      2: IntrinsicColumnWidth(), // Source
-                      3: IntrinsicColumnWidth(), // Destination
-                      4: IntrinsicColumnWidth(), // Quantity
-                      5: IntrinsicColumnWidth(), // M_Unit
-                      6: IntrinsicColumnWidth(), // Allotment By
-                      7: IntrinsicColumnWidth(), // Action
+                    columnWidths: {
+                      0: const IntrinsicColumnWidth(), // Date Of Allotment
+                      1: const IntrinsicColumnWidth(), // Item Name
+                      2: const IntrinsicColumnWidth(), // Source
+                      3: const IntrinsicColumnWidth(), // Destination
+                      4: const IntrinsicColumnWidth(), // Quantity
+                      5: const IntrinsicColumnWidth(), // M_Unit
+                      6: const IntrinsicColumnWidth(), // Allotment By
+                      if (hasReverse) 7: const IntrinsicColumnWidth(), // Action
                     },
                     border: TableBorder.symmetric(
                       inside: BorderSide(color: Colors.grey.shade300),
@@ -141,7 +151,7 @@ class AllotmentScreen extends StatelessWidget {
                           _buildHeaderCell('Quantity'),
                           _buildHeaderCell('M_Unit'),
                           _buildHeaderCell('Allotment By'),
-                          _buildHeaderCell('Action'),
+                          if (hasReverse) _buildHeaderCell('Action'),
                         ],
                       ),
                       ...items.map((item) {
@@ -154,26 +164,47 @@ class AllotmentScreen extends StatelessWidget {
                             _buildDataCell(item.quantity),
                             _buildDataCell(item.unit),
                             _buildDataCell(item.allotmentBy),
-                            Container(
-                              margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-                              height: 18.h,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFE53935), Color(0xFFC62828)],
+                            if (hasReverse)
+                              Container(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: 4.w,
+                                  vertical: 2.h,
                                 ),
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                              child: ElevatedButton(
-                                onPressed: isTableLoading ? null : () => _showReverseDialog(Get.context!, controller, item),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                height: 18.h,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFE53935),
+                                      Color(0xFFC62828),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
-                                child: Text('Reverse', style: AppTextStyle.style_12_500(color: AppColors.white)),
+                                child: ElevatedButton(
+                                  onPressed: isTableLoading
+                                      ? null
+                                      : () => _showReverseDialog(
+                                            Get.context!,
+                                            controller,
+                                            item,
+                                          ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 16.w),
+                                  ),
+                                  child: Text(
+                                    'Reverse',
+                                    style: AppTextStyle.style_12_500(
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
                           ],
                         );
                       }),

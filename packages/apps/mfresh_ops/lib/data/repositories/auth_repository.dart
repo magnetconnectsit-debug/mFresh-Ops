@@ -36,6 +36,7 @@ class AuthRepository extends GetxService {
           await _storageService.saveRefreshToken(refreshToken);
         }
         await _storageService.saveUser(user);
+        rxUserPermissions.assignAll(user.permissions ?? []);
 
         return user;
       }
@@ -66,12 +67,14 @@ class AuthRepository extends GetxService {
       final response = await _apiService.post(AppConstants.logout);
       if (response != null && response['status'] == true) {
         await _storageService.clearAllStorage();
+        rxUserPermissions.clear();
         return true;
       }
       return false;
     } catch (e) {
       // Even if API fails, we should clear local storage for safety on logout
       await _storageService.clearAllStorage();
+      rxUserPermissions.clear();
       return true;
     }
   }
@@ -101,6 +104,7 @@ class AuthRepository extends GetxService {
 
         await _storageService.saveToken(token);
         await _storageService.saveUser(user);
+        rxUserPermissions.assignAll(user.permissions ?? []);
 
         return user;
       }

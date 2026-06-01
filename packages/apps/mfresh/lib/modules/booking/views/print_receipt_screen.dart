@@ -61,7 +61,7 @@ class PrintReceiptScreen extends StatelessWidget {
             ),
 
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+              padding: EdgeInsets.only(left: 16.w, right: 16.w, top: 16.h, bottom: 4.h),
               child: Column(
                 children: [
                   // Logo
@@ -172,7 +172,7 @@ class PrintReceiptScreen extends StatelessWidget {
 
             // Thermal Paper Bottom
             SizedBox(
-              height: 20.h,
+              height: 8.h,
               width: double.infinity,
               child: _buildDashedLine(),
             ),

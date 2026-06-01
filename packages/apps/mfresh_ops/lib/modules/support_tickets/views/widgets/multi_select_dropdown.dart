@@ -287,10 +287,12 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
                         title: item.child,
                         selected: _tempSelected.contains(value),
                         onTap: () {
-                          setState(() {
+                          if (_tempSelected.contains(value)) {
+                            _tempSelected.remove(value);
+                          } else {
                             _tempSelected.clear();
                             _tempSelected.add(value as T);
-                          });
+                          }
                           widget.onChanged(Set<T>.from(_tempSelected));
                           Navigator.pop(context);
                         },

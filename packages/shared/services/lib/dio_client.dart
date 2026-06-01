@@ -50,6 +50,7 @@ class DioClient {
           error: true,
           compact: true,
           maxWidth: 90,
+          logPrint: (object) => debugPrint(object.toString()),
         ),
       );
     }

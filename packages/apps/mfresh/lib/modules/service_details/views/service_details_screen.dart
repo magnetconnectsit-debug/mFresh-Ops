@@ -652,8 +652,9 @@ class ServiceDetailsScreen extends StatelessWidget {
                                                   ?.externalQr ??
                                               false) &&
                                           controller.isOnline.value;
-                                      if (!canShowExternalQr)
-                                        return const SizedBox.shrink();
+                                       if (!canShowExternalQr) {
+                                         return const SizedBox.shrink();
+                                       }
 
                                       return Expanded(
                                         child: Container(

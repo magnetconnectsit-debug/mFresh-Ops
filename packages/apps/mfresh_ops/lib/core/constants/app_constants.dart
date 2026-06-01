@@ -88,6 +88,8 @@ class AppConstants {
   static const String inventoryUnitStock = 'inventory/Unit/Stock';
   static const String invCategoryWiseItem = 'inv-Category-wise-Item';
   static const String invEntryStoreStock = 'inv-entry-store-stock';
+  static const String consumptionReport = 'consumption/report';
+  static const String consumptionReverse = 'consumption/reverse';
   // endregion
 
   // region Hive Keys

@@ -28,7 +28,6 @@ class TwoInchReceipt {
     bytes += [27, 32, 2];
     bytes += generator.text("mFresh", styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
     bytes += [27, 32, 0];
-    bytes += generator.feed(1);
 
     bytes += [27, 32, 4];
     bytes += generator.text("UNIT NO.: ${booking.unitNo}", styles: PosStyles(align: align, bold: true, height: PosTextSize.size1));
@@ -49,8 +48,9 @@ class TwoInchReceipt {
     bytes += generator.text("QTY: 1", styles: PosStyles(align: align));
     bytes += generator.text(separator, styles: PosStyles(align: centerAlign));
     
+    final finalPrice = service.price.isNotEmpty ? service.price : booking.totalAmount;
     bytes += [27, 32, 2];
-    bytes += generator.text("TOTAL: RS. ${service.price}", styles: PosStyles(bold: true, align: align, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += generator.text("TOTAL: RS. $finalPrice", styles: PosStyles(bold: true, align: align, height: PosTextSize.size2, width: PosTextSize.size1));
     bytes += [27, 32, 0];
     bytes += generator.text(separator, styles: PosStyles(align: centerAlign));
 
@@ -60,7 +60,7 @@ class TwoInchReceipt {
         "DeviceID": "NA",
         "AccessDate": DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
       }),
-      size: QRSize.size7,
+      size: QRSize.size6,
       cor: QRCorrection.H,
       align: centerAlign,
     );
@@ -69,7 +69,6 @@ class TwoInchReceipt {
     bytes += generator.text("Thank you for using mFresh!", styles: PosStyles(align: centerAlign, bold: true));
     bytes += generator.text(separator, styles: PosStyles(align: centerAlign));
 
-    bytes += generator.feed(3);
     bytes += generator.cut();
 
     return bytes;
@@ -90,49 +89,50 @@ class TwoInchReceipt {
       final service = booking.services[i];
       final int qty = int.tryParse(service.quantity.toString()) ?? 1;
       for (int q = 0; q < qty; q++) {
+        final finalPrice = service.price.isNotEmpty ? service.price : booking.totalAmount;
         doc.addPage(
           pw.Page(
             pageFormat: rollFormat,
             build: (pw.Context context) {
               return pw.Padding(
-                padding: pw.EdgeInsets.only(left: 0, right: 8, top: 8, bottom: 8),
+                padding: pw.EdgeInsets.only(left: 0, right: 8, top: 2, bottom: 2),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Center(
                       child: pw.Column(
                         children: [
-                          pw.Image(logoImage, width: 40, height: 40),
-                          pw.SizedBox(height: 4),
-                          pw.Text("mFresh", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24, letterSpacing: 2.0))
+                          pw.Image(logoImage, width: 20, height: 20),
+                          pw.SizedBox(height: 2),
+                          pw.Text("mFresh", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, letterSpacing: 2.0))
                         ]
                       )
                     ),
-                    pw.SizedBox(height: 12),
-                    pw.Text("UNIT NO.: ${booking.unitNo}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14, letterSpacing: 1.0)),
-                    pw.Text("Location: ${booking.fullAddress}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.normal)),
-                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10)),
+                    pw.SizedBox(height: 4),
+                    pw.Text("UNIT NO.: ${booking.unitNo}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                    pw.Text("Location: ${booking.fullAddress}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.normal)),
+                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
                     
-                    pw.Text("BOOKING ID: ${booking.bookingId}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                    pw.Text("Date & Time: ${booking.bookingTimeDate.isNotEmpty ? booking.bookingTimeDate : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 11)),
+                    pw.Text("BOOKING ID: ${booking.bookingId}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                    pw.Text("Date & Time: ${booking.bookingTimeDate.isNotEmpty ? booking.bookingTimeDate : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
                     
-                    pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 11)),
-                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10)),
+                    pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
+                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
 
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
-                        pw.Text(service.servicesName.toUpperCase(), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                        pw.Text("QTY: 1", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 11)),
-                        pw.SizedBox(height: 6),
+                        pw.Text(service.servicesName.toUpperCase(), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                        pw.Text("QTY: 1", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
+                        pw.SizedBox(height: 2),
                       ]
                     ),
 
-                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10)),
-                    pw.Text("TOTAL: RS. ${service.price}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18, letterSpacing: 1.5)),
-                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10)),
+                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
+                    pw.Text("TOTAL: RS. $finalPrice", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13, letterSpacing: 1.5)),
+                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
                     
-                    pw.SizedBox(height: 10),
+                    pw.SizedBox(height: 4),
                     pw.Center(
                       child: pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(errorCorrectLevel: pw.BarcodeQRCorrectionLevel.high),
@@ -141,16 +141,14 @@ class TwoInchReceipt {
                           "DeviceID": "NA",
                           "AccessDate": DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
                         }),
-                        width: 120,
-                        height: 120,
+                        width: 100,
+                        height: 100,
                       ),
                     ),
-                    pw.SizedBox(height: 12),
+                    pw.SizedBox(height: 4),
                     pw.Center(
-                      child: pw.Text("Thank you for using mFresh!", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text("Thank you for using mFresh!", style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold)),
                     ),
-                    pw.SizedBox(height: 2),
-                    pw.Text(pdfSeparator, textAlign: pw.TextAlign.left, style: pw.TextStyle(fontSize: 10)),
                   ],
                 ),
               );
