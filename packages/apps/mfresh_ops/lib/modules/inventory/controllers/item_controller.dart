@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
+import 'package:core/widgets/app_common_dropdown_page.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 
 class ItemController extends GetxController {
+  final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
   final isSearching = false.obs;
   final searchController = TextEditingController();
   final isExporting = false.obs;
@@ -12,6 +15,7 @@ class ItemController extends GetxController {
 
   Future<void> onRefresh() async {
     isLoading.value = true;
+    await fetchCategories();
     await Future.delayed(const Duration(seconds: 1));
     isLoading.value = false;
   }
@@ -25,12 +29,7 @@ class ItemController extends GetxController {
   final selectedCategory = RxnString();
 
   final measurementOptions = ['Litre', 'Piece', 'Packet', 'Kg', 'Gram'].obs;
-  final categoryOptions = [
-    'Cleaning',
-    'Toiletries',
-    'Stationery',
-    'Others',
-  ].obs;
+  final categoryOptions = <DropdownOption<String>>[].obs;
 
   final allItems = <ItemModel>[
     ItemModel(
@@ -113,6 +112,22 @@ class ItemController extends GetxController {
   void onInit() {
     super.onInit();
     filteredItems.assignAll(allItems);
+    fetchCategories();
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      final response = await _inventoryRepository.getCategories();
+      if (response != null && response['status'] == 'success') {
+        final List data = response['data'] ?? [];
+        categoryOptions.assignAll(data.map((e) => DropdownOption<String>(
+          value: e['categoryID'].toString(), 
+          label: e['invcatgeoryname']?.toString() ?? '',
+        )).toList());
+      }
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+    }
   }
 
   void toggleSearch() {

@@ -4,11 +4,20 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 
 class MeasurementController extends GetxController {
+  final isSearching = false.obs;
+  final searchController = TextEditingController();
   final measurementNameController = TextEditingController();
-  final measurements = <String>['Litre', 'Packet', 'Piece', 'Pair', 'Kg'].obs;
+  final allMeasurements = <String>['Litre', 'Packet', 'Piece', 'Pair', 'Kg'].obs;
+  final measurements = <String>[].obs;
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
   final isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    measurements.assignAll(allMeasurements);
+  }
 
   Future<void> onRefresh() async {
     isLoading.value = true;
@@ -17,10 +26,28 @@ class MeasurementController extends GetxController {
     isLoading.value = false;
   }
 
+  void toggleSearch() {
+    isSearching.value = !isSearching.value;
+    if (!isSearching.value) {
+      searchController.clear();
+      applyFilters();
+    }
+  }
+
+  void applyFilters() {
+    final query = searchController.text.toLowerCase();
+    measurements.assignAll(
+      allMeasurements.where((m) {
+        return query.isEmpty || m.toLowerCase().contains(query);
+      }).toList(),
+    );
+  }
+
   void addMeasurement() {
     final name = measurementNameController.text.trim();
     if (name.isNotEmpty) {
-      measurements.add(name);
+      allMeasurements.add(name);
+      applyFilters();
       measurementNameController.clear();
       Get.back();
       AppCommonToastMessage.show(
@@ -37,7 +64,12 @@ class MeasurementController extends GetxController {
 
   void editMeasurement(int index, String newName) {
     if (newName.isNotEmpty) {
-      measurements[index] = newName;
+      final oldName = measurements[index];
+      final allIndex = allMeasurements.indexOf(oldName);
+      if (allIndex != -1) {
+        allMeasurements[allIndex] = newName;
+      }
+      applyFilters();
       measurementNameController.clear();
       Get.back();
       AppCommonToastMessage.show(
@@ -48,7 +80,9 @@ class MeasurementController extends GetxController {
   }
 
   void deleteMeasurement(int index) {
-    measurements.removeAt(index);
+    final oldName = measurements[index];
+    allMeasurements.remove(oldName);
+    applyFilters();
     AppCommonToastMessage.show(
       message: "Measurement deleted successfully!",
       type: ToastType.success,
@@ -85,6 +119,7 @@ class MeasurementController extends GetxController {
 
   @override
   void onClose() {
+    searchController.dispose();
     measurementNameController.dispose();
     super.onClose();
   }

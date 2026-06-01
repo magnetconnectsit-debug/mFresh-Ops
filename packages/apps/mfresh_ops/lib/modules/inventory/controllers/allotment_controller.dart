@@ -211,6 +211,8 @@ class AllotmentController extends GetxController {
   }
 
   void reverseAllotment(AllotmentItemModel item) {
+    allotmentItems.remove(item);
+    allAllotmentItems.remove(item);
     AppCommonToastMessage.show(
       message: "Allotment reversed successfully!",
       type: ToastType.success,

@@ -6,6 +6,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/measurement_controller.dart';
@@ -24,10 +25,27 @@ class MeasurementScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
-        title: const Text('Measurements'),
+        title: Obx(
+          () => controller.isSearching.value
+              ? AppCommonSearchBar(
+                  controller: controller.searchController,
+                  onChanged: (v) => controller.applyFilters(),
+                  hintText: 'Search Measurements...',
+                )
+              : Text(
+                  'Measurements',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
+        ),
         actions: [
-          SizedBox(width: 16.w),
-          SizedBox(width: 16.w),
+          Obx(
+            () => IconButton(
+              onPressed: () => controller.toggleSearch(),
+              icon: Icon(
+                controller.isSearching.value ? Icons.close : Icons.search,
+              ),
+            ),
+          ),
         ],
       ),
       drawer: const CommonSidebar(),

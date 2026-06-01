@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -126,6 +125,7 @@ class AllotmentScreen extends StatelessWidget {
                       4: IntrinsicColumnWidth(), // Quantity
                       5: IntrinsicColumnWidth(), // M_Unit
                       6: IntrinsicColumnWidth(), // Allotment By
+                      7: IntrinsicColumnWidth(), // Action
                     },
                     border: TableBorder.symmetric(
                       inside: BorderSide(color: Colors.grey.shade300),
@@ -141,6 +141,7 @@ class AllotmentScreen extends StatelessWidget {
                           _buildHeaderCell('Quantity'),
                           _buildHeaderCell('M_Unit'),
                           _buildHeaderCell('Allotment By'),
+                          _buildHeaderCell('Action'),
                         ],
                       ),
                       ...items.map((item) {
@@ -153,6 +154,26 @@ class AllotmentScreen extends StatelessWidget {
                             _buildDataCell(item.quantity),
                             _buildDataCell(item.unit),
                             _buildDataCell(item.allotmentBy),
+                            Container(
+                              margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                              height: 18.h,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFE53935), Color(0xFFC62828)],
+                                ),
+                                borderRadius: BorderRadius.circular(4.r),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: isTableLoading ? null : () => _showReverseDialog(Get.context!, controller, item),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                ),
+                                child: Text('Reverse', style: AppTextStyle.style_12_500(color: AppColors.white)),
+                              ),
+                            ),
                           ],
                         );
                       }),
@@ -173,6 +194,95 @@ class AllotmentScreen extends StatelessWidget {
         ),
         SizedBox(height: 16.h),
       ],
+    );
+  }
+
+  void _showReverseDialog(BuildContext context, AllotmentController controller, AllotmentItemModel item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80.r,
+                  height: 80.r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFF8BB86), width: 4.w),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '!',
+                      style: TextStyle(
+                        fontSize: 48.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFFF8BB86),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                Text(
+                  'Confirm Reverse',
+                  style: AppTextStyle.style_14_600(color: const Color(0xFF545454)).copyWith(fontSize: 22.sp),
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  'This will reverse the allotment and restore stock.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyle.style_14_400(color: const Color(0xFF545454)),
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Get.back();
+                        controller.reverseAllotment(item);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD33333),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Yes, Reverse it!',
+                        style: AppTextStyle.style_14_600(color: AppColors.white),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    ElevatedButton(
+                      onPressed: () => Get.back(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C757D),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyle.style_14_600(color: AppColors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -268,15 +378,35 @@ class AllotmentScreen extends StatelessWidget {
 
   Widget _buildActionButtons(AllotmentController controller) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4),
       child: Row(
         children: [
-          AppCommonButton(
-            text: 'Apply',
-            onPressed: () => controller.applyFilters(),
+          Container(
             height: 28.h,
-            width: 80.w,
-            textSize: 12.sp,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(4.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () => controller.applyFilters(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+              ),
+              child: Text(
+                'Apply',
+                style: AppTextStyle.style_12_600(color: AppColors.white),
+              ),
+            ),
           ),
           SizedBox(width: 10.w),
           Container(

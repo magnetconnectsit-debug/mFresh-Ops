@@ -6,6 +6,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/store_room_controller.dart';
@@ -24,11 +25,28 @@ class StoreRoomScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
-        title: Text(
-          'Store Rooms',
-          style: AppTextStyle.style_16_700(color: AppColors.black),
+        title: Obx(
+          () => controller.isSearching.value
+              ? AppCommonSearchBar(
+                  controller: controller.searchController,
+                  onChanged: (v) => controller.applyFilters(),
+                  hintText: 'Search Store Rooms...',
+                )
+              : Text(
+                  'Store Rooms',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
         ),
-        actions: [SizedBox(width: 16.w)],
+        actions: [
+          Obx(
+            () => IconButton(
+              onPressed: () => controller.toggleSearch(),
+              icon: Icon(
+                controller.isSearching.value ? Icons.close : Icons.search,
+              ),
+            ),
+          ),
+        ],
       ),
       drawer: const CommonSidebar(),
       body: Column(
@@ -246,33 +264,55 @@ class StoreRoomScreen extends StatelessWidget {
 
   void _showAddDialog(BuildContext context, StoreRoomController controller) {
     controller.storeNameController.clear();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+    Get.dialog(
+      Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(20.r),
+          side: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        title: Text('Add Store Room', style: AppTextStyle.style_14_700()),
-        content: AppCommonTextField(
-          controller: controller.storeNameController,
-          titleText: 'Store Name',
-          hintText: 'Enter store name',
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add Store Room',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
+              ),
+              SizedBox(height: 20.h),
+              AppCommonTextField(
+                controller: controller.storeNameController,
+                titleText: 'Store Name',
+                hintText: 'Enter store name',
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      'Cancel',
+                      style: AppTextStyle.style_14_600(
+                        color: AppColors.grey300,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  AppCommonButton(
+                    text: 'Submit',
+                    width: 100.w,
+                    height: 36.h,
+                    onPressed: () => controller.addStore(),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Add',
-            onPressed: () => controller.addStore(),
-            width: 80.w,
-            height: 36.h,
-          ),
-        ],
       ),
     );
   }
@@ -284,36 +324,58 @@ class StoreRoomScreen extends StatelessWidget {
     int index,
   ) {
     controller.storeNameController.text = store.storeName;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+    Get.dialog(
+      Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(20.r),
+          side: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        title: Text('Edit Store Room', style: AppTextStyle.style_14_700()),
-        content: AppCommonTextField(
-          controller: controller.storeNameController,
-          titleText: 'Store Name',
-          hintText: 'Enter store name',
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Edit Store Room',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
+              ),
+              SizedBox(height: 20.h),
+              AppCommonTextField(
+                controller: controller.storeNameController,
+                titleText: 'Store Name',
+                hintText: 'Enter store name',
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      'Cancel',
+                      style: AppTextStyle.style_14_600(
+                        color: AppColors.grey300,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  AppCommonButton(
+                    text: 'Update',
+                    width: 100.w,
+                    height: 36.h,
+                    onPressed: () => controller.editStore(
+                      index,
+                      controller.storeNameController.text,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Update',
-            onPressed: () => controller.editStore(
-              index,
-              controller.storeNameController.text,
-            ),
-            width: 80.w,
-            height: 36.h,
-          ),
-        ],
       ),
     );
   }

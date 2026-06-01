@@ -5,6 +5,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/item_controller.dart';
 import '../../../widgets/common_sidebar.dart';
@@ -23,12 +24,27 @@ class ItemScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
-        title: Text(
-          'Items',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
+        title: Obx(
+          () => controller.isSearching.value
+              ? AppCommonSearchBar(
+                  controller: controller.searchController,
+                  onChanged: (v) => controller.applyFilters(),
+                  hintText: 'Search Items...',
+                )
+              : Text(
+                  'Items',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
         ),
         actions: [
-          SizedBox(width: 16.w),
+          Obx(
+            () => IconButton(
+              onPressed: () => controller.toggleSearch(),
+              icon: Icon(
+                controller.isSearching.value ? Icons.close : Icons.search,
+              ),
+            ),
+          ),
         ],
       ),
       drawer: const CommonSidebar(),
