@@ -11,6 +11,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/api_services.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
 import '../../controllers/unit_inventory_controller.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 
 class StoreInventoryDialogs {
   static Widget _buildGreyField(String label, String hint) {
@@ -39,43 +40,7 @@ class StoreInventoryDialogs {
     );
   }
 
-  static Widget _buildGreyDropdown(String label, String hint) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyle.style_12_500(color: AppColors.black300),
-        ),
-        SizedBox(height: 6.h),
-        Container(
-          height: 28.h,
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE2E8F0),
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  hint,
-                  style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Icon(
-                Icons.keyboard_arrow_down,
-                size: 16.r,
-                color: AppColors.grey500,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+
 
   static Widget _buildWhiteInput(
     String label,
@@ -179,6 +144,7 @@ class StoreInventoryDialogs {
   static void showAddInventorySheet(BuildContext context) {
     final controller = Get.find<InventoryController>();
     controller.selectedAddItemName.value = null;
+    controller.fetchStores('', '');
 
     final selectedState = RxnString();
     final selectedDistrict = RxnString();
@@ -344,9 +310,7 @@ class StoreInventoryDialogs {
                           selectedValues: selectedStore.value != null
                               ? {selectedStore.value!}
                               : {},
-                          items: selectedState.value == null
-                              ? []
-                              : controller.storeOptions
+                          items: controller.storeOptions
                                     .map<DropdownMenuItem<String>>(
                                       (e) => DropdownMenuItem<String>(
                                         value: e.value,
@@ -662,7 +626,56 @@ class StoreInventoryDialogs {
     final destinationOptions = <DropdownOption<String>>[].obs;
     final qtyController = TextEditingController();
 
+    final selectedState = RxnString();
+    final selectedDistrict = RxnString();
+    final stateOptions = <DropdownOption<String>>[].obs;
+    final districtOptions = <DropdownOption<String>>[].obs;
+
+    final repository = Get.find<InventoryRepository>();
+
+    final String? itemStateId = item.stateId?.toString();
+    final String? itemDistrictId = item.districtId?.toString();
+
+    selectedState.value = (itemStateId != null && itemStateId.isNotEmpty) ? itemStateId : null;
+    selectedDistrict.value = (itemDistrictId != null && itemDistrictId.isNotEmpty) ? itemDistrictId : null;
+
+    Future<void> loadStates() async {
+      try {
+        final response = await repository.getStates();
+        if (response != null && response['status'] == 'success') {
+          final List data = response['data'] ?? [];
+          stateOptions.assignAll(
+            data.map((e) => DropdownOption<String>(
+              value: e['id']?.toString() ?? '',
+              label: e['state_name']?.toString() ?? '',
+            )).toList()
+          );
+        }
+      } catch (e) {
+        debugPrint('Error loading states in dialog: $e');
+      }
+    }
+
+    Future<void> loadDistricts(String stateId) async {
+      districtOptions.clear();
+      try {
+        final response = await repository.getDistricts(stateId);
+        if (response != null && response['status'] == 'success') {
+          final List data = response['data'] ?? [];
+          districtOptions.assignAll(
+            data.map((e) => DropdownOption<String>(
+              value: e['district_id']?.toString() ?? '',
+              label: e['district_name']?.toString() ?? '',
+            )).toList()
+          );
+        }
+      } catch (e) {
+        debugPrint('Error loading districts in dialog: $e');
+      }
+    }
+
     Future<void> updateDestinations(String? type) async {
+      debugPrint('🔍 [dialog] updateDestinations called with type: $type');
       allocateDestination.value = null;
       destinationOptions.clear();
       if (type == null) return;
@@ -670,8 +683,16 @@ class StoreInventoryDialogs {
       final apiService = Get.find<ApiService>();
       if (type == 'unit') {
         try {
-          final response = await apiService.post('support-units', data: {});
-          if (response != null && response['status'] == true) {
+          debugPrint('🔍 [dialog] Fetching support-units. State: ${selectedState.value}, District: ${selectedDistrict.value}');
+          final response = await apiService.post(
+            'support-units',
+            data: {
+              'state': selectedState.value ?? '',
+              'district': selectedDistrict.value ?? '',
+            },
+          );
+          debugPrint('🔍 [dialog] support-units response: $response');
+          if (response != null && (response['status'] == true || response['status'] == 'success')) {
             final List data = response['data'] ?? [];
             destinationOptions.assignAll(
               data
@@ -686,18 +707,20 @@ class StoreInventoryDialogs {
             );
           }
         } catch (e) {
-          debugPrint('Error fetching units in dialog: $e');
+          debugPrint('❌ [dialog] Error fetching units in dialog: $e');
         }
       } else if (type == 'store') {
         try {
+          debugPrint('🔍 [dialog] Fetching inv-stores...');
           final response = await apiService.post(
             'inv-stores',
             data: {
-              'state': item.stateId?.toString() ?? '',
-              'district': item.districtId?.toString() ?? '',
+              'state': '',
+              'district': '',
             },
           );
-          if (response != null && response['status'] == 'success') {
+          debugPrint('🔍 [dialog] inv-stores response: $response');
+          if (response != null && (response['status'] == 'success' || response['status'] == true)) {
             final List data = response['data'] ?? [];
             destinationOptions.assignAll(
               data
@@ -709,12 +732,28 @@ class StoreInventoryDialogs {
                   )
                   .toList(),
             );
+            debugPrint('🔍 [dialog] Populated destinationOptions: ${destinationOptions.map((e) => '${e.label} (${e.value})').toList()}');
           }
         } catch (e) {
-          debugPrint('Error fetching stores in dialog: $e');
+          debugPrint('❌ [dialog] Error fetching stores in dialog: $e');
         }
       }
     }
+
+    loadStates().then((_) {
+      if (selectedState.value != null) {
+        loadDistricts(selectedState.value!).then((_) {
+          if (allocateDestinationType.value != null) {
+            updateDestinations(allocateDestinationType.value!);
+          }
+        });
+      }
+    });
+
+    ever(allocateDestinationType, (type) {
+      debugPrint('🔍 [dialog] ever worker triggered for destination type: $type');
+      updateDestinations(type);
+    });
 
     showDialog(
       context: context,
@@ -787,9 +826,72 @@ class StoreInventoryDialogs {
                 SizedBox(height: 8.h),
                 Row(
                   children: [
-                    Expanded(child: _buildGreyDropdown('State', 'Odisha')),
+                    Expanded(
+                      child: Obx(
+                        () => MultiSelectDropdownWidget<String>(
+                          title: 'State',
+                          isSingleSelect: true,
+                          height: 28.h,
+                          selectedValues: selectedState.value != null
+                              ? {selectedState.value!}
+                              : {},
+                          items: stateOptions
+                              .map<DropdownMenuItem<String>>(
+                                (e) => DropdownMenuItem<String>(
+                                  value: e.value,
+                                  child: Text(
+                                    e.label,
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (values) {
+                            final v = values.isNotEmpty ? values.first : null;
+                            selectedState.value = v;
+                            selectedDistrict.value = null;
+                            districtOptions.clear();
+                            if (v != null) {
+                              loadDistricts(v);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
                     SizedBox(width: 12.w),
-                    Expanded(child: _buildGreyDropdown('District', 'Puri')),
+                    Expanded(
+                      child: Obx(
+                        () => MultiSelectDropdownWidget<String>(
+                          title: 'District',
+                          isSingleSelect: true,
+                          height: 28.h,
+                          selectedValues: selectedDistrict.value != null
+                              ? {selectedDistrict.value!}
+                              : {},
+                          items: selectedState.value == null
+                              ? []
+                              : districtOptions
+                                    .map<DropdownMenuItem<String>>(
+                                      (e) => DropdownMenuItem<String>(
+                                        value: e.value,
+                                        child: Text(
+                                          e.label,
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.grey900,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                          onChanged: (values) {
+                            final v = values.isNotEmpty ? values.first : null;
+                            selectedDistrict.value = v;
+                          },
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 10.h),
@@ -807,7 +909,7 @@ class StoreInventoryDialogs {
                               ? {allocateDestinationType.value!}
                               : {},
                           items: [
-                            DropdownMenuItem(
+                            DropdownMenuItem<String>(
                               value: 'unit',
                               child: Text(
                                 'Unit',
@@ -816,7 +918,7 @@ class StoreInventoryDialogs {
                                 ),
                               ),
                             ),
-                            DropdownMenuItem(
+                            DropdownMenuItem<String>(
                               value: 'store',
                               child: Text(
                                 'Store',
@@ -849,7 +951,7 @@ class StoreInventoryDialogs {
                               : {},
                           items: destinationOptions
                               .map(
-                                (opt) => DropdownMenuItem(
+                                (opt) => DropdownMenuItem<String>(
                                   value: opt.value,
                                   child: Text(
                                     opt.label,
@@ -978,6 +1080,8 @@ class StoreInventoryDialogs {
                             qty,
                             allocateDestinationType.value!,
                             allocateDestination.value!,
+                            destStateId: selectedState.value,
+                            destDistrictId: selectedDistrict.value,
                           );
                         } else {
                           try {
@@ -988,6 +1092,8 @@ class StoreInventoryDialogs {
                               qty,
                               allocateDestinationType.value!,
                               allocateDestination.value!,
+                              destStateId: selectedState.value,
+                              destDistrictId: selectedDistrict.value,
                             );
                           } catch (e) {
                             AppCommonToastMessage.show(

@@ -155,6 +155,14 @@ class UnitInventoryController extends GetxController {
     } catch (e) {
       debugPrint('Error fetching profile: $e');
     }
+
+    // Reset filters
+    selectedUnits.clear();
+    selectedItems.clear();
+    selectedCategories.clear();
+    searchController.clear();
+    currentPage.value = 1;
+
     await Future.wait([
       fetchSupportUnits(),
       fetchSupportCategories(),
@@ -201,7 +209,14 @@ class UnitInventoryController extends GetxController {
     super.onClose();
   }
 
-  Future<void> allocateStock(UnitInventoryModel item, String qty, String destType, String destId) async {
+  Future<void> allocateStock(
+    UnitInventoryModel item,
+    String qty,
+    String destType,
+    String destId, {
+    String? destStateId,
+    String? destDistrictId,
+  }) async {
     try {
       final response = await _inventoryRepository.allocateStock({
         "source_type": "unit",
@@ -209,8 +224,8 @@ class UnitInventoryController extends GetxController {
         "item_id": int.tryParse(item.itemId) ?? 0,
         "destination_type": destType,
         "destination_id": int.tryParse(destId) ?? 0,
-        "state_id": int.tryParse(item.stateId) ?? 0,
-        "district_id": int.tryParse(item.districtId) ?? 0,
+        "state_id": int.tryParse(destStateId ?? item.stateId) ?? 0,
+        "district_id": int.tryParse(destDistrictId ?? item.districtId) ?? 0,
         "allotment_qty": int.tryParse(qty) ?? 0,
         "measurement_unit_id": int.tryParse(item.measurementUnitId) ?? 0,
         "categoryID": int.tryParse(item.categoryId) ?? 0,

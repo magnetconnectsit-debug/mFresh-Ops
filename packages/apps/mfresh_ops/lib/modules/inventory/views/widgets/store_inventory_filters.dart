@@ -88,9 +88,11 @@ class StoreInventoryFilters extends StatelessWidget {
                               controller.selectedStoreRoom.value = null;
                               controller.selectedStore.value = null;
                               controller.districtOptions.clear();
-                              controller.storeOptions.clear();
                               if (newVal != null) {
                                 controller.fetchDistricts(newVal);
+                                controller.fetchStores(newVal, '');
+                              } else {
+                                controller.fetchStores('', '');
                               }
                               controller.applyFilters();
                             }
@@ -119,9 +121,10 @@ class StoreInventoryFilters extends StatelessWidget {
                               controller.selectedDistrict.value = newVal;
                               controller.selectedStoreRoom.value = null;
                               controller.selectedStore.value = null;
-                              controller.storeOptions.clear();
-                              if (newVal != null && controller.selectedState.value != null) {
-                                controller.fetchStores(controller.selectedState.value!, newVal);
+                              if (newVal != null) {
+                                controller.fetchStores(controller.selectedState.value ?? '', newVal);
+                              } else {
+                                controller.fetchStores(controller.selectedState.value ?? '', '');
                               }
                               controller.applyFilters();
                             }
@@ -135,7 +138,7 @@ class StoreInventoryFilters extends StatelessWidget {
                           label: 'Select Store Room',
                           isSingleSelect: true,
                           selectedValues: controller.selectedStoreRoom.value != null ? {controller.selectedStoreRoom.value!} : {},
-                          items: controller.selectedState.value == null ? [] : controller.storeOptions
+                          items: controller.storeOptions
                               .map<DropdownMenuItem<String>>(
                                 (opt) => DropdownMenuItem<String>(
                                   value: opt.value,
@@ -157,7 +160,7 @@ class StoreInventoryFilters extends StatelessWidget {
                           label: 'Select Store',
                           isSingleSelect: true,
                           selectedValues: controller.selectedStore.value != null ? {controller.selectedStore.value!} : {},
-                          items: controller.selectedState.value == null ? [] : controller.storeOptions
+                          items: controller.storeOptions
                               .map<DropdownMenuItem<String>>(
                                 (opt) => DropdownMenuItem<String>(
                                   value: opt.value,

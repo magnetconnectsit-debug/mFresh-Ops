@@ -87,10 +87,12 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                         ? (hint ?? 'Select')
                         : isSingleSelect
                             ? (() {
-                                final item = items.firstWhere(
+                                if (items.isEmpty) return hint ?? 'Select';
+                                final matches = items.where(
                                   (item) => item.value == selectedValues.first,
-                                  orElse: () => items.first,
                                 );
+                                if (matches.isEmpty) return hint ?? 'Select';
+                                final item = matches.first;
                                 if (item.child is Text) {
                                   return (item.child as Text).data ?? 'Selected';
                                 }
@@ -143,10 +145,12 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                   ? (hint ?? 'Select')
                   : isSingleSelect
                       ? (() {
-                          final item = items.firstWhere(
+                          if (items.isEmpty) return hint ?? 'Select';
+                          final matches = items.where(
                             (item) => item.value == selectedValues.first,
-                            orElse: () => items.first,
                           );
+                          if (matches.isEmpty) return hint ?? 'Select';
+                          final item = matches.first;
                           if (item.child is Text) {
                             return (item.child as Text).data ?? 'Selected';
                           }
