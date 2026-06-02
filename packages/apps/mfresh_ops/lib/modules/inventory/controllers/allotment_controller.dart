@@ -3,79 +3,106 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 
 class AllotmentController extends GetxController {
+  final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
+  
   final isSearching = false.obs;
   final searchController = TextEditingController();
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
   final isLoading = false.obs;
+  final isReversing = false.obs;
 
-  Future<void> onRefresh() async {
-    isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 1));
-    isLoading.value = false;
-  }
+  // Pagination states
+  final currentPage = 1.obs;
+  final totalPages = 1.obs;
+  final totalEntries = 0.obs;
+  final perPage = 10.obs;
 
-  // Date filters
+  // Date filters (Year-Month format YYYY-MM)
   final fromDateController = TextEditingController();
   final toDateController = TextEditingController();
 
-  // Full list of mock data for allotments
-  final allAllotmentItems = <AllotmentItemModel>[
-    AllotmentItemModel(
-      dateOfAllotment: '28-Apr-26 05:04 PM',
-      itemName: 'Garbage Bag - Small',
-      source: 'Store_Puri (Storeroom)',
-      destination: 'MM25005 (Unit)',
-      quantity: '20',
-      unit: 'pcs',
-      allotmentBy: 'Asutosh Jena',
-    ),
-    AllotmentItemModel(
-      dateOfAllotment: '28-Apr-26 05:04 PM',
-      itemName: 'Printing Roll - 3in',
-      source: 'Store_Puri (Storeroom)',
-      destination: 'MM25005 (Unit)',
-      quantity: '1',
-      unit: 'pcs',
-      allotmentBy: 'Asutosh Jena',
-    ),
-    AllotmentItemModel(
-      dateOfAllotment: '28-Apr-26 05:03 PM',
-      itemName: 'Shampoo - Liquid',
-      source: 'Store_Puri (Storeroom)',
-      destination: 'MM25003 (Unit)',
-      quantity: '1,000',
-      unit: 'ml',
-      allotmentBy: 'Asutosh Jena',
-    ),
-    AllotmentItemModel(
-      dateOfAllotment: '28-Apr-26 05:02 PM',
-      itemName: 'Glass Cleaner',
-      source: 'Store_Puri (Storeroom)',
-      destination: 'MM25003 (Unit)',
-      quantity: '1,000',
-      unit: 'ml',
-      allotmentBy: 'Asutosh Jena',
-    ),
-    AllotmentItemModel(
-      dateOfAllotment: '28-Apr-26 05:02 PM',
-      itemName: 'Body Wash',
-      source: 'Store_Puri (Storeroom)',
-      destination: 'MM25003 (Unit)',
-      quantity: '1,000',
-      unit: 'ml',
-      allotmentBy: 'Asutosh Jena',
-    ),
-  ];
-
+  final allAllotmentItems = <AllotmentItemModel>[];
   final allotmentItems = <AllotmentItemModel>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    allotmentItems.assignAll(allAllotmentItems);
+    
+    // Default: no date filters selected by default
+    fromDateController.clear();
+    toDateController.clear();
+
+    fetchAllotments();
+  }
+
+  Future<void> fetchAllotments() async {
+    isLoading.value = true;
+    try {
+      final fromMonth = fromDateController.text.trim();
+      final toMonth = toDateController.text.trim();
+
+      final response = await _inventoryRepository.getAllotmentReport(
+        fromMonth: fromMonth,
+        toMonth: toMonth,
+        page: currentPage.value,
+        perPage: perPage.value,
+      );
+
+      if (response != null && response['status'] == true) {
+        final Map<String, dynamic> responseData = response['data'] is Map 
+            ? Map<String, dynamic>.from(response['data']) 
+            : {};
+        final List dataList = responseData['data'] ?? [];
+        final parsedItems = dataList.map((e) => AllotmentItemModel.fromJson(e)).toList();
+        
+        allAllotmentItems.clear();
+        allAllotmentItems.addAll(parsedItems);
+
+        currentPage.value = responseData['current_page'] is int
+            ? responseData['current_page']
+            : int.tryParse(responseData['current_page']?.toString() ?? '1') ?? 1;
+        totalPages.value = responseData['last_page'] is int
+            ? responseData['last_page']
+            : int.tryParse(responseData['last_page']?.toString() ?? '1') ?? 1;
+        totalEntries.value = responseData['total'] is int
+            ? responseData['total']
+            : int.tryParse(responseData['total']?.toString() ?? '0') ?? 0;
+
+        applyLocalFilters();
+      } else {
+        allAllotmentItems.clear();
+        allotmentItems.clear();
+        totalPages.value = 1;
+        totalEntries.value = 0;
+      }
+    } catch (e) {
+      debugPrint('Error fetching allotment report: $e');
+      allAllotmentItems.clear();
+      allotmentItems.clear();
+      totalPages.value = 1;
+      totalEntries.value = 0;
+      AppCommonToastMessage.show(
+        message: "Failed to load allotments: $e",
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> onRefresh() async {
+    // Reset filters on pull to refresh
+    fromDateController.clear();
+    toDateController.clear();
+    searchController.clear();
+    isSearching.value = false;
+    currentPage.value = 1;
+    
+    await fetchAllotments();
   }
 
   void toggleSearch() {
@@ -87,6 +114,11 @@ class AllotmentController extends GetxController {
   }
 
   void applyFilters() {
+    currentPage.value = 1;
+    fetchAllotments();
+  }
+
+  void applyLocalFilters() {
     final query = searchController.text.toLowerCase();
 
     allotmentItems.assignAll(
@@ -101,6 +133,27 @@ class AllotmentController extends GetxController {
         return matchesSearch;
       }).toList(),
     );
+  }
+
+  void nextPage() {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++;
+      fetchAllotments();
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+      fetchAllotments();
+    }
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages.value) {
+      currentPage.value = page;
+      fetchAllotments();
+    }
   }
 
   Future<void> selectDate(
@@ -126,28 +179,9 @@ class AllotmentController extends GetxController {
       },
     );
     if (picked != null) {
-      controller.text =
-          "${picked.day.toString().padLeft(2, '0')}-${_getMonthName(picked.month)}-${picked.year}";
+      controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}";
       applyFilters();
     }
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'jan',
-      'feb',
-      'mar',
-      'apr',
-      'may',
-      'jun',
-      'jul',
-      'aug',
-      'sep',
-      'oct',
-      'nov',
-      'dec',
-    ];
-    return months[month - 1];
   }
 
   Future<void> exportToExcel() async {
@@ -210,13 +244,34 @@ class AllotmentController extends GetxController {
     isExportingPdf.value = false;
   }
 
-  void reverseAllotment(AllotmentItemModel item) {
-    allotmentItems.remove(item);
-    allAllotmentItems.remove(item);
-    AppCommonToastMessage.show(
-      message: "Allotment reversed successfully!",
-      type: ToastType.success,
-    );
+  Future<bool> reverseAllotment(AllotmentItemModel item) async {
+    isReversing.value = true;
+    try {
+      final response = await _inventoryRepository.reverseAllotment(item.allotmentId);
+      if (response != null && response['status'] == true) {
+        AppCommonToastMessage.show(
+          message: response['message']?.toString() ?? "Allotment reversed successfully!",
+          type: ToastType.success,
+        );
+        await fetchAllotments();
+        return true;
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message']?.toString() ?? "Failed to reverse allotment",
+          type: ToastType.error,
+        );
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error reversing allotment: $e');
+      AppCommonToastMessage.show(
+        message: "Failed to reverse allotment: $e",
+        type: ToastType.error,
+      );
+      return false;
+    } finally {
+      isReversing.value = false;
+    }
   }
 
   @override
@@ -229,6 +284,7 @@ class AllotmentController extends GetxController {
 }
 
 class AllotmentItemModel {
+  final int allotmentId;
   final String dateOfAllotment;
   final String itemName;
   final String source;
@@ -236,8 +292,11 @@ class AllotmentItemModel {
   final String quantity;
   final String unit;
   final String allotmentBy;
+  final int isReversed;
+  final String reverseStatus;
 
   AllotmentItemModel({
+    required this.allotmentId,
     required this.dateOfAllotment,
     required this.itemName,
     required this.source,
@@ -245,5 +304,26 @@ class AllotmentItemModel {
     required this.quantity,
     required this.unit,
     required this.allotmentBy,
+    required this.isReversed,
+    required this.reverseStatus,
   });
+
+  factory AllotmentItemModel.fromJson(Map<String, dynamic> json) {
+    return AllotmentItemModel(
+      allotmentId: json['id'] is int 
+          ? json['id'] 
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      dateOfAllotment: json['date_of_allotment']?.toString() ?? '',
+      itemName: json['item_name']?.toString() ?? '',
+      source: json['source_name']?.toString() ?? '',
+      destination: json['destination_name']?.toString() ?? '',
+      quantity: (json['final_qty'] ?? json['quantity'])?.toString() ?? '',
+      unit: json['measurement_name']?.toString() ?? '',
+      allotmentBy: json['created_by']?.toString() ?? '',
+      isReversed: json['is_reversed'] is int 
+          ? json['is_reversed'] 
+          : int.tryParse(json['is_reversed']?.toString() ?? '0') ?? 0,
+      reverseStatus: json['reverse_status']?.toString() ?? '',
+    );
+  }
 }

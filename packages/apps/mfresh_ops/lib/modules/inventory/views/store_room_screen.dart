@@ -5,12 +5,12 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/store_room_controller.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class StoreRoomScreen extends StatelessWidget {
   const StoreRoomScreen({super.key});
@@ -134,7 +134,7 @@ class StoreRoomScreen extends StatelessWidget {
                       ? List.generate(
                           10,
                           (index) => StoreRoomModel(
-                            siNo: index + 1,
+                            id: 0,
                             storeName: 'Loading Store Name',
                           ),
                         )
@@ -157,53 +157,61 @@ class StoreRoomScreen extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Skeletonizer(
-                        enabled: isTableLoading,
-                        child: Table(
-                          columnWidths: const {
-                            0: IntrinsicColumnWidth(), // Sl No
-                            1: FlexColumnWidth(1), // Store Name
-                            2: IntrinsicColumnWidth(), // Action
-                          },
-                          border: TableBorder.all(
-                            color: AppColors.grey50,
-                            width: 1,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: MediaQuery.of(context).size.width - 32.w,
                           ),
-                          defaultVerticalAlignment:
-                              TableCellVerticalAlignment.middle,
-                          children: [
-                            TableRow(
-                              decoration: const BoxDecoration(
-                                color: AppColors.white,
+                          child: Skeletonizer(
+                            enabled: isTableLoading,
+                            child: Table(
+                              columnWidths: {
+                                0: FixedColumnWidth(50.w),   // Sl No
+                                1: FixedColumnWidth(180.w),  // Store Name
+                                2: FixedColumnWidth(70.w),   // Action
+                              },
+                              border: TableBorder.all(
+                                color: AppColors.grey50,
+                                width: 1,
                               ),
+                              defaultVerticalAlignment:
+                                  TableCellVerticalAlignment.middle,
                               children: [
-                                _buildHeaderCell('Sl No'),
-                                _buildHeaderCell('Store Name'),
-                                _buildHeaderCell('Action'),
+                                TableRow(
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.white,
+                                  ),
+                                  children: [
+                                    _buildHeaderCell('Sl No'),
+                                    _buildHeaderCell('Store Name'),
+                                    _buildHeaderCell('Action'),
+                                  ],
+                                ),
+                                ...stores.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final store = entry.value;
+                                  return TableRow(
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.white,
+                                    ),
+                                    children: [
+                                      _buildDataCell((index + 1).toString()),
+                                      _buildDataCell(store.storeName),
+                                      isTableLoading
+                                          ? _buildDataCell('')
+                                          : _buildEditButton(
+                                              context,
+                                              controller,
+                                              store,
+                                              index,
+                                            ),
+                                    ],
+                                  );
+                                }),
                               ],
                             ),
-                            ...stores.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final store = entry.value;
-                              return TableRow(
-                                decoration: const BoxDecoration(
-                                  color: AppColors.white,
-                                ),
-                                children: [
-                                  _buildDataCell(store.siNo.toString()),
-                                  _buildDataCell(store.storeName),
-                                  isTableLoading
-                                      ? _buildDataCell('')
-                                      : _buildEditButton(
-                                          context,
-                                          controller,
-                                          store,
-                                          index,
-                                        ),
-                                ],
-                              );
-                            }),
-                          ],
+                          ),
                         ),
                       ),
                       SizedBox(height: 16.h),
@@ -255,7 +263,7 @@ class StoreRoomScreen extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
       child: Center(
         child: InkWell(
-          onTap: () => _showEditDialog(context, controller, store, index),
+          onTap: () => _showEditDialog(context, controller, store),
           child: Icon(Icons.edit_square, color: AppColors.primary, size: 16.r),
         ),
       ),
@@ -263,18 +271,21 @@ class StoreRoomScreen extends StatelessWidget {
   }
 
   void _showAddDialog(BuildContext context, StoreRoomController controller) {
-    controller.storeNameController.clear();
-    Get.dialog(
-      Dialog(
+    controller.prepareAddDialog();
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
           side: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -283,17 +294,100 @@ class StoreRoomScreen extends StatelessWidget {
                 style: AppTextStyle.style_18_700(color: AppColors.black),
               ),
               SizedBox(height: 20.h),
-              AppCommonTextField(
-                controller: controller.storeNameController,
-                titleText: 'Store Name',
-                hintText: 'Enter store name',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 6.h),
+                    child: Text(
+                      'Store Name',
+                      style: AppTextStyle.style_12_500(color: AppColors.black300),
+                    ),
+                  ),
+                  TextFormField(
+                    controller: controller.storeNameController,
+                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      hintText: 'Enter store name',
+                      hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: const BorderSide(
+                          color: AppColors.borderColor,
+                          width: 1.0,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: const BorderSide(
+                          color: AppColors.borderColor,
+                          width: 1.0,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: const BorderSide(
+                          color: Color(0xffF15A24),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              SizedBox(height: 12.h),
+              Obx(() => MultiSelectDropdownWidget<String>(
+                title: 'Select State',
+                isSingleSelect: true,
+                selectedValues: controller.selectedStateId.value != null
+                    ? {controller.selectedStateId.value!}
+                    : {},
+                items: controller.stateOptions
+                    .map<DropdownMenuItem<String>>(
+                      (opt) => DropdownMenuItem<String>(
+                        value: opt.value,
+                        child: Text(
+                          opt.label,
+                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (values) {
+                  controller.onStateSelected(values.isNotEmpty ? values.first : null);
+                },
+              )),
+              SizedBox(height: 12.h),
+              Obx(() => MultiSelectDropdownWidget<String>(
+                title: 'Select District',
+                isSingleSelect: true,
+                selectedValues: controller.selectedDistrictId.value != null
+                    ? {controller.selectedDistrictId.value!}
+                    : {},
+                items: controller.districtOptions
+                    .map<DropdownMenuItem<String>>(
+                      (opt) => DropdownMenuItem<String>(
+                        value: opt.value,
+                        child: Text(
+                          opt.label,
+                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (values) {
+                  controller.selectedDistrictId.value = values.isNotEmpty ? values.first : null;
+                },
+              )),
               SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Get.back(),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
                     child: Text(
                       'Cancel',
                       style: AppTextStyle.style_14_600(
@@ -302,37 +396,48 @@ class StoreRoomScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  AppCommonButton(
+                  Obx(() => AppCommonButton(
                     text: 'Submit',
                     width: 100.w,
                     height: 36.h,
-                    onPressed: () => controller.addStore(),
-                  ),
+                    isLoading: controller.isSubmitting.value,
+                    onPressed: controller.isSubmitting.value
+                        ? null
+                        : () async {
+                            final success = await controller.addStore();
+                            if (success && dialogContext.mounted) {
+                              Navigator.of(dialogContext).pop();
+                              controller.fetchStoreRooms();
+                            }
+                          },
+                  )),
                 ],
               ),
             ],
           ),
         ),
       ),
-    );
+    ));
   }
 
   void _showEditDialog(
     BuildContext context,
     StoreRoomController controller,
     StoreRoomModel store,
-    int index,
   ) {
-    controller.storeNameController.text = store.storeName;
-    Get.dialog(
-      Dialog(
+    controller.prepareEditDialog(store);
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
           side: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        child: Padding(
+        child: SingleChildScrollView(
+          child: Padding(
           padding: EdgeInsets.all(20.r),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -343,17 +448,100 @@ class StoreRoomScreen extends StatelessWidget {
                 style: AppTextStyle.style_18_700(color: AppColors.black),
               ),
               SizedBox(height: 20.h),
-              AppCommonTextField(
-                controller: controller.storeNameController,
-                titleText: 'Store Name',
-                hintText: 'Enter store name',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 6.h),
+                    child: Text(
+                      'Store Name',
+                      style: AppTextStyle.style_12_500(color: AppColors.black300),
+                    ),
+                  ),
+                  TextFormField(
+                    controller: controller.storeNameController,
+                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      hintText: 'Enter store name',
+                      hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: const BorderSide(
+                          color: AppColors.borderColor,
+                          width: 1.0,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: const BorderSide(
+                          color: AppColors.borderColor,
+                          width: 1.0,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: const BorderSide(
+                          color: Color(0xffF15A24),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              SizedBox(height: 12.h),
+              Obx(() => MultiSelectDropdownWidget<String>(
+                title: 'Select State',
+                isSingleSelect: true,
+                selectedValues: controller.selectedStateId.value != null
+                    ? {controller.selectedStateId.value!}
+                    : {},
+                items: controller.stateOptions
+                    .map<DropdownMenuItem<String>>(
+                      (opt) => DropdownMenuItem<String>(
+                        value: opt.value,
+                        child: Text(
+                          opt.label,
+                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (values) {
+                  controller.onStateSelected(values.isNotEmpty ? values.first : null);
+                },
+              )),
+              SizedBox(height: 12.h),
+              Obx(() => MultiSelectDropdownWidget<String>(
+                title: 'Select District',
+                isSingleSelect: true,
+                selectedValues: controller.selectedDistrictId.value != null
+                    ? {controller.selectedDistrictId.value!}
+                    : {},
+                items: controller.districtOptions
+                    .map<DropdownMenuItem<String>>(
+                      (opt) => DropdownMenuItem<String>(
+                        value: opt.value,
+                        child: Text(
+                          opt.label,
+                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (values) {
+                  controller.selectedDistrictId.value = values.isNotEmpty ? values.first : null;
+                },
+              )),
               SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Get.back(),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
                     child: Text(
                       'Cancel',
                       style: AppTextStyle.style_14_600(
@@ -362,21 +550,27 @@ class StoreRoomScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  AppCommonButton(
+                  Obx(() => AppCommonButton(
                     text: 'Update',
                     width: 100.w,
                     height: 36.h,
-                    onPressed: () => controller.editStore(
-                      index,
-                      controller.storeNameController.text,
-                    ),
-                  ),
+                    isLoading: controller.isSubmitting.value,
+                    onPressed: controller.isSubmitting.value
+                        ? null
+                        : () async {
+                            final success = await controller.editStore(store.id);
+                            if (success && dialogContext.mounted) {
+                              Navigator.of(dialogContext).pop();
+                              controller.fetchStoreRooms();
+                            }
+                          },
+                  )),
                 ],
               ),
             ],
           ),
         ),
       ),
-    );
+    ));
   }
 }

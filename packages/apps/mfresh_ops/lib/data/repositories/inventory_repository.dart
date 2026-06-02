@@ -123,4 +123,115 @@ class InventoryRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<dynamic> getAllotmentReport({
+    required String fromMonth,
+    required String toMonth,
+    required int page,
+    required int perPage,
+  }) async {
+    try {
+      return await _apiService.post(
+        AppConstants.allotmentReport,
+        query: {'page': page},
+        data: {
+          "fromMonth": fromMonth,
+          "toMonth": toMonth,
+          "per_page": perPage,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> reverseAllotment(int allotmentId) async {
+    try {
+      return await _apiService.post(AppConstants.allotmentReverse, data: {
+        "allotment_id": allotmentId,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createStoreRoom({
+    required int stateId,
+    required int districtId,
+    required String storeName,
+  }) async {
+    try {
+      return await _apiService.post(AppConstants.storeRoomCreate, data: {
+        "unit_state": stateId,
+        "unit_dist": districtId,
+        "storenm": storeName,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> updateStoreRoom({
+    required int id,
+    required int stateId,
+    required int districtId,
+    required String storeName,
+  }) async {
+    try {
+      return await _apiService.post(AppConstants.storeRoomUpdate, data: {
+        "id": id,
+        "unit_state": stateId,
+        "unit_dist": districtId,
+        "storenm": storeName,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createItem({
+    required String itemName,
+    required String itemId,
+    required int measurementUnitId,
+    required int categoryId,
+    required int lowQtyStore,
+    required String lowQtyUnit,
+  }) async {
+    try {
+      return await _apiService.post(AppConstants.inventoryCreate, data: {
+        "Itmm": itemName,
+        "Itid": itemId,
+        "mes": measurementUnitId,
+        "item_catagory": categoryId,
+        "lowqnty": lowQtyStore,
+        "lowqnty_unit": lowQtyUnit,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> updateItem({
+    required int primaryId,
+    required String itemName,
+    required String itemId,
+    required int measurementUnitId,
+    required int categoryId,
+    required int lowQtyStore,
+    required String lowQtyUnit,
+  }) async {
+    try {
+      return await _apiService.post(AppConstants.inventoryUpdate, data: {
+        "inv_primaryID": primaryId,
+        "inv_item_name": itemName,
+        "item_idval": itemId,
+        "inv_measurement_unit_id": measurementUnitId,
+        "categoryIDval": categoryId,
+        "low_qty": lowQtyStore,
+        "low_qty_unit": lowQtyUnit,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

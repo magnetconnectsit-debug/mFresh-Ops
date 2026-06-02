@@ -11,12 +11,12 @@ void showItemFormDialog(BuildContext context, ItemController controller, {ItemMo
   if (isEdit) {
     controller.itemNameController.text = item.itemName;
     controller.itemIdController.text = item.itemId;
-    controller.selectedMeasurement.value = item.measurement;
-    controller.selectedCategory.value = item.category;
-    controller.lowQuantityStoreController.text = item.lowQuantityStore;
-    controller.lowQuantityUnitController.text = item.lowQuantityUnit;
+    controller.selectedMeasurement.value = item.measurementUnitId;
+    controller.selectedCategory.value = item.categoryInv;
+    controller.lowQuantityStoreController.text = item.lowQnty;
+    controller.lowQuantityUnitController.text = item.lowQntyUnit;
   } else {
-    controller.clearControllers();
+    controller.prepareAddDialog();
   }
 
   Get.dialog(
@@ -66,9 +66,9 @@ void showItemFormDialog(BuildContext context, ItemController controller, {ItemMo
                       items: controller.measurementOptions
                           .map<DropdownMenuItem<String>>(
                             (e) => DropdownMenuItem<String>(
-                              value: e,
+                              value: e.value,
                               child: Text(
-                                e,
+                                e.label,
                                 style: AppTextStyle.style_12_400(
                                   color: AppColors.grey900,
                                 ),
@@ -121,23 +121,13 @@ void showItemFormDialog(BuildContext context, ItemController controller, {ItemMo
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
                         elevation: 0,
                       ),
-                      onPressed: () {
-                        if (isEdit) {
-                          final updated = ItemModel(
-                            siNo: item.siNo,
-                            itemName: controller.itemNameController.text,
-                            itemId: controller.itemIdController.text,
-                            measurement: controller.selectedMeasurement.value ?? item.measurement,
-                            category: controller.selectedCategory.value ?? item.category,
-                            lowQuantityStore: controller.lowQuantityStoreController.text,
-                            lowQuantityUnit: controller.lowQuantityUnitController.text,
-                          );
-                          final index = controller.allItems.indexOf(item);
-                          controller.editItem(index, updated);
-                        } else {
-                          controller.addItem();
+                      onPressed: () async {
+                        final success = isEdit
+                            ? await controller.editItem(item.id)
+                            : await controller.addItem();
+                        if (success && context.mounted) {
+                          Navigator.of(context).pop();
                         }
-                        Get.back();
                       },
                       child: Text('Submit', style: AppTextStyle.style_14_600(color: AppColors.white)),
                     ),
@@ -159,7 +149,6 @@ Widget _buildWhiteInput(String label, TextEditingController controller) {
       Text(label, style: AppTextStyle.style_14_600(color: AppColors.black).copyWith(fontSize: 13.sp)),
       SizedBox(height: 6.h),
       Container(
-        height: 28.h,
         decoration: BoxDecoration(
           color: AppColors.white,
           border: Border.all(color: AppColors.grey50),
@@ -167,11 +156,13 @@ Widget _buildWhiteInput(String label, TextEditingController controller) {
         ),
         child: TextFormField(
           controller: controller,
+          textAlignVertical: TextAlignVertical.center,
+          style: AppTextStyle.style_12_400(color: AppColors.black),
           decoration: InputDecoration(
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             isDense: true,
           ),
         ),
@@ -179,5 +170,3 @@ Widget _buildWhiteInput(String label, TextEditingController controller) {
     ],
   );
 }
-
-// Cleaned up helper functions

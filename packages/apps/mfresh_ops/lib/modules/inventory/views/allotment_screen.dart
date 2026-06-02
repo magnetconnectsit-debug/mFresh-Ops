@@ -11,8 +11,25 @@ import '../controllers/allotment_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
-class AllotmentScreen extends StatelessWidget {
+class AllotmentScreen extends StatefulWidget {
   const AllotmentScreen({super.key});
+
+  @override
+  State<AllotmentScreen> createState() => _AllotmentScreenState();
+}
+
+class _AllotmentScreenState extends State<AllotmentScreen> {
+  final Set<String> _expandedRows = {};
+
+  void _toggleRow(String key) {
+    setState(() {
+      if (_expandedRows.contains(key)) {
+        _expandedRows.remove(key);
+      } else {
+        _expandedRows.add(key);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +85,7 @@ class AllotmentScreen extends StatelessWidget {
                   ? List.generate(
                       5,
                       (index) => AllotmentItemModel(
+                        allotmentId: 0,
                         dateOfAllotment: 'Loading Date...',
                         itemName: 'Loading Item Name',
                         source: 'Loading Source',
@@ -75,6 +93,8 @@ class AllotmentScreen extends StatelessWidget {
                         quantity: '0',
                         unit: 'units',
                         allotmentBy: 'Loading...',
+                        isReversed: 0,
+                        reverseStatus: 'Active',
                       )
                     )
                   : controller.allotmentItems;
@@ -128,14 +148,14 @@ class AllotmentScreen extends StatelessWidget {
                   child: Table(
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                     columnWidths: {
-                      0: const IntrinsicColumnWidth(), // Date Of Allotment
-                      1: const IntrinsicColumnWidth(), // Item Name
-                      2: const IntrinsicColumnWidth(), // Source
-                      3: const IntrinsicColumnWidth(), // Destination
-                      4: const IntrinsicColumnWidth(), // Quantity
-                      5: const IntrinsicColumnWidth(), // M_Unit
-                      6: const IntrinsicColumnWidth(), // Allotment By
-                      if (hasReverse) 7: const IntrinsicColumnWidth(), // Action
+                      0: FixedColumnWidth(125.w), // Date Of Allotment
+                      1: FixedColumnWidth(125.w), // Item Name
+                      2: FixedColumnWidth(130.w), // Source
+                      3: FixedColumnWidth(130.w), // Destination
+                      4: FixedColumnWidth(75.w),  // Quantity
+                      5: FixedColumnWidth(70.w),  // M_Unit
+                      6: FixedColumnWidth(100.w), // Allotment By
+                      if (hasReverse) 7: FixedColumnWidth(95.w), // Action
                     },
                     border: TableBorder.symmetric(
                       inside: BorderSide(color: Colors.grey.shade300),
@@ -154,16 +174,21 @@ class AllotmentScreen extends StatelessWidget {
                           if (hasReverse) _buildHeaderCell('Action'),
                         ],
                       ),
-                      ...items.map((item) {
+                      ...items.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        final key = '${item.allotmentId}_$index';
+                        final isExpanded = _expandedRows.contains(key);
+
                         return TableRow(
                           children: [
-                            _buildDataCell(item.dateOfAllotment),
-                            _buildDataCell(item.itemName),
-                            _buildDataCell(item.source),
-                            _buildDataCell(item.destination),
-                            _buildDataCell(item.quantity),
-                            _buildDataCell(item.unit),
-                            _buildDataCell(item.allotmentBy),
+                            _buildDataCell(item.dateOfAllotment, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.itemName, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.source, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.destination, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.unit, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.allotmentBy, isExpanded, () => _toggleRow(key)),
                             if (hasReverse)
                               Container(
                                 margin: EdgeInsets.symmetric(
@@ -194,12 +219,13 @@ class AllotmentScreen extends StatelessWidget {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4.r),
                                     ),
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 16.w),
+                                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
                                     'Reverse',
-                                    style: AppTextStyle.style_12_500(
+                                    style: AppTextStyle.style_10_500(
                                       color: AppColors.white,
                                     ),
                                   ),
@@ -215,15 +241,38 @@ class AllotmentScreen extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: 12.h),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            'Showing 1 to ${controller.allotmentItems.length} of ${controller.allotmentItems.length} entries',
-            style: AppTextStyle.style_14_400(color: AppColors.black),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildPaginationButton('←', false, controller.previousPage),
+                    ...List.generate(controller.totalPages.value, (index) {
+                      final pageNumber = index + 1;
+                      return _buildPaginationButton(
+                        pageNumber.toString(),
+                        controller.currentPage.value == pageNumber,
+                        () => controller.goToPage(pageNumber),
+                      );
+                    }),
+                    _buildPaginationButton('→', false, controller.nextPage),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                'Showing ${controller.totalEntries.value == 0 ? 0 : (controller.currentPage.value - 1) * controller.perPage.value + 1} to ${(controller.currentPage.value * controller.perPage.value).clamp(0, controller.totalEntries.value)} of ${controller.totalEntries.value} entries',
+                style: AppTextStyle.style_12_400(color: AppColors.black),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 16.h),
       ],
     );
   }
@@ -270,45 +319,61 @@ class AllotmentScreen extends StatelessWidget {
                   style: AppTextStyle.style_14_400(color: const Color(0xFF545454)),
                 ),
                 SizedBox(height: 24.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        Get.back();
-                        controller.reverseAllotment(item);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD33333),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.r),
+                Obx(() {
+                  final isReversing = controller.isReversing.value;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: isReversing
+                            ? null
+                            : () async {
+                                await controller.reverseAllotment(item);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD33333),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          elevation: 0,
                         ),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                        elevation: 0,
+                        child: isReversing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Yes, Reverse it!',
+                                style: AppTextStyle.style_14_600(color: AppColors.white),
+                              ),
                       ),
-                      child: Text(
-                        'Yes, Reverse it!',
-                        style: AppTextStyle.style_14_600(color: AppColors.white),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    ElevatedButton(
-                      onPressed: () => Get.back(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C757D),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.r),
+                      SizedBox(width: 12.w),
+                      ElevatedButton(
+                        onPressed: isReversing ? null : () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6C757D),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          elevation: 0,
                         ),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                        elevation: 0,
+                        child: Text(
+                          'Cancel',
+                          style: AppTextStyle.style_14_600(color: AppColors.white),
+                        ),
                       ),
-                      child: Text(
-                        'Cancel',
-                        style: AppTextStyle.style_14_600(color: AppColors.white),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                }),
               ],
             ),
           ),
@@ -322,17 +387,23 @@ class AllotmentScreen extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
       child: Text(
         text,
-        style: AppTextStyle.style_12_700(color: AppColors.black),
+        style: AppTextStyle.style_12_700(color: AppColors.black).copyWith(fontSize: 11.sp),
       ),
     );
   }
 
-  Widget _buildDataCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_400(color: AppColors.black),
+  Widget _buildDataCell(String text, bool isExpanded, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Text(
+          text,
+          style: AppTextStyle.style_12_400(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
       ),
     );
   }
@@ -470,6 +541,41 @@ class AllotmentScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          Obx(
+            () => Container(
+              height: 28.h,
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: controller.perPage.value,
+                  dropdownColor: Colors.white,
+                  style: AppTextStyle.style_12_500(color: AppColors.black),
+                  icon: Icon(
+                    Icons.arrow_drop_down,
+                    size: 16.r,
+                    color: Colors.grey.shade600,
+                  ),
+                  items: [10, 20, 50, 100].map((int val) {
+                    return DropdownMenuItem<int>(
+                      value: val,
+                      child: Text('$val per page'),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.perPage.value = val;
+                      controller.applyFilters();
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -511,6 +617,34 @@ class AllotmentScreen extends StatelessWidget {
             ),
             Icon(Icons.calendar_today_outlined, size: 14.r, color: AppColors.grey300),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationButton(
+    String text,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        margin: EdgeInsets.only(left: 4.w),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
+          border: Border.all(
+            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
+          ),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Text(
+          text,
+          style: AppTextStyle.style_12_500(
+            color: isActive ? Colors.white : Colors.blue.shade600,
+          ),
         ),
       ),
     );

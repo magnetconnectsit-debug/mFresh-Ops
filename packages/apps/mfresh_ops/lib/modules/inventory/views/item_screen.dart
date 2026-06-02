@@ -129,13 +129,13 @@ class ItemScreen extends StatelessWidget {
                     ? List.generate(
                         10, 
                         (index) => ItemModel(
-                          siNo: index + 1,
+                          id: 0,
                           itemName: 'Loading Item Name',
                           itemId: 'Loading ID',
-                          measurement: 'Loading...',
-                          category: '',
-                          lowQuantityStore: '',
-                          lowQuantityUnit: '',
+                          measurementUnitId: '1',
+                          categoryInv: '1',
+                          lowQnty: '',
+                          lowQntyUnit: '',
                         )
                       )
                     : controller.filteredItems;
@@ -179,14 +179,16 @@ class ItemScreen extends StatelessWidget {
                                     _buildHeaderCell('Action'),
                                   ],
                                 ),
-                                ...items.map((item) {
+                                ...items.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final item = entry.value;
                                   return TableRow(
                                     decoration: const BoxDecoration(color: AppColors.white),
                                     children: [
-                                      _buildDataCell(item.siNo.toString()),
+                                      _buildDataCell((index + 1).toString()),
                                       _buildDataCell(item.itemName),
                                       _buildDataCell(item.itemId),
-                                      _buildDataCell(item.measurement),
+                                      _buildDataCell(controller.getMeasurementName(item.measurementUnitId)),
                                       isTableLoading ? _buildDataCell('') : _buildEditButton(context, controller, item),
                                     ],
                                   );
