@@ -6,7 +6,6 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_button.dart';
 import '../controllers/unit_inventory_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'widgets/unit_inventory_filters.dart';
@@ -19,15 +18,41 @@ class UnitInventoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(UnitInventoryController());
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        showAppDrawer: true,
-        hasBackButton: false,
-        title: Obx(
-          () => controller.isSearching.value
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      if (!userPermissions.contains('unit_inventory_stock')) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppCommonAppBar(
+            backgroundColor: AppColors.white,
+            elevation: 0,
+            showAppDrawer: true,
+            hasBackButton: false,
+            title: Text(
+              'Unit Inventory',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
+          ),
+          drawer: const CommonSidebar(),
+          body: Center(
+            child: Text(
+              'You do not have permission to view this page.',
+              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+            ),
+          ),
+        );
+      }
+
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppCommonAppBar(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          showAppDrawer: true,
+          hasBackButton: false,
+          title: controller.isSearching.value
               ? AppCommonSearchBar(
                   controller: controller.searchController,
                   hintText: 'Search Unit or Item...',
@@ -37,37 +62,35 @@ class UnitInventoryScreen extends StatelessWidget {
                   'Unit Inventory',
                   style: AppTextStyle.style_18_700(color: AppColors.black),
                 ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
+          actions: [
+            IconButton(
               onPressed: () => controller.toggleSearch(),
               icon: Icon(
                 controller.isSearching.value ? Icons.close : Icons.search,
               ),
             ),
-          ),
-        ],
-      ),
-      drawer: const CommonSidebar(),
-      body: AppRefreshIndicator(
-        onRefresh: controller.onRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              const UnitInventoryFilters(),
-              _buildActionButtons(context),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: UnitInventoryTable(),
-              ),
-              SizedBox(height: 20.h),
-            ],
+          ],
+        ),
+        drawer: const CommonSidebar(),
+        body: AppRefreshIndicator(
+          onRefresh: controller.onRefresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const UnitInventoryFilters(),
+                _buildActionButtons(context),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: UnitInventoryTable(),
+                ),
+                SizedBox(height: 20.h),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildActionButtons(BuildContext context) {
@@ -79,16 +102,23 @@ class UnitInventoryScreen extends StatelessWidget {
       final canExport = userPermissions.contains('U_Inv_export');
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 5.h),
       child: Row(
         children: [
           if (canExport) ...[
-            AppCommonButton(
-              text: 'Export Excel',
-              buttonColor: const Color(0xFF26A69A), // Green color matching screenshot
-              width: 100.w,
-              height: 28.h,
-              onPressed: () => controller.exportToExcel(),
+            SizedBox(
+              height: 24.h,
+              child: ElevatedButton(
+                onPressed: () => controller.exportToExcel(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF389D6A),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                  elevation: 1,
+                ),
+                child: Text('Export Excel', style: AppTextStyle.style_12_500(color: Colors.white)),
+              ),
             ),
           ],
           const Spacer(),

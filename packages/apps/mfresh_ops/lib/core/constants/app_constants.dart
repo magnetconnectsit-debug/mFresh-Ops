@@ -96,6 +96,10 @@ class AppConstants {
   static const String storeRoomUpdate = 'store-room/update';
   static const String inventoryCreate = 'inventory/create';
   static const String inventoryUpdate = 'inventory/update';
+  static const String measurementCreate = 'measurement/create';
+  static const String measurementUpdate = 'measurement/update';
+  static const String measurementDelete = 'measurement/delete';
+  static const String measurementList = 'measurement/list';
   // endregion
 
   // region Hive Keys

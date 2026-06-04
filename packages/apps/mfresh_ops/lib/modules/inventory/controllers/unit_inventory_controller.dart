@@ -6,6 +6,7 @@ import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/data/models/inventory/unit_inventory_model.dart';
 
 class UnitInventoryController extends GetxController {
   final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
@@ -25,7 +26,6 @@ class UnitInventoryController extends GetxController {
   final itemOptions = <DropdownOption>[].obs;
   final categoryOptions = <DropdownOption>[].obs;
 
-  final allUnitInventoryItems = <UnitInventoryModel>[];
   @override
   void onInit() {
     super.onInit();
@@ -41,8 +41,8 @@ class UnitInventoryController extends GetxController {
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
         final units = data.map((e) => DropdownOption(
-          value: e['unitname'].toString(), 
-          label: e['unitname'].toString()
+          value: (e['unitid'] ?? e['id'])?.toString() ?? '',
+          label: e['unitname']?.toString() ?? ''
         )).toList();
         unitOptions.assignAll(units);
       }
@@ -57,8 +57,8 @@ class UnitInventoryController extends GetxController {
       if (response != null && response['status'] == 'success') {
         final List data = response['data'] ?? [];
         final categories = data.map((e) => DropdownOption(
-          value: e['invcatgeoryname'].toString(), 
-          label: e['invcatgeoryname'].toString()
+          value: e['categoryID']?.toString() ?? '',
+          label: e['invcatgeoryname']?.toString() ?? ''
         )).toList();
         categoryOptions.assignAll(categories);
       }
@@ -73,8 +73,8 @@ class UnitInventoryController extends GetxController {
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
         final items = data.map((e) => DropdownOption(
-          value: e['item_name'].toString(), 
-          label: e['item_name'].toString()
+          value: e['id']?.toString() ?? '',
+          label: e['item_name']?.toString() ?? ''
         )).toList();
         itemOptions.assignAll(items);
       }
@@ -86,20 +86,35 @@ class UnitInventoryController extends GetxController {
   Future<void> fetchUnitInventory() async {
     isLoading.value = true;
     try {
-      final response = await _inventoryRepository.getUnitInventoryStock();
+      final response = await _inventoryRepository.getUnitInventoryStock(
+        itemId: selectedItems.map((e) => int.tryParse(e)).whereType<int>().toList(),
+        unitId: selectedUnits.map((e) => int.tryParse(e)).whereType<int>().toList(),
+        categoryId: selectedCategories.map((e) => int.tryParse(e)).whereType<int>().toList(),
+        stateId: '',
+        districtId: '',
+      );
 
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
-        allUnitInventoryItems.clear();
-        for (var e in data.reversed) {
-          final model = UnitInventoryModel.fromJson(e);
-          allUnitInventoryItems.add(model);
-        }
+        final items = data.map((e) => UnitInventoryModel.fromJson(e)).toList();
+        final reversedItems = items.reversed.toList();
 
-        applyFilters();
+        final query = searchController.text.toLowerCase();
+        if (query.isNotEmpty) {
+          unitInventoryItems.assignAll(reversedItems.where((item) => 
+            item.itemName.toLowerCase().contains(query) ||
+            item.unitName.toLowerCase().contains(query) ||
+            item.categoryName.toLowerCase().contains(query)
+          ).toList());
+        } else {
+          unitInventoryItems.assignAll(reversedItems);
+        }
+      } else {
+        unitInventoryItems.clear();
       }
     } catch (e) {
       debugPrint('Error fetching unit inventory: $e');
+      unitInventoryItems.clear();
     } finally {
       isLoading.value = false;
     }
@@ -172,23 +187,8 @@ class UnitInventoryController extends GetxController {
   }
 
   void applyFilters() {
-    final query = searchController.text.toLowerCase();
-
-    unitInventoryItems.assignAll(
-      allUnitInventoryItems.where((item) {
-        final matchesSearch =
-            query.isEmpty ||
-            item.itemName.toLowerCase().contains(query) ||
-            item.unitName.toLowerCase().contains(query);
-
-        final matchesUnit = selectedUnits.isEmpty || selectedUnits.contains(item.unitName);
-        final matchesItem = selectedItems.isEmpty || selectedItems.contains(item.itemName);
-        final matchesCategory = selectedCategories.isEmpty || selectedCategories.contains(item.categoryName);
-
-        return matchesSearch && matchesUnit && matchesItem && matchesCategory;
-      }).toList(),
-    );
     currentPage.value = 1;
+    fetchUnitInventory();
   }
 
   Future<void> exportToExcel() async {
@@ -272,74 +272,5 @@ class UnitInventoryController extends GetxController {
       debugPrint('Error consuming unit stock: $e');
       AppCommonToastMessage.show(message: 'An error occurred during consumption.', type: ToastType.error);
     }
-  }
-}
-
-class UnitInventoryModel {
-  final int id;
-  final String unitName;
-  final String itemName;
-  final String categoryName;
-  final String quantity;
-  final String lowQntyUnit;
-  final String mUnit;
-  final String stateId;
-  final String districtId;
-  final String categoryId;
-  final String itemId;
-  final String measurementUnitId;
-  final String unitId;
-
-  UnitInventoryModel({
-    required this.id,
-    required this.unitName,
-    required this.itemName,
-    required this.categoryName,
-    required this.quantity,
-    required this.lowQntyUnit,
-    required this.mUnit,
-    this.stateId = '',
-    this.districtId = '',
-    this.categoryId = '',
-    this.itemId = '',
-    this.measurementUnitId = '',
-    this.unitId = '',
-  });
-
-  bool get isQntyLow {
-    if (lowQntyUnit == 'NA') return false;
-    final q = double.tryParse(quantity) ?? 0;
-    final lq = double.tryParse(lowQntyUnit) ?? 0;
-    return q < lq;
-  }
-
-  static String _mapMeasurementUnit(dynamic id) {
-    switch (id.toString()) {
-      case '1': return 'Litre';
-      case '2': return 'Packet';
-      case '3': return 'pcs';
-      case '4': return 'Box';
-      case '6': return 'Pair';
-      case '7': return 'Kg';
-      default: return 'pcs';
-    }
-  }
-
-  factory UnitInventoryModel.fromJson(Map<String, dynamic> json) {
-    return UnitInventoryModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      unitName: json['unit_name']?.toString() ?? '',
-      itemName: json['item_name']?.toString() ?? '',
-      categoryName: json['invcatgeoryname']?.toString() ?? '',
-      quantity: json['allotment_qty']?.toString() ?? '0',
-      lowQntyUnit: json['low_qnty_unit']?.toString() ?? '0',
-      mUnit: json['m_unit']?.toString() ?? json['measurement_unit_name']?.toString() ?? _mapMeasurementUnit(json['measurement_unit_id']),
-      stateId: json['state_id']?.toString() ?? '',
-      districtId: json['district_id']?.toString() ?? '',
-      categoryId: json['categoryID']?.toString() ?? '',
-      itemId: json['item_id']?.toString() ?? '',
-      measurementUnitId: json['measurement_unit_id']?.toString() ?? '',
-      unitId: json['destination_id']?.toString() ?? '',
-    );
   }
 }

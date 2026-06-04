@@ -80,19 +80,19 @@ class StoreInventoryFilters extends StatelessWidget {
                                 ),
                               )
                               .toList(),
-                          onChanged: (values) {
+                           onChanged: (values) {
                             final newVal = values.isNotEmpty ? values.first : null;
                             if (controller.selectedState.value != newVal) {
                               controller.selectedState.value = newVal;
                               controller.selectedDistrict.value = null;
-                              controller.selectedStoreRoom.value = null;
-                              controller.selectedStore.value = null;
+                              controller.selectedStoreRoom.clear();
+                              controller.selectedStore.clear();
                               controller.districtOptions.clear();
                               if (newVal != null) {
                                 controller.fetchDistricts(newVal);
-                                controller.fetchStores(newVal, '');
+                                controller.fetchStoreRooms(newVal, '');
                               } else {
-                                controller.fetchStores('', '');
+                                controller.fetchStoreRooms('', '');
                               }
                               controller.applyFilters();
                             }
@@ -119,12 +119,12 @@ class StoreInventoryFilters extends StatelessWidget {
                             final newVal = values.isNotEmpty ? values.first : null;
                             if (controller.selectedDistrict.value != newVal) {
                               controller.selectedDistrict.value = newVal;
-                              controller.selectedStoreRoom.value = null;
-                              controller.selectedStore.value = null;
+                              controller.selectedStoreRoom.clear();
+                              controller.selectedStore.clear();
                               if (newVal != null) {
-                                controller.fetchStores(controller.selectedState.value ?? '', newVal);
+                                controller.fetchStoreRooms(controller.selectedState.value ?? '', newVal);
                               } else {
-                                controller.fetchStores(controller.selectedState.value ?? '', '');
+                                controller.fetchStoreRooms(controller.selectedState.value ?? '', '');
                               }
                               controller.applyFilters();
                             }
@@ -136,9 +136,8 @@ class StoreInventoryFilters extends StatelessWidget {
                       Obx(() {
                         return MultiSelectDropdownWidget<String>(
                           label: 'Select Store Room',
-                          isSingleSelect: true,
-                          selectedValues: controller.selectedStoreRoom.value != null ? {controller.selectedStoreRoom.value!} : {},
-                          items: controller.storeOptions
+                          selectedValues: controller.selectedStoreRoom.toSet(),
+                          items: controller.storeRoomOptions
                               .map<DropdownMenuItem<String>>(
                                 (opt) => DropdownMenuItem<String>(
                                   value: opt.value,
@@ -150,7 +149,7 @@ class StoreInventoryFilters extends StatelessWidget {
                               )
                               .toList(),
                           onChanged: (values) {
-                            controller.selectedStoreRoom.value = values.isNotEmpty ? values.first : null;
+                            controller.selectedStoreRoom.assignAll(values.toList());
                             controller.applyFilters();
                           },
                         );
@@ -158,8 +157,7 @@ class StoreInventoryFilters extends StatelessWidget {
                       Obx(() {
                         return MultiSelectDropdownWidget<String>(
                           label: 'Select Store',
-                          isSingleSelect: true,
-                          selectedValues: controller.selectedStore.value != null ? {controller.selectedStore.value!} : {},
+                          selectedValues: controller.selectedStore.toSet(),
                           items: controller.storeOptions
                               .map<DropdownMenuItem<String>>(
                                 (opt) => DropdownMenuItem<String>(
@@ -172,7 +170,7 @@ class StoreInventoryFilters extends StatelessWidget {
                               )
                               .toList(),
                           onChanged: (values) {
-                            controller.selectedStore.value = values.isNotEmpty ? values.first : null;
+                            controller.selectedStore.assignAll(values.toList());
                             controller.applyFilters();
                           },
                         );
@@ -194,16 +192,17 @@ class StoreInventoryFilters extends StatelessWidget {
                                 ),
                               )
                               .toList(),
-                          onChanged: (values) {
+                          onChanged: (values) async {
                             controller.selectedCategories.assignAll(values.toList());
                             controller.selectedItems.clear();
+                            await controller.fetchItemsForSelectedCategories();
                             controller.applyFilters();
                           },
                         ),
                       ),
                       Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          label: 'Select Item(s)',
+                          label: 'Select Item',
                           selectedValues: controller.selectedItems.toSet(),
                           items: controller.itemOptions
                               .map<DropdownMenuItem<String>>(

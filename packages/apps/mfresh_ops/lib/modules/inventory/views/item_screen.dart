@@ -8,6 +8,7 @@ import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/item_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/item_model.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'widgets/inventory_item_dialog.dart';
 

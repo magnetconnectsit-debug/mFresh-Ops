@@ -4,6 +4,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/models/inventory/item_model.dart';
 
 class ItemController extends GetxController {
   final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
@@ -21,14 +22,7 @@ class ItemController extends GetxController {
   final selectedMeasurement = RxnString();
   final selectedCategory = RxnString();
 
-  final measurementOptions = <DropdownOption<String>>[
-    DropdownOption(value: '1', label: 'Litre'),
-    DropdownOption(value: '2', label: 'Packet'),
-    DropdownOption(value: '3', label: 'Piece'),
-    DropdownOption(value: '4', label: 'Kg'),
-    DropdownOption(value: '5', label: 'Gram'),
-    DropdownOption(value: '6', label: 'Pair'),
-  ].obs;
+  final measurementOptions = <DropdownOption<String>>[].obs;
 
   final categoryOptions = <DropdownOption<String>>[].obs;
 
@@ -43,14 +37,31 @@ class ItemController extends GetxController {
 
   Future<void> initController() async {
     isLoading.value = true;
+    await fetchMeasurements();
     await fetchCategories();
     await fetchItems();
     isLoading.value = false;
   }
 
   Future<void> onRefresh() async {
+    await fetchMeasurements();
     await fetchCategories();
     await fetchItems();
+  }
+
+  Future<void> fetchMeasurements() async {
+    try {
+      final response = await _inventoryRepository.getMeasurements();
+      if (response != null && response['status'] == 'success') {
+        final List data = response['data'] ?? [];
+        measurementOptions.assignAll(data.map((e) => DropdownOption<String>(
+          value: e['id'].toString(), 
+          label: e['measurement_unit']?.toString() ?? '',
+        )).toList());
+      }
+    } catch (e) {
+      debugPrint('Error fetching measurements: $e');
+    }
   }
 
   Future<void> fetchCategories() async {
@@ -285,39 +296,5 @@ class ItemController extends GetxController {
     lowQuantityStoreController.dispose();
     lowQuantityUnitController.dispose();
     super.onClose();
-  }
-}
-
-class ItemModel {
-  final int id;
-  final String itemName;
-  final String itemId;
-  final String measurementUnitId;
-  final String categoryInv;
-  final String lowQnty;
-  final String lowQntyUnit;
-
-  ItemModel({
-    required this.id,
-    required this.itemName,
-    required this.itemId,
-    required this.measurementUnitId,
-    required this.categoryInv,
-    required this.lowQnty,
-    required this.lowQntyUnit,
-  });
-
-  factory ItemModel.fromJson(Map<String, dynamic> json) {
-    return ItemModel(
-      id: json['id'] is int 
-          ? json['id'] 
-          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      itemName: json['item_name']?.toString() ?? '',
-      itemId: json['item_id']?.toString() ?? '',
-      measurementUnitId: json['measurement_unit_id']?.toString() ?? '',
-      categoryInv: json['category_inv']?.toString() ?? '',
-      lowQnty: json['low_qnty']?.toString() ?? '',
-      lowQntyUnit: json['low_qnty_unit']?.toString() ?? '',
-    );
   }
 }

@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
 import 'package:services/app_update_service.dart';
-import 'package:mfresh/views/app_update_screen.dart';
 
 class SplashController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
@@ -20,23 +17,9 @@ class SplashController extends GetxController {
   Future<void> _navigateToNext() async {
     // 1. Check for updates first
     try {
-      final updateInfo = await _updateService.getUpdateInfo();
-      if (updateInfo.isAvailable) {
-        if (Platform.isAndroid) {
-          // Trigger native immediate update overlay
-          await _updateService.performAndroidUpdate();
-          return;
-        } else {
-          Get.offAll(
-            () => AppUpdateScreen(
-              isForceUpdate: updateInfo.isForceUpdate,
-              message: updateInfo.message,
-              storeUrl: updateInfo.storeUrl,
-              versionName: updateInfo.versionName,
-            ),
-          );
-          return;
-        }
+      final isUpdating = await _updateService.checkForUpdate();
+      if (isUpdating) {
+        return;
       }
     } catch (e) {
       debugPrint("Splash Update Check Error: $e");

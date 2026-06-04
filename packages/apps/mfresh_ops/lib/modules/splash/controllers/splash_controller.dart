@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:services/storage_service.dart';
+import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 
 class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
+  final AppUpdateService _updateService = Get.find<AppUpdateService>();
 
   @override
   void onReady() {
@@ -12,7 +14,17 @@ class SplashController extends GetxController {
   }
 
   Future<void> _navigateToNext() async {
-    // Show splash for 3 seconds to ensure visibility
+    // 1. Check for updates first
+    try {
+      final isUpdating = await _updateService.checkForUpdate();
+      if (isUpdating) {
+        return; // Halt navigation to let update run
+      }
+    } catch (e) {
+      debugPrint("Splash Update Check Error: $e");
+    }
+
+    // Show splash for 2 seconds to ensure visibility
     await Future.delayed(const Duration(seconds: 2));
 
     final token = _storageService.getToken();

@@ -5,6 +5,7 @@ import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:services/api_services.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/models/inventory/consumption_item_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'dart:developer' as developer;
@@ -453,82 +454,5 @@ class ConsumptionController extends GetxController {
     fromDateController.dispose();
     toDateController.dispose();
     super.onClose();
-  }
-}
-
-class ConsumptionItemModel {
-  final int id;
-  final String consumedOn;
-  final String state;
-  final String district;
-  final String sourceType;
-  final String source;
-  final String category;
-  final String item;
-  final String consumedQty;
-  final String mUnit;
-  final String createdBy;
-  final int isReversed;
-
-  ConsumptionItemModel({
-    required this.id,
-    required this.consumedOn,
-    required this.state,
-    required this.district,
-    required this.sourceType,
-    required this.source,
-    required this.category,
-    required this.item,
-    required this.consumedQty,
-    required this.mUnit,
-    required this.createdBy,
-    required this.isReversed,
-  });
-
-  factory ConsumptionItemModel.fromJson(Map<String, dynamic> json) {
-    final rawDate = json['date_of_consumption']?.toString() ?? '';
-    String formattedDate = rawDate;
-    if (rawDate.isNotEmpty) {
-      final parsed = DateTime.tryParse(rawDate);
-      if (parsed != null) {
-        const months = [
-          'jan',
-          'feb',
-          'mar',
-          'apr',
-          'may',
-          'jun',
-          'jul',
-          'aug',
-          'sep',
-          'oct',
-          'nov',
-          'dec',
-        ];
-        final day = parsed.day.toString().padLeft(2, '0');
-        final month = months[parsed.month - 1];
-        final year = parsed.year;
-        formattedDate = '$day-$month-$year';
-      }
-    }
-
-    return ConsumptionItemModel(
-      id: json['id'] is int
-          ? json['id']
-          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      consumedOn: formattedDate,
-      state: json['state_name']?.toString() ?? '',
-      district: json['district_name']?.toString() ?? '',
-      sourceType: json['source_type']?.toString() ?? '',
-      source: json['sourcename']?.toString() ?? '',
-      category: json['category_name']?.toString() ?? '',
-      item: json['item_name']?.toString() ?? '',
-      consumedQty: json['consumed_qty']?.toString() ?? '',
-      mUnit: json['measurement_name']?.toString() ?? '',
-      createdBy: json['created_by_name']?.toString() ?? '',
-      isReversed: json['is_reversed'] is int
-          ? json['is_reversed']
-          : int.tryParse(json['is_reversed']?.toString() ?? '0') ?? 0,
-    );
   }
 }

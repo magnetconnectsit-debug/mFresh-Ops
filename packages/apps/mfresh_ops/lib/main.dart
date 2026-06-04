@@ -55,6 +55,9 @@ Future<void> initServices() async {
   // Initialize API Service
   Get.put(ApiService());
 
+  // Initialize App Update Service
+  Get.put(AppUpdateService());
+
   // Initialize Repositories
   Get.put(AuthRepository());
   Get.put(UserRepository());

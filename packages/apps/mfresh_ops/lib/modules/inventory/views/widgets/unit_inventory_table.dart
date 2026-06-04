@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/unit_inventory_model.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/inventory/views/widgets/store_inventory_dialogs.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';

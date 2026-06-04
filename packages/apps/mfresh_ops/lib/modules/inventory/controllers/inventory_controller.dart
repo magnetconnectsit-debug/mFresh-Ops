@@ -20,8 +20,8 @@ class InventoryController extends GetxController {
   // Filter states
   final selectedState = RxnString();
   final selectedDistrict = RxnString();
-  final selectedStoreRoom = RxnString();
-  final selectedStore = RxnString();
+  final selectedStoreRoom = <String>[].obs;
+  final selectedStore = <String>[].obs;
   final selectedCategories = <String>[].obs;
   final selectedItems = <String>[].obs;
 
@@ -29,9 +29,11 @@ class InventoryController extends GetxController {
   final stateOptions = <DropdownOption>[].obs;
   final districtOptions = <DropdownOption>[].obs;
   final storeOptions = <DropdownOption>[].obs;
+  final storeRoomOptions = <DropdownOption>[].obs;
   final categoryOptions = <DropdownOption>[].obs;
   final itemOptions = <DropdownOption>[].obs;
   final itemUnits = <String, String>{}.obs;
+  final measurementsMap = <String, String>{}.obs;
 
   final inventoryItems = <InventoryItemModel>[].obs;
   final isLoading = false.obs;
@@ -44,11 +46,13 @@ class InventoryController extends GetxController {
 
   Future<void> _fetchInitialData() async {
     isLoading.value = true;
+    await fetchMeasurements();
     await Future.wait([
       fetchStates(),
       fetchCategories(),
       fetchItems(),
       fetchStores('', ''),
+      fetchStoreRooms('', ''),
     ]);
     await fetchInventoryStock();
     isLoading.value = false;
@@ -96,6 +100,32 @@ class InventoryController extends GetxController {
       }
     } catch (e) {
       debugPrint('Error fetching stores: $e');
+    }
+  }
+
+  Future<void> fetchStoreRooms(String stateId, String districtId) async {
+    try {
+      final response = await _inventoryRepository.getStores(stateId, districtId);
+      if (response != null && response['status'] == 'success') {
+        final List data = response['data'] ?? [];
+        final parsed = data.map((e) => DropdownOption(
+          value: e['storeid'].toString(), 
+          label: e['storeroom_name']?.toString() ?? '',
+        )).toList();
+
+        if ((stateId.isNotEmpty || districtId.isNotEmpty) && 
+            storeOptions.isNotEmpty && 
+            parsed.length == storeOptions.length) {
+          storeRoomOptions.clear();
+        } else {
+          storeRoomOptions.assignAll(parsed);
+        }
+      } else {
+        storeRoomOptions.clear();
+      }
+    } catch (e) {
+      debugPrint('Error fetching store rooms: $e');
+      storeRoomOptions.clear();
     }
   }
 
@@ -167,6 +197,48 @@ class InventoryController extends GetxController {
     }
   }
 
+  Future<void> fetchItemsForSelectedCategories() async {
+    if (selectedCategories.isEmpty) {
+      await fetchItems();
+      return;
+    }
+    
+    try {
+      final List<DropdownOption> allCategoryItems = [];
+      final results = await Future.wait(
+        selectedCategories.map((catId) => _inventoryRepository.getItemsByCategory(catId))
+      );
+
+      for (var response in results) {
+        if (response != null && (response['status'] == 'success' || response['status'] == true)) {
+          final List data = response['data'] ?? [];
+          for (var e in data) {
+            final option = DropdownOption(
+              value: e['id'].toString(), 
+              label: e['item_name']?.toString() ?? '',
+            );
+            if (!allCategoryItems.any((item) => item.value == option.value)) {
+              allCategoryItems.add(option);
+            }
+
+            final id = e['id']?.toString() ?? '';
+            final unitId = e['measurement_unit_id']?.toString() ?? '';
+            final unitName = e['measurement_unit_name']?.toString() ?? 
+                             e['m_unit']?.toString() ?? 
+                             e['display_unit']?.toString() ?? 
+                             (unitId.isNotEmpty ? _mapMeasurementUnit(unitId) : '');
+            if (unitName.isNotEmpty) {
+              itemUnits[id] = unitName;
+            }
+          }
+        }
+      }
+      itemOptions.assignAll(allCategoryItems);
+    } catch (e) {
+      debugPrint('Error fetching category-wise items: $e');
+    }
+  }
+
   void onCategorySelected(String? categoryId) {
     selectedAddItemName.value = null;
     if (categoryId != null && categoryId.isNotEmpty) {
@@ -176,25 +248,37 @@ class InventoryController extends GetxController {
     }
   }
 
-  String _mapMeasurementUnit(dynamic id) {
-    switch (id.toString()) {
-      case '1': return 'Litre';
-      case '2': return 'Packet';
-      case '3': return 'pcs';
-      case '4': return 'Box';
-      case '6': return 'Pair';
-      case '7': return 'Kg';
-      default: return '';
+  Future<void> fetchMeasurements() async {
+    try {
+      final response = await _inventoryRepository.getMeasurements();
+      if (response != null && response['status'] == 'success') {
+        final List data = response['data'] ?? [];
+        measurementsMap.assignAll({
+          for (var e in data) 
+            e['id'].toString(): e['measurement_unit']?.toString() ?? ''
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching measurements: $e');
     }
+  }
+
+  String _mapMeasurementUnit(dynamic id) {
+    return measurementsMap[id.toString()] ?? '';
   }
 
   Future<void> fetchInventoryStock() async {
     isLoading.value = true;
     try {
+      final List<int> combinedStoreIds = {
+        ...selectedStore.map((e) => int.tryParse(e)).whereType<int>(),
+        ...selectedStoreRoom.map((e) => int.tryParse(e)).whereType<int>(),
+      }.toList();
+
       final response = await _inventoryRepository.getInventoryStock(
-        itemId: selectedItems.join(','),
-        storeId: selectedStore.value ?? '',
-        categoryId: selectedCategories.join(','),
+        itemId: selectedItems.map((e) => int.tryParse(e)).whereType<int>().toList(),
+        storeId: combinedStoreIds,
+        categoryId: selectedCategories.map((e) => int.tryParse(e)).whereType<int>().toList(),
         stateId: selectedState.value ?? '',
         districtId: selectedDistrict.value ?? '',
       );
@@ -333,8 +417,8 @@ class InventoryController extends GetxController {
     // Reset filters
     selectedState.value = null;
     selectedDistrict.value = null;
-    selectedStoreRoom.value = null;
-    selectedStore.value = null;
+    selectedStoreRoom.clear();
+    selectedStore.clear();
     selectedCategories.clear();
     selectedItems.clear();
     searchController.clear();

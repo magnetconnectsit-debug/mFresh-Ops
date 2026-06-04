@@ -49,9 +49,9 @@ class InventoryRepository extends GetxService {
   }
 
   Future<dynamic> getInventoryStock({
-    required String itemId,
-    required String storeId,
-    required String categoryId,
+    required List<int> itemId,
+    required List<int> storeId,
+    required List<int> categoryId,
     required String stateId,
     required String districtId,
   }) async {
@@ -92,14 +92,20 @@ class InventoryRepository extends GetxService {
     }
   }
 
-  Future<dynamic> getUnitInventoryStock() async {
+  Future<dynamic> getUnitInventoryStock({
+    required List<int> itemId,
+    required List<int> unitId,
+    required List<int> categoryId,
+    required String stateId,
+    required String districtId,
+  }) async {
     try {
       return await _apiService.post(AppConstants.inventoryUnitStock, data: {
-        "item_id": "",
-        "unit_id": "",
-        "category_id": "",
-        "state_id": "",
-        "district_id": "",
+        "item_id": itemId,
+        "unit_id": unitId,
+        "category_id": categoryId,
+        "state_id": stateId,
+        "district_id": districtId,
       });
     } catch (e) {
       rethrow;
@@ -230,6 +236,45 @@ class InventoryRepository extends GetxService {
         "low_qty": lowQtyStore,
         "low_qty_unit": lowQtyUnit,
       });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createMeasurement(String name) async {
+    try {
+      return await _apiService.post(AppConstants.measurementCreate, data: {
+        "mesNm": name,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> updateMeasurement(int id, String name) async {
+    try {
+      return await _apiService.post(AppConstants.measurementUpdate, data: {
+        "id": id,
+        "mesNm": name,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> deleteMeasurement(int id) async {
+    try {
+      return await _apiService.post(AppConstants.measurementDelete, data: {
+        "id": id,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getMeasurements() async {
+    try {
+      return await _apiService.get(AppConstants.measurementList);
     } catch (e) {
       rethrow;
     }

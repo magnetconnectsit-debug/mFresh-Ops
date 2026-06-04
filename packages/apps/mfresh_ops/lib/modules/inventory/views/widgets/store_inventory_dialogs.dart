@@ -10,6 +10,7 @@ import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/api_services.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
+import 'package:mfresh_ops/data/models/inventory/unit_inventory_model.dart';
 import '../../controllers/unit_inventory_controller.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 
@@ -24,7 +25,7 @@ class StoreInventoryDialogs {
         ),
         SizedBox(height: 6.h),
         Container(
-          height: 32.h,
+          height: 28.h,
           padding: EdgeInsets.symmetric(horizontal: 8.w),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
@@ -402,10 +403,20 @@ class StoreInventoryDialogs {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        _buildWhiteInput(
-                          'Consumption Quantity (ml)',
-                          'Enter in ml',
-                          controller: consumptionController,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildWhiteInput(
+                                'Consumption Quantity (ml)',
+                                'Enter in ml',
+                                controller: consumptionController,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -414,10 +425,20 @@ class StoreInventoryDialogs {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        _buildWhiteInput(
-                          'Consumption Quantity',
-                          'Enter Pieces',
-                          controller: consumptionController,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildWhiteInput(
+                                'Consumption Quantity',
+                                'Enter Pieces',
+                                controller: consumptionController,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -430,7 +451,6 @@ class StoreInventoryDialogs {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              flex: 2,
                               child: _buildWhiteInput(
                                 'Packets',
                                 'Enter Packets',
@@ -439,7 +459,6 @@ class StoreInventoryDialogs {
                             ),
                             SizedBox(width: 16.w),
                             Expanded(
-                              flex: 3,
                               child: _buildWhiteInput(
                                 'Piece (per Pkt)',
                                 'Enter pieces per packet',
@@ -449,11 +468,21 @@ class StoreInventoryDialogs {
                           ],
                         ),
                         SizedBox(height: 16.h),
-                        _buildWhiteInput(
-                          'Consumption Qty',
-                          'Auto Calc (Pkt x Pcs)',
-                          controller: consumptionController,
-                          readOnly: true,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildWhiteInput(
+                                'Consumption Qty',
+                                'Auto Calc (Pkt x Pcs)',
+                                controller: consumptionController,
+                                readOnly: true,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -462,10 +491,20 @@ class StoreInventoryDialogs {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        _buildWhiteInput(
-                          'Consumption Quantity (Pair)',
-                          'Enter Pairs',
-                          controller: consumptionController,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildWhiteInput(
+                                'Consumption Quantity (Pair)',
+                                'Enter Pairs',
+                                controller: consumptionController,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -474,10 +513,20 @@ class StoreInventoryDialogs {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        _buildWhiteInput(
-                          'Consumption Quantity (g)',
-                          'Enter in grams',
-                          controller: consumptionController,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildWhiteInput(
+                                'Consumption Quantity (g)',
+                                'Enter in grams',
+                                controller: consumptionController,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -486,10 +535,20 @@ class StoreInventoryDialogs {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        _buildWhiteInput(
-                          'Consumption Qty.',
-                          'Enter Qty.',
-                          controller: consumptionController,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildWhiteInput(
+                                'Consumption Qty.',
+                                'Enter Qty.',
+                                controller: consumptionController,
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -709,7 +768,7 @@ class StoreInventoryDialogs {
         } catch (e) {
           debugPrint('❌ [dialog] Error fetching units in dialog: $e');
         }
-      } else if (type == 'store') {
+      } else if (type == 'storeroom') {
         try {
           debugPrint('🔍 [dialog] Fetching inv-stores...');
           final response = await apiService.post(
@@ -810,12 +869,19 @@ class StoreInventoryDialogs {
                   ],
                 ),
                 SizedBox(height: 10.h),
-                SizedBox(
-                  width: 180.w,
-                  child: _buildGreyField(
-                    'Available Qty. (Consumption)',
-                    '${item.quantity} ${item is InventoryItemModel ? item.unit : item.mUnit}',
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildGreyField(
+                        'Available Qty. (Consumption)',
+                        '${item.quantity} ${item is InventoryItemModel ? item.unit : item.mUnit}',
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    const Expanded(
+                      child: SizedBox(),
+                    ),
+                  ],
                 ),
 
                 SizedBox(height: 16.h),
@@ -919,7 +985,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             DropdownMenuItem<String>(
-                              value: 'store',
+                              value: 'storeroom',
                               child: Text(
                                 'Store',
                                 style: AppTextStyle.style_12_400(
@@ -970,52 +1036,59 @@ class StoreInventoryDialogs {
                   ],
                 ),
                 SizedBox(height: 10.h),
-                SizedBox(
-                  width: 180.w,
-                  child: (() {
-                    final unit =
-                        (item is InventoryItemModel
-                                ? item.unit
-                                : (item as UnitInventoryModel).mUnit)
-                            .toLowerCase();
-                    if (unit == 'litre') {
-                      return _buildWhiteInput(
-                        'Allocate Quantity (ml)',
-                        'Enter in ml',
-                        controller: qtyController,
-                      );
-                    } else if (unit == 'piece' || unit == 'pcs') {
-                      return _buildWhiteInput(
-                        'Allocate Quantity',
-                        'Enter Pieces',
-                        controller: qtyController,
-                      );
-                    } else if (unit == 'pair') {
-                      return _buildWhiteInput(
-                        'Allocate Quantity (Pair)',
-                        'Enter Pairs',
-                        controller: qtyController,
-                      );
-                    } else if (unit == 'kg') {
-                      return _buildWhiteInput(
-                        'Allocate Quantity (g)',
-                        'Enter in grams',
-                        controller: qtyController,
-                      );
-                    } else if (unit == 'packet' || unit == 'box') {
-                      return _buildWhiteInput(
-                        'Allocate Quantity (Packet)',
-                        'Enter Packets',
-                        controller: qtyController,
-                      );
-                    } else {
-                      return _buildWhiteInput(
-                        'Allocate Qty. (Consumption)',
-                        'Enter Qty.',
-                        controller: qtyController,
-                      );
-                    }
-                  })(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: (() {
+                        final unit =
+                            (item is InventoryItemModel
+                                    ? item.unit
+                                    : (item as UnitInventoryModel).mUnit)
+                                .toLowerCase();
+                        if (unit == 'litre') {
+                          return _buildWhiteInput(
+                            'Allocate Quantity (ml)',
+                            'Enter in ml',
+                            controller: qtyController,
+                          );
+                        } else if (unit == 'piece' || unit == 'pcs') {
+                          return _buildWhiteInput(
+                            'Allocate Quantity',
+                            'Enter Pieces',
+                            controller: qtyController,
+                          );
+                        } else if (unit == 'pair') {
+                          return _buildWhiteInput(
+                            'Allocate Quantity (Pair)',
+                            'Enter Pairs',
+                            controller: qtyController,
+                          );
+                        } else if (unit == 'kg') {
+                          return _buildWhiteInput(
+                            'Allocate Quantity (g)',
+                            'Enter in grams',
+                            controller: qtyController,
+                          );
+                        } else if (unit == 'packet' || unit == 'box') {
+                          return _buildWhiteInput(
+                            'Allocate Quantity (Packet)',
+                            'Enter Packets',
+                            controller: qtyController,
+                          );
+                        } else {
+                          return _buildWhiteInput(
+                            'Allocate Qty. (Consumption)',
+                            'Enter Qty.',
+                            controller: qtyController,
+                          );
+                        }
+                      })(),
+                    ),
+                    SizedBox(width: 12.w),
+                    const Expanded(
+                      child: SizedBox(),
+                    ),
+                  ],
                 ),
 
                 SizedBox(height: 16.h),

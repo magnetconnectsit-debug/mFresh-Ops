@@ -7,6 +7,7 @@ import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/consumption_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/consumption_item_model.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
@@ -17,57 +18,82 @@ class AllConsumptionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ConsumptionController());
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        title: Obx(
-          () => controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search Item, Source or Category...',
-                  onChanged: (v) => controller.applyFilters(),
-                )
-              : Text(
-                  'All Consumption',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-              ),
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      if (!userPermissions.contains('consumption_report')) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.white,
+            title: Text(
+              'All Consumption',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
           ),
-        ],
-      ),
-      drawer: const CommonSidebar(),
-      body: AppRefreshIndicator(
-        onRefresh: () async {
-          controller.fromDateController.clear();
-          controller.toDateController.clear();
-          controller.selectedUnits.clear();
-          controller.selectedItems.clear();
-          controller.selectedStores.clear();
-          await controller.onRefresh();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildFiltersSection(context, controller),
-              _buildActionButtons(controller),
-              Obx(() => _buildTable(controller)),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 32.h),
-            ],
+          drawer: const CommonSidebar(),
+          body: Center(
+            child: Text(
+              'You do not have permission to view this page.',
+              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+            ),
+          ),
+        );
+      }
+
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          title: Obx(
+            () => controller.isSearching.value
+                ? AppCommonSearchBar(
+                    controller: controller.searchController,
+                    hintText: 'Search Item, Source or Category...',
+                    onChanged: (v) => controller.applyFilters(),
+                  )
+                : Text(
+                    'All Consumption',
+                    style: AppTextStyle.style_18_700(color: AppColors.black),
+                  ),
+          ),
+          actions: [
+            Obx(
+              () => IconButton(
+                onPressed: () => controller.toggleSearch(),
+                icon: Icon(
+                  controller.isSearching.value ? Icons.close : Icons.search,
+                ),
+              ),
+            ),
+          ],
+        ),
+        drawer: const CommonSidebar(),
+        body: AppRefreshIndicator(
+          onRefresh: () async {
+            controller.fromDateController.clear();
+            controller.toDateController.clear();
+            controller.selectedUnits.clear();
+            controller.selectedItems.clear();
+            controller.selectedStores.clear();
+            await controller.onRefresh();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildFiltersSection(context, controller),
+                _buildActionButtons(controller),
+                Obx(() => _buildTable(controller)),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 32.h),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildTable(ConsumptionController controller) {
@@ -130,17 +156,30 @@ class AllConsumptionScreen extends StatelessWidget {
                   child: Table(
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                     columnWidths: {
-                      0: const IntrinsicColumnWidth(), // Consumed On
-                      1: const IntrinsicColumnWidth(), // State
-                      2: const IntrinsicColumnWidth(), // District
-                      3: const IntrinsicColumnWidth(), // Source Type
-                      4: const IntrinsicColumnWidth(), // Source
-                      5: const IntrinsicColumnWidth(), // Category
-                      6: const IntrinsicColumnWidth(), // Item
-                      7: const IntrinsicColumnWidth(), // Consumed Qty
-                      8: const IntrinsicColumnWidth(), // M_Unit
-                      9: const IntrinsicColumnWidth(), // Created By
-                      if (hasReverse) 10: const IntrinsicColumnWidth(), // Action
+                      if (hasReverse) 0: const IntrinsicColumnWidth(), // Action
+                      if (hasReverse) ...{
+                        1: const IntrinsicColumnWidth(), // Consumed On
+                        2: const IntrinsicColumnWidth(), // State
+                        3: const IntrinsicColumnWidth(), // District
+                        4: const IntrinsicColumnWidth(), // Source Type
+                        5: const IntrinsicColumnWidth(), // Source
+                        6: const IntrinsicColumnWidth(), // Category
+                        7: const IntrinsicColumnWidth(), // Item
+                        8: const IntrinsicColumnWidth(), // Consumed Qty
+                        9: const IntrinsicColumnWidth(), // M_Unit
+                        10: const IntrinsicColumnWidth(), // Created By
+                      } else ...{
+                        0: const IntrinsicColumnWidth(), // Consumed On
+                        1: const IntrinsicColumnWidth(), // State
+                        2: const IntrinsicColumnWidth(), // District
+                        3: const IntrinsicColumnWidth(), // Source Type
+                        4: const IntrinsicColumnWidth(), // Source
+                        5: const IntrinsicColumnWidth(), // Category
+                        6: const IntrinsicColumnWidth(), // Item
+                        7: const IntrinsicColumnWidth(), // Consumed Qty
+                        8: const IntrinsicColumnWidth(), // M_Unit
+                        9: const IntrinsicColumnWidth(), // Created By
+                      }
                     },
                     border: TableBorder.symmetric(
                       inside: BorderSide(color: Colors.grey.shade300),
@@ -149,6 +188,7 @@ class AllConsumptionScreen extends StatelessWidget {
                       TableRow(
                         decoration: const BoxDecoration(color: AppColors.white),
                         children: [
+                          if (hasReverse) _buildHeaderCell('Action'),
                           _buildHeaderCell('Consumed On'),
                           _buildHeaderCell('State'),
                           _buildHeaderCell('District'),
@@ -159,22 +199,11 @@ class AllConsumptionScreen extends StatelessWidget {
                           _buildHeaderCell('Consumed Qty'),
                           _buildHeaderCell('M_Unit'),
                           _buildHeaderCell('Created By'),
-                          if (hasReverse) _buildHeaderCell('Action'),
                         ],
                       ),
                       ...items.map((item) {
                         return TableRow(
                           children: [
-                            _buildDataCell(item.consumedOn),
-                            _buildDataCell(item.state),
-                            _buildDataCell(item.district),
-                            _buildDataCell(item.sourceType),
-                            _buildDataCell(item.source),
-                            _buildDataCell(item.category),
-                            _buildDataCell(item.item),
-                            _buildDataCell(item.consumedQty),
-                            _buildDataCell(item.mUnit),
-                            _buildDataCell(item.createdBy),
                             if (hasReverse)
                               Container(
                                 margin: EdgeInsets.symmetric(
@@ -226,6 +255,16 @@ class AllConsumptionScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                            _buildDataCell(item.consumedOn),
+                            _buildDataCell(item.state),
+                            _buildDataCell(item.district),
+                            _buildDataCell(item.sourceType),
+                            _buildDataCell(item.source),
+                            _buildDataCell(item.category),
+                            _buildDataCell(item.item),
+                            _buildDataCell(item.consumedQty),
+                            _buildDataCell(item.mUnit),
+                            _buildDataCell(item.createdBy),
                           ],
                         );
                       }),
@@ -460,41 +499,45 @@ class AllConsumptionScreen extends StatelessWidget {
   }
 
   Widget _buildActionButtons(ConsumptionController controller) {
+    final authRepo = Get.find<AuthRepository>();
+    final hasExport = authRepo.rxUserPermissions.contains('Consumption_export');
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         children: [
-          Container(
-            height: 28.h,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
-              ),
-              borderRadius: BorderRadius.circular(4.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+          if (hasExport)
+            Container(
+              height: 28.h,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
                 ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: () => controller.exportToExcel(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4.r),
+                borderRadius: BorderRadius.circular(4.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () => controller.exportToExcel(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-              ),
-              child: Text(
-                'Export Excel',
-                style: AppTextStyle.style_12_600(color: AppColors.white),
+                child: Text(
+                  'Export Excel',
+                  style: AppTextStyle.style_12_600(color: AppColors.white),
+                ),
               ),
             ),
-          ),
           const Spacer(),
           Obx(
             () => Container(

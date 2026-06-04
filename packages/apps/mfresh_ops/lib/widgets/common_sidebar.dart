@@ -44,61 +44,66 @@ class CommonSidebar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _buildMenuItem(
-                  icon: Icons.dashboard_outlined,
-                  activeIcon: Icons.dashboard,
-                  title: 'Home',
-                  route: AppRoutes.home,
-                  currentRoute: currentRoute,
-                ),
-                _buildMenuItem(
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  title: 'Profile',
-                  route: AppRoutes.profile,
-                  currentRoute: currentRoute,
-                ),
+            child: Obx(() {
+              final authRepo = Get.find<AuthRepository>();
+              final userPermissions = authRepo.rxUserPermissions;
+              final showInventory = userPermissions.contains('inventory_panel');
+              
+              final inventorySubItems = [
+                if (userPermissions.contains('store_inventory_stock'))
+                  'Store Inventory',
+                if (userPermissions.contains('unit_inventory_stock'))
+                  'Unit Inventory',
+                if (userPermissions.contains('consumption_report'))
+                  'Consumption',
+                if (userPermissions.contains('allotments_report'))
+                  'Allotments',
+                if (userPermissions.contains('measurements_panel'))
+                  'M_Measurements',
+                if (userPermissions.contains('inventory_item'))
+                  'M_Items',
+                if (userPermissions.contains('store_room'))
+                  'M_Store',
+              ];
 
-                _buildExpandableMenuItem(
-                  icon: Icons.support_agent_outlined,
-                  title: 'Support Ticket',
-                  subItems: [
-                    // 'Support Ticket Dashboard',
-                    'Support Ticket',
-                    // 'M_Category',
-                    // 'M_Sub Category',
-                    // 'M_Projects',
-                    // 'M_Template',
-                  ],
-                  currentRoute: currentRoute,
-                ),
-                // _buildExpandableMenuItem(
-                //   icon: Icons.task_outlined,
-                //   title: 'Task Scheduler',
-                //   subItems: ['All Task', 'Daily Task'],
-                //   currentRoute: currentRoute,
-                // ),
+              return ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildMenuItem(
+                    icon: Icons.dashboard_outlined,
+                    activeIcon: Icons.dashboard,
+                    title: 'Home',
+                    route: AppRoutes.home,
+                    currentRoute: currentRoute,
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    title: 'Profile',
+                    route: AppRoutes.profile,
+                    currentRoute: currentRoute,
+                  ),
 
-                // Inventory Expandable Section
-                _buildExpandableMenuItem(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Inventory',
-                  subItems: [
-                    'Store Inventory',
-                    'Unit Inventory',
-                    'Consumption',
-                    'Allotments',
-                    'M_Measurements',
-                    'M_Items',
-                    'M_Store',
-                  ],
-                  currentRoute: currentRoute,
-                ),
-              ],
-            ),
+                  _buildExpandableMenuItem(
+                    icon: Icons.support_agent_outlined,
+                    title: 'Support Ticket',
+                    subItems: [
+                      'Support Ticket',
+                    ],
+                    currentRoute: currentRoute,
+                  ),
+
+                  // Inventory Expandable Section
+                  if (showInventory && inventorySubItems.isNotEmpty)
+                    _buildExpandableMenuItem(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Inventory',
+                      subItems: inventorySubItems,
+                      currentRoute: currentRoute,
+                    ),
+                ],
+              );
+            }),
           ),
           const Divider(),
           _buildMenuItem(

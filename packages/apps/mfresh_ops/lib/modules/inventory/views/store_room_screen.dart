@@ -9,6 +9,7 @@ import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/store_room_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/store_room_model.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
@@ -339,49 +340,75 @@ class StoreRoomScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 12.h),
-              Obx(() => MultiSelectDropdownWidget<String>(
-                title: 'Select State',
-                isSingleSelect: true,
-                selectedValues: controller.selectedStateId.value != null
-                    ? {controller.selectedStateId.value!}
-                    : {},
-                items: controller.stateOptions
-                    .map<DropdownMenuItem<String>>(
-                      (opt) => DropdownMenuItem<String>(
-                        value: opt.value,
-                        child: Text(
-                          opt.label,
-                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (values) {
-                  controller.onStateSelected(values.isNotEmpty ? values.first : null);
-                },
-              )),
-              SizedBox(height: 12.h),
-              Obx(() => MultiSelectDropdownWidget<String>(
-                title: 'Select District',
-                isSingleSelect: true,
-                selectedValues: controller.selectedDistrictId.value != null
-                    ? {controller.selectedDistrictId.value!}
-                    : {},
-                items: controller.districtOptions
-                    .map<DropdownMenuItem<String>>(
-                      (opt) => DropdownMenuItem<String>(
-                        value: opt.value,
-                        child: Text(
-                          opt.label,
-                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (values) {
-                  controller.selectedDistrictId.value = values.isNotEmpty ? values.first : null;
-                },
-              )),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Select State',
+                      style: AppTextStyle.style_12_500(color: AppColors.black300),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      'Select District',
+                      style: AppTextStyle.style_12_500(color: AppColors.black300),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 6.h),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Obx(() => MultiSelectDropdownWidget<String>(
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedStateId.value != null
+                          ? {controller.selectedStateId.value!}
+                          : {},
+                      items: controller.stateOptions
+                          .map<DropdownMenuItem<String>>(
+                            (opt) => DropdownMenuItem<String>(
+                              value: opt.value,
+                              child: Text(
+                                opt.label,
+                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.onStateSelected(values.isNotEmpty ? values.first : null);
+                      },
+                    )),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Obx(() => MultiSelectDropdownWidget<String>(
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedDistrictId.value != null
+                          ? {controller.selectedDistrictId.value!}
+                          : {},
+                      items: controller.districtOptions
+                          .map<DropdownMenuItem<String>>(
+                            (opt) => DropdownMenuItem<String>(
+                              value: opt.value,
+                              child: Text(
+                                opt.label,
+                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedDistrictId.value = values.isNotEmpty ? values.first : null;
+                      },
+                    )),
+                  ),
+                ],
+              ),
               SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -493,49 +520,75 @@ class StoreRoomScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 12.h),
-              Obx(() => MultiSelectDropdownWidget<String>(
-                title: 'Select State',
-                isSingleSelect: true,
-                selectedValues: controller.selectedStateId.value != null
-                    ? {controller.selectedStateId.value!}
-                    : {},
-                items: controller.stateOptions
-                    .map<DropdownMenuItem<String>>(
-                      (opt) => DropdownMenuItem<String>(
-                        value: opt.value,
-                        child: Text(
-                          opt.label,
-                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (values) {
-                  controller.onStateSelected(values.isNotEmpty ? values.first : null);
-                },
-              )),
-              SizedBox(height: 12.h),
-              Obx(() => MultiSelectDropdownWidget<String>(
-                title: 'Select District',
-                isSingleSelect: true,
-                selectedValues: controller.selectedDistrictId.value != null
-                    ? {controller.selectedDistrictId.value!}
-                    : {},
-                items: controller.districtOptions
-                    .map<DropdownMenuItem<String>>(
-                      (opt) => DropdownMenuItem<String>(
-                        value: opt.value,
-                        child: Text(
-                          opt.label,
-                          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (values) {
-                  controller.selectedDistrictId.value = values.isNotEmpty ? values.first : null;
-                },
-              )),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Select State',
+                      style: AppTextStyle.style_12_500(color: AppColors.black300),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      'Select District',
+                      style: AppTextStyle.style_12_500(color: AppColors.black300),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 6.h),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Obx(() => MultiSelectDropdownWidget<String>(
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedStateId.value != null
+                          ? {controller.selectedStateId.value!}
+                          : {},
+                      items: controller.stateOptions
+                          .map<DropdownMenuItem<String>>(
+                            (opt) => DropdownMenuItem<String>(
+                              value: opt.value,
+                              child: Text(
+                                opt.label,
+                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.onStateSelected(values.isNotEmpty ? values.first : null);
+                      },
+                    )),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Obx(() => MultiSelectDropdownWidget<String>(
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedDistrictId.value != null
+                          ? {controller.selectedDistrictId.value!}
+                          : {},
+                      items: controller.districtOptions
+                          .map<DropdownMenuItem<String>>(
+                            (opt) => DropdownMenuItem<String>(
+                              value: opt.value,
+                              child: Text(
+                                opt.label,
+                                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedDistrictId.value = values.isNotEmpty ? values.first : null;
+                      },
+                    )),
+                  ),
+                ],
+              ),
               SizedBox(height: 24.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

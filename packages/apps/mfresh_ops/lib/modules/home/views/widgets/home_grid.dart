@@ -38,7 +38,7 @@ class HomeGrid extends StatelessWidget {
         subtitle: 'Stock & Items',
         icon: Icons.inventory_2_rounded,
         gradient: const [Color(0xFF10B981), Color(0xFF059669)],
-        route: null,
+        route: AppRoutes.storeInventory,
         permissionKey: 'inventory_panel',
       ),
       GridItemData(

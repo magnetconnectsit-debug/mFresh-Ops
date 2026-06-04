@@ -10,6 +10,7 @@ import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/measurement_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/measurement_model.dart';
 import '../../../widgets/common_sidebar.dart';
 
 class MeasurementScreen extends StatelessWidget {
@@ -76,7 +77,7 @@ class MeasurementScreen extends StatelessWidget {
                 child: Obx(() {
                   final isTableLoading = controller.isLoading.value;
                   final items = isTableLoading 
-                    ? List.generate(10, (index) => 'Loading Measurement $index')
+                    ? List.generate(10, (index) => MeasurementModel(id: index, measurementUnit: 'Loading Measurement $index'))
                     : controller.measurements;
 
                   if (items.isEmpty) {
@@ -112,13 +113,13 @@ class MeasurementScreen extends StatelessWidget {
                           ),
                           ...items.asMap().entries.map((entry) {
                             final index = entry.key;
-                            final name = entry.value;
+                            final model = entry.value;
                             return TableRow(
                               decoration: const BoxDecoration(color: AppColors.white),
                               children: [
                                 _buildDataCell('${index + 1}'),
-                                _buildDataCell(name),
-                                _buildActionCell(controller, name, index),
+                                _buildDataCell(model.measurementUnit),
+                                _buildActionCell(controller, model),
                               ],
                             );
                           }),
@@ -162,27 +163,40 @@ class MeasurementScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCell(MeasurementController controller, String measurementName, int index) {
+  Widget _buildActionCell(MeasurementController controller, MeasurementModel model) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      child: Center(
-        child: InkWell(
-          onTap: () => _showEditDialog(Get.context!, controller, measurementName, index),
-          child: Icon(
-            Icons.edit_square,
-            color: AppColors.primary,
-            size: 16.r,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          InkWell(
+            onTap: () => _showEditDialog(Get.context!, controller, model),
+            child: Icon(
+              Icons.edit_square,
+              color: AppColors.primary,
+              size: 16.r,
+            ),
           ),
-        ),
+          SizedBox(width: 8.w),
+          InkWell(
+            onTap: () => _showDeleteDialog(Get.context!, controller, model),
+            child: Icon(
+              Icons.delete,
+              color: AppColors.red,
+              size: 16.r,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-
   void _showAddDialog(BuildContext context, MeasurementController controller) {
     controller.measurementNameController.clear();
-    Get.dialog(
-      Dialog(
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
@@ -210,7 +224,7 @@ class MeasurementScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Get.back(),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
                     child: Text(
                       'Cancel',
                       style: AppTextStyle.style_14_600(
@@ -219,11 +233,19 @@ class MeasurementScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  AppCommonButton(
-                    text: 'Submit',
-                    width: 100.w,
-                    height: 36.h,
-                    onPressed: () => controller.addMeasurement(),
+                  Obx(
+                    () => AppCommonButton(
+                      text: 'Submit',
+                      width: 100.w,
+                      height: 36.h,
+                      isLoading: controller.isSubmitting.value,
+                      onPressed: () async {
+                        final success = await controller.addMeasurement();
+                        if (success && dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -234,10 +256,11 @@ class MeasurementScreen extends StatelessWidget {
     );
   }
 
-  void _showEditDialog(BuildContext context, MeasurementController controller, String measurementName, int index) {
-    controller.measurementNameController.text = measurementName;
-    Get.dialog(
-      Dialog(
+  void _showEditDialog(BuildContext context, MeasurementController controller, MeasurementModel model) {
+    controller.measurementNameController.text = model.measurementUnit;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
@@ -265,7 +288,7 @@ class MeasurementScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Get.back(),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
                     child: Text(
                       'Cancel',
                       style: AppTextStyle.style_14_600(
@@ -274,11 +297,19 @@ class MeasurementScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  AppCommonButton(
-                    text: 'Update',
-                    width: 100.w,
-                    height: 36.h,
-                    onPressed: () => controller.editMeasurement(index, controller.measurementNameController.text.trim()),
+                  Obx(
+                    () => AppCommonButton(
+                      text: 'Update',
+                      width: 100.w,
+                      height: 36.h,
+                      isLoading: controller.isSubmitting.value,
+                      onPressed: () async {
+                        final success = await controller.editMeasurement(model, controller.measurementNameController.text.trim());
+                        if (success && dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -289,4 +320,66 @@ class MeasurementScreen extends StatelessWidget {
     );
   }
 
+  void _showDeleteDialog(BuildContext context, MeasurementController controller, MeasurementModel model) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+          side: const BorderSide(color: AppColors.borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Delete Measurement',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
+              ),
+              SizedBox(height: 20.h),
+              Text(
+                'Are you sure you want to delete "${model.measurementUnit}"?',
+                style: AppTextStyle.style_14_400(color: AppColors.black),
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(
+                      'Cancel',
+                      style: AppTextStyle.style_14_600(
+                        color: AppColors.grey300,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Obx(
+                    () => AppCommonButton(
+                      text: 'Delete',
+                      buttonColor: AppColors.red,
+                      width: 100.w,
+                      height: 36.h,
+                      isLoading: controller.isLoading.value,
+                      onPressed: () async {
+                        final success = await controller.deleteMeasurement(model);
+                        if (success && dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

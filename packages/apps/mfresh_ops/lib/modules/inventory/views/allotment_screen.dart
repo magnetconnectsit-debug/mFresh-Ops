@@ -8,6 +8,7 @@ import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/allotment_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/allotment_item_model.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
@@ -35,86 +36,113 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
   Widget build(BuildContext context) {
     final controller = Get.put(AllotmentController());
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        hasBackButton: false,
-        showAppDrawer: true,
-        title: Obx(
-          () => controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  onChanged: (v) => controller.applyFilters(),
-                  hintText: 'Search by Item, Source...',
-                )
-              : Text(
-                  'Allotments',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-              ),
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      if (!userPermissions.contains('allotments_report')) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppCommonAppBar(
+            backgroundColor: AppColors.white,
+            hasBackButton: false,
+            showAppDrawer: true,
+            title: Text(
+              'Allotments',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
           ),
-        ],
-      ),
-      drawer: const CommonSidebar(),
-      body: AppRefreshIndicator(
-        onRefresh: () async {
-          // Reset filters and refresh
-          controller.fromDateController.clear();
-          controller.toDateController.clear();
-          await controller.onRefresh();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildFiltersSection(context, controller),
-              _buildActionButtons(controller),
-              Obx(() {
-                final isTableLoading = controller.isLoading.value;
-                final items = isTableLoading
-                  ? List.generate(
-                      5,
-                      (index) => AllotmentItemModel(
-                        allotmentId: 0,
-                        dateOfAllotment: 'Loading Date...',
-                        itemName: 'Loading Item Name',
-                        source: 'Loading Source',
-                        destination: 'Loading Destination',
-                        quantity: '0',
-                        unit: 'units',
-                        allotmentBy: 'Loading...',
-                        isReversed: 0,
-                        reverseStatus: 'Active',
+          drawer: const CommonSidebar(),
+          body: Center(
+            child: Text(
+              'You do not have permission to view this page.',
+              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+            ),
+          ),
+        );
+      }
+
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppCommonAppBar(
+          backgroundColor: AppColors.white,
+          hasBackButton: false,
+          showAppDrawer: true,
+          title: Obx(
+            () => controller.isSearching.value
+                ? AppCommonSearchBar(
+                    controller: controller.searchController,
+                    onChanged: (v) => controller.applyFilters(),
+                    hintText: 'Search by Item, Source...',
+                  )
+                : Text(
+                    'Allotments',
+                    style: AppTextStyle.style_18_700(color: AppColors.black),
+                  ),
+          ),
+          actions: [
+            Obx(
+              () => IconButton(
+                onPressed: () => controller.toggleSearch(),
+                icon: Icon(
+                  controller.isSearching.value ? Icons.close : Icons.search,
+                ),
+              ),
+            ),
+          ],
+        ),
+        drawer: const CommonSidebar(),
+        body: AppRefreshIndicator(
+          onRefresh: () async {
+            // Reset filters and refresh
+            controller.fromDateController.clear();
+            controller.toDateController.clear();
+            await controller.onRefresh();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildFiltersSection(context, controller),
+                _buildActionButtons(controller),
+                Obx(() {
+                  final isTableLoading = controller.isLoading.value;
+                  final items = isTableLoading
+                    ? List.generate(
+                        5,
+                        (index) => AllotmentItemModel(
+                          allotmentId: 0,
+                          dateOfAllotment: 'Loading Date...',
+                          itemName: 'Loading Item Name',
+                          source: 'Loading Source',
+                          destination: 'Loading Destination',
+                          quantity: '0',
+                          unit: 'units',
+                          allotmentBy: 'Loading...',
+                          isReversed: 0,
+                          reverseStatus: 'Active',
+                        )
                       )
-                    )
-                  : controller.allotmentItems;
+                    : controller.allotmentItems;
 
-                if (items.isEmpty) {
-                  return Padding(
-                    padding: EdgeInsets.all(32.r),
-                    child: Center(
-                      child: Text('No allotments found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
-                    ),
-                  );
-                }
+                  if (items.isEmpty) {
+                    return Padding(
+                      padding: EdgeInsets.all(32.r),
+                      child: Center(
+                        child: Text('No allotments found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+                      ),
+                    );
+                  }
 
-                return _buildTable(controller, isTableLoading, items);
-              }),
-            ],
+                  return _buildTable(controller, isTableLoading, items);
+                }),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildTable(
@@ -148,14 +176,24 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                   child: Table(
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                     columnWidths: {
-                      0: FixedColumnWidth(125.w), // Date Of Allotment
-                      1: FixedColumnWidth(125.w), // Item Name
-                      2: FixedColumnWidth(130.w), // Source
-                      3: FixedColumnWidth(130.w), // Destination
-                      4: FixedColumnWidth(75.w),  // Quantity
-                      5: FixedColumnWidth(70.w),  // M_Unit
-                      6: FixedColumnWidth(100.w), // Allotment By
-                      if (hasReverse) 7: FixedColumnWidth(95.w), // Action
+                      if (hasReverse) 0: FixedColumnWidth(95.w), // Action
+                      if (hasReverse) ...{
+                        1: FixedColumnWidth(125.w), // Date Of Allotment
+                        2: FixedColumnWidth(125.w), // Item Name
+                        3: FixedColumnWidth(130.w), // Source
+                        4: FixedColumnWidth(130.w), // Destination
+                        5: FixedColumnWidth(75.w),  // Quantity
+                        6: FixedColumnWidth(70.w),  // M_Unit
+                        7: FixedColumnWidth(100.w), // Allotment By
+                      } else ...{
+                        0: FixedColumnWidth(125.w), // Date Of Allotment
+                        1: FixedColumnWidth(125.w), // Item Name
+                        2: FixedColumnWidth(130.w), // Source
+                        3: FixedColumnWidth(130.w), // Destination
+                        4: FixedColumnWidth(75.w),  // Quantity
+                        5: FixedColumnWidth(70.w),  // M_Unit
+                        6: FixedColumnWidth(100.w), // Allotment By
+                      }
                     },
                     border: TableBorder.symmetric(
                       inside: BorderSide(color: Colors.grey.shade300),
@@ -164,6 +202,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                       TableRow(
                         decoration: const BoxDecoration(color: AppColors.white),
                         children: [
+                          if (hasReverse) _buildHeaderCell('Action'),
                           _buildHeaderCell('Date Of Allotment'),
                           _buildHeaderCell('Item Name'),
                           _buildHeaderCell('Source'),
@@ -171,7 +210,6 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                           _buildHeaderCell('Quantity'),
                           _buildHeaderCell('M_Unit'),
                           _buildHeaderCell('Allotment By'),
-                          if (hasReverse) _buildHeaderCell('Action'),
                         ],
                       ),
                       ...items.asMap().entries.map((entry) {
@@ -182,13 +220,6 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
 
                         return TableRow(
                           children: [
-                            _buildDataCell(item.dateOfAllotment, isExpanded, () => _toggleRow(key)),
-                            _buildDataCell(item.itemName, isExpanded, () => _toggleRow(key)),
-                            _buildDataCell(item.source, isExpanded, () => _toggleRow(key)),
-                            _buildDataCell(item.destination, isExpanded, () => _toggleRow(key)),
-                            _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key)),
-                            _buildDataCell(item.unit, isExpanded, () => _toggleRow(key)),
-                            _buildDataCell(item.allotmentBy, isExpanded, () => _toggleRow(key)),
                             if (hasReverse)
                               Container(
                                 margin: EdgeInsets.symmetric(
@@ -197,16 +228,23 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                                 ),
                                 height: 18.h,
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFFE53935),
-                                      Color(0xFFC62828),
-                                    ],
-                                  ),
+                                  gradient: item.isReversed == 1
+                                      ? const LinearGradient(
+                                          colors: [
+                                            Color(0xFFB0BEC5),
+                                            Color(0xFF90A4AE),
+                                          ],
+                                        )
+                                      : const LinearGradient(
+                                          colors: [
+                                            Color(0xFFE53935),
+                                            Color(0xFFC62828),
+                                          ],
+                                        ),
                                   borderRadius: BorderRadius.circular(4.r),
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: isTableLoading
+                                  onPressed: isTableLoading || item.isReversed == 1
                                       ? null
                                       : () => _showReverseDialog(
                                             Get.context!,
@@ -216,6 +254,8 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white70,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4.r),
                                     ),
@@ -224,13 +264,20 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
-                                    'Reverse',
+                                    item.isReversed == 1 ? 'Reversed' : 'Reverse',
                                     style: AppTextStyle.style_10_500(
                                       color: AppColors.white,
                                     ),
                                   ),
                                 ),
                               ),
+                            _buildDataCell(item.dateOfAllotment, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.itemName, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.source, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.destination, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.unit, isExpanded, () => _toggleRow(key)),
+                            _buildDataCell(item.allotmentBy, isExpanded, () => _toggleRow(key)),
                           ],
                         );
                       }),
@@ -479,67 +526,43 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
   }
 
   Widget _buildActionButtons(AllotmentController controller) {
+    final authRepo = Get.find<AuthRepository>();
+    final hasExport = authRepo.rxUserPermissions.contains('Allotment_Report_export');
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4),
       child: Row(
         children: [
-          Container(
-            height: 28.h,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(4.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+          if (hasExport)
+            Container(
+              height: 28.h,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
                 ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: () => controller.applyFilters(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                borderRadius: BorderRadius.circular(4.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Text(
-                'Apply',
-                style: AppTextStyle.style_12_600(color: AppColors.white),
-              ),
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Container(
-            height: 28.h,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
-              ),
-              borderRadius: BorderRadius.circular(4.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+              child: ElevatedButton(
+                onPressed: () => controller.exportToExcel(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
                 ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: () => controller.exportToExcel(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-              ),
-              child: Text(
-                'Export Excel',
-                style: AppTextStyle.style_12_600(color: AppColors.white),
+                child: Text(
+                  'Export Excel',
+                  style: AppTextStyle.style_12_600(color: AppColors.white),
+                ),
               ),
             ),
-          ),
           const Spacer(),
           Obx(
             () => Container(

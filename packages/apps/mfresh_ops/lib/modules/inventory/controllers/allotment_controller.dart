@@ -4,6 +4,7 @@ import 'package:core/utils/app_export_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/models/inventory/allotment_item_model.dart';
 
 class AllotmentController extends GetxController {
   final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
@@ -280,50 +281,5 @@ class AllotmentController extends GetxController {
     fromDateController.dispose();
     toDateController.dispose();
     super.onClose();
-  }
-}
-
-class AllotmentItemModel {
-  final int allotmentId;
-  final String dateOfAllotment;
-  final String itemName;
-  final String source;
-  final String destination;
-  final String quantity;
-  final String unit;
-  final String allotmentBy;
-  final int isReversed;
-  final String reverseStatus;
-
-  AllotmentItemModel({
-    required this.allotmentId,
-    required this.dateOfAllotment,
-    required this.itemName,
-    required this.source,
-    required this.destination,
-    required this.quantity,
-    required this.unit,
-    required this.allotmentBy,
-    required this.isReversed,
-    required this.reverseStatus,
-  });
-
-  factory AllotmentItemModel.fromJson(Map<String, dynamic> json) {
-    return AllotmentItemModel(
-      allotmentId: json['id'] is int 
-          ? json['id'] 
-          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      dateOfAllotment: json['date_of_allotment']?.toString() ?? '',
-      itemName: json['item_name']?.toString() ?? '',
-      source: json['source_name']?.toString() ?? '',
-      destination: json['destination_name']?.toString() ?? '',
-      quantity: (json['final_qty'] ?? json['quantity'])?.toString() ?? '',
-      unit: json['measurement_name']?.toString() ?? '',
-      allotmentBy: json['created_by']?.toString() ?? '',
-      isReversed: json['is_reversed'] is int 
-          ? json['is_reversed'] 
-          : int.tryParse(json['is_reversed']?.toString() ?? '0') ?? 0,
-      reverseStatus: json['reverse_status']?.toString() ?? '',
-    );
   }
 }

@@ -89,7 +89,13 @@ class SupportTicketsTable extends StatelessWidget {
   // ── Header row ──────────────────────────────────────────────────────────
   Widget _buildHeaderRow(SupportTicketsController controller) {
     return Container(
-      color: const Color(0xFFC5D5F0),
+      decoration: const BoxDecoration(
+        color: Color(0xFFC5D5F0),
+        border: Border(
+          left: BorderSide(color: Colors.transparent, width: 2.0),
+          right: BorderSide(color: Colors.transparent, width: 2.0),
+        ),
+      ),
       child: Row(
         children: [
           // Checkbox column header
@@ -101,7 +107,6 @@ class SupportTicketsTable extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border(
                   right: BorderSide(color: Colors.grey.shade300),
-                  left:  BorderSide(color: Colors.grey.shade300),
                 ),
               ),
               child: Transform.scale(
@@ -174,12 +179,14 @@ class SupportTicketsTable extends StatelessWidget {
               ? BorderSide(color: rowBorderColor, width: rowBorderWidth)
               : BorderSide.none,
           bottom: BorderSide(color: rowBorderColor, width: rowBorderWidth),
-          left: isTopPriority
-              ? BorderSide(color: rowBorderColor, width: rowBorderWidth)
-              : BorderSide.none,
-          right: isTopPriority
-              ? BorderSide(color: rowBorderColor, width: rowBorderWidth)
-              : BorderSide.none,
+          left: BorderSide(
+            color: isTopPriority ? Colors.red : Colors.transparent,
+            width: 2.0,
+          ),
+          right: BorderSide(
+            color: isTopPriority ? Colors.red : Colors.transparent,
+            width: 2.0,
+          ),
         ),
       ),
       child: IntrinsicHeight(

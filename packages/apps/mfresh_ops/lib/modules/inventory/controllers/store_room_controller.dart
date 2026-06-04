@@ -4,6 +4,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/models/inventory/store_room_model.dart';
 
 class StoreRoomController extends GetxController {
   final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
@@ -272,24 +273,5 @@ class StoreRoomController extends GetxController {
     searchController.dispose();
     storeNameController.dispose();
     super.onClose();
-  }
-}
-
-class StoreRoomModel {
-  final int id;
-  final String storeName;
-
-  StoreRoomModel({
-    required this.id,
-    required this.storeName,
-  });
-
-  factory StoreRoomModel.fromJson(Map<String, dynamic> json) {
-    return StoreRoomModel(
-      id: json['storeid'] is int
-          ? json['storeid']
-          : int.tryParse(json['storeid']?.toString() ?? '0') ?? 0,
-      storeName: json['storeroom_name']?.toString() ?? '',
-    );
   }
 }
