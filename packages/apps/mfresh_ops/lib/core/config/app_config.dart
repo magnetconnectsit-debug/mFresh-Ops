@@ -16,7 +16,7 @@ class AppConfig {
 
   // Base URL: Test URL in Debug Mode, Production URL in Release Mode
   static String get baseUrl => kDebugMode
-      ? 'https://opsapitest.magnetconnects.com/public/api/'
+      ? 'https://opsapi.magnetconnects.com/public/api/'
       : 'https://opsapi.magnetconnects.com/public/api/';
 
   // Environment identifier: PROD only in Release Mode AND when toggle is 'prod'
@@ -24,6 +24,7 @@ class AppConfig {
 
   static String get envName => _isProdEnv ? 'PRODUCTION' : 'DEVELOPMENT';
 
+  // FOR PINELABS MACHINE
   static String get applicationId => _isProdEnv
       ? '6458835ce3374a60af722c4d51f2ba8f' // LIVE
       : '71c39b94aad8435c96f81b1f5324c9c7'; // UAT

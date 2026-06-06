@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -11,6 +13,8 @@ import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
+import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 class TasksController extends GetxController {
   final TaskRepository _taskRepository = Get.find<TaskRepository>();
@@ -23,6 +27,8 @@ class TasksController extends GetxController {
   // region Data Lists
   final tasks = <TaskItem>[].obs;
   final dailyTasks = <TaskItem>[].obs;
+  final allDailyTasks = <TaskItem>[].obs;
+  final displayedDailyTasksCount = 10.obs;
   final taskCounts = {'active': 0, 'completed': 0, 'overdue': 0}.obs;
 
   final scrollController = ScrollController();
@@ -43,20 +49,60 @@ class TasksController extends GetxController {
   // region Pagination
   final currentPage = 1.obs;
   final hasMore = true.obs;
+  final perPage = 20.obs;
+  final totalRecords = 0.obs;
+  final totalPages = 1.obs;
   // endregion
+
+  final currentTime = DateTime.now().obs;
+  Timer? _timeTimer;
 
   @override
   void onInit() {
     super.onInit();
+    refreshData();
+    
+    // Global ticking timer to update all overdue live countdowns efficiently
+    _timeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      currentTime.value = DateTime.now();
+    });
+    
+    // Add scroll listener for daily tasks lazy loading
     scrollController.addListener(() {
-      if (scrollController.position.pixels >=
-          scrollController.position.maxScrollExtent - 200) {
-        if (isFiltered) {
-          fetchTasks(isLoadMore: true);
+      if (scrollController.position.pixels >= scrollController.position.maxScrollExtent - 100) {
+        final currentRoute = Get.currentRoute;
+        if (!currentRoute.contains(AppRoutes.allTasks) && !isFiltered) {
+          loadMoreDailyTasks();
         }
       }
     });
-    refreshData();
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages.value) {
+      currentPage.value = page;
+      fetchTasks();
+    }
+  }
+
+  void nextPage() {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++;
+      fetchTasks();
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+      fetchTasks();
+    }
+  }
+
+  void setPerPage(int value) {
+    perPage.value = value;
+    currentPage.value = 1;
+    fetchTasks();
   }
 
   bool get isFiltered =>
@@ -66,6 +112,16 @@ class TasksController extends GetxController {
       selectedAssignees.isNotEmpty;
 
   Future<void> refreshData() async {
+    await fetchAllData();
+  }
+
+  Future<void> pullToRefresh() async {
+    selectedProjects.clear();
+    selectedGroups.clear();
+    selectedUnits.clear();
+    selectedAssignees.clear();
+    tasks.clear();
+    dailyTasks.obs.value.clear(); // Safe clear of RxList
     await fetchAllData();
   }
 
@@ -88,10 +144,7 @@ class TasksController extends GetxController {
     final currentRoute = Get.currentRoute;
     debugPrint('TasksController: fetchInitialList for route: $currentRoute');
 
-    // As per latest request, All Tasks screen uses daily-tasks API
-    if (currentRoute.contains(AppRoutes.allTasks)) {
-      await fetchDailyTasks();
-    } else if (isFiltered) {
+    if (currentRoute.contains(AppRoutes.allTasks) || isFiltered) {
       await fetchTasks();
     } else {
       await fetchDailyTasks();
@@ -148,11 +201,10 @@ class TasksController extends GetxController {
       isLoading.value = true;
       final response = await _taskRepository.getDailyTasks();
       if (response != null) {
-        // When using daily-tasks, we assign them to the main 'tasks' list for UI consistency
-        tasks.assignAll(response.tasks);
+        allDailyTasks.assignAll(response.tasks);
+        displayedDailyTasksCount.value = 10;
+        _updateDisplayedDailyTasks();
         taskCounts.assignAll(response.counts);
-        hasMore.value =
-            false; // daily-tasks usually isn't paginated the same way
       }
     } catch (e) {
       debugPrint('Error fetching daily tasks: $e');
@@ -161,19 +213,30 @@ class TasksController extends GetxController {
     }
   }
 
-  Future<void> fetchTasks({bool isLoadMore = false}) async {
-    if (isLoadMore && isLoading.value) return;
-    if (isLoadMore && !hasMore.value) return;
+  void _updateDisplayedDailyTasks() {
+    final chunk = allDailyTasks.take(displayedDailyTasksCount.value).toList();
+    tasks.assignAll(chunk);
+    hasMore.value = displayedDailyTasksCount.value < allDailyTasks.length;
+  }
 
+  void loadMoreDailyTasks() {
+    if (isLoading.value) return;
+    if (displayedDailyTasksCount.value >= allDailyTasks.length) return;
+    
+    isLoading.value = true;
+    Future.delayed(const Duration(milliseconds: 350), () {
+      displayedDailyTasksCount.value = (displayedDailyTasksCount.value + 10).clamp(0, allDailyTasks.length);
+      _updateDisplayedDailyTasks();
+      isLoading.value = false;
+    });
+  }
+
+  Future<void> fetchTasks() async {
     try {
       isLoading.value = true;
-      if (!isLoadMore) {
-        currentPage.value = 1;
-        hasMore.value = true;
-      }
-
       final response = await _taskRepository.getTasks(
         page: currentPage.value,
+        perPage: perPage.value,
         projects: selectedProjects.map((e) => e.projectId).toList(),
         assignees: selectedAssignees.map((e) => e.id).toList(),
         groups: selectedGroups.map((e) => e.id).toList(),
@@ -181,16 +244,11 @@ class TasksController extends GetxController {
       );
 
       if (response != null) {
-        if (!isLoadMore) {
-          tasks.assignAll(response.data);
-        } else {
-          tasks.addAll(response.data);
-        }
-
+        tasks.assignAll(response.data);
+        currentPage.value = response.currentPage;
+        totalPages.value = response.lastPage;
+        totalRecords.value = response.totalRecords;
         hasMore.value = response.currentPage < response.lastPage;
-        if (hasMore.value) {
-          currentPage.value++;
-        }
       }
     } catch (e) {
       debugPrint('Error fetching tasks: $e');
@@ -199,17 +257,161 @@ class TasksController extends GetxController {
     }
   }
 
-  Future<void> createTask(Map<String, dynamic> data) async {
+  Map<String, dynamic> _getRecurrencePayload(RecurrenceData rec) {
+    final Map<String, dynamic> result = {};
+    result["frequency"] = rec.frequency;
+    result["repeat_interval"] = rec.repeatInterval;
+    result["occurrences"] = rec.occurrences;
+    result["selected_days"] = rec.selectedDays;
+    
+    // Default placeholders
+    result["month_days"] = null;
+    result["year_days"] = null;
+    result["yearlyPattern"] = null;
+    result["yearly_month"] = null;
+    result["yearly_day"] = null;
+    result["yearly_week"] = null;
+    result["yearly_dayName"] = null;
+    result["yearly_month2"] = null;
+
+    if (rec.frequency == 'day') {
+      result["selected_days"] = null;
+    } else if (rec.frequency == 'week') {
+      // already has selected_days e.g. "Wed,Sat"
+    } else if (rec.frequency == 'month') {
+      if (rec.monthlyMode == 'day') {
+        result["month_days"] = rec.monthDay?.toString();
+        result["selected_days"] = null;
+        result["repeat_interval"] = rec.monthInterval;
+      } else {
+        // week-wise: selected_days should be e.g. "First,Mon"
+        final weekdayShort = rec.monthWeekday != null && rec.monthWeekday!.length >= 3
+            ? rec.monthWeekday!.substring(0, 3)
+            : null;
+        result["selected_days"] = "${rec.monthOrdinal},$weekdayShort";
+        result["month_days"] = null;
+        result["repeat_interval"] = rec.monthInterval;
+      }
+    } else if (rec.frequency == 'year') {
+      result["repeat_interval"] = rec.yearlyInterval;
+      if (rec.yearlyMode == 'on') {
+        result["yearlyPattern"] = "on";
+        result["yearly_month"] = rec.yearlyMonth != null && rec.yearlyMonth!.length >= 3
+            ? rec.yearlyMonth!.substring(0, 3)
+            : null;
+        result["yearly_day"] = rec.yearlyDay?.toString();
+      } else {
+        result["yearlyPattern"] = "the";
+        result["yearly_month2"] = rec.yearlyTheMonth != null && rec.yearlyTheMonth!.length >= 3
+            ? rec.yearlyTheMonth!.substring(0, 3)
+            : null;
+        result["yearly_week"] = rec.yearlyOrdinal;
+        result["yearly_dayName"] = rec.yearlyWeekday != null && rec.yearlyWeekday!.length >= 3
+            ? rec.yearlyWeekday!.substring(0, 3)
+            : null;
+      }
+    }
+    return result;
+  }
+
+  Future<void> createTask([Map<String, dynamic>? taskData]) async {
+    final Map<String, dynamic> payload;
+    if (taskData != null) {
+      payload = taskData;
+    } else {
+      if (titleController.text.trim().isEmpty) {
+        AppCommonToastMessage.show(message: 'Please enter task title', type: ToastType.warning);
+        return;
+      }
+      if (selectedProjectForCreate.value == null) {
+        AppCommonToastMessage.show(message: 'Please select a project', type: ToastType.warning);
+        return;
+      }
+
+      final startDateVal = isRecurring.value && recurrenceData.value != null
+          ? recurrenceData.value!.startDate
+          : selectedStartDate.value;
+          
+      if (startDateVal == null) {
+        AppCommonToastMessage.show(message: 'Please select a start date', type: ToastType.warning);
+        return;
+      }
+
+      String? startTimeStr;
+      String? endTimeStr;
+      if (isRecurring.value && recurrenceData.value != null) {
+        startTimeStr = recurrenceData.value!.startTime;
+        endTimeStr = recurrenceData.value!.endTime;
+      } else {
+        if (selectedStartTime.value != null) {
+          final hour = selectedStartTime.value!.hourOfPeriod == 0 ? 12 : selectedStartTime.value!.hourOfPeriod;
+          final minute = selectedStartTime.value!.minute.toString().padLeft(2, '0');
+          final period = selectedStartTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
+          startTimeStr = '$hour:$minute $period';
+        }
+        if (selectedEndTime.value != null) {
+          final hour = selectedEndTime.value!.hourOfPeriod == 0 ? 12 : selectedEndTime.value!.hourOfPeriod;
+          final minute = selectedEndTime.value!.minute.toString().padLeft(2, '0');
+          final period = selectedEndTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
+          endTimeStr = '$hour:$minute $period';
+        }
+      }
+
+      final endDateVal = isRecurring.value && recurrenceData.value != null
+          ? recurrenceData.value!.endByDate
+          : selectedEndDate.value;
+
+      payload = <String, dynamic>{
+        "task_title": titleController.text,
+        "description": descriptionController.text,
+        "project": selectedProjectForCreate.value?.projectId.toString(),
+        "store": selectedUnitForCreate.value?.unitId.toString(),
+        "allgroup": selectedGroupForCreate.value?.id.toString(),
+        "assignee": selectedAssigneeForCreate.value?.id.toString(),
+        "start_date": AppDateUtils.formatToOrdinalDate(startDateVal.toIso8601String()),
+        "end_date": endDateVal != null ? AppDateUtils.formatToOrdinalDate(endDateVal.toIso8601String()) : null,
+        "photo_required": photoRequired.value ? "on" : "off",
+        "approval_required": approvalRequired.value ? "on" : "off",
+        "approver": approvalRequired.value ? selectedApproverForCreate.value?.id.toString() : null,
+        "recurring_task": isRecurring.value ? "1" : "0",
+        
+        // Default placeholder fields
+        "year_days": null,
+        "month_days": null,
+        "yearlyPattern": null,
+        "yearly_month": null,
+        "yearly_day": null,
+        "yearly_week": null,
+        "yearly_dayName": null,
+        "yearly_month2": null,
+      };
+
+      if (isRecurring.value && recurrenceData.value != null) {
+        final rec = recurrenceData.value!;
+        final recPayload = _getRecurrencePayload(rec);
+        payload.addAll(recPayload);
+        payload["start_time"] = startTimeStr;
+        payload["end_time"] = endTimeStr;
+      } else {
+        payload["frequency"] = null;
+        payload["repeat_interval"] = null;
+        payload["start_time"] = startTimeStr;
+        payload["end_time"] = endTimeStr;
+        payload["selected_days"] = null;
+        payload["occurrences"] = null;
+      }
+    }
+
     try {
       isLoading.value = true;
-      final response = await _taskRepository.createTask(data);
+      final response = await _taskRepository.createTask(payload);
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar('Success', 'Task created successfully');
-        fetchTasks();
+        AppCommonToastMessage.show(message: 'Task created successfully', type: ToastType.success);
+        fetchInitialList();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create task: $e');
+      AppCommonToastMessage.show(message: 'Failed to create task: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -241,17 +443,16 @@ class TasksController extends GetxController {
 
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar(
-          'Success',
-          response['message'] ??
-              'Task ${isUpdate ? 'updated' : 'submitted'} successfully',
+        AppCommonToastMessage.show(
+          message: response['message'] ?? 'Task ${isUpdate ? 'updated' : 'submitted'} successfully',
+          type: ToastType.success,
         );
         fetchDailyTasks();
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to ${isUpdate ? 'update' : 'submit'} task: $e',
+      AppCommonToastMessage.show(
+        message: 'Failed to ${isUpdate ? 'update' : 'submit'} task: $e',
+        type: ToastType.error,
       );
     } finally {
       isLoading.value = false;
@@ -264,16 +465,28 @@ class TasksController extends GetxController {
       final formData = dio.FormData.fromMap({
         'task_instance_id': instanceId.toString(),
         'comment': approverCommentController.text,
+        'folder_path': 'uploads/taskuploads',
       });
+
+      for (var file in attachments) {
+        if (file is XFile) {
+          formData.files.add(
+            MapEntry(
+              'taskimages[]',
+              await dio.MultipartFile.fromFile(file.path),
+            ),
+          );
+        }
+      }
 
       final response = await _taskRepository.approveTask(formData);
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar('Success', 'Task approved successfully');
+        AppCommonToastMessage.show(message: 'Task approved successfully', type: ToastType.success);
         fetchDailyTasks();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to approve task: $e');
+      AppCommonToastMessage.show(message: 'Failed to approve task: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -285,36 +498,48 @@ class TasksController extends GetxController {
       final formData = dio.FormData.fromMap({
         'task_instance_id': instanceId.toString(),
         'comment': approverCommentController.text,
+        'folder_path': 'uploads/taskuploads',
       });
+
+      for (var file in attachments) {
+        if (file is XFile) {
+          formData.files.add(
+            MapEntry(
+              'taskimages[]',
+              await dio.MultipartFile.fromFile(file.path),
+            ),
+          );
+        }
+      }
 
       final response = await _taskRepository.rejectTask(formData);
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar('Success', 'Task rejected successfully');
+        AppCommonToastMessage.show(message: 'Task rejected successfully', type: ToastType.success);
         fetchDailyTasks();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to reject task: $e');
+      AppCommonToastMessage.show(message: 'Failed to reject task: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> deleteTaskInstance(TaskItem task) async {
+  Future<void> deleteTaskInstance(TaskItem task, {String deleteLevel = "0"}) async {
     try {
       isLoading.value = true;
       final response = await _taskRepository.deleteTask(
         taskId: task.id,
         instanceId: task.taskInstanceId,
-        deleteLevel: "0",
+        deleteLevel: deleteLevel,
       );
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar('Success', response['message']);
+        AppCommonToastMessage.show(message: response['message'] ?? 'Task deleted successfully', type: ToastType.success);
         fetchDailyTasks();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to delete task: $e');
+      AppCommonToastMessage.show(message: 'Failed to delete task: $e', type: ToastType.error);
     } finally {
       isLoading.value = false;
     }
@@ -323,7 +548,7 @@ class TasksController extends GetxController {
   Future<void> exportTasks({bool isPdf = false}) async {
     try {
       if (tasks.isEmpty) {
-        Get.snackbar('Info', 'No tasks to export');
+        AppCommonToastMessage.show(message: 'No tasks to export', type: ToastType.info);
         return;
       }
 
@@ -363,7 +588,7 @@ class TasksController extends GetxController {
         );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to export tasks: $e');
+      AppCommonToastMessage.show(message: 'Failed to export tasks: $e', type: ToastType.error);
     }
   }
   // endregion
@@ -373,8 +598,8 @@ class TasksController extends GetxController {
   }
 
   // Form states for Create/Edit Task
-  final photoRequired = true.obs;
-  final approvalRequired = true.obs;
+  final photoRequired = false.obs;
+  final approvalRequired = false.obs;
   final isRecurring = false.obs;
   final selectedProjectForCreate = Rxn<TaskProject>();
   final selectedGroupForCreate = Rxn<TaskGroup>();
@@ -385,10 +610,236 @@ class TasksController extends GetxController {
   final selectedStartTime = Rxn<TimeOfDay>();
   final selectedEndDate = Rxn<DateTime>();
   final selectedEndTime = Rxn<TimeOfDay>();
+  final recurrenceData = Rxn<RecurrenceData>();
+  final formInitialized = false.obs;
+  final updateLevel = "0".obs; // "0" for This Task Only, "1" for Entire Task Series
 
+  DateTime? _parseDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    try {
+      return DateTime.parse(dateStr).toLocal();
+    } catch (_) {}
+
+    String cleaned = dateStr.replaceAll(',', '').trim();
+    try {
+      List<String> parts = cleaned.contains('-') ? cleaned.split(RegExp(r'[-\s]+')) : cleaned.split(RegExp(r'\s+'));
+      if (parts.length >= 3) {
+        int? day = int.tryParse(parts[0]);
+        int? year = int.tryParse(parts[2]);
+        final monthStr = parts[1].toLowerCase();
+        int? month;
+        final monthsList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        for (int i = 0; i < monthsList.length; i++) {
+          if (monthStr.startsWith(monthsList[i])) {
+            month = i + 1;
+            break;
+          }
+        }
+        if (day != null && month != null && year != null) {
+          return DateTime(year, month, day).toLocal();
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  TimeOfDay? _parseTimeOfDay(String timeStr) {
+    try {
+      final clean = timeStr.trim().toUpperCase();
+      final parts = clean.split(RegExp(r'[\s:]+'));
+      if (parts.isNotEmpty) {
+        int hour = int.tryParse(parts[0]) ?? 12;
+        int minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+        if (clean.contains('PM') && hour < 12) {
+          hour += 12;
+        } else if (clean.contains('AM') && hour == 12) {
+          hour = 0;
+        }
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  void initializeFormForEdit(TaskItem task) {
+    titleController.text = task.title;
+    descriptionController.text = task.description;
+    
+    try {
+      selectedProjectForCreate.value = projects.firstWhere(
+        (p) => p.projectName.toLowerCase() == task.project?.toLowerCase() || p.projectId.toString() == task.projectId
+      );
+    } catch (_) {
+      selectedProjectForCreate.value = null;
+    }
+
+    try {
+      selectedUnitForCreate.value = units.firstWhere(
+        (u) => u.unitId.toString() == task.unitId
+      );
+    } catch (_) {
+      selectedUnitForCreate.value = null;
+    }
+
+    try {
+      selectedGroupForCreate.value = groups.firstWhere(
+        (g) => g.id.toString() == task.groupId || g.roleName.toLowerCase() == task.groupNames?.toLowerCase()
+      );
+    } catch (_) {
+      selectedGroupForCreate.value = null;
+    }
+
+    try {
+      selectedAssigneeForCreate.value = assignees.firstWhere(
+        (a) => a.id.toString() == task.assignTo || a.name.toLowerCase() == task.assigneeName?.toLowerCase()
+      );
+    } catch (_) {
+      selectedAssigneeForCreate.value = null;
+    }
+
+    try {
+      selectedApproverForCreate.value = assignees.firstWhere(
+        (a) => a.id.toString() == task.approverId || a.name.toLowerCase() == task.approverName?.toLowerCase()
+      );
+    } catch (_) {
+      selectedApproverForCreate.value = null;
+    }
+
+    photoRequired.value = task.photoRequired == "1" || task.photoRequired == "on";
+    approvalRequired.value = task.approvalRequired == "1" || task.approvalRequired == "on";
+    isRecurring.value = task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
+
+    try {
+      if (task.startDate.isNotEmpty) {
+        selectedStartDate.value = DateTime.parse(task.startDate);
+      }
+    } catch (_) {
+      selectedStartDate.value = _parseDateTime(task.scheduleDateTime);
+    }
+
+    try {
+      if (task.endDate.isNotEmpty) {
+        selectedEndDate.value = DateTime.parse(task.endDate);
+      }
+    } catch (_) {
+      selectedEndDate.value = _parseDateTime(task.scheduleDateTime);
+    }
+
+    if (task.startTime.isNotEmpty) {
+      selectedStartTime.value = _parseTimeOfDay(task.startTime);
+    }
+    if (task.endTime.isNotEmpty) {
+      selectedEndTime.value = _parseTimeOfDay(task.endTime);
+    }
+
+    updateLevel.value = "0"; // Default to "This Task Only"
+    formInitialized.value = true;
+  }
+
+  Future<void> updateTask(TaskItem task) async {
+    if (titleController.text.trim().isEmpty) {
+      AppCommonToastMessage.show(message: 'Please enter task title', type: ToastType.warning);
+      return;
+    }
+    if (selectedProjectForCreate.value == null) {
+      AppCommonToastMessage.show(message: 'Please select a project', type: ToastType.warning);
+      return;
+    }
+
+    final startDateVal = isRecurring.value && recurrenceData.value != null
+        ? recurrenceData.value!.startDate
+        : selectedStartDate.value;
+        
+    if (startDateVal == null) {
+      AppCommonToastMessage.show(message: 'Please select a start date', type: ToastType.warning);
+      return;
+    }
+
+    String? startTimeStr;
+    String? endTimeStr;
+    if (isRecurring.value && recurrenceData.value != null) {
+      startTimeStr = recurrenceData.value!.startTime;
+      endTimeStr = recurrenceData.value!.endTime;
+    } else {
+      if (selectedStartTime.value != null) {
+        final hour = selectedStartTime.value!.hourOfPeriod == 0 ? 12 : selectedStartTime.value!.hourOfPeriod;
+        final minute = selectedStartTime.value!.minute.toString().padLeft(2, '0');
+        final period = selectedStartTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
+        startTimeStr = '$hour:$minute $period';
+      }
+      if (selectedEndTime.value != null) {
+        final hour = selectedEndTime.value!.hourOfPeriod == 0 ? 12 : selectedEndTime.value!.hourOfPeriod;
+        final minute = selectedEndTime.value!.minute.toString().padLeft(2, '0');
+        final period = selectedEndTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
+        endTimeStr = '$hour:$minute $period';
+      }
+    }
+
+    final endDateVal = isRecurring.value && recurrenceData.value != null
+        ? recurrenceData.value!.endByDate
+        : selectedEndDate.value;
+
+    final payload = <String, dynamic>{
+      "task_id": task.id,
+      "instance_id": task.taskInstanceId,
+      "update_level": updateLevel.value, // "0" for this task only, "1" for series
+      "task_title": titleController.text,
+      "description": descriptionController.text,
+      "project": selectedProjectForCreate.value?.projectId,
+      "store": selectedUnitForCreate.value?.unitId,
+      "allgroup": selectedGroupForCreate.value?.id,
+      "assignee": selectedAssigneeForCreate.value?.id,
+      "start_date": AppDateUtils.formatToOrdinalDate(startDateVal.toIso8601String()),
+      "end_date": endDateVal != null ? AppDateUtils.formatToOrdinalDate(endDateVal.toIso8601String()) : null,
+      "photo_required": photoRequired.value ? 1 : 0,
+      "approval_required": approvalRequired.value ? 1 : 0,
+      "approver": approvalRequired.value ? selectedApproverForCreate.value?.id : null,
+      "recurring_task": isRecurring.value ? "1" : "0",
+
+      // Default placeholder fields
+      "year_days": null,
+      "month_days": null,
+      "yearlyPattern": null,
+      "yearly_month": null,
+      "yearly_day": null,
+      "yearly_week": null,
+      "yearly_dayName": null,
+      "yearly_month2": null,
+    };
+
+    if (isRecurring.value && recurrenceData.value != null) {
+      final rec = recurrenceData.value!;
+      final recPayload = _getRecurrencePayload(rec);
+      payload.addAll(recPayload);
+      payload["start_time"] = startTimeStr;
+      payload["end_time"] = endTimeStr;
+    } else {
+      payload["frequency"] = null;
+      payload["repeat_interval"] = null;
+      payload["start_time"] = startTimeStr;
+      payload["end_time"] = endTimeStr;
+      payload["selected_days"] = null;
+      payload["occurrences"] = null;
+    }
+
+    try {
+      isLoading.value = true;
+      final response = await _taskRepository.updateTaskInstance(payload);
+      if (response != null && response['status'] == true) {
+        Get.back();
+        AppCommonToastMessage.show(message: 'Task updated successfully', type: ToastType.success);
+        fetchInitialList();
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(message: 'Failed to update task: $e', type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+ 
   void resetForm() {
-    photoRequired.value = true;
-    approvalRequired.value = true;
+    photoRequired.value = false;
+    approvalRequired.value = false;
     isRecurring.value = false;
     selectedProjectForCreate.value = null;
     selectedGroupForCreate.value = null;
@@ -399,6 +850,8 @@ class TasksController extends GetxController {
     selectedStartTime.value = null;
     selectedEndDate.value = null;
     selectedEndTime.value = null;
+    recurrenceData.value = null;
+    formInitialized.value = false;
     titleController.clear();
     descriptionController.clear();
     securityGroupController.clear();
@@ -486,6 +939,7 @@ class TasksController extends GetxController {
 
   @override
   void onClose() {
+    _timeTimer?.cancel();
     scrollController.dispose();
     titleController.dispose();
     descriptionController.dispose();

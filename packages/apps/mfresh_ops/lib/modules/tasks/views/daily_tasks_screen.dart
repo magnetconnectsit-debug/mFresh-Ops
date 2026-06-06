@@ -1,5 +1,3 @@
-import 'package:core/widgets/app_common_drop_down.dart';
-import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
@@ -8,20 +6,29 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:mfresh_ops/modules/tasks/widgets/create_task_dialog.dart';
-import 'package:mfresh_ops/modules/tasks/widgets/task_submission_dialog.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/daily_task_card.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/task_stat_item.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/task_tabs.dart';
 
-class DailyTasksScreen extends StatelessWidget {
+class DailyTasksScreen extends StatefulWidget {
   const DailyTasksScreen({super.key});
 
   @override
+  State<DailyTasksScreen> createState() => _DailyTasksScreenState();
+}
+
+class _DailyTasksScreenState extends State<DailyTasksScreen> {
+
+  @override
   Widget build(BuildContext context) {
-    // Ensuring we get the same controller instance and refresh it
     final controller = Get.put(TasksController());
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
@@ -35,566 +42,336 @@ class DailyTasksScreen extends StatelessWidget {
       ),
       drawer: const CommonSidebar(),
       body: RefreshIndicator(
-        onRefresh: () => controller.refreshData(),
+        onRefresh: () => controller.pullToRefresh(),
         child: Obx(() {
-          if (controller.isLoading.value && controller.tasks.isEmpty) {
-            return ListView.separated(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              itemCount: 5,
-              separatorBuilder: (context, index) => SizedBox(height: 10.h),
-              itemBuilder: (context, index) => _buildLoadingCard(),
-            );
-          }
+          final bool isInitialLoading = controller.isLoading.value && controller.tasks.isEmpty;
 
-          final displayTasks = controller.tasks.where((task) {
-            final status = task.status.toLowerCase();
-            if (controller.activeTab.value == 0) {
-              // Active: Everything except completed and review
-              return status != 'completed' &&
-                  status != 'approved' &&
-                  status != 'review' &&
-                  status != 'under_review';
-            } else {
-              // Completed: Only completed and review
-              return status == 'completed' ||
-                  status == 'approved' ||
-                  status == 'review' ||
-                  status == 'under_review';
-            }
-          }).toList();
-
-          return ListView(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            children: [
-              Wrap(
-                spacing: 12.w,
-                runSpacing: 4.h,
-                children: [
-                  _buildStatItem(
-                    '${controller.taskCounts['active'] ?? 0}',
-                    'Active',
-                    AppColors.orange1,
-                  ),
-                  _buildStatItem(
-                    '${controller.taskCounts['completed'] ?? 0}',
-                    'Completed',
-                    AppColors.green,
-                  ),
-                  _buildStatItem(
-                    '${controller.taskCounts['overdue'] ?? 0}',
-                    'Overdue',
-                    AppColors.error,
-                  ),
-                ],
-              ),
-              SizedBox(height: 12.h),
-              _buildFilterCard(controller),
-              SizedBox(height: 12.h),
-              _buildCreateTaskButton(),
-              SizedBox(height: 16.h),
-              Text(
-                'My Tasks',
-                style: AppTextStyle.style_16_700(color: AppColors.black),
-              ),
-              SizedBox(height: 8.h),
-              _buildTabs(controller),
-              SizedBox(height: 12.h),
-
-              if (displayTasks.isEmpty && !controller.isLoading.value)
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 50.h),
-                    child: Text(
-                      'No tasks found',
-                      style: AppTextStyle.style_12_400(
-                        color: AppColors.grey200,
-                      ),
-                    ),
+          final displayTasks = isInitialLoading
+              ? List.generate(
+                  5,
+                  (index) => TaskItem(
+                    id: index,
+                    taskCode: 'TSK00$index',
+                    projectId: '1',
+                    groupId: '1',
+                    taskType: 'Type',
+                    unitId: '1',
+                    assignTo: '1',
+                    assigneeRole: '1',
+                    title: 'Dummy Task Title $index',
+                    description: '',
+                    frequency: 'Daily',
+                    createdBy: '1',
+                    startDate: '2026-06-04',
+                    endDate: '2026-06-04',
+                    repeatInterval: '1',
+                    photoRequired: '0',
+                    approvalRequired: '0',
+                    approverId: '1',
+                    selectedDays: '',
+                    monthDays: '',
+                    yearDays: '',
+                    occurrences: '',
+                    startTime: '10:00 AM',
+                    endTime: '11:00 AM',
+                    createdAt: '2026-06-04T10:00:00Z',
+                    updatedAt: '2026-06-04T10:00:00Z',
+                    taskInstanceId: index,
+                    scheduleDateTime: '27-Feb-2026',
+                    status: 'pending',
+                    project: 'mFresh',
+                    assigneeName: 'Loading Assignee',
+                    approverName: 'Loading Approver',
+                    createdByName: 'Loading Creator',
+                    completedByName: 'Loading Completer',
                   ),
                 )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: displayTasks.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 10.h),
-                  itemBuilder: (context, index) {
-                    return _buildTaskCard(displayTasks[index]);
-                  },
+              : controller.tasks.where((task) {
+                  final status = task.status.toLowerCase();
+                  if (controller.activeTab.value == 0) {
+                    return status != 'completed' &&
+                        status != 'approved' &&
+                        status != 'review' &&
+                        status != 'under_review';
+                  } else {
+                    return status == 'completed' ||
+                        status == 'approved' ||
+                        status == 'review' ||
+                        status == 'under_review';
+                  }
+                }).toList();
+
+          final List<TaskItem> todayTasks = [];
+          final List<TaskItem> tomorrowTasks = [];
+
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final tomorrowStart = today.add(const Duration(days: 1));
+
+          if (isInitialLoading) {
+            todayTasks.addAll(displayTasks);
+          } else {
+            for (final task in displayTasks) {
+              final dt = _parseDateTime(task.scheduleDateTime);
+              if (dt != null && (dt.isAfter(tomorrowStart) || dt.isAtSameMomentAs(tomorrowStart))) {
+                tomorrowTasks.add(task);
+              } else {
+                todayTasks.add(task);
+              }
+            }
+          }
+
+          return Skeletonizer(
+            enabled: isInitialLoading,
+            child: CustomScrollView(
+              controller: controller.scrollController,
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      Wrap(
+                        spacing: 12.w,
+                        runSpacing: 4.h,
+                        children: [
+                          TaskStatItem(
+                            count: '${controller.taskCounts['active'] ?? 0}',
+                            label: 'Active',
+                            color: AppColors.orange1,
+                          ),
+                          TaskStatItem(
+                            count: '${controller.taskCounts['completed'] ?? 0}',
+                            label: 'Completed',
+                            color: AppColors.green,
+                          ),
+                          TaskStatItem(
+                            count: '${controller.taskCounts['overdue'] ?? 0}',
+                            label: 'Overdue',
+                            color: AppColors.error,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+                      TaskFilterCard(controller: controller),
+                      SizedBox(height: 12.h),
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24.h,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Get.find<TasksController>().formInitialized.value = false;
+                                Get.toNamed(AppRoutes.createTask);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF16A3B8),
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                elevation: 1,
+                              ),
+                              child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'My Tasks',
+                        style: AppTextStyle.style_16_700(color: AppColors.black),
+                      ),
+                      SizedBox(height: 8.h),
+                      TaskTabs(controller: controller),
+                      SizedBox(height: 12.h),
+                    ]),
+                  ),
                 ),
-            ],
+                if (displayTasks.isEmpty && !controller.isLoading.value)
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 50.h),
+                        child: Text(
+                          'No tasks found',
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey200,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else ...[
+                  if (todayTasks.isNotEmpty)
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 10.h),
+                              child: DailyTaskCard(task: todayTasks[index]),
+                            );
+                          },
+                          childCount: todayTasks.length,
+                        ),
+                      ),
+                    ),
+                  if (tomorrowTasks.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const DashedDivider(
+                              height: 1.5,
+                              color: Color(0xFF90CAF9),
+                              dashWidth: 4,
+                              dashSpace: 3,
+                            ),
+                            SizedBox(height: 16.h),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_month_outlined,
+                                  size: 18.r,
+                                  color: const Color(0xFF0D6EFD),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'Tomorrow – Upcoming Tasks',
+                                  style: AppTextStyle.style_14_700(color: const Color(0xFF0D6EFD)),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 10.h),
+                              child: DailyTaskCard(task: tomorrowTasks[index]),
+                            );
+                          },
+                          childCount: tomorrowTasks.length,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (controller.isLoading.value && controller.tasks.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ],
+            ),
           );
         }),
       ),
     );
   }
 
-  Widget _buildFilterCard(TasksController controller) {
-    return Container(
-      padding: EdgeInsets.all(8.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(6.r),
-        border: Border.all(color: AppColors.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<TaskProject>(
-                    hintText: 'Project',
-                    options: controller.projects
-                        .map(
-                          (e) => DropdownOption(value: e, label: e.projectName),
-                        )
-                        .toList(),
-                    selectedValues: controller.selectedProjects,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedProjects.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<SupportUnit>(
-                    hintText: 'Store (Unit)',
-                    options: controller.units
-                        .map((e) => DropdownOption(value: e, label: e.unitName))
-                        .toList(),
-                    selectedValues: controller.selectedUnits,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedUnits.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<TaskGroup>(
-                    hintText: 'Group',
-                    options: controller.groups
-                        .map((e) => DropdownOption(value: e, label: e.roleName))
-                        .toList(),
-                    selectedValues: controller.selectedGroups,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedGroups.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<AssigneeModel>(
-                    hintText: 'Assignee',
-                    options: controller.assignees
-                        .map((e) => DropdownOption(value: e, label: e.name))
-                        .toList(),
-                    selectedValues: controller.selectedAssignees,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedAssignees.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _buildFilterButton(
-                'Reset',
-                AppColors.white,
-                AppColors.black,
-                onTap: () {
-                  controller.selectedProjects.clear();
-                  controller.selectedGroups.clear();
-                  controller.selectedUnits.clear();
-                  controller.selectedAssignees.clear();
-                  controller.refreshData();
-                },
-                borderColor: AppColors.borderColor,
-              ),
-              SizedBox(width: 8.w),
-              _buildFilterButton(
-                'Apply',
-                AppColors.info,
-                AppColors.white,
-                onTap: () {
-                  controller.refreshData();
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  DateTime? _parseDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    try {
+      return DateTime.parse(dateStr).toLocal();
+    } catch (_) {}
 
-  Widget _buildFilterButton(
-    String label,
-    Color bgColor,
-    Color textColor, {
-    required VoidCallback onTap,
-    Color? borderColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(4.r),
-          border: borderColor != null ? Border.all(color: borderColor) : null,
-        ),
-        child: Text(label, style: AppTextStyle.style_9_400(color: textColor)),
-      ),
-    );
-  }
-
-  Widget _buildCreateTaskButton() {
-    return SizedBox(
-      height: 28.h,
-      width: 90.w,
-      child: ElevatedButton(
-        onPressed: () {
-          Get.dialog(const CreateTaskDialog());
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.info,
-          foregroundColor: AppColors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6.r),
-          ),
-          padding: EdgeInsets.zero,
-        ),
-        child: Text(
-          'Create Task',
-          style: AppTextStyle.style_10_600(color: AppColors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String count, String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(count, style: AppTextStyle.style_12_700(color: color)),
-        SizedBox(width: 3.w),
-        Text(label, style: AppTextStyle.style_10_500(color: AppColors.black)),
-      ],
-    );
-  }
-
-  Widget _buildTabs(TasksController controller) {
-    return Container(
-      height: 36.h,
-      padding: EdgeInsets.all(3.r),
-      decoration: BoxDecoration(
-        color: AppColors.toggleColorTab,
-        borderRadius: BorderRadius.circular(6.r),
-      ),
-      child: Obx(
-        () => Row(
-          children: [
-            Expanded(
-              child: _buildTabItem(
-                title: 'Active',
-                isSelected: controller.activeTab.value == 0,
-                onTap: () => controller.changeTab(0),
-              ),
-            ),
-            Expanded(
-              child: _buildTabItem(
-                title: 'Completed',
-                isSelected: controller.activeTab.value == 1,
-                onTap: () => controller.changeTab(1),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabItem({
-    required String title,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.white : AppColors.transparent,
-          borderRadius: BorderRadius.circular(4.r),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            title,
-            style: isSelected
-                ? AppTextStyle.style_11_600(color: AppColors.black)
-                : AppTextStyle.style_11_500(color: AppColors.black2),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(TaskItem task) {
-    Color statusBg;
-    String statusText = task.status;
-
-    switch (task.status.toLowerCase()) {
-      case 'overdue':
-        statusBg = AppColors.error;
-        statusText = 'Overdue';
-        break;
-      case 'pending':
-      case 'due':
-        statusBg = AppColors.red;
-        statusText = 'Due';
-        break;
-      case 'upcoming':
-        statusBg = AppColors.orange1;
-        statusText = 'Upcoming';
-        break;
-      case 'review':
-      case 'under_review':
-        statusBg = AppColors.orange900;
-        statusText = 'Review';
-        break;
-      case 'completed':
-      case 'approved':
-        statusBg = AppColors.green;
-        statusText = 'Completed';
-        break;
-      case 'rejected':
-        statusBg = AppColors.black;
-        statusText = 'Rejected';
-        break;
-      default:
-        statusBg = AppColors.black2;
-    }
-
-    return GestureDetector(
-      onTap: () {
-        final status = task.status.toLowerCase();
-        if (status == 'review' || status == 'under_review') {
-          Get.dialog(TaskSubmissionDialog(task: task, isReview: true));
-        } else if (status == 'due' ||
-            status == 'overdue' ||
-            status == 'pending' ||
-            status == 'rejected') {
-          Get.dialog(TaskSubmissionDialog(task: task, isReview: false));
-        } else if (status != 'completed' && status != 'approved') {
-          Get.dialog(CreateTaskDialog(task: task));
+    String cleaned = dateStr.replaceAll(',', '').trim();
+    try {
+      List<String> parts;
+      if (cleaned.contains('-')) {
+        parts = cleaned.split(RegExp(r'[-\s]+'));
+      } else {
+        parts = cleaned.split(RegExp(r'\s+'));
+      }
+      if (parts.length >= 3) {
+        int? day = int.tryParse(parts[0]);
+        int? year = int.tryParse(parts[2]);
+        final monthStr = parts[1].toLowerCase();
+        int? month;
+        final monthsList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        for (int i = 0; i < monthsList.length; i++) {
+          if (monthStr.startsWith(monthsList[i])) {
+            month = i + 1;
+            break;
+          }
         }
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: task.title,
-                          style: AppTextStyle.style_12_700(
-                            color: AppColors.black,
-                          ),
-                        ),
-                        if (task.project != null ||
-                            task.groupNames != null) ...[
-                          TextSpan(
-                            text: '  •  ',
-                            style: AppTextStyle.style_10_400(
-                              color: AppColors.black2,
-                            ),
-                          ),
-                          TextSpan(
-                            text: task.project ?? task.groupNames ?? '',
-                            style: AppTextStyle.style_10_400(
-                              color: AppColors.black2,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 6.h),
-                  Wrap(
-                    spacing: 10.w,
-                    runSpacing: 3.h,
-                    children: [
-                      _buildIconText(
-                        Icons.access_time,
-                        '${task.startTime} - ${task.endTime}',
-                      ),
-                      _buildIconText(
-                        Icons.calendar_today,
-                        task.scheduleDateTime,
-                      ),
-                      if (task.assigneeName != null &&
-                          task.assigneeName!.isNotEmpty)
-                        _buildIconText(
-                          Icons.person_outline,
-                          task.assigneeName!,
-                        ),
-                    ],
-                  ),
-                ],
+        if (day != null && month != null && year != null) {
+          int hour = 0;
+          int minute = 0;
+          if (parts.length >= 4) {
+            final timeParts = parts[3].split(':');
+            if (timeParts.isNotEmpty) {
+              hour = int.tryParse(timeParts[0]) ?? 0;
+              if (timeParts.length > 1) {
+                minute = int.tryParse(timeParts[1]) ?? 0;
+              }
+            }
+            if (parts.length >= 5) {
+              final marker = parts[4].toLowerCase();
+              if (marker == 'pm' && hour < 12) {
+                hour += 12;
+              } else if (marker == 'am' && hour == 12) {
+                hour = 0;
+              }
+            }
+          }
+          return DateTime(year, month, day, hour, minute).toLocal();
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+}
+
+class DashedDivider extends StatelessWidget {
+  final double height;
+  final Color color;
+  final double dashWidth;
+  final double dashSpace;
+
+  const DashedDivider({
+    super.key,
+    this.height = 1,
+    this.color = Colors.blue,
+    this.dashWidth = 5,
+    this.dashSpace = 3,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final boxWidth = constraints.constrainWidth();
+        final dashCount = (boxWidth / (dashWidth + dashSpace)).floor();
+        return Flex(
+          direction: Axis.horizontal,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(dashCount, (_) {
+            return SizedBox(
+              width: dashWidth,
+              height: height,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: color),
               ),
-            ),
-            SizedBox(width: 8.w),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 75.w,
-                  height: 24.h,
-                  decoration: BoxDecoration(
-                    color: statusBg,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  child: Center(
-                    child: Text(
-                      statusText,
-                      style: AppTextStyle.style_10_700(color: AppColors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIconText(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 9.r, color: AppColors.black2),
-        SizedBox(width: 3.w),
-        Flexible(
-          child: Text(
-            text,
-            style: AppTextStyle.style_8_400(color: AppColors.black2),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoadingCard() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.borderColor),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(width: 150.w, height: 12.h, color: AppColors.grey50),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    Container(
-                      width: 60.w,
-                      height: 8.h,
-                      color: AppColors.grey50,
-                    ),
-                    SizedBox(width: 10.w),
-                    Container(
-                      width: 60.w,
-                      height: 8.h,
-                      color: AppColors.grey50,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 75.w,
-            height: 24.h,
-            decoration: BoxDecoration(
-              color: AppColors.grey50,
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-          ),
-        ],
-      ),
+            );
+          }),
+        );
+      },
     );
   }
 }

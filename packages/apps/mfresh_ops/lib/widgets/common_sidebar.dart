@@ -93,6 +93,17 @@ class CommonSidebar extends StatelessWidget {
                     currentRoute: currentRoute,
                   ),
 
+                  // Task Scheduler Expandable Section
+                  _buildExpandableMenuItem(
+                    icon: Icons.task_alt_outlined,
+                    title: 'Task Scheduler',
+                    subItems: [
+                      'All Task',
+                      'Daily Task',
+                    ],
+                    currentRoute: currentRoute,
+                  ),
+
                   // Inventory Expandable Section
                   if (showInventory && inventorySubItems.isNotEmpty)
                     _buildExpandableMenuItem(

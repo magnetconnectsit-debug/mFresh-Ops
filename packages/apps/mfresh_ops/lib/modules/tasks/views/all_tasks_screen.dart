@@ -1,17 +1,16 @@
-import 'package:core/widgets/app_common_drop_down.dart';
-import 'package:core/widgets/app_common_dropdown_page.dart';
-import 'package:core/widgets/app_common_table.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:mfresh_ops/modules/tasks/widgets/create_task_dialog.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_action_buttons.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_table_elements.dart';
 
 class AllTasksScreen extends StatefulWidget {
   const AllTasksScreen({super.key});
@@ -22,6 +21,17 @@ class AllTasksScreen extends StatefulWidget {
 
 class _AllTasksScreenState extends State<AllTasksScreen> {
   late final TasksController controller;
+  final Set<String> _expandedRows = {};
+
+  void _toggleRow(String key) {
+    setState(() {
+      if (_expandedRows.contains(key)) {
+        _expandedRows.remove(key);
+      } else {
+        _expandedRows.add(key);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -32,196 +42,8 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppCommonAppBar(
-        title: Text(
-          'All Task',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        showAppDrawer: true,
-        hasBackButton: false,
-        iconColor: AppColors.black,
-      ),
-      drawer: const CommonSidebar(),
-      body: RefreshIndicator(
-        onRefresh: () => controller.refreshData(),
-        child: Obx(() {
-          final tasksList = controller.tasks;
-          final bool isInitialLoading =
-              controller.isLoading.value && tasksList.isEmpty;
-
-          return ListView(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            children: [
-              _buildFilterCard(controller),
-              SizedBox(height: 12.h),
-              _buildActionButtons(context, controller),
-              SizedBox(height: 16.h),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 0.w),
-                child: isInitialLoading
-                    ? _buildSkeletonTable()
-                    : tasksList.isEmpty && !controller.isLoading.value
-                    ? Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 50.h),
-                          child: Text(
-                            'No tasks found',
-                            style: AppTextStyle.style_14_500(
-                              color: AppColors.grey300,
-                            ),
-                          ),
-                        ),
-                      )
-                    : AppCommonTable(
-                        columns: const [
-                          'Task ID',
-                          'Project',
-                          'Task',
-                          'Created On',
-                          'Created By',
-                          'Task Type',
-                          'Assignee',
-                          'Started From',
-                          'Completed By',
-                          'Status',
-                          'Approver Name',
-                        ],
-                        rows: [
-                          ...tasksList.map((task) {
-                            return [
-                              "${task.taskCode}_${task.taskInstanceId}",
-                              _sanitize(task.project ?? 'mFresh'),
-                              task.title,
-                              _formatDateTime(task.createdAt),
-                              _sanitize(
-                                task.createdByName ?? task.approverName ?? 'NA',
-                              ),
-                              _sanitize(task.taskType.capitalizeFirst ?? 'NA'),
-                              _sanitize(task.assigneeName ?? ''),
-                              _formatDateTime(task.scheduleDateTime),
-                              _sanitize(task.completedByName ?? ''),
-                              _buildStatusBadge(task.status),
-                              _sanitize(task.approverName ?? ''),
-                            ];
-                          }),
-                          if (controller.hasMore.value)
-                            [
-                              '',
-                              '',
-                              '',
-                              '',
-                              '',
-                              '',
-                              '',
-                              '',
-                              '',
-                              '',
-                              controller.isLoading.value
-                                  ? const Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : TextButton(
-                                      onPressed: () => controller.fetchTasks(
-                                        isLoadMore: true,
-                                      ),
-                                      child: Text(
-                                        'View More',
-                                        style: AppTextStyle.style_10_700(
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                            ],
-                        ],
-                        columnWidths: {
-                          0: 90.w,
-                          1: 80.w,
-                          2: 200.w,
-                          3: 140.w,
-                          4: 120.w,
-                          5: 80.w,
-                          6: 120.w,
-                          7: 140.w,
-                          8: 120.w,
-                          9: 90.w,
-                          10: 120.w,
-                        },
-                      ),
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
   String _sanitize(String text) {
     return text.replaceAll('_', ' ');
-  }
-
-  Widget _buildSkeletonTable() {
-    return Column(children: List.generate(10, (index) => _buildSkeletonRow()));
-  }
-
-  Widget _buildSkeletonRow() {
-    return Container(
-          margin: EdgeInsets.only(bottom: 8.h),
-          padding: EdgeInsets.all(12.r),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: AppColors.borderColor),
-          ),
-          child: Row(
-            children: [
-              _skeletonBox(40.w, 12.h),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _skeletonBox(double.infinity, 10.h),
-                    SizedBox(height: 6.h),
-                    Row(
-                      children: [
-                        _skeletonBox(60.w, 8.h),
-                        SizedBox(width: 12.w),
-                        _skeletonBox(60.w, 8.h),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 12.w),
-              _skeletonBox(50.w, 20.h, borderRadius: 4.r),
-            ],
-          ),
-        )
-        .animate(onPlay: (controller) => controller.repeat())
-        .shimmer(duration: 1500.ms, color: AppColors.grey50);
-  }
-
-  Widget _skeletonBox(
-    double width,
-    double height, {
-    double borderRadius = 2.0,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: AppColors.grey50,
-        borderRadius: BorderRadius.circular(borderRadius.r),
-      ),
-    );
   }
 
   String _formatDateTime(String? dateStr) {
@@ -229,18 +51,8 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
     try {
       DateTime dt = DateTime.parse(dateStr).toLocal();
       List<String> months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ];
       String day = dt.day.toString().padLeft(2, '0');
       String month = months[dt.month - 1];
@@ -261,289 +73,231 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
     }
   }
 
-  Widget _buildActionButtons(BuildContext context, TasksController controller) {
-    return Row(
-      children: [
-        _buildMainActionButton(
-          'Create Task',
-          AppColors.info,
-          () => Get.dialog(const CreateTaskDialog()),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      appBar: AppCommonAppBar(
+        title: Text(
+          'All Task',
+          style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
-        SizedBox(width: 10.w),
-        _buildMainActionButton(
-          'Export',
-          AppColors.success,
-          () => _showExportOptions(context, controller),
-        ),
-      ],
-    );
-  }
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        showAppDrawer: true,
+        hasBackButton: false,
+        iconColor: AppColors.black,
+      ),
+      drawer: const CommonSidebar(),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          controller.selectedProjects.clear();
+          controller.selectedGroups.clear();
+          controller.selectedUnits.clear();
+          controller.selectedAssignees.clear();
+          await controller.refreshData();
+        },
+        child: Obx(() {
+          final tasksList = controller.tasks;
+          final bool isInitialLoading =
+              controller.isLoading.value && tasksList.isEmpty;
 
-  void _showExportOptions(BuildContext context, TasksController controller) {
-    Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.all(20.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.grey100,
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-            SizedBox(height: 20.h),
-            Text(
-              'Export Tasks',
-              style: AppTextStyle.style_16_700(color: AppColors.black),
-            ),
-            SizedBox(height: 20.h),
-            ListTile(
-              leading: const Icon(
-                Icons.table_view_rounded,
-                color: AppColors.success,
-              ),
-              title: Text(
-                'Export to Excel',
-                style: AppTextStyle.style_14_500(color: AppColors.black),
-              ),
-              onTap: () {
-                Get.back();
-                controller.exportTasks(isPdf: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.picture_as_pdf_rounded,
-                color: AppColors.red,
-              ),
-              title: Text(
-                'Export to PDF',
-                style: AppTextStyle.style_14_500(color: AppColors.black),
-              ),
-              onTap: () {
-                Get.back();
-                controller.exportTasks(isPdf: true);
-              },
-            ),
-            SizedBox(height: 20.h),
-          ],
-        ),
-      ),
-    );
-  }
+          final itemsToRender = isInitialLoading
+              ? List.generate(
+                  10,
+                  (index) => TaskItem(
+                    id: index,
+                    taskCode: 'TSK00$index',
+                    projectId: '1',
+                    groupId: '1',
+                    taskType: 'Type',
+                    unitId: '1',
+                    assignTo: '1',
+                    assigneeRole: '1',
+                    title: 'Dummy Task Title $index',
+                    description: '',
+                    frequency: 'Daily',
+                    createdBy: '1',
+                    startDate: '2026-06-04',
+                    endDate: '2026-06-04',
+                    repeatInterval: '1',
+                    photoRequired: '0',
+                    approvalRequired: '0',
+                    approverId: '1',
+                    selectedDays: '',
+                    monthDays: '',
+                    yearDays: '',
+                    occurrences: '',
+                    startTime: '10:00',
+                    endTime: '11:00',
+                    createdAt: '2026-06-04T10:00:00Z',
+                    updatedAt: '2026-06-04T10:00:00Z',
+                    taskInstanceId: index,
+                    scheduleDateTime: '2026-06-04T10:00:00Z',
+                    status: 'pending',
+                    project: 'mFresh',
+                    assigneeName: 'Loading Assignee',
+                    approverName: 'Loading Approver',
+                    createdByName: 'Loading Creator',
+                    completedByName: 'Loading Completer',
+                  ),
+                )
+              : tasksList;
 
-  Widget _buildMainActionButton(String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(6.r),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyle.style_12_600(color: AppColors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(String status) {
-    final color = _getStatusColor(status);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4.r),
-      ),
-      child: Text(
-        _sanitize(status.toUpperCase()),
-        style: AppTextStyle.style_10_700(color: color),
-      ),
-    );
-  }
-
-  Widget _buildFilterCard(TasksController controller) {
-    return Container(
-      padding: EdgeInsets.all(8.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(6.r),
-        border: Border.all(color: AppColors.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
+          return ListView(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             children: [
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<TaskProject>(
-                    hintText: 'Project',
-                    options: controller.projects
-                        .map(
-                          (e) => DropdownOption(value: e, label: e.projectName),
-                        )
-                        .toList(),
-                    selectedValues: controller.selectedProjects,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedProjects.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
+              TaskFilterCard(controller: controller),
+              SizedBox(height: 12.h),
+              AllTasksActionButtons(controller: controller),
+              SizedBox(height: 16.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 0.w),
+                child: tasksList.isEmpty && !controller.isLoading.value && !isInitialLoading
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 50.h),
+                          child: Text(
+                            'No tasks found',
+                            style: AppTextStyle.style_14_500(
+                              color: AppColors.grey300,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Skeletonizer(
+                        enabled: isInitialLoading,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(4.r),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4.r),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Table(
+                                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                    border: TableBorder.symmetric(
+                                      inside: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    columnWidths: {
+                                      0: FixedColumnWidth(90.w),
+                                      1: FixedColumnWidth(80.w),
+                                      2: FixedColumnWidth(200.w),
+                                      3: FixedColumnWidth(140.w),
+                                      4: FixedColumnWidth(120.w),
+                                      5: FixedColumnWidth(80.w),
+                                      6: FixedColumnWidth(120.w),
+                                      7: FixedColumnWidth(140.w),
+                                      8: FixedColumnWidth(120.w),
+                                      9: FixedColumnWidth(90.w),
+                                      10: FixedColumnWidth(120.w),
+                                    },
+                                    children: [
+                                      TableRow(
+                                        decoration: BoxDecoration(color: Colors.grey.shade100),
+                                        children: const [
+                                          AllTasksHeaderCell(text: 'Task ID'),
+                                          AllTasksHeaderCell(text: 'Project'),
+                                          AllTasksHeaderCell(text: 'Task'),
+                                          AllTasksHeaderCell(text: 'Created On'),
+                                          AllTasksHeaderCell(text: 'Created By'),
+                                          AllTasksHeaderCell(text: 'Task Type'),
+                                          AllTasksHeaderCell(text: 'Assignee'),
+                                          AllTasksHeaderCell(text: 'Started From'),
+                                          AllTasksHeaderCell(text: 'Completed By'),
+                                          AllTasksHeaderCell(text: 'Status'),
+                                          AllTasksHeaderCell(text: 'Approver Name'),
+                                        ],
+                                      ),
+                                      ...itemsToRender.map((task) {
+                                        final rowKey = "${task.taskCode}_${task.taskInstanceId}";
+                                        final isExpanded = _expandedRows.contains(rowKey);
+                                        void toggleRow() => _toggleRow(rowKey);
+
+                                        return TableRow(
+                                          children: [
+                                            AllTasksDataCell(text: "${task.taskCode}_${task.taskInstanceId}", isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _sanitize(task.project ?? 'mFresh'), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: task.title, isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _formatDateTime(task.createdAt), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _sanitize(task.createdByName ?? task.approverName ?? 'NA'), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _sanitize(task.taskType.capitalizeFirst ?? 'NA'), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _sanitize(task.assigneeName ?? ''), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _formatDateTime(task.scheduleDateTime), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(text: _sanitize(task.completedByName ?? ''), isExpanded: isExpanded, onTap: toggleRow),
+                                            GestureDetector(
+                                              onTap: toggleRow,
+                                              behavior: HitTestBehavior.opaque,
+                                              child: Padding(
+                                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                                                child: AllTasksStatusBadge(status: task.status, isExpanded: isExpanded),
+                                              ),
+                                            ),
+                                            AllTasksDataCell(text: _sanitize(task.approverName ?? ''), isExpanded: isExpanded, onTap: toggleRow),
+                                          ],
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (!isInitialLoading && controller.totalRecords.value > 0) ...[
+                              SizedBox(height: 12.h),
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8.h),
+                                child: Column(
+                                  children: [
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          AllTasksPaginationButton(
+                                            text: '←',
+                                            isActive: false,
+                                            onTap: controller.previousPage,
+                                          ),
+                                          ...List.generate(controller.totalPages.value, (index) {
+                                            final pageNumber = index + 1;
+                                            return AllTasksPaginationButton(
+                                              text: pageNumber.toString(),
+                                              isActive: controller.currentPage.value == pageNumber,
+                                              onTap: () => controller.goToPage(pageNumber),
+                                            );
+                                          }),
+                                          AllTasksPaginationButton(
+                                            text: '→',
+                                            isActive: false,
+                                            onTap: controller.nextPage,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    Text(
+                                      'Showing ${controller.totalRecords.value == 0 ? 0 : (controller.currentPage.value - 1) * controller.perPage.value + 1} to ${(controller.currentPage.value * controller.perPage.value).clamp(0, controller.totalRecords.value)} of ${controller.totalRecords.value} entries',
+                                      style: AppTextStyle.style_12_400(color: AppColors.black),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
               ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<SupportUnit>(
-                    hintText: 'Unit',
-                    options: controller.units
-                        .map((e) => DropdownOption(value: e, label: e.unitName))
-                        .toList(),
-                    selectedValues: controller.selectedUnits,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedUnits.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 24.h),
             ],
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<TaskGroup>(
-                    hintText: 'Group',
-                    options: controller.groups
-                        .map((e) => DropdownOption(value: e, label: e.roleName))
-                        .toList(),
-                    selectedValues: controller.selectedGroups,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedGroups.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Obx(
-                  () => AppCommonDropdown<AssigneeModel>(
-                    hintText: 'Assignee',
-                    options: controller.assignees
-                        .map((e) => DropdownOption(value: e, label: e.name))
-                        .toList(),
-                    selectedValues: controller.selectedAssignees,
-                    onMultiSelectChanged: (val) =>
-                        controller.selectedAssignees.assignAll(val),
-                    isMultiSelect: true,
-                    style: AppTextStyle.style_10_600(color: AppColors.black),
-                    hintStyle: AppTextStyle.style_10_600(
-                      color: AppColors.black,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _buildFilterButton(
-                'Reset',
-                AppColors.white,
-                AppColors.black,
-                onTap: () {
-                  controller.selectedProjects.clear();
-                  controller.selectedGroups.clear();
-                  controller.selectedUnits.clear();
-                  controller.selectedAssignees.clear();
-                  controller.refreshData();
-                },
-                borderColor: AppColors.borderColor,
-              ),
-              SizedBox(width: 8.w),
-              _buildFilterButton(
-                'Apply',
-                AppColors.info,
-                AppColors.white,
-                onTap: () {
-                  controller.refreshData();
-                },
-              ),
-            ],
-          ),
-        ],
+          );
+        }),
       ),
     );
-  }
-
-  Widget _buildFilterButton(
-    String label,
-    Color bgColor,
-    Color textColor, {
-    required VoidCallback onTap,
-    Color? borderColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(4.r),
-          border: borderColor != null ? Border.all(color: borderColor) : null,
-        ),
-        child: Text(label, style: AppTextStyle.style_10_600(color: textColor)),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return AppColors.warning;
-      case 'in_progress':
-        return AppColors.info;
-      case 'completed':
-        return AppColors.success;
-      case 'approved':
-        return AppColors.success;
-      case 'rejected':
-        return AppColors.red;
-      case 'review':
-      case 'under_review':
-        return Colors.purple;
-      default:
-        return AppColors.grey300;
-    }
   }
 }
