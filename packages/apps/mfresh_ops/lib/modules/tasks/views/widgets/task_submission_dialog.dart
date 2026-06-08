@@ -1,8 +1,10 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_image_view.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
@@ -121,10 +123,23 @@ class TaskSubmissionDialog extends StatelessWidget {
                                 color: AppColors.borderColor,
                                 style: BorderStyle.solid,
                               ),
-                              image: DecorationImage(
-                                image: FileImage(entry.value),
-                                fit: BoxFit.cover,
-                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4.r),
+                              child: entry.value is String
+                                  ? AppImageView(
+                                      imageUrl: entry.value,
+                                      width: 65.w,
+                                      height: 75.h,
+                                      fit: BoxFit.cover,
+                                      borderRadius: 4.r,
+                                    )
+                                  : Image.file(
+                                      entry.value is File ? entry.value : File(entry.value.path),
+                                      width: 65.w,
+                                      height: 75.h,
+                                      fit: BoxFit.cover,
+                                    ),
                             ),
                           ),
                           if (!isReview)

@@ -7,6 +7,7 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_submission_dialog.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/delete_task_dialog.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 
 class DailyTaskCard extends StatefulWidget {
@@ -94,6 +95,42 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     return null;
   }
 
+  DateTime? _parseEndDateTime(TaskItem task) {
+    if (task.endDate.isEmpty) return null;
+    try {
+      return DateTime.parse(task.endDate).toLocal();
+    } catch (_) {}
+    
+    final date = _parseDateTime(task.endDate);
+    if (date == null) return null;
+    
+    if (task.endTime.isNotEmpty) {
+      final time = _parseTimeOfDay(task.endTime);
+      if (time != null) {
+        return DateTime(date.year, date.month, date.day, time.hour, time.minute).toLocal();
+      }
+    }
+    return date.toLocal();
+  }
+
+  TimeOfDay? _parseTimeOfDay(String timeStr) {
+    try {
+      final clean = timeStr.trim().toUpperCase();
+      final parts = clean.split(RegExp(r'[\s:]+'));
+      if (parts.isNotEmpty) {
+        int hour = int.tryParse(parts[0]) ?? 12;
+        int minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+        if (clean.contains('PM') && hour < 12) {
+          hour += 12;
+        } else if (clean.contains('AM') && hour == 12) {
+          hour = 0;
+        }
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
@@ -104,22 +141,35 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
 
     final isCompletedOrApproved = statusLower == 'completed' || statusLower == 'approved';
     final isReviewOrUnderReview = statusLower == 'review' || statusLower == 'under_review';
-
-    final isOverdue = !isCompletedOrApproved &&
-        !isReviewOrUnderReview &&
-        scheduleDateTime != null &&
-        DateTime.now().isAfter(scheduleDateTime);
+    final isRejected = statusLower == 'rejected';
 
     final isUpcoming = !isCompletedOrApproved &&
         !isReviewOrUnderReview &&
         scheduleDateTime != null &&
         DateTime.now().isBefore(scheduleDateTime);
 
+    bool isOverdue = false;
+    if (!isCompletedOrApproved && !isReviewOrUnderReview) {
+      if (statusLower == 'overdue') {
+        isOverdue = true;
+      } else {
+        final endDt = _parseEndDateTime(task);
+        if (endDt != null) {
+          isOverdue = DateTime.now().isAfter(endDt);
+        } else if (scheduleDateTime != null) {
+          isOverdue = DateTime.now().isAfter(scheduleDateTime);
+        }
+      }
+    }
+
     Color statusBg;
     Color statusTextColor = AppColors.white;
     String statusText;
 
-    if (isUpcoming) {
+    if (isRejected) {
+      statusBg = const Color(0xFF8B0000);
+      statusText = 'Rejected';
+    } else if (isUpcoming) {
       statusBg = const Color(0xFFFFB822);
       statusTextColor = const Color(0xFF212529);
       statusText = 'Upcoming';
@@ -184,9 +234,10 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Leading Icon
             Padding(
               padding: EdgeInsets.only(top: 2.h),
@@ -211,7 +262,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                     ),
                   ),
                   SizedBox(height: 6.h),
-                  // Metadata Wrap
+                  // Metadata Row 1: Time and Date
                   Wrap(
                     spacing: 8.w,
                     runSpacing: 4.h,
@@ -225,52 +276,66 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                         Icons.calendar_today_outlined,
                         _formatCardDate(task.scheduleDateTime),
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            (task.groupNames != null && task.groupNames!.isNotEmpty)
-                                ? Icons.people_outline
-                                : Icons.person_outline,
-                            size: 10.r,
-                            color: const Color(0xFF6C757D),
-                          ),
-                          SizedBox(width: 3.w),
-                          Text(
-                            (task.groupNames != null && task.groupNames!.isNotEmpty)
-                                ? task.groupNames!
-                                : (task.assigneeName != null && task.assigneeName!.isNotEmpty)
-                                    ? task.assigneeName!
-                                    : '',
-                            style: TextStyle(
-                              fontSize: 8.5.sp,
-                              fontWeight: FontWeight.w400,
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              (task.groupNames != null && task.groupNames!.isNotEmpty)
+                                  ? Icons.people_outline
+                                  : Icons.person_outline,
+                              size: 10.r,
                               color: const Color(0xFF6C757D),
                             ),
+                            SizedBox(width: 3.w),
+                            Flexible(
+                              child: Text(
+                                (task.groupNames != null && task.groupNames!.isNotEmpty)
+                                    ? task.groupNames!
+                                    : (task.assigneeName != null && task.assigneeName!.isNotEmpty)
+                                        ? task.assigneeName!
+                                        : 'Unassigned',
+                                style: TextStyle(
+                                  fontSize: 8.5.sp,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF6C757D),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      if (Get.find<AuthRepository>().rxUserPermissions.contains('Task_Edit')) ...[
+                        GestureDetector(
+                          onTap: () {
+                            Get.find<TasksController>().editTaskDetails(task);
+                          },
+                          child: Icon(
+                            Icons.edit,
+                            size: 14.r,
+                            color: const Color(0xFF0D6EFD),
                           ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Get.find<TasksController>().formInitialized.value = false;
-                          Get.toNamed(AppRoutes.createTask, arguments: task);
-                        },
-                        child: Icon(
-                          Icons.edit,
-                          size: 14.r,
-                          color: const Color(0xFF0D6EFD),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Get.dialog(DeleteTaskDialog(task: task));
-                        },
-                        child: Icon(
-                          Icons.delete_outline,
-                          size: 14.r,
-                          color: const Color(0xFF6C757D),
+                        SizedBox(width: 8.w),
+                      ],
+                      if (Get.find<AuthRepository>().rxUserPermissions.contains('Task_Delete'))
+                        GestureDetector(
+                          onTap: () {
+                            Get.dialog(DeleteTaskDialog(task: task));
+                          },
+                          child: Icon(
+                            Icons.delete_outline,
+                            size: 14.r,
+                            color: const Color(0xFF6C757D),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ],
@@ -278,77 +343,83 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
             ),
             SizedBox(width: 8.w),
             // Right Badge Column
-            GestureDetector(
-              onTap: () {
-                final status = task.status.toLowerCase();
-                if (status == 'review' || status == 'under_review') {
-                  Get.dialog(TaskSubmissionDialog(task: task, isReview: true));
-                } else if (status == 'due' ||
-                    status == 'overdue' ||
-                    status == 'pending' ||
-                    status == 'rejected' ||
-                    isOverdue) {
-                  Get.dialog(TaskSubmissionDialog(task: task, isReview: false));
-                } else if (status != 'completed' && status != 'approved') {
-                  Get.find<TasksController>().formInitialized.value = false;
-                  Get.toNamed(AppRoutes.createTask, arguments: task);
-                }
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 75.w,
-                    height: 24.h,
-                    decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        statusText,
-                        style: AppTextStyle.style_10_700(color: statusTextColor),
+            Align(
+              alignment: Alignment.center,
+              child: GestureDetector(
+                onTap: () {
+                  final status = task.status.toLowerCase();
+                  final controller = Get.find<TasksController>();
+                  if (status == 'review' || status == 'under_review') {
+                    if (task.canStatusBtnClicked == true) {
+                      controller.fetchTaskSubmissionDetails(task, isReview: true);
+                    }
+                  } else if (status == 'due' ||
+                      status == 'overdue' ||
+                      status == 'pending' ||
+                      status == 'rejected' ||
+                      isOverdue) {
+                    controller.fetchTaskSubmissionDetails(task, isReview: false);
+                  } else if (status != 'completed' && status != 'approved') {
+                    controller.editTaskDetails(task);
+                  }
+                },
+                child: Column(
+                  crossAxisAlignment: isRejected ? CrossAxisAlignment.center : CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 75.w,
+                      height: 24.h,
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          statusText,
+                          style: AppTextStyle.style_10_700(color: statusTextColor),
+                        ),
                       ),
                     ),
-                  ),
-                  if (isOverdue || statusLower == 'overdue') ...[
-                    SizedBox(height: 4.h),
-                    Text(
-                      'Overdue by',
-                      style: AppTextStyle.style_8_400(color: const Color(0xFF6C757D)),
-                    ),
-                    Obx(() {
-                      // Trigger Obx refresh by accessing centralized currentTime value
-                      final _ = Get.find<TasksController>().currentTime.value;
-                      return Text(
-                        _getOverdueDuration(task.scheduleDateTime),
-                        style: AppTextStyle.style_10_700(color: AppColors.black),
-                      );
-                    }),
+                    if ((isOverdue || statusLower == 'overdue') && !isRejected) ...[
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Overdue by',
+                        style: AppTextStyle.style_8_400(color: const Color(0xFF6C757D)),
+                      ),
+                      Obx(() {
+                        // Trigger Obx refresh by accessing centralized currentTime value
+                        final _ = Get.find<TasksController>().currentTime.value;
+                        return Text(
+                          _getOverdueDuration(task.scheduleDateTime),
+                          style: AppTextStyle.style_10_700(color: AppColors.black),
+                        );
+                      }),
+                    ],
+                    if ((isUpcoming || statusLower == 'upcoming') && !isRejected) ...[
+                      SizedBox(height: 4.h),
+                      Obx(() {
+                        // Trigger Obx refresh by accessing centralized currentTime value
+                        final _ = Get.find<TasksController>().currentTime.value;
+                        return Text(
+                          'Starts in ${_getStartsInDuration(task.scheduleDateTime)}',
+                          style: TextStyle(
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF212529),
+                          ),
+                        );
+                      }),
+                    ],
                   ],
-                  if (isUpcoming || statusLower == 'upcoming') ...[
-                    SizedBox(height: 4.h),
-                    Obx(() {
-                      // Trigger Obx refresh by accessing centralized currentTime value
-                      final _ = Get.find<TasksController>().currentTime.value;
-                      return Text(
-                        'Starts in ${_getStartsInDuration(task.scheduleDateTime)}',
-                        style: TextStyle(
-                          fontSize: 9.sp,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF212529),
-                        ),
-                      );
-                    }),
-                  ],
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildIconText(IconData icon, String text) {

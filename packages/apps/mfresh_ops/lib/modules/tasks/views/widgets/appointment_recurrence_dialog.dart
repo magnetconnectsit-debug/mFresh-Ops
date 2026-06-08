@@ -57,7 +57,19 @@ class RecurrenceData {
 
 class AppointmentRecurrenceDialog extends StatefulWidget {
   final RecurrenceData? initialData;
-  const AppointmentRecurrenceDialog({super.key, this.initialData});
+  final DateTime? defaultStartDate;
+  final DateTime? defaultEndDate;
+  final TimeOfDay? defaultStartTime;
+  final TimeOfDay? defaultEndTime;
+
+  const AppointmentRecurrenceDialog({
+    super.key,
+    this.initialData,
+    this.defaultStartDate,
+    this.defaultEndDate,
+    this.defaultStartTime,
+    this.defaultEndTime,
+  });
 
   @override
   State<AppointmentRecurrenceDialog> createState() => _AppointmentRecurrenceDialogState();
@@ -112,20 +124,39 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   @override
   void initState() {
     super.initState();
+
+    _startDate = widget.defaultStartDate ?? widget.initialData?.startDate ?? DateTime.now();
+    _endByDate = widget.defaultEndDate ?? widget.initialData?.endByDate ?? DateTime.now().add(const Duration(days: 30));
+
+    if (widget.defaultStartTime != null) {
+      _startTime = widget.defaultStartTime!;
+    } else if (widget.initialData != null) {
+      _startTime = _parseTime(widget.initialData!.startTime);
+    } else {
+      final now = TimeOfDay.now();
+      final roundedMin = now.minute < 30 ? 0 : 30;
+      _startTime = TimeOfDay(hour: now.hour, minute: roundedMin);
+    }
+
+    if (widget.defaultEndTime != null) {
+      _endTime = widget.defaultEndTime!;
+    } else if (widget.initialData != null) {
+      _endTime = _parseTime(widget.initialData!.endTime);
+    } else {
+      final roundedMin = _startTime.minute;
+      final endMin = roundedMin + 30;
+      _endTime = TimeOfDay(hour: endMin >= 60 ? (_startTime.hour + 1) % 24 : _startTime.hour, minute: endMin % 60);
+    }
+
     if (widget.initialData != null) {
       final data = widget.initialData!;
       _frequency = data.frequency;
       _repeatInterval = data.repeatInterval;
       _selectedDays.addAll(data.selectedDays?.split(',') ?? []);
-      _startDate = data.startDate;
-      _endByDate = data.endByDate;
       _occurrences = data.occurrences;
       _endByMode = data.endByDate != null || data.occurrences == null;
       _everyWeekday = data.frequency == 'day' && data.repeatInterval == 1 && data.selectedDays == 'Mon,Tue,Wed,Thu,Fri';
       
-      _startTime = _parseTime(data.startTime);
-      _endTime = _parseTime(data.endTime);
-
       // Monthly restore
       if (data.monthlyMode != null) {
         _monthlyByDay = data.monthlyMode == 'day';
@@ -148,15 +179,6 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
     } else {
       _frequency = 'day';
       _repeatInterval = 1;
-      _startDate = DateTime.now();
-      _endByDate = DateTime.now().add(const Duration(days: 30));
-      // Round current time down to nearest 30-min slot
-      final now = TimeOfDay.now();
-      final roundedMin = now.minute < 30 ? 0 : 30;
-      _startTime = TimeOfDay(hour: now.hour, minute: roundedMin);
-      // End time = start + 30 min
-      final endMin = roundedMin + 30;
-      _endTime = TimeOfDay(hour: endMin >= 60 ? (now.hour + 1) % 24 : now.hour, minute: endMin % 60);
       _endByMode = true;
     }
     _intervalController.text = _repeatInterval.toString();

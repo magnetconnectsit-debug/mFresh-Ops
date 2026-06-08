@@ -331,15 +331,17 @@ class CreateTaskScreen extends GetView<TasksController> {
                         ],
                       ),
                     ),
-                    SizedBox(width: 24.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildRecurringTask(context),
-                        ],
+                    if (!isEdit) ...[
+                      SizedBox(width: 24.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildRecurringTask(context),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 SizedBox(height: 12.h),
@@ -622,10 +624,20 @@ class CreateTaskScreen extends GetView<TasksController> {
               if (val) {
                 // Open Recurrence Dialog
                 final result = await Get.dialog<RecurrenceData>(
-                  AppointmentRecurrenceDialog(initialData: controller.recurrenceData.value),
+                  AppointmentRecurrenceDialog(
+                    initialData: controller.recurrenceData.value,
+                    defaultStartDate: controller.selectedStartDate.value,
+                    defaultEndDate: controller.selectedEndDate.value,
+                    defaultStartTime: controller.selectedStartTime.value,
+                    defaultEndTime: controller.selectedEndTime.value,
+                  ),
                 );
                 if (result != null) {
                   controller.recurrenceData.value = result;
+                  controller.selectedStartDate.value = result.startDate;
+                  controller.selectedEndDate.value = result.endByDate;
+                  controller.selectedStartTime.value = controller.parseTimeOfDay(result.startTime);
+                  controller.selectedEndTime.value = controller.parseTimeOfDay(result.endTime);
                   controller.isRecurring.value = true;
                 } else {
                   controller.isRecurring.value = false;

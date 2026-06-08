@@ -146,6 +146,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
 
           return ListView(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
               TaskFilterCard(controller: controller),
               SizedBox(height: 12.h),
@@ -222,7 +223,13 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
 
                                         return TableRow(
                                           children: [
-                                            AllTasksDataCell(text: "${task.taskCode}_${task.taskInstanceId}", isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(
+                                              text: "${task.taskCode}_${task.taskInstanceId}",
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                              textColor: AppColors.blue500,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                             AllTasksDataCell(text: _sanitize(task.project ?? 'mFresh'), isExpanded: isExpanded, onTap: toggleRow),
                                             AllTasksDataCell(text: task.title, isExpanded: isExpanded, onTap: toggleRow),
                                             AllTasksDataCell(text: _formatDateTime(task.createdAt), isExpanded: isExpanded, onTap: toggleRow),

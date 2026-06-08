@@ -8,6 +8,7 @@ import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/daily_task_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
@@ -86,7 +87,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     completedByName: 'Loading Completer',
                   ),
                 )
-              : controller.tasks.where((task) {
+              : controller.allDailyTasks.where((task) {
                   final status = task.status.toLowerCase();
                   if (controller.activeTab.value == 0) {
                     return status != 'completed' &&
@@ -125,6 +126,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
             enabled: isInitialLoading,
             child: CustomScrollView(
               controller: controller.scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -154,28 +156,30 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       SizedBox(height: 12.h),
                       TaskFilterCard(controller: controller),
                       SizedBox(height: 12.h),
-                      Row(
-                        children: [
-                          SizedBox(
-                            height: 24.h,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Get.find<TasksController>().formInitialized.value = false;
-                                Get.toNamed(AppRoutes.createTask);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF16A3B8),
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                elevation: 1,
+                      if (Get.find<AuthRepository>().rxUserPermissions.contains('create_new_task')) ...[
+                        Row(
+                          children: [
+                            SizedBox(
+                              height: 24.h,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Get.find<TasksController>().formInitialized.value = false;
+                                  Get.toNamed(AppRoutes.createTask);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A3B8),
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                  elevation: 1,
+                                ),
+                                child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
                               ),
-                              child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
+                          ],
+                        ),
+                        SizedBox(height: 16.h),
+                      ],
                       Text(
                         'My Tasks',
                         style: AppTextStyle.style_16_700(color: AppColors.black),
@@ -276,6 +280,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       ),
                     ),
                 ],
+                SliverToBoxAdapter(
+                  child: SizedBox(height: MediaQuery.of(context).padding.bottom + 24.h),
+                ),
               ],
             ),
           );

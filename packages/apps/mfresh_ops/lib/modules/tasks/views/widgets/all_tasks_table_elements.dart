@@ -24,12 +24,16 @@ class AllTasksDataCell extends StatelessWidget {
   final String text;
   final bool isExpanded;
   final VoidCallback onTap;
+  final Color? textColor;
+  final FontWeight? fontWeight;
 
   const AllTasksDataCell({
     super.key,
     required this.text,
     required this.isExpanded,
     required this.onTap,
+    this.textColor,
+    this.fontWeight,
   });
 
   @override
@@ -41,7 +45,9 @@ class AllTasksDataCell extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
         child: Text(
           text,
-          style: AppTextStyle.style_12_400(color: AppColors.black),
+          style: AppTextStyle.style_12_400(color: textColor ?? AppColors.black).copyWith(
+            fontWeight: fontWeight,
+          ),
           maxLines: isExpanded ? null : 1,
           overflow: isExpanded ? null : TextOverflow.ellipsis,
         ),

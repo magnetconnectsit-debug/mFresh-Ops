@@ -1,4 +1,12 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:services/settings_service.dart';
+import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:services/api_services.dart';
 import 'package:services/storage_service.dart';
@@ -21,9 +29,101 @@ class AuthRepository extends GetxService {
     required String password,
   }) async {
     try {
+      bool isDev = kDebugMode;
+      try {
+        if (Get.isRegistered<SettingsService>()) {
+          isDev = isDev || AppConfig.isDevToggle;
+        }
+      } catch (_) {}
+
+      String deviceId = "android_device_123456";
+      String appVersion = "1.0.0";
+
+      try {
+        final packageInfo = await PackageInfo.fromPlatform();
+        appVersion = packageInfo.version;
+      } catch (e) {
+        debugPrint("Error fetching package info: $e");
+      }
+
+      Map<String, dynamic> deviceInfo = {
+        "imei_no": "android_device_123456",
+        "brand": "Unknown",
+        "model": "Unknown",
+        "manufacturer": "Unknown",
+        "os": "Unknown",
+        "os_version": "Unknown",
+        "app_version": appVersion,
+      };
+
+      try {
+        final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+        if (Platform.isAndroid) {
+          final androidInfo = await deviceInfoPlugin.androidInfo;
+          if (!isDev) {
+            deviceId = androidInfo.id;
+          }
+          deviceInfo = {
+            "imei_no": androidInfo.id,
+            "brand": androidInfo.brand,
+            "model": androidInfo.model,
+            "manufacturer": androidInfo.manufacturer,
+            "os": "Android",
+            "os_version": androidInfo.version.release,
+            "app_version": appVersion,
+          };
+        } else if (Platform.isIOS) {
+          final iosInfo = await deviceInfoPlugin.iosInfo;
+          if (!isDev) {
+            deviceId = iosInfo.identifierForVendor ?? "ios_device_123456";
+          }
+          deviceInfo = {
+            "imei_no": iosInfo.identifierForVendor ?? "ios_device_123456",
+            "brand": "Apple",
+            "model": iosInfo.model,
+            "manufacturer": "Apple",
+            "os": "iOS",
+            "os_version": iosInfo.systemVersion,
+            "app_version": appVersion,
+          };
+        }
+      } catch (e) {
+        debugPrint("Error fetching device info: $e");
+      }
+
+      if (isDev) {
+        deviceId = "android_device_123456";
+        deviceInfo["imei_no"] = "android_device_123456";
+      }
+
+      String fcmToken = 'firebase_token';
+      try {
+        if (Firebase.apps.isEmpty) {
+          await Firebase.initializeApp();
+        }
+        final FirebaseMessaging messaging = FirebaseMessaging.instance;
+        await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        final token = await messaging.getToken();
+        if (token != null && token.isNotEmpty) {
+          fcmToken = token;
+        }
+      } catch (e) {
+        debugPrint("Error fetching real FCM token: $e");
+      }
+
       final response = await _apiService.post(
         AppConstants.login,
-        data: {'mobile': mobile, 'password': password},
+        data: {
+          'mobile': mobile,
+          'password': password,
+          'device_id': deviceId,
+          'fcm_token': fcmToken,
+          'device_info': deviceInfo,
+        },
       );
 
       if (response != null && response['token'] != null) {

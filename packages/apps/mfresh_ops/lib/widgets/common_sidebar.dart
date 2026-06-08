@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/core.dart';
 import 'package:services/storage_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});
@@ -132,7 +133,20 @@ class CommonSidebar extends StatelessWidget {
               Get.offAllNamed(AppRoutes.login);
             },
           ),
-          SizedBox(height: 20.h),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              final version = snapshot.data?.version ?? '1.0.0';
+              return Padding(
+                padding: EdgeInsets.only(bottom: 16.h, top: 8.h),
+                child: Text(
+                  'Version $version',
+                  style: AppTextStyle.style_14_500(color: AppColors.grey400),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

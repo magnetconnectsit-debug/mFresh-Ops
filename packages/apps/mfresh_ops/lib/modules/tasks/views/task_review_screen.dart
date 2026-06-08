@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_image_view.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
@@ -47,7 +48,7 @@ class TaskReviewScreen extends GetView<TasksController> {
                 children: [
                   ...controller.attachments.asMap().entries.map((entry) {
                     return _buildImageItem(
-                      entry.value.path,
+                      entry.value,
                       () => controller.removeAttachment(entry.key),
                     );
                   }),
@@ -178,18 +179,29 @@ class TaskReviewScreen extends GetView<TasksController> {
     );
   }
 
-  Widget _buildImageItem(String path, VoidCallback onDelete) {
+  Widget _buildImageItem(dynamic item, VoidCallback onDelete) {
+    final bool isUrl = item is String;
     return Stack(
       children: [
-        Container(
-          width: 80.w,
-          height: 80.w,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.r),
-            image: DecorationImage(
-              image: FileImage(File(path)),
-              fit: BoxFit.cover,
-            ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8.r),
+          child: SizedBox(
+            width: 80.w,
+            height: 80.w,
+            child: isUrl
+                ? AppImageView(
+                    imageUrl: item,
+                    width: 80.w,
+                    height: 80.w,
+                    fit: BoxFit.cover,
+                    borderRadius: 8.r,
+                  )
+                : Image.file(
+                    item is File ? item : File(item.path),
+                    width: 80.w,
+                    height: 80.w,
+                    fit: BoxFit.cover,
+                  ),
           ),
         ),
         Positioned(
