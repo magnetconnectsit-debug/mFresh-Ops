@@ -85,6 +85,17 @@ class CommonSidebar extends StatelessWidget {
                     currentRoute: currentRoute,
                   ),
 
+                  // Tracking Expandable Section
+                  _buildExpandableMenuItem(
+                    icon: Icons.location_on_outlined,
+                    title: 'Tracking',
+                    subItems: [
+                      'My Routes',
+                      'Staff Tracking',
+                    ],
+                    currentRoute: currentRoute,
+                  ),
+
                   _buildExpandableMenuItem(
                     icon: Icons.support_agent_outlined,
                     title: 'Support Ticket',
@@ -236,6 +247,10 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.allTasks);
                   } else if (item == 'Daily Task') {
                     Get.toNamed(AppRoutes.dailyTasks);
+                  } else if (item == 'My Routes') {
+                    Get.toNamed(AppRoutes.liveTracking);
+                  } else if (item == 'Staff Tracking') {
+                    Get.toNamed(AppRoutes.staffTracking);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);
                   } else if (item == 'Unit Inventory') {

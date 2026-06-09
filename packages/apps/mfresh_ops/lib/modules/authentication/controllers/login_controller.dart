@@ -5,6 +5,7 @@ import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
@@ -101,6 +102,7 @@ class LoginController extends GetxController {
           await _storageService.clearCredentials();
         }
 
+        Get.find<TrackingService>().startAutoTracking();
         Get.offAllNamed(AppRoutes.home);
       } else {
         AppCommonToastMessage.show(

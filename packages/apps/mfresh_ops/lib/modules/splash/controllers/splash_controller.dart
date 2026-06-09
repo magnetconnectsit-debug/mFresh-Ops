@@ -3,10 +3,12 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 
 class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
   final AppUpdateService _updateService = Get.find<AppUpdateService>();
+  final TrackingService _trackingService = Get.find<TrackingService>();
 
   @override
   void onReady() {
@@ -44,6 +46,7 @@ class SplashController extends GetxController {
     final token = _storageService.getToken();
 
     if (token != null && token.isNotEmpty) {
+      _trackingService.startAutoTracking();
       Get.offAllNamed(AppRoutes.home);
     } else {
       Get.offAllNamed(AppRoutes.login);

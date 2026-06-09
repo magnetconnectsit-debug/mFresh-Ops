@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:services/settings_service.dart';
+import 'package:mfresh_ops/core/env/env.dart';
 
 enum AppEnvironment { dev, prod }
 
@@ -23,6 +24,8 @@ class AppConfig {
   static bool get _isProdEnv => kReleaseMode && !isDevToggle;
 
   static String get envName => _isProdEnv ? 'PRODUCTION' : 'DEVELOPMENT';
+
+  static String get googleMapsApiKey => Env.googleMapsApiKey;
 
   // FOR PINELABS MACHINE
   static String get applicationId => _isProdEnv

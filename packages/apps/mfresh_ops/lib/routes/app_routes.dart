@@ -25,4 +25,7 @@ abstract class AppRoutes {
   static const profile = '/profile';
   static const notifications = '/notifications';
   static const locationPermission = '/location-permission';
+  static const liveTracking = '/live-tracking';
+  static const routeHistory = '/route-history';
+  static const staffTracking = '/staff-tracking';
 }
