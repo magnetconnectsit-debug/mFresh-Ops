@@ -13,38 +13,14 @@ class SplashScreen extends StatelessWidget {
     Get.put(SplashController());
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Central Logo
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(AppImages.appLogo, width: 300.w, height: 200.h),
-              ],
-            ),
-          ),
-          // Footer Text
-          Positioned(
-            bottom: 40.h,
-            left: 0,
-            right: 0,
-            child: Column(
-              children: [
-                Text(
-                  'mFresh Ops',
-                  style: AppTextStyle.style_22_600(color: AppColors.primary),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'EMPOWERING OPERATIONS',
-                  style: AppTextStyle.style_12_500(color: AppColors.grey300),
-                ),
-              ],
-            ),
-          ),
-        ],
+      backgroundColor: AppColors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(AppImages.appLogo, width: 600.w, height: 500.h),
+          ],
+        ),
       ),
     );
   }

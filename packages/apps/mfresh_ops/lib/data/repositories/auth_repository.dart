@@ -36,7 +36,7 @@ class AuthRepository extends GetxService {
         }
       } catch (_) {}
 
-      String deviceId = "android_device_123456";
+      String deviceId = "";
       String appVersion = "1.0.0";
 
       try {
@@ -47,7 +47,7 @@ class AuthRepository extends GetxService {
       }
 
       Map<String, dynamic> deviceInfo = {
-        "imei_no": "android_device_123456",
+        "imei_no": "",
         "brand": "Unknown",
         "model": "Unknown",
         "manufacturer": "Unknown",
@@ -60,9 +60,7 @@ class AuthRepository extends GetxService {
         final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
         if (Platform.isAndroid) {
           final androidInfo = await deviceInfoPlugin.androidInfo;
-          if (!isDev) {
-            deviceId = androidInfo.id;
-          }
+          deviceId = androidInfo.id;
           deviceInfo = {
             "imei_no": androidInfo.id,
             "brand": androidInfo.brand,
@@ -74,11 +72,10 @@ class AuthRepository extends GetxService {
           };
         } else if (Platform.isIOS) {
           final iosInfo = await deviceInfoPlugin.iosInfo;
-          if (!isDev) {
-            deviceId = iosInfo.identifierForVendor ?? "ios_device_123456";
-          }
+          final resolvedId = iosInfo.identifierForVendor ?? "";
+          deviceId = resolvedId;
           deviceInfo = {
-            "imei_no": iosInfo.identifierForVendor ?? "ios_device_123456",
+            "imei_no": resolvedId,
             "brand": "Apple",
             "model": iosInfo.model,
             "manufacturer": "Apple",
@@ -126,19 +123,25 @@ class AuthRepository extends GetxService {
         },
       );
 
-      if (response != null && response['token'] != null) {
-        final String token = response['token'];
-        final String? refreshToken = response['refresh_token'];
-        final user = User.fromJson(response);
+      if (response != null) {
+        if (response['token'] != null) {
+          final String token = response['token'];
+          final String? refreshToken = response['refresh_token'];
+          final user = User.fromJson(response);
 
-        await _storageService.saveToken(token);
-        if (refreshToken != null) {
-          await _storageService.saveRefreshToken(refreshToken);
+          await _storageService.saveToken(token);
+          if (refreshToken != null) {
+            await _storageService.saveRefreshToken(refreshToken);
+          }
+          await _storageService.saveUser(user);
+          rxUserPermissions.assignAll(user.permissions ?? []);
+
+          return user;
+        } else if (response['error'] != null) {
+          throw Exception(response['error'].toString());
+        } else if (response['message'] != null) {
+          throw Exception(response['message'].toString());
         }
-        await _storageService.saveUser(user);
-        rxUserPermissions.assignAll(user.permissions ?? []);
-
-        return user;
       }
       return null;
     } catch (e) {

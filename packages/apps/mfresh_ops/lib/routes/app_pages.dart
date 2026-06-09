@@ -7,6 +7,7 @@ import 'package:dev/controllers/dev_passcode_controller.dart';
 import 'package:dev/controllers/dev_settings_controller.dart';
 import 'package:dev/controllers/log_viewer_controller.dart';
 import 'package:mfresh_ops/modules/splash/views/splash_screen.dart';
+import 'package:mfresh_ops/modules/splash/views/location_permission_screen.dart';
 import 'package:mfresh_ops/modules/authentication/views/login_screen.dart';
 import 'package:mfresh_ops/modules/home/views/home_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/all_tasks_screen.dart';
@@ -157,5 +158,9 @@ class AppPages {
     ),
     GetPage(name: AppRoutes.items, page: () => const ItemScreen()),
     GetPage(name: AppRoutes.storeRooms, page: () => const StoreRoomScreen()),
+    GetPage(
+      name: AppRoutes.locationPermission,
+      page: () => const LocationPermissionScreen(),
+    ),
   ];
 }

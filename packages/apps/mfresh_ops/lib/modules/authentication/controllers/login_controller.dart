@@ -7,6 +7,8 @@ import 'package:services/services.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'dart:convert';
 
 class LoginController extends GetxController {
   final usernameController = TextEditingController();
@@ -107,8 +109,33 @@ class LoginController extends GetxController {
         );
       }
     } catch (e) {
+      String errorMessage = 'An error occurred. Please try again.';
+      if (e is DioException) {
+        final data = e.response?.data;
+        Map? errorMap;
+        if (data is Map) {
+          errorMap = data;
+        } else if (data is String) {
+          try {
+            errorMap = jsonDecode(data);
+          } catch (_) {}
+        }
+
+        if (errorMap != null) {
+          if (errorMap.containsKey('error')) {
+            errorMessage = errorMap['error'].toString();
+          } else if (errorMap.containsKey('message')) {
+            errorMessage = errorMap['message'].toString();
+          }
+        } else {
+          errorMessage = e.message ?? errorMessage;
+        }
+      } else {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      }
+
       AppCommonToastMessage.show(
-        message: 'An error occurred: $e',
+        message: errorMessage,
         type: ToastType.error,
       );
     } finally {

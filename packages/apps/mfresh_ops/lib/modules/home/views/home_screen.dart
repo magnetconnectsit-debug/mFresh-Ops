@@ -91,13 +91,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(height: 12.h),
                       const HomeGrid(),
-                      SizedBox(height: 32.h),
+                      SizedBox(height: 16.h),
                       Center(
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(
-                            vertical: 16.h,
-                            horizontal: 20.w,
+                            vertical: 4.h,
+                            horizontal: 6.w,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -115,13 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                           child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                            // mainAxisSize: MainAxisSize.min,
                             children: [
                               Image.asset(
                                 AppImages.appLogo,
-                                width: 220.w,
-                                height: 60.h,
-                                fit: BoxFit.contain,
+                                width: 700.w,
+                                height: 110.h,
+                                fit: BoxFit.fill,
                               ),
                             ],
                           ),

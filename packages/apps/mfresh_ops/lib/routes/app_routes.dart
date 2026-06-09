@@ -24,4 +24,5 @@ abstract class AppRoutes {
   static const storeRooms = '/store-rooms';
   static const profile = '/profile';
   static const notifications = '/notifications';
+  static const locationPermission = '/location-permission';
 }
