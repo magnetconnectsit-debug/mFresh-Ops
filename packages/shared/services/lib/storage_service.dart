@@ -2,8 +2,9 @@
 import 'package:core/models/app_notification.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:services/src/location/models/tracking_models.dart';
 // endregion
 
 // region StorageService
@@ -13,6 +14,7 @@ class StorageService extends GetxService {
   static const String _userBoxName = 'user_box';
   static const String _settingsBoxName = 'settings_box';
   static const String _notificationBoxName = 'notifications_box';
+  static const String _locationCacheBoxName = 'location_cache_box';
 
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
@@ -31,6 +33,7 @@ class StorageService extends GetxService {
   late final Box<dynamic> _userBox;
   late final Box<dynamic> _settingsBox;
   late final Box<dynamic> _notificationBox;
+  late final Box<LocationData> _locationCacheBox;
 
   // endregion
 
@@ -50,6 +53,7 @@ class StorageService extends GetxService {
     _userBox = await _safeOpenBox<dynamic>(_userBoxName);
     _settingsBox = await _safeOpenBox<dynamic>(_settingsBoxName);
     _notificationBox = await _safeOpenBox<dynamic>(_notificationBoxName);
+    _locationCacheBox = await _safeOpenBox<LocationData>(_locationCacheBoxName);
 
     debugPrint('StorageService: Hive initialized and boxes opened.');
     return this;
@@ -267,6 +271,20 @@ class StorageService extends GetxService {
     debugPrint('StorageService: Notifications cleared.');
   }
 
+  // endregion
+
+  // region Location Methods
+  Future<void> cacheLocation(LocationData location) async {
+    await _locationCacheBox.add(location);
+  }
+
+  List<LocationData> getCachedLocations() {
+    return _locationCacheBox.values.toList();
+  }
+
+  Future<void> clearCachedLocations() async {
+    await _locationCacheBox.clear();
+  }
   // endregion
 
   // region General Methods

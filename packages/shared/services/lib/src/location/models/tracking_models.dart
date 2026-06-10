@@ -1,32 +1,43 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:hive_ce/hive_ce.dart';
 
 part 'tracking_models.g.dart';
 
+@HiveType(typeId: 10)
 @JsonSerializable()
-class LocationData {
+class LocationData with HiveObjectMixin {
+  @HiveField(0)
   final double latitude;
+  @HiveField(1)
   final double longitude;
+  @HiveField(2)
   final double? accuracy;
+  @HiveField(3)
   final double? speed;
+  @HiveField(4)
   final double? heading;
+  @HiveField(5)
   final int? battery;
+  @HiveField(6)
   @JsonKey(name: 'is_charging')
   final bool? isCharging;
+  @HiveField(7)
   @JsonKey(name: 'network_type')
   final String? networkType;
+  @HiveField(8)
   @JsonKey(name: 'location_time')
   final String locationTime;
 
   LocationData({
     required this.latitude,
     required this.longitude,
+    required this.locationTime,
     this.accuracy,
     this.speed,
     this.heading,
     this.battery,
     this.isCharging,
     this.networkType,
-    required this.locationTime,
   });
 
   factory LocationData.fromJson(Map<String, dynamic> json) => _$LocationDataFromJson(json);

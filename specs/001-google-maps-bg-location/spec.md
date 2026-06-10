@@ -25,18 +25,24 @@ As an app user, I want to see my current location on a Google Map so that I can 
 
 ---
 
-### User Story 2 - Background Location Tracking (Priority: P2)
+### User Story 2 - Employee Tracking Lifecycle (Priority: P1)
 
-As a field operator, I want the app to track my location even when it's in the background or the screen is locked so that my movement is accurately recorded without me having to keep the app open.
-
-**Why this priority**: Essential for "bg location" requirement.
-
-**Independent Test**: Start tracking, minimize app/lock screen, move 100 meters, restore app, and verify that the location history or current position reflects the movement.
+As an employee, I want to start a tracking session so that my location is recorded for my shift.
 
 **Acceptance Scenarios**:
+1. **Given** the user is logged in, **When** they tap 'Start Tracking', **Then** a session is created via the `/tracking/start` API and background tracking begins.
+2. **Given** an active session, **When** the app is in background, **Then** location updates are sent via `/tracking/location-update` or `/tracking/bulk-sync`.
+3. **Given** an active session, **When** the user taps 'Stop Tracking', **Then** the session is ended via `/tracking/stop` and background tracking ceases.
 
-1. **Given** the app has "Always" location permission, **When** the user minimizes the app, **Then** a foreground service (or equivalent) continues to receive location updates.
-2. **Given** the app is in the background, **When** a new location is received, **Then** it is [NEEDS CLARIFICATION: processed for sync or stored locally?].
+---
+
+### User Story 4 - Tracking Insights & History (Priority: P2)
+
+As an employee, I want to see my route history, stops, and segments so that I can review my day's work.
+
+**Acceptance Scenarios**:
+1. **Given** a date selection, **When** I view history, **Then** the map draws my route from `/tracking/my-route-history`.
+2. **Given** the history view, **When** I check stops or segments, **Then** I see detailed data from `/tracking/my-stoppages` and `/tracking/my-segments`.
 
 ---
 
@@ -67,8 +73,11 @@ As a user, I want the app to guide me if I haven't granted permissions or if my 
 - **FR-002**: System MUST use a background-capable location plugin (e.g., `geolocator` with service or `background_locator_2`).
 - **FR-003**: System MUST implement a Foreground Service on Android to ensure the OS doesn't kill the location task.
 - **FR-004**: System MUST handle "Fine" and "Background" location permission requests.
-- **FR-005**: System MUST target [NEEDS CLARIFICATION: mfresh (Customer) or mfresh_ops (Operations) app?].
-- **FR-006**: System MUST [NEEDS CLARIFICATION: sync location data to a backend API / Firebase?].
+- **FR-005**: System MUST target the `mfresh_ops` (Operations) app.
+- **FR-006**: System MUST sync location data (lat, long, timestamp, speed, activity) to the provided backend API.
+- **FR-007**: System MUST fetch location history from the backend API based on user ID and date/time filters.
+- **FR-008**: System MUST draw routes using Polylines on the Google Map.
+- **FR-009**: System MUST support filtering history by Date and Time range.
 
 ### Key Entities
 

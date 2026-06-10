@@ -2,16 +2,27 @@
 
 ## Entities
 
-### `UserLocation` (Internal State)
-Represents the current position of the user.
+### `TrackingSession`
+- `sessionId`: int
+- `deviceId`: String
+- `isActive`: bool
 
+### `LocationUpdate`
 - `latitude`: double
 - `longitude`: double
-- `timestamp`: DateTime
 - `accuracy`: double
-- `altitude`: double
-- `heading`: double
 - `speed`: double
+- `heading`: double
+- `battery`: int
+- `isCharging`: bool
+- `networkType`: String
+- `locationTime`: String (format: YYYY-MM-DD HH:MM:SS)
+
+### `RouteHistory`
+- `date`: String
+- `points`: List<LocationUpdate>
+- `stoppages`: List<Stoppage>
+- `segments`: List<Segment>
 
 ### `LocationTrackingConfig`
 Settings for the background service.
