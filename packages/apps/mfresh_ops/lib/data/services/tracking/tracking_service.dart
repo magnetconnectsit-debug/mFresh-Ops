@@ -11,10 +11,11 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:mfresh_ops/main.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:battery_plus/battery_plus.dart';
+import 'package:mfresh_ops/data/models/tracking_models.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 class TrackingService extends GetxService {
   final TrackingRepository _repository = Get.find<TrackingRepository>();
-  final StorageService _storageService = Get.find<StorageService>();
   final LocationService _locationService = GeolocatorLocationService();
   final Battery _battery = Battery();
   
@@ -92,11 +93,12 @@ class TrackingService extends GetxService {
   Future<void> syncOfflineData() async {
     if (isSyncing.value || sessionId.value == null) return;
     
-    final cachedLocations = _storageService.getCachedLocations();
-    if (cachedLocations.isEmpty) return;
-
-    isSyncing.value = true;
     try {
+      final box = await Hive.openBox<LocationData>('location_cache_box');
+      if (box.isEmpty) return;
+
+      isSyncing.value = true;
+      final cachedLocations = box.values.toList();
       final deviceId = await _getDeviceId();
       final request = BulkSyncRequest(
         sessionId: sessionId.value!,
@@ -106,7 +108,7 @@ class TrackingService extends GetxService {
 
       final data = await _repository.bulkSync(request);
       if (data != null && data['status'] == true) {
-        await _storageService.clearCachedLocations();
+        await box.clear();
       }
     } catch (e) {
       debugPrint('TrackingService: Bulk sync failed: $e');
@@ -283,15 +285,17 @@ class TrackingService extends GetxService {
     try {
       final connectivityResults = await Connectivity().checkConnectivity();
       if (connectivityResults.contains(ConnectivityResult.none)) {
-        await _storageService.cacheLocation(locationData);
-        return;
+        final box = await Hive.openBox<LocationData>('location_cache_box');
+        await box.add(locationData);
+        debugPrint('TrackingService: Location cached offline (No internet)');
+      } else {
+        await _repository.updateLocation(request);
+        debugPrint('TrackingService: Synced 5s update');
       }
-      
-      await _repository.updateLocation(request);
-      debugPrint('TrackingService: Synced 5s update');
     } catch (e) {
       debugPrint('TrackingService: Sync failed, caching: $e');
-      await _storageService.cacheLocation(locationData);
+      final box = await Hive.openBox<LocationData>('location_cache_box');
+      await box.add(locationData);
     }
   }
 

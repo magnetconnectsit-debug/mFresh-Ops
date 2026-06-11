@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 abstract class LocationService {
   Future<Position?> getCurrentPosition();

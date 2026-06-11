@@ -3,27 +3,42 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:mfresh_ops/core/utils/map_marker_utils.dart';
 
 class HistoryController extends GetxController {
   final TrackingRepository _repository = Get.find<TrackingRepository>();
   
   final RxList<LatLng> routePoints = <LatLng>[].obs;
   final RxList<Marker> stopMarkers = <Marker>[].obs;
+  final Rx<Marker?> startMarker = Rx<Marker?>(null);
+  final Rx<Marker?> endMarker = Rx<Marker?>(null);
   final RxBool isLoading = false.obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd');
+  
+  BitmapDescriptor? _startIcon;
+  BitmapDescriptor? _endIcon;
+  BitmapDescriptor? _stopIcon;
 
   @override
   void onInit() {
     super.onInit();
-    fetchHistory();
+    _initIcons().then((_) => fetchHistory());
+  }
+
+  Future<void> _initIcons() async {
+    _startIcon = await MapMarkerUtils.createIconMarker(color: Colors.green, iconData: Icons.play_arrow, size: 60);
+    _endIcon = await MapMarkerUtils.createIconMarker(color: Colors.red, iconData: Icons.flag, size: 60);
+    _stopIcon = await MapMarkerUtils.createIconMarker(color: Colors.orange, iconData: Icons.pause, size: 50);
   }
 
   Future<void> fetchHistory() async {
     isLoading.value = true;
     routePoints.clear();
     stopMarkers.clear();
+    startMarker.value = null;
+    endMarker.value = null;
 
     final dateStr = _apiDateFormat.format(selectedDate.value);
 
@@ -35,6 +50,25 @@ class HistoryController extends GetxController {
           double.parse(p['latitude'].toString()),
           double.parse(p['longitude'].toString()),
         )).toList();
+
+        if (routePoints.isNotEmpty && _startIcon != null) {
+          startMarker.value = Marker(
+            markerId: const MarkerId('start'),
+            position: routePoints.first,
+            icon: _startIcon!,
+            infoWindow: const InfoWindow(title: 'Start Location'),
+            anchor: const Offset(0.5, 0.5),
+          );
+        }
+        if (routePoints.length > 1 && _endIcon != null) {
+          endMarker.value = Marker(
+            markerId: const MarkerId('end'),
+            position: routePoints.last,
+            icon: _endIcon!,
+            infoWindow: const InfoWindow(title: 'End/Current Location'),
+            anchor: const Offset(0.5, 0.5),
+          );
+        }
       }
 
       final stopData = await _repository.getStoppages(date: dateStr);
@@ -50,9 +84,10 @@ class HistoryController extends GetxController {
             ),
             infoWindow: InfoWindow(
               title: 'Stop ${i + 1}',
-              snippet: 'Duration: ${s['duration']}',
+              snippet: 'Duration: ${s['duration_minutes'] ?? s['duration']} mins',
             ),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            icon: _stopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            anchor: const Offset(0.5, 0.5),
           ));
         }
       }

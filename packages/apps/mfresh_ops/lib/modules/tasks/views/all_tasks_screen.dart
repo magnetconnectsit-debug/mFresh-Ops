@@ -187,7 +187,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                       inside: BorderSide(color: Colors.grey.shade300),
                                     ),
                                     columnWidths: {
-                                      0: FixedColumnWidth(90.w),
+                                      0: FixedColumnWidth(100.w),
                                       1: FixedColumnWidth(80.w),
                                       2: FixedColumnWidth(200.w),
                                       3: FixedColumnWidth(140.w),

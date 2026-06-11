@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:services/services.dart';
-
+import 'package:mfresh_ops/data/models/tracking_models.dart';
 class TrackingRepository {
   final ApiService _apiService = Get.find<ApiService>();
 
@@ -34,5 +34,9 @@ class TrackingRepository {
 
   Future<dynamic> getSegments({String? date}) async {
     return await _apiService.get('tracking/my-segments', query: date != null ? {'date': date} : null);
+  }
+
+  Future<dynamic> getTodaySummary({String? date}) async {
+    return await _apiService.get('tracking/today-summary', query: date != null ? {'date': date} : null);
   }
 }
