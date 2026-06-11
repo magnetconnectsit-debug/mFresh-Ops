@@ -456,7 +456,7 @@ class ServiceDetailsController extends GetxController {
 
       final paymentPayload = {
         "Header": {
-          "ApplicationId": "com.example.mangnet_connect", // Whitelisted ID
+          "ApplicationId": "com.mFresh", // Whitelisted ID
           "UserId": "user1234",
           "MethodId": "1001",
           "VersionNo": "1.0",
@@ -517,7 +517,9 @@ class ServiceDetailsController extends GetxController {
       "Payment_status": phonePeData?['code'] ?? "PAYMENT_SUCCESS",
       "provider_reference_id":
           phonePeData?['providerReferenceId'] ?? "ADMIN_MANUAL_CONFIRM",
-      "check_sum": phonePeData != null ? jsonEncode(phonePeData) : "VERIFIED_DIRECT",
+      "check_sum": phonePeData != null
+          ? jsonEncode(phonePeData)
+          : "VERIFIED_DIRECT",
     };
 
     final confirmed = await _commonRepository.confirmSuccessBooking(

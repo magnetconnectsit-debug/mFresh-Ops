@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter_thermal_printer/flutter_thermal_printer.dart';
 import 'package:pdf/pdf.dart';
@@ -6,6 +7,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:intl/intl.dart';
 import 'package:core/constants/app_images.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:image/image.dart' as img;
+import 'package:flutter/material.dart';
 
 class TwoInchReceipt {
   static Future<List<int>> generateEscPosBytes(
@@ -60,8 +64,8 @@ class TwoInchReceipt {
         "DeviceID": "NA",
         "AccessDate": DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
       }),
-      size: QRSize.size6,
-      cor: QRCorrection.H,
+      size: QRSize.size4, // Reduced from size6 to prevent buffer overflow/clipping
+      cor: QRCorrection.M, // Reduced from H to M to reduce payload length
       align: centerAlign,
     );
 

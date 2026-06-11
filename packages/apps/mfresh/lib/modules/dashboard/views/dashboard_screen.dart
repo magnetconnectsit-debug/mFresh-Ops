@@ -487,7 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final user = profileController.user.value;
         final scannerPayload = {
           "Header": {
-            "ApplicationId": "com.example.mangnet_connect",
+            "ApplicationId": "com.mFresh",
             "UserId": user?.customeUserID ?? "NA",
             "MethodId": "1007",
             "VersionNo": "1.0",
