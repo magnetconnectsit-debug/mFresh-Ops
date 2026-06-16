@@ -63,15 +63,18 @@ class HistoryController extends GetxController {
     _vehicleIcon = await MapMarkerUtils.createNavigationArrowMarker(color: Colors.blueAccent, size: 80);
   }
 
-  Future<void> fetchHistory() async {
+  Future<void> fetchHistory({bool isRefresh = false}) async {
     isLoading.value = true;
     stopReplay();
-    routePoints.clear();
-    drawnRoutePoints.clear();
-    stopMarkers.clear();
-    rawStoppages.clear();
-    startMarker.value = null;
-    endMarker.value = null;
+    
+    if (!isRefresh) {
+      routePoints.clear();
+      drawnRoutePoints.clear();
+      stopMarkers.clear();
+      rawStoppages.clear();
+      startMarker.value = null;
+      endMarker.value = null;
+    }
 
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
@@ -249,7 +252,7 @@ class HistoryController extends GetxController {
       final lat = double.parse(stop['latitude'].toString());
       final lng = double.parse(stop['longitude'].toString());
       
-      mapController?.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15));
+      mapController?.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 13));
       Future.delayed(const Duration(milliseconds: 300), () {
         mapController?.showMarkerInfoWindow(MarkerId('stop_$index'));
       });

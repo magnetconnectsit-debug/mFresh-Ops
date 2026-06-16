@@ -56,7 +56,7 @@ class HistoryView extends GetView<HistoryController> {
                 child: GoogleMap(
                   padding: EdgeInsets.only(
                     bottom: controller.rawStoppages.isNotEmpty
-                        ? MediaQuery.of(context).size.height * 0.3
+                        ? MediaQuery.of(context).size.height * 0.35 // Increased padding so zoom controls clear the bottom sheet
                         : 0,
                   ),
                   initialCameraPosition: CameraPosition(
@@ -158,7 +158,7 @@ class HistoryView extends GetView<HistoryController> {
                                 child: CustomAppLoader(size: 20),
                               )
                             : InkWell(
-                                onTap: () => controller.fetchHistory(),
+                                onTap: () => controller.fetchHistory(isRefresh: true),
                                 child: const Padding(
                                   padding: EdgeInsets.all(8.0),
                                   child: Icon(
