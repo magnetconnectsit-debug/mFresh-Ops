@@ -15,7 +15,10 @@ import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 class TrackingService extends GetxService {
+  static TrackingService get to => Get.find<TrackingService>();
+
   final TrackingRepository _repository = Get.find<TrackingRepository>();
+  final StorageService _storageService = Get.find<StorageService>();
   final LocationService _locationService = GeolocatorLocationService();
   final Battery _battery = Battery();
   
@@ -44,14 +47,20 @@ class TrackingService extends GetxService {
   // We split the startup logic so we can call it after login is confirmed
   Future<void> startAutoTracking() async {
     debugPrint('TrackingService: Attempting auto-start...');
+    
+    final intendedStatus = _storageService.getIntendedTrackingStatus();
+    if (intendedStatus == false) {
+      debugPrint('TrackingService: User intentionally off-duty. Aborting auto-start.');
+      isTracking.value = false;
+      return;
+    }
+
     await checkCurrentStatus();
     
-    // If not already tracking on backend, try to start a new session
-    if (!isTracking.value) {
-      debugPrint('TrackingService: Not active on backend, starting new session');
-      await startTracking();
-    } else {
+    if (isTracking.value) {
       debugPrint('TrackingService: Already active on backend, resuming foreground sync');
+    } else {
+      debugPrint('TrackingService: Not active on backend, staying offline');
     }
   }
 
@@ -165,6 +174,7 @@ class TrackingService extends GetxService {
       if (data != null && data['status'] == true) {
         sessionId.value = data['session_id'];
         isTracking.value = true;
+        await _storageService.saveIntendedTrackingStatus(true);
         await _startForegroundService();
         _startForegroundUpdateTimer();
       }
@@ -176,6 +186,7 @@ class TrackingService extends GetxService {
   Future<void> stopTracking() async {
     if (sessionId.value == null) {
       isTracking.value = false;
+      await _storageService.saveIntendedTrackingStatus(false);
       _stopForegroundUpdateTimer();
       await _startForegroundService();
       return;
@@ -198,6 +209,7 @@ class TrackingService extends GetxService {
         await syncOfflineData();
         isTracking.value = false;
         sessionId.value = null;
+        await _storageService.saveIntendedTrackingStatus(false);
         _stopForegroundUpdateTimer();
         await _startForegroundService();
       }

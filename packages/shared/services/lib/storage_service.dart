@@ -144,6 +144,14 @@ class StorageService extends GetxService {
     return _settingsBox.get(_baseUrlKey, defaultValue: '');
   }
 
+  Future<void> saveIntendedTrackingStatus(bool isTracking) async {
+    await _settingsBox.put('intended_tracking_status', isTracking);
+  }
+
+  bool? getIntendedTrackingStatus() {
+    return _settingsBox.get('intended_tracking_status') as bool?;
+  }
+
   Future<void> saveShowLogger(bool show) async {
     await _settingsBox.put(_showLoggerKey, show);
   }

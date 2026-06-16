@@ -359,8 +359,12 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                       status == 'rejected' ||
                       isOverdue) {
                     controller.fetchTaskSubmissionDetails(task, isReview: false);
-                  } else if (status != 'completed' && status != 'approved') {
-                    controller.editTaskDetails(task);
+                  } else if (status == 'completed' || status == 'approved') {
+                    controller.fetchTaskSubmissionDetails(task, isReview: true, readOnly: true);
+                  } else {
+                    if (Get.find<AuthRepository>().rxUserPermissions.contains('Task_Edit')) {
+                      controller.editTaskDetails(task);
+                    }
                   }
                 },
                 child: Column(

@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
@@ -47,6 +48,8 @@ class SplashController extends GetxController {
 
     if (token != null && token.isNotEmpty) {
       _trackingService.startAutoTracking();
+      // Proactively fetch latest profile and permissions on startup
+      await Get.find<AuthRepository>().fetchProfile();
       Get.offAllNamed(AppRoutes.home);
     } else {
       Get.offAllNamed(AppRoutes.login);

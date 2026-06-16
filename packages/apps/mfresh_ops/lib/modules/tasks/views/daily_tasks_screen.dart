@@ -23,10 +23,19 @@ class DailyTasksScreen extends StatefulWidget {
 }
 
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
+  late final TasksController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(TasksController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.refreshData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(TasksController());
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),

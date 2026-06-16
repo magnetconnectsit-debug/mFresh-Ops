@@ -166,7 +166,7 @@ class TaskItem {
       frequency: json['frequency'] ?? '',
       createdBy: json['created_by']?.toString() ?? '',
       startDate: json['start_date'] ?? '',
-      endDate: json['end_date'] ?? '',
+      endDate: json['end_date'] ?? json['completed_at'] ?? '',
       repeatInterval: json['repeat_interval']?.toString() ?? '1',
       photoRequired: json['photo_required']?.toString() ?? '0',
       approvalRequired: json['approval_required']?.toString() ?? '0',

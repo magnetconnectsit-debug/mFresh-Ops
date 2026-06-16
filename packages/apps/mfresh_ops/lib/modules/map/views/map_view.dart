@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/modules/map/views/widgets/animated_live_map.dart';
 
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
@@ -32,30 +33,86 @@ class MapView extends GetView<TrackingService> {
           ),
         ],
       ),
-      body: Obx(() {
-        if (controller.currentPosition.value == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        
-        final pos = controller.currentPosition.value!;
-        final latLng = LatLng(pos.latitude, pos.longitude);
-        
-        return GoogleMap(
-          initialCameraPosition: CameraPosition(target: latLng, zoom: 15),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          onMapCreated: (GoogleMapController googleMapController) {
-            // Additional map setup if needed
-          },
-          markers: {
-            Marker(
-              markerId: const MarkerId('current_location'),
-              position: latLng,
-              infoWindow: const InfoWindow(title: 'You are here'),
-            ),
-          },
-        );
-      }),
+      body: Stack(
+        children: [
+          const AnimatedLiveMap(),
+          // Bottom Control Overlay
+          Positioned(
+            left: 20.w,
+            right: 20.w,
+            bottom: 24.h,
+            child: Obx(() {
+              final isTracking = controller.isTracking.value;
+              return Container(
+                padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 15.r,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8.r,
+                      height: 8.r,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isTracking ? const Color(0xFF10B981) : Colors.red,
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isTracking ? 'Shift: Active' : 'Shift: Inactive',
+                            style: AppTextStyle.style_14_700(
+                              color: isTracking ? const Color(0xFF10B981) : Colors.red,
+                            ),
+                          ),
+                          Text(
+                            isTracking ? 'Tracking your live route' : 'Location sharing offline',
+                            style: AppTextStyle.style_10_400(color: AppColors.grey500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => controller.toggleTracking(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isTracking
+                            ? Colors.red.withValues(alpha: 0.08)
+                            : AppColors.primary.withValues(alpha: 0.08),
+                        foregroundColor: isTracking ? Colors.red : AppColors.primary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      ),
+                      child: Text(
+                        isTracking ? 'Stop' : 'Start',
+                        style: AppTextStyle.style_12_700(
+                          color: isTracking ? Colors.red : AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 }
+
