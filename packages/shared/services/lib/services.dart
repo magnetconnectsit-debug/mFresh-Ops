@@ -8,6 +8,7 @@ export 'plutus_service.dart';
 export 'remote_config_service.dart';
 export 'settings_service.dart';
 export 'storage_service.dart';
+export 'src/location/location_service.dart';
 
 // Note: App-specific repositories are located in repositories/mfresh/ and repositories/mfresh_ops/
 // and should be imported via mfresh_services.dart or mfresh_ops_services.dart.

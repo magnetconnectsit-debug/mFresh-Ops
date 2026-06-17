@@ -42,12 +42,12 @@ class HomeGrid extends StatelessWidget {
         permissionKey: 'inventory_panel',
       ),
       GridItemData(
-        title: 'Reports',
-        subtitle: 'Analytics & Export',
-        icon: Icons.analytics_rounded,
-        gradient: const [Color(0xFFEF4444), Color(0xFFDC2626)],
-        route: null,
-        permissionKey: 'Report_Pannel',
+        title: 'My Routes',
+        subtitle: 'Personal tracking',
+        icon: Icons.location_on_rounded,
+        gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+        route: AppRoutes.liveTracking,
+        permissionKey: null,
       ),
     ];
 

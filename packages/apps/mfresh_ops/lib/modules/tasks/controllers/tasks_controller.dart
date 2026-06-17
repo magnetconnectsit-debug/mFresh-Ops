@@ -58,6 +58,7 @@ class TasksController extends GetxController {
   // endregion
 
   final currentTime = DateTime.now().obs;
+  final isReadOnly = false.obs;
   Timer? _timeTimer;
 
   @override
@@ -72,7 +73,12 @@ class TasksController extends GetxController {
     
     // Add scroll listener for daily tasks lazy loading
     scrollController.addListener(() {
-      if (scrollController.position.pixels >= scrollController.position.maxScrollExtent - 100) {
+      if (!scrollController.hasClients) return;
+      
+      // Use positions.last to avoid crash if multiple DailyTasks screens are in the navigation stack
+      final pos = scrollController.positions.last;
+      
+      if (pos.pixels >= pos.maxScrollExtent - 100) {
         final currentRoute = Get.currentRoute;
         if (!currentRoute.contains(AppRoutes.allTasks) && !isFiltered) {
           loadMoreDailyTasks();
@@ -116,6 +122,15 @@ class TasksController extends GetxController {
 
   Future<void> refreshData() async {
     await fetchAllData();
+  }
+
+  Future<void> applyFilters() async {
+    Get.dialog(const CustomAppLoader(), barrierDismissible: false);
+    try {
+      await fetchInitialList();
+    } finally {
+      Get.back();
+    }
   }
 
   Future<void> pullToRefresh() async {
@@ -468,8 +483,8 @@ class TasksController extends GetxController {
         "store": selectedUnitForCreate.value?.unitId.toString(),
         "allgroup": selectedGroupForCreate.value?.id.toString(),
         "assignee": selectedAssigneeForCreate.value?.id.toString(),
-        "start_date": AppDateUtils.formatToOrdinalDate(startDateVal.toIso8601String()),
-        "end_date": endDateVal != null ? AppDateUtils.formatToOrdinalDate(endDateVal.toIso8601String()) : null,
+        "start_date": AppDateUtils.formatToApiDate(startDateVal.toIso8601String()),
+        "end_date": endDateVal != null ? AppDateUtils.formatToApiDate(endDateVal.toIso8601String()) : null,
         "photo_required": photoRequired.value ? "on" : "off",
         "approval_required": approvalRequired.value ? "on" : "off",
         "approver": approvalRequired.value ? selectedApproverForCreate.value?.id.toString() : null,
@@ -694,7 +709,8 @@ class TasksController extends GetxController {
   }
   // endregion
 
-  Future<void> editTaskDetails(TaskItem task) async {
+  Future<void> editTaskDetails(TaskItem task, {bool readOnly = false}) async {
+    isReadOnly.value = readOnly;
     try {
       isLoading.value = true;
       Get.dialog(
@@ -732,7 +748,7 @@ class TasksController extends GetxController {
     }
   }
 
-  Future<void> fetchTaskSubmissionDetails(TaskItem task, {required bool isReview}) async {
+  Future<void> fetchTaskSubmissionDetails(TaskItem task, {required bool isReview, bool readOnly = false}) async {
     try {
       isLoading.value = true;
       Get.dialog(
@@ -784,7 +800,7 @@ class TasksController extends GetxController {
           }
         }
 
-        Get.dialog(TaskSubmissionDialog(task: data, isReview: isReview));
+        Get.dialog(TaskSubmissionDialog(task: data, isReview: isReview, isReadOnly: readOnly));
       } else {
         AppCommonToastMessage.show(
           message: 'Failed to fetch task details',
@@ -942,20 +958,24 @@ class TasksController extends GetxController {
     approvalRequired.value = task.approvalRequired == "1" || task.approvalRequired == "on";
     isRecurring.value = task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
 
-    try {
-      if (task.startDate.isNotEmpty) {
+    if (task.startDate.isNotEmpty && task.startDate != 'NA') {
+      try {
         selectedStartDate.value = DateTime.parse(task.startDate);
+      } catch (_) {
+        selectedStartDate.value = _parseDateTime(task.scheduleDateTime);
       }
-    } catch (_) {
+    } else {
       selectedStartDate.value = _parseDateTime(task.scheduleDateTime);
     }
 
-    try {
-      if (task.endDate.isNotEmpty) {
+    if (task.endDate.isNotEmpty && task.endDate != 'NA') {
+      try {
         selectedEndDate.value = DateTime.parse(task.endDate);
+      } catch (_) {
+        selectedEndDate.value = null;
       }
-    } catch (_) {
-      selectedEndDate.value = _parseDateTime(task.scheduleDateTime);
+    } else {
+      selectedEndDate.value = null;
     }
 
     if (task.startTime.isNotEmpty) {
@@ -1022,8 +1042,8 @@ class TasksController extends GetxController {
       "store": selectedUnitForCreate.value?.unitId,
       "allgroup": selectedGroupForCreate.value?.id,
       "assignee": selectedAssigneeForCreate.value?.id,
-      "start_date": AppDateUtils.formatToOrdinalDate(startDateVal.toIso8601String()),
-      "end_date": endDateVal != null ? AppDateUtils.formatToOrdinalDate(endDateVal.toIso8601String()) : null,
+      "start_date": AppDateUtils.formatToApiDate(startDateVal.toIso8601String()),
+      "end_date": endDateVal != null ? AppDateUtils.formatToApiDate(endDateVal.toIso8601String()) : null,
       "photo_required": photoRequired.value ? 1 : 0,
       "approval_required": approvalRequired.value ? 1 : 0,
       "approver": approvalRequired.value ? selectedApproverForCreate.value?.id : null,
@@ -1124,12 +1144,19 @@ class TasksController extends GetxController {
         return;
       }
 
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-      );
-      if (image != null) {
-        attachments.add(image);
+      if (source == ImageSource.gallery) {
+        final List<XFile> images = await _picker.pickMultiImage(imageQuality: 80);
+        if (images.isNotEmpty) {
+          attachments.addAll(images);
+        }
+      } else {
+        final XFile? image = await _picker.pickImage(
+          source: source,
+          imageQuality: 80,
+        );
+        if (image != null) {
+          attachments.add(image);
+        }
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
@@ -1140,12 +1167,19 @@ class TasksController extends GetxController {
     return GestureDetector(
       onTap: () async {
         Get.back();
-        final XFile? image = await _picker.pickImage(
-          source: source,
-          imageQuality: 80,
-        );
-        if (image != null) {
-          attachments.add(image);
+        if (source == ImageSource.gallery) {
+          final List<XFile> images = await _picker.pickMultiImage(imageQuality: 80);
+          if (images.isNotEmpty) {
+            attachments.addAll(images);
+          }
+        } else {
+          final XFile? image = await _picker.pickImage(
+            source: source,
+            imageQuality: 80,
+          );
+          if (image != null) {
+            attachments.add(image);
+          }
         }
       },
       child: Column(

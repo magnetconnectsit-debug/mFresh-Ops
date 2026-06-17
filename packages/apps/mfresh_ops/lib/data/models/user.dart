@@ -1,4 +1,4 @@
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive_ce.dart';
 
 @HiveType(typeId: 0)
 class User extends HiveObject {
@@ -52,14 +52,15 @@ class User extends HiveObject {
   factory User.fromJson(Map<String, dynamic> json) {
     final userData = json['user'] ?? json;
     final List<String> permissions = [];
-    if (json['permissions'] is Map) {
-      json['permissions'].forEach((key, value) {
+    final permissionsSource = json['permissions'] ?? userData['permissions'];
+    if (permissionsSource is Map) {
+      permissionsSource.forEach((key, value) {
         if (value == true || value == 'true' || value == 1) {
           permissions.add(key.toString());
         }
       });
-    } else if (json['permissions'] is List) {
-      permissions.addAll(List<String>.from(json['permissions']));
+    } else if (permissionsSource is List) {
+      permissions.addAll(List<String>.from(permissionsSource));
     }
 
     return User(

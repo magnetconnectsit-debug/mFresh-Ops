@@ -9,6 +9,9 @@ class AppImages {
   static const String scanIcon = 'assets/images/bar_code_scan.png';
   static const String unitCard = 'assets/images/unit_card.jpeg';
   static const String mfreshFullLogo = 'assets/images/mfreshlogo.png';
+  static const String mapStartIcon = 'assets/icons/start.png';
+  static const String mapEndIcon = 'assets/icons/end.png';
+  static const String mapStopIcon = 'assets/icons/stop.png';
 }
 
 

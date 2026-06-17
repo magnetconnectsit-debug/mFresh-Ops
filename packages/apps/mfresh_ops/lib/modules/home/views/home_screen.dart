@@ -13,6 +13,7 @@ import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 import 'widgets/home_grid.dart';
+import 'widgets/duty_status_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -91,12 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(height: 12.h),
                       const HomeGrid(),
+                      SizedBox(height: 20.h),
+                      const DutyStatusCard(),
                       SizedBox(height: 16.h),
                       Center(
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(
-                            vertical: 4.h,
+                            vertical: 8.h,
                             horizontal: 6.w,
                           ),
                           decoration: BoxDecoration(
@@ -115,13 +118,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                           child: Column(
-                            // mainAxisSize: MainAxisSize.min,
                             children: [
                               Image.asset(
                                 AppImages.appLogo,
-                                width: 700.w,
-                                height: 110.h,
-                                fit: BoxFit.fill,
+                                width: 140.w,
+                                height: 40.h,
+                                fit: BoxFit.contain,
                               ),
                             ],
                           ),

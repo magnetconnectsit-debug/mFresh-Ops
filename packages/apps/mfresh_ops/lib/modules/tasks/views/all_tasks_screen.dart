@@ -11,6 +11,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_action_buttons.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_table_elements.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:core/core.dart';
 
 class AllTasksScreen extends StatefulWidget {
   const AllTasksScreen({super.key});
@@ -187,7 +189,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                       inside: BorderSide(color: Colors.grey.shade300),
                                     ),
                                     columnWidths: {
-                                      0: FixedColumnWidth(90.w),
+                                      0: FixedColumnWidth(100.w),
                                       1: FixedColumnWidth(80.w),
                                       2: FixedColumnWidth(200.w),
                                       3: FixedColumnWidth(140.w),
@@ -226,7 +228,16 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                             AllTasksDataCell(
                                               text: "${task.taskCode}_${task.taskInstanceId}",
                                               isExpanded: isExpanded,
-                                              onTap: toggleRow,
+                                              onTap: () {
+                                                final status = task.status.toLowerCase();
+                                                if (status == 'completed' || status == 'approved') {
+                                                  controller.fetchTaskSubmissionDetails(task, isReview: true, readOnly: true);
+                                                } else {
+                                                  if (Get.find<AuthRepository>().rxUserPermissions.contains('Task_Edit')) {
+                                                    controller.editTaskDetails(task);
+                                                  }
+                                                }
+                                              },
                                               textColor: AppColors.blue500,
                                               fontWeight: FontWeight.bold,
                                             ),

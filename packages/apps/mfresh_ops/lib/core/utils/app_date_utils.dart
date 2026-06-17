@@ -50,4 +50,26 @@ class AppDateUtils {
     if (month < 1 || month > 12) return '';
     return months[month - 1];
   }
+
+  static String formatToApiDate(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return '';
+    try {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed == null) return rawDate;
+      
+      final day = parsed.day.toString().padLeft(2, '0');
+      final monthName = _getShortMonthName(parsed.month);
+      final year = parsed.year;
+      
+      return '$day-$monthName-$year';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  static String _getShortMonthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (month < 1 || month > 12) return '';
+    return months[month - 1];
+  }
 }

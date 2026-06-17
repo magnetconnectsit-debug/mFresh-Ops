@@ -31,6 +31,12 @@ import 'package:mfresh_ops/modules/inventory/views/measurement_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/item_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_room_screen.dart';
 import 'package:mfresh_ops/modules/home/views/notification_screen.dart';
+import 'package:mfresh_ops/modules/map/views/map_view.dart';
+import 'package:mfresh_ops/modules/map/views/history_view.dart';
+import 'package:mfresh_ops/modules/map/views/staff_tracking_view.dart';
+import 'package:mfresh_ops/modules/map/bindings/location_binding.dart';
+import 'package:mfresh_ops/modules/map/controllers/history_controller.dart';
+import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
@@ -161,6 +167,23 @@ class AppPages {
     GetPage(
       name: AppRoutes.locationPermission,
       page: () => const LocationPermissionScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.liveTracking,
+      page: () => const MapView(),
+      binding: LocationBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.routeHistory,
+      page: () => const HistoryView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => TrackingRepository());
+        Get.lazyPut(() => HistoryController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.staffTracking,
+      page: () => const StaffTrackingView(),
     ),
   ];
 }

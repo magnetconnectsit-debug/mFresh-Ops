@@ -2,7 +2,7 @@
 import 'package:core/models/app_notification.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 // endregion
 
@@ -142,6 +142,14 @@ class StorageService extends GetxService {
 
   String getBaseUrl() {
     return _settingsBox.get(_baseUrlKey, defaultValue: '');
+  }
+
+  Future<void> saveIntendedTrackingStatus(bool isTracking) async {
+    await _settingsBox.put('intended_tracking_status', isTracking);
+  }
+
+  bool? getIntendedTrackingStatus() {
+    return _settingsBox.get('intended_tracking_status') as bool?;
   }
 
   Future<void> saveShowLogger(bool show) async {

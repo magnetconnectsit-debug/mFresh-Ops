@@ -5,6 +5,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class AllTasksActionButtons extends StatelessWidget {
   final TasksController controller;
@@ -13,40 +14,47 @@ class AllTasksActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userPermissions = Get.find<AuthRepository>().rxUserPermissions;
+    final canCreateTask = userPermissions.contains('create_new_task');
+    final canExportTask = userPermissions.contains('export_task');
+
     return Row(
       children: [
-        SizedBox(
-          height: 24.h,
-          child: ElevatedButton(
-            onPressed: () {
-              Get.find<TasksController>().formInitialized.value = false;
-              Get.toNamed(AppRoutes.createTask);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF16A3B8),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-              elevation: 1,
+        if (canCreateTask) ...[
+          SizedBox(
+            height: 24.h,
+            child: ElevatedButton(
+              onPressed: () {
+                Get.find<TasksController>().formInitialized.value = false;
+                Get.toNamed(AppRoutes.createTask);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A3B8),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                elevation: 1,
+              ),
+              child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
             ),
-            child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
           ),
-        ),
-        SizedBox(width: 8.w),
-        SizedBox(
-          height: 24.h,
-          child: ElevatedButton(
-            onPressed: () => controller.exportTasks(isPdf: false),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF389D6A),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-              elevation: 1,
+          SizedBox(width: 8.w),
+        ],
+        if (canExportTask)
+          SizedBox(
+            height: 24.h,
+            child: ElevatedButton(
+              onPressed: () => controller.exportTasks(isPdf: false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF389D6A),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                elevation: 1,
+              ),
+              child: Text('Export Excel', style: AppTextStyle.style_12_500(color: Colors.white)),
             ),
-            child: Text('Export Excel', style: AppTextStyle.style_12_500(color: Colors.white)),
           ),
-        ),
         const Spacer(),
         Obx(
           () => Container(

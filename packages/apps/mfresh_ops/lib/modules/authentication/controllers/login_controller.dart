@@ -1,14 +1,15 @@
+import 'dart:convert';
+
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:dev/routes/dev_routes.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:dev/routes/dev_routes.dart';
-import 'package:services/services.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-
-import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
-import 'dart:convert';
+import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:services/services.dart';
 
 class LoginController extends GetxController {
   final usernameController = TextEditingController();
@@ -101,6 +102,7 @@ class LoginController extends GetxController {
           await _storageService.clearCredentials();
         }
 
+        Get.find<TrackingService>().startAutoTracking();
         Get.offAllNamed(AppRoutes.home);
       } else {
         AppCommonToastMessage.show(
@@ -134,10 +136,7 @@ class LoginController extends GetxController {
         errorMessage = e.toString().replaceFirst('Exception: ', '');
       }
 
-      AppCommonToastMessage.show(
-        message: errorMessage,
-        type: ToastType.error,
-      );
+      AppCommonToastMessage.show(message: errorMessage, type: ToastType.error);
     } finally {
       isLoading.value = false;
     }

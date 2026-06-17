@@ -12,11 +12,13 @@ import 'package:mfresh_ops/data/models/models.dart';
 class TaskSubmissionDialog extends StatelessWidget {
   final TaskItem task;
   final bool isReview;
+  final bool isReadOnly;
 
   const TaskSubmissionDialog({
     super.key,
     required this.task,
     this.isReview = false,
+    this.isReadOnly = false,
   });
 
   @override
@@ -25,19 +27,19 @@ class TaskSubmissionDialog extends StatelessWidget {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-      insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+      insetPadding: EdgeInsets.symmetric(horizontal: 30.w),
       backgroundColor: AppColors.white,
       surfaceTintColor: AppColors.transparent,
       child: SingleChildScrollView(
         child: Container(
-          padding: EdgeInsets.all(20.w),
+          padding: EdgeInsets.all(16.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Block
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F9FA),
                   borderRadius: BorderRadius.circular(12.r),
@@ -54,11 +56,11 @@ class TaskSubmissionDialog extends StatelessWidget {
                               children: [
                                 TextSpan(
                                   text: 'Task: ',
-                                  style: AppTextStyle.style_14_700(color: const Color(0xFF0066FF)),
+                                  style: AppTextStyle.style_12_700(color: const Color(0xFF0066FF)),
                                 ),
                                 TextSpan(
                                   text: task.title,
-                                  style: AppTextStyle.style_14_700(color: AppColors.black),
+                                  style: AppTextStyle.style_12_700(color: AppColors.black),
                                 ),
                               ],
                             ),
@@ -67,7 +69,7 @@ class TaskSubmissionDialog extends StatelessWidget {
                             SizedBox(height: 4.h),
                             Text(
                               task.description,
-                              style: AppTextStyle.style_11_400(color: const Color(0xFF6C757D)),
+                              style: AppTextStyle.style_10_400(color: const Color(0xFF6C757D)),
                             ),
                           ],
                         ],
@@ -76,17 +78,17 @@ class TaskSubmissionDialog extends StatelessWidget {
                     SizedBox(width: 8.w),
                     GestureDetector(
                       onTap: () => Get.back(),
-                      child: Icon(Icons.close, size: 22.r, color: Colors.grey.shade600),
+                      child: Icon(Icons.close, size: 18.r, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h),
 
               // Status indicator
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F3F5),
                   borderRadius: BorderRadius.circular(6.r),
@@ -94,17 +96,17 @@ class TaskSubmissionDialog extends StatelessWidget {
                 ),
                 child: Text(
                   task.status,
-                  style: AppTextStyle.style_12_400(color: const Color(0xFF495057)),
+                  style: AppTextStyle.style_10_400(color: const Color(0xFF495057)),
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h),
 
               // Attachments Section
               Text(
                 'Attachments',
-                style: AppTextStyle.style_14_700(color: AppColors.black),
+                style: AppTextStyle.style_12_700(color: AppColors.black),
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 8.h),
               Obx(
                 () => Wrap(
                   spacing: 12.w,
@@ -113,36 +115,80 @@ class TaskSubmissionDialog extends StatelessWidget {
                     ...controller.attachments.asMap().entries.map((entry) {
                       return Stack(
                         children: [
-                          Container(
-                            width: 65.w,
-                            height: 75.h,
-                            decoration: BoxDecoration(
-                              color: AppColors.grey50.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(4.r),
-                              border: Border.all(
-                                color: AppColors.borderColor,
-                                style: BorderStyle.solid,
+                          GestureDetector(
+                            onTap: () {
+                              Get.dialog(
+                                Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  surfaceTintColor: Colors.transparent,
+                                  insetPadding: EdgeInsets.zero,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => Get.back(),
+                                        child: Container(color: Colors.black87),
+                                      ),
+                                      InteractiveViewer(
+                                        child: Center(
+                                          child: entry.value is String
+                                              ? AppImageView(
+                                                  imageUrl: entry.value,
+                                                  fit: BoxFit.contain,
+                                                )
+                                              : Image.file(
+                                                  entry.value is File ? entry.value : File(entry.value.path),
+                                                  fit: BoxFit.contain,
+                                                ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 40.h,
+                                        right: 20.w,
+                                        child: GestureDetector(
+                                          onTap: () => Get.back(),
+                                          child: CircleAvatar(
+                                            backgroundColor: Colors.black45,
+                                            child: Icon(Icons.close, color: Colors.white, size: 24.r),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 55.w,
+                              height: 65.h,
+                              decoration: BoxDecoration(
+                                color: AppColors.grey50.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(4.r),
+                                border: Border.all(
+                                  color: AppColors.borderColor,
+                                  style: BorderStyle.solid,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4.r),
+                                child: entry.value is String
+                                    ? AppImageView(
+                                        imageUrl: entry.value,
+                                        width: 55.w,
+                                        height: 65.h,
+                                        fit: BoxFit.cover,
+                                        borderRadius: 4.r,
+                                      )
+                                    : Image.file(
+                                        entry.value is File ? entry.value : File(entry.value.path),
+                                        width: 55.w,
+                                        height: 65.h,
+                                        fit: BoxFit.cover,
+                                      ),
                               ),
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4.r),
-                              child: entry.value is String
-                                  ? AppImageView(
-                                      imageUrl: entry.value,
-                                      width: 65.w,
-                                      height: 75.h,
-                                      fit: BoxFit.cover,
-                                      borderRadius: 4.r,
-                                    )
-                                  : Image.file(
-                                      entry.value is File ? entry.value : File(entry.value.path),
-                                      width: 65.w,
-                                      height: 75.h,
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
                           ),
-                          if (!isReview)
+                          if (!isReview && !isReadOnly)
                             Positioned(
                               top: 2,
                               right: 2,
@@ -162,7 +208,7 @@ class TaskSubmissionDialog extends StatelessWidget {
                         ],
                       );
                     }),
-                    if (!isReview)
+                    if (!isReview && !isReadOnly)
                       GestureDetector(
                         onTap: () => controller.pickImage(),
                         child: _buildUploadPlaceholder(),
@@ -171,42 +217,43 @@ class TaskSubmissionDialog extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h),
               Text(
                 'Comments',
-                style: AppTextStyle.style_14_700(color: AppColors.black),
+                style: AppTextStyle.style_12_700(color: AppColors.black),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 6.h),
               _buildCommentField(
                 controller: controller.commentController,
                 hintText: 'Enter Comments',
-                enabled: !isReview,
-                backgroundColor: isReview
+                enabled: !isReview && !isReadOnly,
+                backgroundColor: (isReview || isReadOnly)
                     ? AppColors.grey50.withValues(alpha: 0.5)
                     : AppColors.white,
               ),
 
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h),
               Text(
                 'Approver Comments',
-                style: AppTextStyle.style_14_700(color: AppColors.black),
+                style: AppTextStyle.style_12_700(color: AppColors.black),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 6.h),
               _buildCommentField(
                 controller: controller.approverCommentController,
                 hintText: '',
-                enabled: isReview,
-                backgroundColor: isReview ? AppColors.white : const Color(0xFFF8F9FA),
+                enabled: isReview && !isReadOnly,
+                backgroundColor: (isReview && !isReadOnly) ? AppColors.white : const Color(0xFFF8F9FA),
               ),
 
-              SizedBox(height: 24.h),
-              Obx(
-                () => controller.isLoading.value
-                    ? const Center(child: CircularProgressIndicator())
-                    : (isReview
-                        ? _buildReviewActions(controller)
-                        : _buildSubmissionActions(controller)),
-              ),
+              SizedBox(height: 16.h),
+              if (!isReadOnly)
+                Obx(
+                  () => controller.isLoading.value
+                      ? const Center(child: CircularProgressIndicator())
+                      : (isReview
+                          ? _buildReviewActions(controller)
+                          : _buildSubmissionActions(controller)),
+                ),
             ],
           ),
         ),
@@ -228,12 +275,12 @@ class TaskSubmissionDialog extends StatelessWidget {
       child: TextField(
         controller: controller,
         enabled: enabled,
-        maxLines: 3,
-        style: AppTextStyle.style_12_400(color: AppColors.black),
+        maxLines: 2,
+        style: AppTextStyle.style_10_400(color: AppColors.black),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300),
-          contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+          hintStyle: AppTextStyle.style_10_400(color: AppColors.grey300),
+          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6.r),
             borderSide: const BorderSide(color: AppColors.borderColor),
@@ -259,14 +306,14 @@ class TaskSubmissionDialog extends StatelessWidget {
         gap: 3,
       ),
       child: Container(
-        width: 65.w,
-        height: 75.h,
+        width: 55.w,
+        height: 65.h,
         alignment: Alignment.center,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add, color: const Color(0xFF6C757D), size: 20.r),
-            SizedBox(height: 4.h),
+            Icon(Icons.add, color: const Color(0xFF6C757D), size: 16.r),
+            SizedBox(height: 2.h),
             Text(
               'Upload',
               style: AppTextStyle.style_10_500(color: const Color(0xFF6C757D)),
@@ -282,7 +329,7 @@ class TaskSubmissionDialog extends StatelessWidget {
       children: [
         Expanded(
           child: SizedBox(
-            height: 38.h,
+            height: 32.h,
             child: ElevatedButton(
               onPressed: () => controller.submitTask(task, isUpdate: true),
               style: ElevatedButton.styleFrom(
@@ -295,7 +342,7 @@ class TaskSubmissionDialog extends StatelessWidget {
               ),
               child: Text(
                 'Update',
-                style: AppTextStyle.style_14_600(color: Colors.white),
+                style: AppTextStyle.style_12_600(color: Colors.white),
               ),
             ),
           ),
@@ -303,7 +350,7 @@ class TaskSubmissionDialog extends StatelessWidget {
         SizedBox(width: 12.w),
         Expanded(
           child: SizedBox(
-            height: 38.h,
+            height: 32.h,
             child: ElevatedButton(
               onPressed: () => controller.submitTask(task),
               style: ElevatedButton.styleFrom(
@@ -316,7 +363,7 @@ class TaskSubmissionDialog extends StatelessWidget {
               ),
               child: Text(
                 'Submit',
-                style: AppTextStyle.style_14_600(color: Colors.white),
+                style: AppTextStyle.style_12_600(color: Colors.white),
               ),
             ),
           ),
@@ -330,7 +377,7 @@ class TaskSubmissionDialog extends StatelessWidget {
       children: [
         Expanded(
           child: SizedBox(
-            height: 38.h,
+            height: 32.h,
             child: ElevatedButton(
               onPressed: () => controller.rejectTask(task.taskInstanceId),
               style: ElevatedButton.styleFrom(
@@ -343,7 +390,7 @@ class TaskSubmissionDialog extends StatelessWidget {
               ),
               child: Text(
                 'Reject',
-                style: AppTextStyle.style_14_600(color: Colors.white),
+                style: AppTextStyle.style_12_600(color: Colors.white),
               ),
             ),
           ),
@@ -351,7 +398,7 @@ class TaskSubmissionDialog extends StatelessWidget {
         SizedBox(width: 12.w),
         Expanded(
           child: SizedBox(
-            height: 38.h,
+            height: 32.h,
             child: ElevatedButton(
               onPressed: () => controller.approveTask(task.taskInstanceId),
               style: ElevatedButton.styleFrom(
@@ -364,7 +411,7 @@ class TaskSubmissionDialog extends StatelessWidget {
               ),
               child: Text(
                 'Approve',
-                style: AppTextStyle.style_14_600(color: Colors.white),
+                style: AppTextStyle.style_12_600(color: Colors.white),
               ),
             ),
           ),

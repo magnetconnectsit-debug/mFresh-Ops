@@ -6,6 +6,7 @@ import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/core.dart';
 import 'package:services/storage_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});
@@ -44,11 +45,73 @@ class CommonSidebar extends StatelessWidget {
               ),
             ),
           ),
+          Obx(() {
+            final isTracking = TrackingService.to.isTracking.value;
+            return Container(
+              color: isTracking
+                  ? const Color(0xFF10B981).withValues(alpha: 0.05)
+                  : Colors.red.withValues(alpha: 0.05),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10.r,
+                    height: 10.r,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isTracking ? const Color(0xFF10B981) : Colors.red,
+                      boxShadow: isTracking
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                                blurRadius: 6.r,
+                                spreadRadius: 2.r,
+                              )
+                            ]
+                          : null,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isTracking ? 'ON DUTY' : 'OFF DUTY',
+                          style: AppTextStyle.style_14_700(
+                            color: isTracking ? const Color(0xFF10B981) : Colors.red,
+                          ),
+                        ),
+                        Text(
+                          isTracking ? 'Location sharing active' : 'Offline. Tap to start.',
+                          style: AppTextStyle.style_10_400(color: AppColors.grey500),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: isTracking,
+                    activeTrackColor: const Color(0xFF10B981),
+                    activeThumbColor: Colors.white,
+                    onChanged: (val) {
+                      TrackingService.to.toggleTracking();
+                    },
+                  ),
+                ],
+              ),
+            );
+          }),
           Expanded(
             child: Obx(() {
               final authRepo = Get.find<AuthRepository>();
               final userPermissions = authRepo.rxUserPermissions;
               final showInventory = userPermissions.contains('inventory_panel');
+              
+              final showTaskScheduler = userPermissions.contains('Task_Sheduler_Pannel');
+              final taskSubItems = [
+                if (userPermissions.contains('All_Task')) 'All Task',
+                if (userPermissions.contains('Daily_Task')) 'Daily Task',
+              ];
               
               final inventorySubItems = [
                 if (userPermissions.contains('store_inventory_stock'))
@@ -85,6 +148,17 @@ class CommonSidebar extends StatelessWidget {
                     currentRoute: currentRoute,
                   ),
 
+                  // Tracking Expandable Section
+                  _buildExpandableMenuItem(
+                    icon: Icons.location_on_outlined,
+                    title: 'Tracking',
+                    subItems: [
+                      'My Routes',
+                      'Staff Tracking',
+                    ],
+                    currentRoute: currentRoute,
+                  ),
+
                   _buildExpandableMenuItem(
                     icon: Icons.support_agent_outlined,
                     title: 'Support Ticket',
@@ -95,15 +169,13 @@ class CommonSidebar extends StatelessWidget {
                   ),
 
                   // Task Scheduler Expandable Section
-                  _buildExpandableMenuItem(
-                    icon: Icons.task_alt_outlined,
-                    title: 'Task Scheduler',
-                    subItems: [
-                      'All Task',
-                      'Daily Task',
-                    ],
-                    currentRoute: currentRoute,
-                  ),
+                  if (showTaskScheduler && taskSubItems.isNotEmpty)
+                    _buildExpandableMenuItem(
+                      icon: Icons.task_alt_outlined,
+                      title: 'Task Scheduler',
+                      subItems: taskSubItems,
+                      currentRoute: currentRoute,
+                    ),
 
                   // Inventory Expandable Section
                   if (showInventory && inventorySubItems.isNotEmpty)
@@ -236,6 +308,10 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.allTasks);
                   } else if (item == 'Daily Task') {
                     Get.toNamed(AppRoutes.dailyTasks);
+                  } else if (item == 'My Routes') {
+                    Get.toNamed(AppRoutes.liveTracking);
+                  } else if (item == 'Staff Tracking') {
+                    Get.toNamed(AppRoutes.staffTracking);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);
                   } else if (item == 'Unit Inventory') {
