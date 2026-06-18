@@ -35,6 +35,9 @@ class User extends HiveObject {
   @HiveField(10)
   final String? updatedAt;
 
+  @HiveField(11)
+  final String? roleName;
+
   User({
     required this.id,
     this.name,
@@ -47,6 +50,7 @@ class User extends HiveObject {
     this.activeStatus,
     this.createdAt,
     this.updatedAt,
+    this.roleName,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -79,6 +83,7 @@ class User extends HiveObject {
           : int.tryParse(userData['Active_status']?.toString() ?? ''),
       createdAt: userData['created_at'],
       updatedAt: userData['updated_at'],
+      roleName: userData['role_name']?.toString(),
     );
   }
 
@@ -95,6 +100,7 @@ class User extends HiveObject {
       'Active_status': activeStatus,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'role_name': roleName,
     };
   }
 }
@@ -116,6 +122,10 @@ class UserAdapter extends TypeAdapter<User> {
     final activeStatus = reader.read();
     final createdAt = reader.read();
     final updatedAt = reader.read();
+    dynamic roleName;
+    try {
+      roleName = reader.read();
+    } catch (_) {}
 
     return User(
       id: id,
@@ -129,6 +139,7 @@ class UserAdapter extends TypeAdapter<User> {
       activeStatus: activeStatus,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      roleName: roleName,
     );
   }
 
@@ -145,5 +156,6 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.activeStatus);
     writer.write(obj.createdAt);
     writer.write(obj.updatedAt);
+    writer.write(obj.roleName);
   }
 }

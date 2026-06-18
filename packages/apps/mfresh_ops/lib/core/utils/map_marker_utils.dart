@@ -1,7 +1,9 @@
 import 'dart:ui' as ui;
+import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:core/constants/app_images.dart';
 
 class MapMarkerUtils {
   static Future<BitmapDescriptor> createAssetMarker(String assetPath, {int width = 100}) async {
@@ -89,6 +91,75 @@ class MapMarkerUtils {
     painter.paint(
       canvas,
       Offset((size - painter.width) / 2, (size - painter.height) / 2),
+    );
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    
+    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+  }
+
+  static Future<BitmapDescriptor> createClusterMarker({
+    required int count,
+    Color color = Colors.blue,
+    double size = 110,
+  }) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+
+    final Paint paint = Paint()..color = color;
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6.0;
+
+    final double radius = size / 2;
+    // Draw shadow
+    canvas.drawCircle(
+      Offset(radius, radius + 4), 
+      radius - 2, 
+      Paint()..color = Colors.black38..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4)
+    );
+    canvas.drawCircle(Offset(radius, radius), radius - 4, paint);
+    canvas.drawCircle(Offset(radius, radius), radius - 4, borderPaint);
+
+    // Draw person icon
+    final IconData iconData = Icons.person;
+    TextPainter iconPainter = TextPainter(textDirection: TextDirection.ltr);
+    iconPainter.text = TextSpan(
+      text: String.fromCharCode(iconData.codePoint),
+      style: TextStyle(
+        fontSize: size / 2.5,
+        color: Colors.white,
+        fontFamily: iconData.fontFamily,
+        package: iconData.fontPackage,
+      ),
+    );
+    iconPainter.layout();
+    
+    // Draw text (count)
+    TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: count.toString(),
+      style: TextStyle(
+        fontSize: size / 2.8,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    textPainter.layout();
+
+    // Layout side by side
+    final double totalWidth = iconPainter.width + 4 + textPainter.width;
+    final double startX = (size - totalWidth) / 2;
+
+    iconPainter.paint(
+      canvas,
+      Offset(startX, (size - iconPainter.height) / 2),
+    );
+    textPainter.paint(
+      canvas,
+      Offset(startX + iconPainter.width + 4, (size - textPainter.height) / 2),
     );
 
     final ui.Image image = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());

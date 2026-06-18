@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
+import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 class HistoryView extends GetView<HistoryController> {
   const HistoryView({super.key});
@@ -22,7 +23,7 @@ class HistoryView extends GetView<HistoryController> {
           children: [
             if (isInitialLoad)
               const Positioned.fill(child: Center(child: CustomAppLoader()))
-            else if (controller.routePoints.isEmpty)
+            else if (controller.routePoints.isEmpty && controller.staffCurrentLocationMarker.value == null)
               Positioned.fill(
                 child: Center(
                   child: Column(
@@ -55,14 +56,18 @@ class HistoryView extends GetView<HistoryController> {
               Positioned.fill(
                 child: GoogleMap(
                   padding: EdgeInsets.only(
-                    bottom: controller.rawStoppages.isNotEmpty
-                        ? MediaQuery.of(context).size.height * 0.35 // Increased padding so zoom controls clear the bottom sheet
+                    bottom: (controller.routeSegments.isNotEmpty || controller.routeSummary.isNotEmpty)
+                        ? MediaQuery.of(context).size.height * 0.35
                         : 0,
                   ),
                   initialCameraPosition: CameraPosition(
-                    target: controller.routePoints.first,
-                    zoom: 14,
+                    target: controller.routePoints.isNotEmpty 
+                        ? controller.routePoints.first 
+                        : (controller.staffCurrentLocationMarker.value?.position ?? const LatLng(20.5937, 78.9629)),
+                    zoom: controller.routePoints.isNotEmpty || controller.staffCurrentLocationMarker.value != null ? 14 : 4,
                   ),
+                  myLocationEnabled: controller.adminEmployeeId == null,
+                  myLocationButtonEnabled: controller.adminEmployeeId == null,
                   mapType: controller.currentMapType.value,
                   polylines: {
                     Polyline(
@@ -77,13 +82,17 @@ class HistoryView extends GetView<HistoryController> {
                     ),
                   },
                   markers: {
-                    ...controller.stopMarkers,
-                    if (controller.startMarker.value != null)
-                      controller.startMarker.value!,
-                    if (controller.endMarker.value != null)
-                      controller.endMarker.value!,
+                    if (controller.routePoints.isNotEmpty) ...[
+                      ...controller.stopMarkers,
+                      if (controller.startMarker.value != null)
+                        controller.startMarker.value!,
+                      if (controller.endMarker.value != null)
+                        controller.endMarker.value!,
+                    ],
                     if (controller.movingMarker.value != null)
                       controller.movingMarker.value!,
+                    if (controller.staffCurrentLocationMarker.value != null)
+                      controller.staffCurrentLocationMarker.value!,
                   },
                   onMapCreated: (GoogleMapController googleMapController) {
                     controller.mapController = googleMapController;
@@ -133,7 +142,9 @@ class HistoryView extends GetView<HistoryController> {
                             alignment: Alignment.centerLeft,
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              'Route History',
+                              controller.adminEmployeeName != null 
+                                  ? "${controller.adminEmployeeName}'s Route" 
+                                  : 'Route History',
                               style: AppTextStyle.style_16_700(
                                 color: AppColors.black,
                               ),
@@ -234,15 +245,6 @@ class HistoryView extends GetView<HistoryController> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () => controller.stopReplay(),
-                            child: const Icon(
-                              Icons.stop_circle_rounded,
-                              color: Colors.redAccent,
-                              size: 36,
-                            ),
-                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: SliderTheme(
@@ -291,7 +293,7 @@ class HistoryView extends GetView<HistoryController> {
                 ],
               ),
             ),
-            if (controller.rawStoppages.isNotEmpty)
+            if (controller.routeSegments.isNotEmpty || controller.routeSummary.isNotEmpty)
               DraggableScrollableSheet(
                 controller: controller.sheetController,
                 initialChildSize: 0.3,
@@ -350,6 +352,61 @@ class HistoryView extends GetView<HistoryController> {
                             ],
                           ),
                         ),
+                        // Summary panel
+                        SliverToBoxAdapter(
+                          child: Obx(() {
+                            final isToday = controller.selectedDate.value.year == DateTime.now().year &&
+                                controller.selectedDate.value.month == DateTime.now().month &&
+                                controller.selectedDate.value.day == DateTime.now().day;
+
+                            if (!isToday || controller.liveStatus.isEmpty) return const SizedBox.shrink();
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.blue500.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.blue500.withValues(alpha: 0.2)),
+                                ),
+                                child: Builder(
+                                  builder: (context) {
+                                    final live = controller.liveStatus;
+                                    final summaryItems = <Widget>[];
+
+                                    if (live['current_status'] != null)
+                                      summaryItems.add(_buildSummaryItem(Icons.info_outline, 'Status', live['current_status'].toString().toUpperCase()));
+                                    if (live['battery'] != null)
+                                      summaryItems.add(_buildSummaryItem(Icons.battery_std, 'Battery', '${live['battery']}%'));
+                                    if (live['speed'] != null)
+                                      summaryItems.add(_buildSummaryItem(Icons.speed, 'Speed', '${double.tryParse(live['speed'].toString())?.toStringAsFixed(2) ?? 0} km/h'));
+                                    if (live['last_seen'] != null) {
+                                      String formatLastSeen(String dt) {
+                                        try {
+                                          return DateFormat('hh:mm a').format(DateTime.parse(dt).toLocal());
+                                        } catch (_) {
+                                          return dt.split(' ').last;
+                                        }
+                                      }
+                                      summaryItems.add(_buildSummaryItem(Icons.access_time_rounded, 'Last Seen', formatLastSeen(live['last_seen'].toString())));
+                                    }
+
+                                    return Wrap(
+                                      alignment: WrapAlignment.center,
+                                      runSpacing: 16,
+                                      children: summaryItems.map((w) => FractionallySizedBox(
+                                        widthFactor: summaryItems.length > 4 ? 0.33 : 0.25,
+                                        child: w,
+                                      )).toList(),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -360,12 +417,8 @@ class HistoryView extends GetView<HistoryController> {
                               context,
                               index,
                             ) {
-                              final reversedIndex = controller.rawStoppages.length - 1 - index;
-                              final stop = controller.rawStoppages[reversedIndex];
-                              final duration =
-                                  stop['duration_minutes'] ??
-                                  stop['duration'] ??
-                                  'Unknown';
+                              final reversedIndex = controller.routeSegments.length - 1 - index;
+                              final segment = controller.routeSegments[reversedIndex];
 
                               String formatT(dynamic t) {
                                 if (t == null) return '';
@@ -378,23 +431,58 @@ class HistoryView extends GetView<HistoryController> {
                                 }
                               }
 
-                              final startStr = formatT(stop['stop_start_time']);
-                              final endStr = formatT(stop['stop_end_time']);
-                              String timeText = '';
-                              if (startStr.isNotEmpty && endStr.isNotEmpty) {
-                                timeText = '$startStr - $endStr';
-                              } else if (startStr.isNotEmpty) {
-                                timeText = 'Since $startStr';
+                              final startTime = formatT(segment['start_time']);
+                              final endTime = formatT(segment['end_time']);
+                              final timeText = endTime.isEmpty ? startTime : '$startTime - $endTime';
+                              
+                              final distanceRaw = double.tryParse(segment['distance_km']?.toString() ?? '0') ?? 0.0;
+                              final distance = distanceRaw.toStringAsFixed(2);
+                              
+                              final duration = segment['duration_minutes']?.toString() ?? '0';
+                              final status = segment['status']?.toString() ?? 'Unknown';
+                              
+                              final fromLat = double.tryParse(segment['from_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0') ?? 0.0;
+                              final fromLng = double.tryParse(segment['from_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0') ?? 0.0;
+                              final fromAddressKey = '$fromLat,$fromLng';
+
+                              final toLat = double.tryParse(segment['to_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0') ?? 0.0;
+                              final toLng = double.tryParse(segment['to_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0') ?? 0.0;
+                              final toAddressKey = '$toLat,$toLng';
+                              
+                              if (!controller.addressCache.containsKey(fromAddressKey)) {
+                                controller.getAddressFor(fromLat, fromLng);
+                              }
+                              if (!controller.addressCache.containsKey(toAddressKey) && toLat != 0.0 && toLng != 0.0) {
+                                controller.getAddressFor(toLat, toLng);
                               }
 
-                              final reason = stop['reason']?.toString();
-                              final status = stop['status']?.toString();
-                              final battery = stop['battery']?.toString();
-                              final speed = stop['speed']?.toString();
-                              final accuracy = stop['accuracy']?.toString();
+                              final isMoving = status.toLowerCase() == 'moving';
+                              final statusColor = isMoving ? Colors.green : Colors.orange;
+
+                              Widget buildInfoChip(IconData icon, String text, Color color) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: color.withValues(alpha: 0.2)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(icon, size: 12, color: color),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        text,
+                                        style: AppTextStyle.style_10_600(color: color),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
 
                               return InkWell(
-                                onTap: () => controller.onStopTapped(reversedIndex),
+                                onTap: () => controller.onSegmentTapped(reversedIndex),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
@@ -414,7 +502,7 @@ class HistoryView extends GetView<HistoryController> {
                                                 top: 4,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: Colors.orange,
+                                                color: statusColor,
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                   color: Colors.white,
@@ -423,8 +511,7 @@ class HistoryView extends GetView<HistoryController> {
                                               ),
                                             ),
                                             if (index <
-                                                controller.rawStoppages.length -
-                                                    1)
+                                                controller.routeSegments.length - 1)
                                               Expanded(
                                                 child: Container(
                                                   width: 2,
@@ -445,13 +532,14 @@ class HistoryView extends GetView<HistoryController> {
                                                         .spaceBetween,
                                                 children: [
                                                   Text(
-                                                    'Stop ${reversedIndex + 1}',
+                                                    'Segment ${reversedIndex + 1}',
                                                     style:
                                                         AppTextStyle.style_14_600(
                                                           color:
                                                               AppColors.black,
                                                         ),
                                                   ),
+                                                  const SizedBox(width: 8),
                                                   if (timeText.isNotEmpty)
                                                     Text(
                                                       timeText,
@@ -465,113 +553,79 @@ class HistoryView extends GetView<HistoryController> {
                                               ),
                                               const SizedBox(height: 4),
                                               Wrap(
-                                                spacing: 8,
-                                                runSpacing: 4,
+                                                spacing: 6,
+                                                runSpacing: 6,
                                                 crossAxisAlignment: WrapCrossAlignment.center,
                                                 children: [
-                                                  Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.schedule_rounded,
-                                                        size: 14,
-                                                        color: AppColors.grey500,
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        '$duration mins',
-                                                        style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                                                      ),
-                                                    ],
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: statusColor.withValues(alpha: 0.1),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(isMoving ? Icons.directions_car_rounded : Icons.pause_circle_filled_rounded, size: 12, color: statusColor),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          status.toUpperCase(),
+                                                          style: AppTextStyle.style_10_600(color: statusColor),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                  if (battery != null && battery.isNotEmpty)
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.battery_std_rounded,
-                                                          size: 14,
-                                                          color: AppColors.grey500,
-                                                        ),
-                                                        const SizedBox(width: 2),
-                                                        Text(
-                                                          '$battery%',
-                                                          style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                                                        ),
-                                                      ],
+                                                  if (isMoving)
+                                                    buildInfoChip(
+                                                      Icons.route_rounded,
+                                                      '$distance km',
+                                                      AppColors.blue500,
                                                     ),
-                                                  if (speed != null && speed.isNotEmpty)
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.speed_rounded,
-                                                          size: 14,
-                                                          color: AppColors.grey500,
-                                                        ),
-                                                        const SizedBox(width: 2),
-                                                        Text(
-                                                          '$speed km/h',
-                                                          style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                                                        ),
-                                                      ],
+                                                  buildInfoChip(
+                                                    Icons.timer_rounded,
+                                                    '$duration mins',
+                                                    AppColors.blue500,
+                                                  ),
+                                                  if (segment['avg_speed_kmph'] != null)
+                                                    buildInfoChip(
+                                                      Icons.speed_rounded,
+                                                      'Avg: ${double.tryParse(segment['avg_speed_kmph'].toString())?.toStringAsFixed(1) ?? '0'} km/h',
+                                                      Colors.purple,
                                                     ),
-                                                  if (accuracy != null && accuracy.isNotEmpty)
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.gps_fixed_rounded,
-                                                          size: 14,
-                                                          color: AppColors.grey500,
-                                                        ),
-                                                        const SizedBox(width: 2),
-                                                        Text(
-                                                          '±$accuracy m',
-                                                          style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                                                        ),
-                                                      ],
+                                                  if (segment['max_speed_kmph'] != null)
+                                                    buildInfoChip(
+                                                      Icons.speed_rounded,
+                                                      'Max: ${double.tryParse(segment['max_speed_kmph'].toString())?.toStringAsFixed(1) ?? '0'} km/h',
+                                                      Colors.red,
                                                     ),
-                                                  if (status != null && status.isNotEmpty)
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: status.toLowerCase() == 'approved' ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                                                        borderRadius: BorderRadius.circular(4),
-                                                      ),
-                                                      child: Text(
-                                                        status.toUpperCase(),
-                                                        style: AppTextStyle.style_10_600(color: status.toLowerCase() == 'approved' ? Colors.green : Colors.orange),
-                                                      ),
+                                                  if (segment['battery'] != null)
+                                                    buildInfoChip(
+                                                      Icons.battery_std_rounded,
+                                                      '${segment['battery']}%',
+                                                      Colors.teal,
                                                     ),
                                                 ],
                                               ),
                                               const SizedBox(height: 8),
-                                              Text(
-                                                stop['placeName'] ??
-                                                    'Lat: ${stop['latitude']}, Lng: ${stop['longitude']}',
-                                                style:
-                                                    AppTextStyle.style_12_400(
-                                                      color: AppColors.grey600,
-                                                    ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              if (reason != null &&
-                                                  reason.isNotEmpty) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  'Reason: $reason',
-                                                  style:
-                                                      AppTextStyle.style_12_400(
-                                                        color:
-                                                            AppColors.grey500,
-                                                      ).copyWith(
-                                                        fontStyle:
-                                                            FontStyle.italic,
-                                                      ),
-                                                ),
-                                              ],
+                                              Obx(() {
+                                                final fromAddr = controller.addressCache[fromAddressKey] ?? 'Loading address...';
+                                                final toAddr = controller.addressCache[toAddressKey] ?? 'Loading address...';
+                                                final isMoving = status.toLowerCase() == 'moving';
+                                                
+                                                if (isMoving) {
+                                                  return Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text('From: $fromAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                      const SizedBox(height: 2),
+                                                      Text('To: $toAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                    ],
+                                                  );
+                                                } else {
+                                                  return Text('At: $fromAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 2, overflow: TextOverflow.ellipsis);
+                                                }
+                                              }),
                                               const SizedBox(height: 12),
                                               Row(
                                                 children: [
@@ -579,14 +633,8 @@ class HistoryView extends GetView<HistoryController> {
                                                     onTap: () {
                                                       controller
                                                           .openInGoogleMaps(
-                                                            double.parse(
-                                                              stop['latitude']
-                                                                  .toString(),
-                                                            ),
-                                                            double.parse(
-                                                              stop['longitude']
-                                                                  .toString(),
-                                                            ),
+                                                            fromLat,
+                                                            fromLng,
                                                           );
                                                     },
                                                     child: Row(
@@ -618,16 +666,9 @@ class HistoryView extends GetView<HistoryController> {
                                                   InkWell(
                                                     onTap: () {
                                                       controller.shareLocation(
-                                                        double.parse(
-                                                          stop['latitude']
-                                                              .toString(),
-                                                        ),
-                                                        double.parse(
-                                                          stop['longitude']
-                                                              .toString(),
-                                                        ),
-                                                        stop['placeName'] ??
-                                                            'Lat: ${stop['latitude']}, Lng: ${stop['longitude']}',
+                                                        fromLat,
+                                                        fromLng,
+                                                        'Lat: $fromLat, Lng: $fromLng',
                                                       );
                                                     },
                                                     child: Row(
@@ -644,11 +685,11 @@ class HistoryView extends GetView<HistoryController> {
                                                           width: 4,
                                                         ),
                                                         Text(
-                                                          'Share',
+                                                          'Share segment',
                                                           style:
                                                               AppTextStyle.style_12_600(
                                                                 color: AppColors
-                                                                    .blue500,
+                                                                    .grey700,
                                                               ),
                                                         ),
                                                       ],
@@ -664,8 +705,10 @@ class HistoryView extends GetView<HistoryController> {
                                   ),
                                 ),
                               );
-                            }, childCount: controller.rawStoppages.length),
+                            },
+                            childCount: controller.routeSegments.length,
                           ),
+                        ),
                         ),
                       ],
                     ),
@@ -679,27 +722,73 @@ class HistoryView extends GetView<HistoryController> {
   }
 
   void _fitBounds(GoogleMapController googleMapController) {
-    if (controller.routePoints.isEmpty) return;
+    if (controller.routePoints.isEmpty && controller.staffCurrentLocationMarker.value == null) return;
 
-    double minLat = controller.routePoints.first.latitude;
-    double maxLat = controller.routePoints.first.latitude;
-    double minLng = controller.routePoints.first.longitude;
-    double maxLng = controller.routePoints.first.longitude;
+    double? minLat, maxLat, minLng, maxLng;
+
+    void updateBounds(LatLng p) {
+      if (minLat == null || p.latitude < minLat!) minLat = p.latitude;
+      if (maxLat == null || p.latitude > maxLat!) maxLat = p.latitude;
+      if (minLng == null || p.longitude < minLng!) minLng = p.longitude;
+      if (maxLng == null || p.longitude > maxLng!) maxLng = p.longitude;
+    }
 
     for (final p in controller.routePoints) {
-      if (p.latitude < minLat) minLat = p.latitude;
-      if (p.latitude > maxLat) maxLat = p.latitude;
-      if (p.longitude < minLng) minLng = p.longitude;
-      if (p.longitude > maxLng) maxLng = p.longitude;
+      updateBounds(p);
+    }
+    
+    if (controller.staffCurrentLocationMarker.value != null) {
+      updateBounds(controller.staffCurrentLocationMarker.value!.position);
+    }
+
+    if (minLat == null || maxLat == null || minLng == null || maxLng == null) return;
+
+    // If it's a single point, just zoom into it
+    if (minLat == maxLat && minLng == maxLng) {
+      googleMapController.animateCamera(CameraUpdate.newLatLngZoom(LatLng(minLat!, minLng!), 14));
+      return;
     }
 
     googleMapController.animateCamera(
       CameraUpdate.newLatLngBounds(
         LatLngBounds(
-          southwest: LatLng(minLat, minLng),
-          northeast: LatLng(maxLat, maxLng),
+          southwest: LatLng(minLat!, minLng!),
+          northeast: LatLng(maxLat!, maxLng!),
         ),
         50.0, // padding
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Tooltip(
+            message: label,
+            triggerMode: TooltipTriggerMode.tap,
+            preferBelow: false,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.blue500.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.blue500, size: 16),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: AppTextStyle.style_10_600(color: AppColors.black),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

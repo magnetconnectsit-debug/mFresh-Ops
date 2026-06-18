@@ -100,6 +100,23 @@ class AppConstants {
   static const String measurementUpdate = 'measurement/update';
   static const String measurementDelete = 'measurement/delete';
   static const String measurementList = 'measurement/list';
+
+  // Tracking
+  static const String trackingStart = 'tracking/start';
+  static const String trackingLocationUpdate = 'tracking/location-update';
+  static const String trackingBulkSync = 'tracking/bulk-sync';
+  static const String trackingStop = 'tracking/stop';
+  static const String trackingCurrentStatus = 'tracking/current-status';
+  static const String trackingMyRouteHistory = 'tracking/my-route-history';
+  static const String trackingMyStoppages = 'tracking/my-stoppages';
+  static const String trackingSegments = 'tracking/segments';
+  static const String trackingTodaySummary = 'tracking/today-summary';
+  
+  // Staff Tracking (Admin)
+  static const String staffEmployees = 'employees';
+  static const String staffRouteHistory = 'route-history';
+  static const String staffStoppages = 'stoppages';
+  static const String staffSummary = 'summary';
   // endregion
 
   // region Hive Keys

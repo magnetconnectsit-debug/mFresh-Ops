@@ -93,8 +93,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: 12.h),
                       const HomeGrid(),
                       SizedBox(height: 20.h),
-                      const DutyStatusCard(),
-                      SizedBox(height: 16.h),
+                      Obx(() {
+                        final authRepo = Get.find<AuthRepository>();
+                        if (authRepo.rxUserPermissions.contains('duty_punch')) {
+                          return Column(
+                            children: [
+                              const DutyStatusCard(),
+                              SizedBox(height: 16.h),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
                       Center(
                         child: Container(
                           width: double.infinity,

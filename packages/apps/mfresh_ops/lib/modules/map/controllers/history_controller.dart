@@ -19,11 +19,18 @@ class HistoryController extends GetxController {
   final RxList<LatLng> drawnRoutePoints = <LatLng>[].obs;
   final RxList<Marker> stopMarkers = <Marker>[].obs;
   final RxList<Map<String, dynamic>> rawStoppages = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> rawLocations = <Map<String, dynamic>>[].obs;
+  final RxMap<String, dynamic> routeSummary = <String, dynamic>{}.obs;
+  final RxMap<String, dynamic> liveStatus = <String, dynamic>{}.obs;
+  final RxList<Map<String, dynamic>> routeSegments = <Map<String, dynamic>>[].obs;
   final Rx<Marker?> startMarker = Rx<Marker?>(null);
   final Rx<Marker?> endMarker = Rx<Marker?>(null);
+  final Rx<Marker?> staffCurrentLocationMarker = Rx<Marker?>(null);
   final RxBool isLoading = true.obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final Rx<MapType> currentMapType = MapType.normal.obs;
+  
+  final RxMap<String, String> addressCache = <String, String>{}.obs;
   
   // Replay State
   final RxBool isReplaying = false.obs;
@@ -41,10 +48,37 @@ class HistoryController extends GetxController {
   BitmapDescriptor? _startIcon;
   BitmapDescriptor? _endIcon;
   BitmapDescriptor? _stopIcon;
+  
+  int? adminEmployeeId;
+  String? adminEmployeeName;
 
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments;
+    if (args != null && args is Map) {
+      adminEmployeeId = args['employee_id'];
+      adminEmployeeName = args['employee_name'];
+      
+      final currentLat = args['current_lat'];
+      final currentLng = args['current_lng'];
+      if (currentLat != null && currentLng != null && currentLat.toString().isNotEmpty && currentLng.toString().isNotEmpty) {
+        try {
+          staffCurrentLocationMarker.value = Marker(
+            markerId: const MarkerId('staff_current_location'),
+            position: LatLng(double.parse(currentLat.toString()), double.parse(currentLng.toString())),
+            infoWindow: InfoWindow(
+              title: 'Current Location',
+              snippet: args['last_seen'] != null ? 'Last seen: ${args['last_seen']}' : null,
+            ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+            zIndex: 10,
+          );
+        } catch (e) {
+          debugPrint('Failed to parse staff current location: $e');
+        }
+      }
+    }
     _initIcons();
     fetchHistory();
   }
@@ -72,13 +106,20 @@ class HistoryController extends GetxController {
       drawnRoutePoints.clear();
       stopMarkers.clear();
       rawStoppages.clear();
+      rawLocations.clear();
+      routeSummary.clear();
+      liveStatus.clear();
+      routeSegments.clear();
       startMarker.value = null;
       endMarker.value = null;
     }
 
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
-      final routeData = await _repository.getRouteHistory(date: dateStr);
+      
+      final routeData = adminEmployeeId != null 
+          ? await _repository.getEmployeeRouteHistory(employeeId: adminEmployeeId!, date: dateStr)
+          : await _repository.getRouteHistory(date: dateStr);
       if (routeData != null && routeData['status'] == true) {
         final List points = routeData['route_points'] ?? [];
         if (points.isNotEmpty) {
@@ -88,6 +129,8 @@ class HistoryController extends GetxController {
           double.parse(p['latitude'].toString()),
           double.parse(p['longitude'].toString()),
         )).toList();
+        
+        rawLocations.value = points.map((p) => Map<String, dynamic>.from(p)).toList();
         
         routeTimes.value = points.asMap().entries.map((entry) {
           int idx = entry.key;
@@ -130,7 +173,9 @@ class HistoryController extends GetxController {
         }
       }
 
-      final stopData = await _repository.getStoppages(date: dateStr);
+      final stopData = adminEmployeeId != null
+          ? await _repository.getEmployeeStoppages(employeeId: adminEmployeeId!, date: dateStr)
+          : await _repository.getStoppages(date: dateStr);
       if (stopData != null && stopData['status'] == true) {
         final List stops = stopData['stoppages'] ?? [];
         
@@ -173,6 +218,25 @@ class HistoryController extends GetxController {
           ));
         }
         rawStoppages.value = processedStops;
+      }
+
+      final summaryData = adminEmployeeId != null
+          ? await _repository.getEmployeeSummary(employeeId: adminEmployeeId!, date: dateStr)
+          : await _repository.getTodaySummary(date: dateStr);
+      if (summaryData != null && summaryData['status'] == true) {
+        routeSummary.value = Map<String, dynamic>.from(summaryData['summary'] ?? summaryData['data'] ?? {});
+        if (summaryData['live_status'] != null) {
+          liveStatus.value = Map<String, dynamic>.from(summaryData['live_status']);
+        } else {
+          liveStatus.clear();
+        }
+      }
+
+      final segmentData = adminEmployeeId != null
+          ? await _repository.getEmployeeSegments(employeeId: adminEmployeeId!, date: dateStr)
+          : await _repository.getSegments(date: dateStr);
+      if (segmentData != null && segmentData['status'] == true) {
+        routeSegments.value = List<Map<String, dynamic>>.from(segmentData['segments'] ?? segmentData['data'] ?? []);
       }
     } catch (e) {
       debugPrint('Error fetching history: $e');
@@ -266,6 +330,75 @@ class HistoryController extends GetxController {
         );
       }
     }
+  }
+
+  void onLocationTapped(int index) {
+    if (index >= 0 && index < rawLocations.length) {
+      final loc = rawLocations[index];
+      final lat = double.parse(loc['latitude'].toString());
+      final lng = double.parse(loc['longitude'].toString());
+      
+      mapController?.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16));
+
+      if (sheetController.isAttached) {
+        sheetController.animateTo(
+          0.3,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
+
+  void onSegmentTapped(int index) {
+    if (index >= 0 && index < routeSegments.length) {
+      final segment = routeSegments[index];
+      // Try to get 'to' location first, fallback to 'from', fallback to general latitude
+      final latStr = segment['to_latitude']?.toString() ?? segment['from_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0';
+      final lngStr = segment['to_longitude']?.toString() ?? segment['from_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0';
+      
+      final lat = double.tryParse(latStr) ?? 0.0;
+      final lng = double.tryParse(lngStr) ?? 0.0;
+      
+      if (lat != 0.0 && lng != 0.0) {
+        mapController?.animateCamera(CameraUpdate.newLatLngZoom(LatLng(lat, lng), 16));
+
+        if (sheetController.isAttached) {
+          sheetController.animateTo(
+            0.3,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> getAddressFor(double lat, double lng) async {
+    final key = '$lat,$lng';
+    if (addressCache.containsKey(key)) return;
+    
+    // Set a temporary loading state
+    addressCache[key] = 'Loading address...';
+
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        final parts = [place.street, place.subLocality, place.locality, place.administrativeArea]
+            .where((e) => e != null && e.isNotEmpty && !e.contains('+'))
+            .toList();
+        if (parts.isNotEmpty) {
+          addressCache[key] = parts.join(', ');
+          return;
+        }
+      }
+    } catch (e) {
+      // Ignore geocoding errors (e.g., rate limits or no connection)
+    }
+    
+    // Fallback if geocoding fails
+    addressCache[key] = 'Lat: ${lat.toStringAsFixed(5)}, Lng: ${lng.toStringAsFixed(5)}';
   }
 
   Future<void> openInGoogleMaps(double lat, double lng) async {

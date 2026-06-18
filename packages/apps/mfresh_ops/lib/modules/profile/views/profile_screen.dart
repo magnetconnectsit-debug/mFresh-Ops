@@ -26,17 +26,22 @@ class ProfileScreen extends StatelessWidget {
         hasBackButton: false,
       ),
       drawer: const CommonSidebar(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileHeader(controller),
-            _buildTabs(controller),
-            Obx(
-              () => controller.currentTab.value == 0
-                  ? _buildOverviewTab(controller)
-                  : _buildEditProfileTab(context, controller),
-            ),
-          ],
+      body: RefreshIndicator(
+        onRefresh: controller.fetchProfile,
+        color: AppColors.primary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildProfileHeader(controller),
+              _buildTabs(controller),
+              Obx(
+                () => controller.currentTab.value == 0
+                    ? _buildOverviewTab(controller)
+                    : _buildEditProfileTab(context, controller),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -120,7 +125,7 @@ class ProfileScreen extends StatelessWidget {
             () => controller.isLoading.value && controller.user.value == null
                 ? const SizedBox.shrink()
                 : Text(
-                    controller.user.value?.role ?? 'User',
+                    controller.user.value?.roleName ?? controller.user.value?.role ?? 'User',
                     style: AppTextStyle.style_14_500(color: AppColors.grey300),
                   ),
           ),
@@ -196,7 +201,7 @@ class ProfileScreen extends StatelessWidget {
               'Full Name',
               user?.name ?? 'N/A',
             ),
-            _buildInfoTile(Icons.work_outline, 'Role', user?.role ?? 'N/A'),
+            _buildInfoTile(Icons.work_outline, 'Role', user?.roleName ?? 'N/A'),
             _buildInfoTile(Icons.phone_outlined, 'Phone', user?.mob ?? 'N/A'),
             _buildInfoTile(Icons.email_outlined, 'Email', user?.email ?? 'N/A'),
           ],

@@ -72,4 +72,58 @@ class AppDateUtils {
     if (month < 1 || month > 12) return '';
     return months[month - 1];
   }
+
+  static String formatToDateTimeAmPm(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return 'Never';
+    try {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed == null) return rawDate;
+
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final monthName = _getShortMonthName(local.month);
+      
+      int hour = local.hour;
+      final minute = local.minute.toString().padLeft(2, '0');
+      final amPm = hour >= 12 ? 'PM' : 'AM';
+      
+      if (hour == 0) {
+        hour = 12;
+      } else if (hour > 12) {
+        hour -= 12;
+      }
+      
+      final hourStr = hour.toString().padLeft(2, '0');
+
+      return '$hourStr:$minute $amPm, $day $monthName';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  static String formatToTimeAmPm(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return 'Never';
+    try {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed == null) return rawDate;
+
+      final local = parsed.toLocal();
+      
+      int hour = local.hour;
+      final minute = local.minute.toString().padLeft(2, '0');
+      final amPm = hour >= 12 ? 'PM' : 'AM';
+      
+      if (hour == 0) {
+        hour = 12;
+      } else if (hour > 12) {
+        hour -= 12;
+      }
+      
+      final hourStr = hour.toString().padLeft(2, '0');
+
+      return '$hourStr:$minute $amPm';
+    } catch (_) {
+      return rawDate;
+    }
+  }
 }

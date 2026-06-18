@@ -46,6 +46,10 @@ class CommonSidebar extends StatelessWidget {
             ),
           ),
           Obx(() {
+            final authRepo = Get.find<AuthRepository>();
+            if (!authRepo.rxUserPermissions.contains('duty_punch')) {
+              return const SizedBox.shrink();
+            }
             final isTracking = TrackingService.to.isTracking.value;
             return Container(
               color: isTracking
@@ -149,15 +153,16 @@ class CommonSidebar extends StatelessWidget {
                   ),
 
                   // Tracking Expandable Section
-                  _buildExpandableMenuItem(
-                    icon: Icons.location_on_outlined,
-                    title: 'Tracking',
-                    subItems: [
-                      'My Routes',
-                      'Staff Tracking',
-                    ],
-                    currentRoute: currentRoute,
-                  ),
+                  if (userPermissions.contains('tracking_panel'))
+                    _buildExpandableMenuItem(
+                      icon: Icons.location_on_outlined,
+                      title: 'Tracking',
+                      subItems: [
+                        'My Routes',
+                        'Staff Tracking',
+                      ],
+                      currentRoute: currentRoute,
+                    ),
 
                   _buildExpandableMenuItem(
                     icon: Icons.support_agent_outlined,

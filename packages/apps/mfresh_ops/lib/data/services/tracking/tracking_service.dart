@@ -13,6 +13,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class TrackingService extends GetxService {
   static TrackingService get to => Get.find<TrackingService>();
@@ -48,6 +49,20 @@ class TrackingService extends GetxService {
   Future<void> startAutoTracking() async {
     debugPrint('TrackingService: Attempting auto-start...');
     
+    final authRepo = Get.find<AuthRepository>();
+    final hasTrackingPanel = authRepo.rxUserPermissions.contains('tracking_panel');
+    final hasBgService = authRepo.rxUserPermissions.contains('background_service');
+    final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
+
+    if (hasBgService && !hasDutyPunch && !hasTrackingPanel) {
+      debugPrint('TrackingService: Silent background tracking mode. Auto-starting without user intervention.');
+      await checkCurrentStatus();
+      if (!isTracking.value) {
+        await startTracking();
+      }
+      return;
+    }
+
     final intendedStatus = _storageService.getIntendedTrackingStatus();
     if (intendedStatus == false) {
       debugPrint('TrackingService: User intentionally off-duty. Aborting auto-start.');
@@ -233,7 +248,10 @@ class TrackingService extends GetxService {
   }
 
   Future<bool> _startForegroundService() async {
-    if (isTracking.value) {
+    final authRepo = Get.find<AuthRepository>();
+    final hasBgPermission = authRepo.rxUserPermissions.contains('background_service');
+
+    if (isTracking.value && hasBgPermission) {
       if (await FlutterForegroundTask.isRunningService) {
         return FlutterForegroundTask.restartService();
       } else {
@@ -264,12 +282,35 @@ class TrackingService extends GetxService {
   }
 
   Future<void> _syncLocation(Position pos) async {
+    final authRepo = Get.find<AuthRepository>();
+    final hasTrackingPanel = authRepo.rxUserPermissions.contains('tracking_panel');
+    final hasBgService = authRepo.rxUserPermissions.contains('background_service');
+    final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
+
+    if (!hasTrackingPanel) {
+      if (!(hasBgService && !hasDutyPunch)) {
+        return;
+      }
+    }
+
     if (sessionId.value == null) return;
     
     final deviceId = await _getDeviceId();
     final batteryLevel = await _battery.batteryLevel;
     final batteryState = await _battery.batteryState;
     
+    final connectivityResults = await Connectivity().checkConnectivity();
+    String? networkType;
+    if (connectivityResults.isNotEmpty) {
+      if (connectivityResults.contains(ConnectivityResult.wifi)) {
+        networkType = 'wifi';
+      } else if (connectivityResults.contains(ConnectivityResult.mobile)) {
+        networkType = 'mobile';
+      } else {
+        networkType = connectivityResults.first.name;
+      }
+    }
+
     final locationData = LocationData(
       latitude: pos.latitude,
       longitude: pos.longitude,
@@ -278,6 +319,7 @@ class TrackingService extends GetxService {
       heading: pos.heading,
       battery: batteryLevel,
       isCharging: batteryState == BatteryState.charging,
+      networkType: networkType,
       locationTime: _apiDateFormat.format(DateTime.now()), // Use current time for sync heartbeat
     );
 
@@ -291,11 +333,11 @@ class TrackingService extends GetxService {
       heading: locationData.heading,
       battery: locationData.battery,
       isCharging: locationData.isCharging,
+      networkType: locationData.networkType,
       locationTime: locationData.locationTime,
     );
 
     try {
-      final connectivityResults = await Connectivity().checkConnectivity();
       if (connectivityResults.contains(ConnectivityResult.none)) {
         final box = await Hive.openBox<LocationData>('location_cache_box');
         await box.add(locationData);

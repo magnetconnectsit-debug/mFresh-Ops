@@ -33,7 +33,8 @@ import 'package:mfresh_ops/modules/inventory/views/store_room_screen.dart';
 import 'package:mfresh_ops/modules/home/views/notification_screen.dart';
 import 'package:mfresh_ops/modules/map/views/map_view.dart';
 import 'package:mfresh_ops/modules/map/views/history_view.dart';
-import 'package:mfresh_ops/modules/map/views/staff_tracking_view.dart';
+import 'package:mfresh_ops/modules/staff_tracking/bindings/staff_tracking_binding.dart';
+import 'package:mfresh_ops/modules/staff_tracking/views/staff_tracking_screen.dart';
 import 'package:mfresh_ops/modules/map/bindings/location_binding.dart';
 import 'package:mfresh_ops/modules/map/controllers/history_controller.dart';
 import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
@@ -183,7 +184,8 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.staffTracking,
-      page: () => const StaffTrackingView(),
+      page: () => const StaffTrackingScreen(),
+      binding: StaffTrackingBinding(),
     ),
   ];
 }
