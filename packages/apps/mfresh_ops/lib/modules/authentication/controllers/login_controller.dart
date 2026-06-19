@@ -196,9 +196,11 @@ class LoginController extends GetxController {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              Pinput(
+              Obx(() => Pinput(
                 length: 6,
+                autofillHints: const [AutofillHints.oneTimeCode],
                 controller: otpController,
+                readOnly: isLoading.value,
                 keyboardType: TextInputType.number,
                 defaultPinTheme: PinTheme(
                   width: 48,
@@ -221,13 +223,15 @@ class LoginController extends GetxController {
                   ),
                 ),
                 onCompleted: (pin) {
-                  verifyOtp(pin);
+                  if (!isLoading.value) verifyOtp(pin);
                 },
-              ),
+              )),
               const SizedBox(height: 32),
-              AppCommonButton(
+              Obx(() => AppCommonButton(
                 text: 'Verify OTP',
+                isLoading: isLoading.value,
                 onPressed: () {
+                  if (isLoading.value) return;
                   if (otpController.text.length == 6) {
                     verifyOtp(otpController.text);
                   } else {
@@ -237,7 +241,7 @@ class LoginController extends GetxController {
                     );
                   }
                 },
-              ),
+              )),
               const SizedBox(height: 16),
             ],
           ),

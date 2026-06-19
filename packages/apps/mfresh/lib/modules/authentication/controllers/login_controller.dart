@@ -194,10 +194,14 @@ class LoginController extends GetxController {
               style: AppTextStyle.style_14_400(color: AppColors.grey400),
             ),
             const SizedBox(height: 32),
-            Pinput(
+            Obx(() => Pinput(
               length: 6,
+              autofillHints: const [AutofillHints.oneTimeCode],
               controller: otpController,
-              onCompleted: (pin) => verifyOtp(pin),
+              readOnly: isLoading.value,
+              onCompleted: (pin) {
+                if (!isLoading.value) verifyOtp(pin);
+              },
               defaultPinTheme: PinTheme(
                 width: 45,
                 height: 50,
@@ -216,12 +220,15 @@ class LoginController extends GetxController {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-            ),
+            )),
             const SizedBox(height: 32),
-            AppCommonButton(
+            Obx(() => AppCommonButton(
               text: "VERIFY & LOGIN",
-              onPressed: () => verifyOtp(otpController.text),
-            ),
+              isLoading: isLoading.value,
+              onPressed: () {
+                if (!isLoading.value) verifyOtp(otpController.text);
+              },
+            )),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

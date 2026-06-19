@@ -750,13 +750,15 @@ class ServiceDetailsController extends GetxController {
               style: AppTextStyle.style_13_400(color: AppColors.grey300),
             ),
             SizedBox(height: 30.h),
-            Pinput(
+            Obx(() => Pinput(
               length: 6,
+              autofillHints: const [AutofillHints.oneTimeCode],
               controller: bottomOtpController,
+              readOnly: isVerifying.value || hasVerified.value,
               defaultPinTheme: defaultPinTheme,
               focusedPinTheme: focusedPinTheme,
               onCompleted: (pin) async {
-                if (hasVerified.value) return;
+                if (hasVerified.value || isVerifying.value) return;
 
                 isVerifying.value = true;
                 final success = await verifyMemberOtp(
@@ -773,7 +775,7 @@ class ServiceDetailsController extends GetxController {
                   Navigator.pop(Get.context!, true);
                 }
               },
-            ),
+            )),
             SizedBox(height: 30.h),
             Obx(
               () => SizedBox(
