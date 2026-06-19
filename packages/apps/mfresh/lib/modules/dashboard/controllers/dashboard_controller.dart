@@ -65,6 +65,8 @@ class DashboardController extends GetxController {
             'unitNo': unitMatch.unitId,
             'location': unitMatch.unitLocation,
             'unitImage': unitMatch.unitImage,
+            'printingType': unitMatch.printingType,
+            'paperRollSize': unitMatch.paperRollSize,
           },
         );
         return {"StatusCode": 200, "Status": "Navigating", "ErrorMessage": "Opening Unit Details"};

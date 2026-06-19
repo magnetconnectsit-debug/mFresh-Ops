@@ -32,6 +32,9 @@ class StorageService extends GetxService {
   late final Box<dynamic> _settingsBox;
   late final Box<dynamic> _notificationBox;
 
+  final rxIsLoggedIn = false.obs;
+
+
   // endregion
 
   // region Initialization
@@ -50,6 +53,8 @@ class StorageService extends GetxService {
     _userBox = await _safeOpenBox<dynamic>(_userBoxName);
     _settingsBox = await _safeOpenBox<dynamic>(_settingsBoxName);
     _notificationBox = await _safeOpenBox<dynamic>(_notificationBoxName);
+
+    rxIsLoggedIn.value = getToken() != null;
 
     debugPrint('StorageService: Hive initialized and boxes opened.');
     return this;
@@ -88,6 +93,7 @@ class StorageService extends GetxService {
   Future<void> saveToken(String token) async {
     debugPrint('StorageService: Saving token.');
     await _authBox.put(_tokenKey, token);
+    rxIsLoggedIn.value = true;
   }
 
   String? getToken() {
@@ -107,6 +113,7 @@ class StorageService extends GetxService {
   Future<void> clearToken() async {
     debugPrint('StorageService: Clearing token.');
     await _authBox.delete(_tokenKey);
+    rxIsLoggedIn.value = false;
   }
 
   Future<void> clearRefreshToken() async {

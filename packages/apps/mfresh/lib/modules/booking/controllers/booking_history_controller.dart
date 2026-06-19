@@ -3,6 +3,7 @@ import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/data/models/booking_history_model.dart';
 import 'package:mfresh/data/repositories/user_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh/modules/dashboard/controllers/dashboard_controller.dart';
 
 class BookingHistoryController extends GetxController {
   final UserRepository _userRepository = Get.find<UserRepository>();
@@ -63,5 +64,13 @@ class BookingHistoryController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> refreshData() async {
+    await Future.wait([
+      fetchBookingHistory(),
+      _profileController.fetchProfile(),
+      if (Get.isRegistered<DashboardController>()) Get.find<DashboardController>().fetchUnits(),
+    ]);
   }
 }

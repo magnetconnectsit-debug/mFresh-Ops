@@ -94,17 +94,18 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (response.statusCode == 401) {
+    final isPublic = publicPaths.any((path) => response.requestOptions.path.contains(path));
+    if (response.statusCode == 401 && !isPublic) {
       debugPrint('AuthInterceptor: 401 Unauthorized detected in response. Logging out...');
       _handleLogout(response.data);
-      return; // Stop further processing
     }
     return super.onResponse(response, handler);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
+    final isPublic = publicPaths.any((path) => err.requestOptions.path.contains(path));
+    if (err.response?.statusCode == 401 && !isPublic) {
       debugPrint('AuthInterceptor: 401 Unauthorized detected in error. Logging out...');
       _handleLogout(err.response?.data);
     }

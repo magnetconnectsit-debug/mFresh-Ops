@@ -6,6 +6,7 @@ import 'package:mfresh/data/repositories/common_repository.dart';
 import 'package:mfresh/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/data/models/user.dart';
+import 'package:mfresh/modules/dashboard/controllers/dashboard_controller.dart';
 
 import 'package:services/phonepe_service.dart';
 import 'package:services/plutus_service.dart';
@@ -87,9 +88,6 @@ class ServiceDetailsController extends GetxController {
           int.tryParse(args['paperRollSize']?.toString() ?? '80') ?? 80;
     }
 
-    if (unitNo.value.isNotEmpty && (args?['paperRollSize'] == null)) {
-      _fetchUnitConfig();
-    }
 
     // Pre-fill user info
     final user = _profileController.user.value;
@@ -110,9 +108,33 @@ class ServiceDetailsController extends GetxController {
   }
 
   Future<void> refreshData() async {
-    await _profileController.fetchProfile();
+    await Future.wait([
+      _profileController.fetchProfile(),
+      if (Get.isRegistered<DashboardController>()) Get.find<DashboardController>().fetchUnits(),
+    ]);
+
+    try {
+      if (Get.isRegistered<DashboardController>()) {
+         final dashUnits = Get.find<DashboardController>().allUnitsList;
+         final currentUnit = dashUnits.firstWhereOrNull((u) => u.unitId == unitNo.value);
+         if (currentUnit != null) {
+            printingType.value = currentUnit.printingType;
+            paperRollSize.value = currentUnit.paperRollSize;
+         }
+      } else {
+         final units = await _commonRepository.getAllUnits();
+         final currentUnit = units.firstWhereOrNull((u) => u.unitId == unitNo.value);
+         if (currentUnit != null) {
+            printingType.value = currentUnit.printingType;
+            paperRollSize.value = currentUnit.paperRollSize;
+         }
+      }
+    } catch (e) {
+      debugPrint("Failed to update unit config on refresh: $e");
+    }
+
     resetAll();
-    await Future.wait([_fetchUnitConfig(), fetchServices()]);
+    await fetchServices();
   }
 
   void resetAll() {
@@ -184,23 +206,7 @@ class ServiceDetailsController extends GetxController {
     }
   }
 
-  Future<void> _fetchUnitConfig() async {
-    try {
-      final config = await _commonRepository.getUnitConfig(
-        unitId: unitNo.value,
-      );
-      if (config != null) {
-        printingType.value = config.printingType;
-        paperRollSize.value = config.paperRollSize;
 
-        debugPrint(
-          "Unit Config Updated: Printing=${printingType.value}, RollSize=${paperRollSize.value}",
-        );
-      }
-    } catch (e) {
-      debugPrint("Failed to fetch unit config: $e");
-    }
-  }
 
   Future<void> verifyMemberPhone(String phone) async {
     if (phone.length != 10) return;

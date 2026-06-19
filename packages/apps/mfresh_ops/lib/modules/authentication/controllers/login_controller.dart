@@ -10,6 +10,10 @@ import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
+import 'package:pinput/pinput.dart';
 
 class LoginController extends GetxController {
   final usernameController = TextEditingController();
@@ -18,6 +22,8 @@ class LoginController extends GetxController {
   final rememberMe = false.obs;
   final obscurePassword = true.obs;
   final isLoading = false.obs;
+  final isOtpLogin = false.obs;
+  final otpController = TextEditingController();
   int _logoTapCount = 0;
   DateTime? _lastTapTime;
 
@@ -32,7 +38,7 @@ class LoginController extends GetxController {
 
   void _loadSavedCredentials() {
     if (kDebugMode) {
-      usernameController.text = '8249965521';
+      usernameController.text = '6370658717';
       passwordController.text = 'itadmin@1234';
       rememberMe.value = true;
       return;
@@ -72,6 +78,25 @@ class LoginController extends GetxController {
 
   void togglePasswordVisibility() {
     obscurePassword.value = !obscurePassword.value;
+  }
+
+  void toggleLoginMode() {
+    isOtpLogin.value = !isOtpLogin.value;
+  }
+
+  void handleLoginAction() {
+    if (isOtpLogin.value) {
+      if (usernameController.text.isEmpty) {
+        AppCommonToastMessage.show(
+          message: 'Please enter your mobile number first',
+          type: ToastType.error,
+        );
+        return;
+      }
+      showOtpBottomSheet();
+    } else {
+      login();
+    }
   }
 
   Future<void> login() async {
@@ -140,5 +165,95 @@ class LoginController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void showOtpBottomSheet() {
+    otpController.clear();
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: 24 + Get.mediaQuery.viewInsets.bottom,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter OTP',
+                style: AppTextStyle.style_20_600(color: AppColors.black),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please enter the 6-digit OTP sent to your mobile number.',
+                style: AppTextStyle.style_14_400(color: AppColors.grey500),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              Pinput(
+                length: 6,
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                defaultPinTheme: PinTheme(
+                  width: 48,
+                  height: 48,
+                  textStyle: AppTextStyle.style_20_600(color: AppColors.black),
+                  decoration: BoxDecoration(
+                    color: AppColors.blue500.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.grey200),
+                  ),
+                ),
+                focusedPinTheme: PinTheme(
+                  width: 48,
+                  height: 48,
+                  textStyle: AppTextStyle.style_20_600(color: AppColors.black),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.blue500, width: 2),
+                  ),
+                ),
+                onCompleted: (pin) {
+                  verifyOtp(pin);
+                },
+              ),
+              const SizedBox(height: 32),
+              AppCommonButton(
+                text: 'Verify OTP',
+                onPressed: () {
+                  if (otpController.text.length == 6) {
+                    verifyOtp(otpController.text);
+                  } else {
+                    AppCommonToastMessage.show(
+                      message: 'Please enter a valid 6-digit OTP',
+                      type: ToastType.warning,
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void verifyOtp(String otp) {
+    // Add real verification logic here later
+    Get.back(); // close bottom sheet
+    AppCommonToastMessage.show(
+      message: 'OTP verified (Placeholder logic)',
+      type: ToastType.success,
+    );
   }
 }

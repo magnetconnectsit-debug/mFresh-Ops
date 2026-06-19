@@ -43,6 +43,15 @@ class TrackingService extends GetxService {
     _startLocationUpdates();
     _startConnectivityListener();
     _startBulkSyncTimer();
+
+    ever(_storageService.rxIsLoggedIn, (isLoggedIn) {
+      if (!isLoggedIn) {
+        debugPrint('TrackingService: User logged out. Stopping foreground task.');
+        isTracking.value = false;
+        sessionId.value = null;
+        FlutterForegroundTask.stopService();
+      }
+    });
   }
 
   // We split the startup logic so we can call it after login is confirmed

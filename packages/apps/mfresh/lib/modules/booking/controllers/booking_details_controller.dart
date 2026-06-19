@@ -38,11 +38,9 @@ class BookingDetailsController extends GetxController {
 
       var result = await _commonRepository.getBookingDetails(bookingId: bookingId);
       if (result != null) {
-        // Fetch Unit Config to get Printer Type and Roll Size
         try {
           UnitModel? unitConfig;
           
-          // 1. Try to find in DashboardController cache first
           try {
             final dashController = Get.find<DashboardController>();
             unitConfig = dashController.allUnitsList.firstWhereOrNull((u) => u.unitId == result!.unitNo);
@@ -53,13 +51,6 @@ class BookingDetailsController extends GetxController {
             debugPrint("DashboardController not found or error: $e");
           }
 
-          // 2. Fallback to API if not found or cache failed
-          if (unitConfig == null) {
-            unitConfig = await _commonRepository.getUnitConfig(unitId: result.unitNo);
-            if (unitConfig != null) {
-              debugPrint("BookingDetailsController: Fetched Unit Config from API");
-            }
-          }
 
           if (unitConfig != null) {
             printingType.value = unitConfig.printingType;

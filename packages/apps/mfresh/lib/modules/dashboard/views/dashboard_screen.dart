@@ -264,6 +264,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     'unitNo': unit.unitId,
                                     'location': unit.unitLocation,
                                     'unitImage': unit.unitImage,
+                                    'printingType': unit.printingType,
+                                    'paperRollSize': unit.paperRollSize,
                                   },
                                 );
                               },

@@ -67,10 +67,12 @@ class CommonSidebar extends StatelessWidget {
                       boxShadow: isTracking
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                                color: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: 0.5),
                                 blurRadius: 6.r,
                                 spreadRadius: 2.r,
-                              )
+                              ),
                             ]
                           : null,
                     ),
@@ -83,12 +85,18 @@ class CommonSidebar extends StatelessWidget {
                         Text(
                           isTracking ? 'ON DUTY' : 'OFF DUTY',
                           style: AppTextStyle.style_14_700(
-                            color: isTracking ? const Color(0xFF10B981) : Colors.red,
+                            color: isTracking
+                                ? const Color(0xFF10B981)
+                                : Colors.red,
                           ),
                         ),
                         Text(
-                          isTracking ? 'Location sharing active' : 'Offline. Tap to start.',
-                          style: AppTextStyle.style_10_400(color: AppColors.grey500),
+                          isTracking
+                              ? 'Location sharing active'
+                              : 'Offline. Tap to start.',
+                          style: AppTextStyle.style_10_400(
+                            color: AppColors.grey500,
+                          ),
                         ),
                       ],
                     ),
@@ -110,13 +118,15 @@ class CommonSidebar extends StatelessWidget {
               final authRepo = Get.find<AuthRepository>();
               final userPermissions = authRepo.rxUserPermissions;
               final showInventory = userPermissions.contains('inventory_panel');
-              
-              final showTaskScheduler = userPermissions.contains('Task_Sheduler_Pannel');
+
+              final showTaskScheduler = userPermissions.contains(
+                'Task_Sheduler_Pannel',
+              );
               final taskSubItems = [
                 if (userPermissions.contains('All_Task')) 'All Task',
                 if (userPermissions.contains('Daily_Task')) 'Daily Task',
               ];
-              
+
               final inventorySubItems = [
                 if (userPermissions.contains('store_inventory_stock'))
                   'Store Inventory',
@@ -124,14 +134,11 @@ class CommonSidebar extends StatelessWidget {
                   'Unit Inventory',
                 if (userPermissions.contains('consumption_report'))
                   'Consumption',
-                if (userPermissions.contains('allotments_report'))
-                  'Allotments',
+                if (userPermissions.contains('allotments_report')) 'Allotments',
                 if (userPermissions.contains('measurements_panel'))
                   'M_Measurements',
-                if (userPermissions.contains('inventory_item'))
-                  'M_Items',
-                if (userPermissions.contains('store_room'))
-                  'M_Store',
+                if (userPermissions.contains('inventory_item')) 'M_Items',
+                if (userPermissions.contains('store_room')) 'M_Store',
               ];
 
               return ListView(
@@ -144,32 +151,11 @@ class CommonSidebar extends StatelessWidget {
                     route: AppRoutes.home,
                     currentRoute: currentRoute,
                   ),
-                  _buildMenuItem(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    title: 'Profile',
-                    route: AppRoutes.profile,
-                    currentRoute: currentRoute,
-                  ),
-
-                  // Tracking Expandable Section
-                  if (userPermissions.contains('tracking_panel'))
-                    _buildExpandableMenuItem(
-                      icon: Icons.location_on_outlined,
-                      title: 'Tracking',
-                      subItems: [
-                        'My Routes',
-                        'Staff Tracking',
-                      ],
-                      currentRoute: currentRoute,
-                    ),
 
                   _buildExpandableMenuItem(
                     icon: Icons.support_agent_outlined,
                     title: 'Support Ticket',
-                    subItems: [
-                      'Support Ticket',
-                    ],
+                    subItems: ['Support Ticket'],
                     currentRoute: currentRoute,
                   ),
 
@@ -190,6 +176,36 @@ class CommonSidebar extends StatelessWidget {
                       subItems: inventorySubItems,
                       currentRoute: currentRoute,
                     ),
+
+                  // Tracking Expandable Section
+                  if (userPermissions.contains('tracking_panel'))
+                    _buildExpandableMenuItem(
+                      icon: Icons.location_on_outlined,
+                      title: 'Tracking',
+                      subItems: ['My Routes', 'Staff Tracking'],
+                      currentRoute: currentRoute,
+                    ),
+
+                  // Collections & Deposits Expandable Section
+                  _buildExpandableMenuItem(
+                    icon: Icons.attach_money_outlined,
+                    title: 'Collections & Deposits',
+                    subItems: [
+                      'Collection - Old',
+                      'Collections',
+                      'Admin Collections',
+                      'Deposits',
+                    ],
+                    currentRoute: currentRoute,
+                  ),
+
+                  _buildMenuItem(
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    title: 'Profile',
+                    route: AppRoutes.profile,
+                    currentRoute: currentRoute,
+                  ),
                 ],
               );
             }),
@@ -331,6 +347,10 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.items);
                   } else if (item == 'M_Store') {
                     Get.toNamed(AppRoutes.storeRooms);
+                  } else if (item == 'Collection - Old') {
+                    Get.toNamed(AppRoutes.oldCollections);
+                  } else if (item == 'Admin Collections') {
+                    Get.toNamed(AppRoutes.adminCollections);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

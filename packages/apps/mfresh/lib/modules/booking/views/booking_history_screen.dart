@@ -39,7 +39,7 @@ class BookingHistoryScreen extends StatelessWidget {
         }
 
         return RefreshIndicator(
-          onRefresh: () => controller.fetchBookingHistory(),
+          onRefresh: () => controller.refreshData(),
           child: Column(
             children: [
               if (controller.showFilters) ...[
