@@ -40,7 +40,7 @@ class AdminCollectionsTable extends StatelessWidget {
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 16.w),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade400),
+          border: Border.all(color: AppColors.borderColor),
           borderRadius: BorderRadius.circular(4.r),
         ),
         child: ClipRRect(
@@ -121,7 +121,7 @@ class AdminCollectionsTable extends StatelessWidget {
                           _buildColorCell(
                             metric.dashboard,
                             width: dashboardWidth,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                           _buildColorCell(
                             metric.difference,
@@ -140,7 +140,7 @@ class AdminCollectionsTable extends StatelessWidget {
                       _buildColorCell(
                         row.otherMetrics.dashboard,
                         width: dashboardWidth,
-                        color: Colors.white,
+                        color: AppColors.white,
                       ),
                       _buildColorCell(
                         row.otherMetrics.difference,
@@ -157,7 +157,7 @@ class AdminCollectionsTable extends StatelessWidget {
                       _buildColorCell(
                         row.totalMetrics.dashboard,
                         width: dashboardWidth,
-                        color: Colors.white,
+                        color: AppColors.white,
                       ),
                       _buildColorCell(
                         row.totalMetrics.difference,
@@ -187,11 +187,11 @@ class AdminCollectionsTable extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFF1B3B5C), // Dark blue header from screenshot
-        border: Border.all(color: Colors.white, width: 0.5),
+        border: Border.all(color: AppColors.white, width: 0.5),
       ),
       child: Text(
         text,
-        style: AppTextStyle.style_10_600(color: Colors.white),
+        style: AppTextStyle.style_10_600(color: AppColors.white),
         textAlign: TextAlign.center,
       ),
     );
@@ -203,8 +203,8 @@ class AdminCollectionsTable extends StatelessWidget {
       height: 32.h,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        color: AppColors.white,
+        border: Border.all(color: AppColors.borderColor, width: 0.5),
       ),
       child: Text(
         text,
@@ -226,13 +226,13 @@ class AdminCollectionsTable extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: color,
-        border: Border.all(color: Colors.grey.shade400, width: 0.5),
+        border: Border.all(color: AppColors.borderColor, width: 0.5),
       ),
       child: Text(
         text,
         style: AppTextStyle.style_10_500(
           color: isDiff && text == '0'
-              ? Colors.green.shade800
+              ? AppColors.primaryGreen
               : AppColors.black,
         ),
         textAlign: TextAlign.center,

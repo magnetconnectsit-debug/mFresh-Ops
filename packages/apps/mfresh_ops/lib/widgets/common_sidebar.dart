@@ -191,7 +191,6 @@ class CommonSidebar extends StatelessWidget {
                     icon: Icons.attach_money_outlined,
                     title: 'Collections & Deposits',
                     subItems: [
-                      'Collection - Old',
                       'Collections',
                       'Admin Collections',
                       'Deposits',
@@ -347,10 +346,12 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.items);
                   } else if (item == 'M_Store') {
                     Get.toNamed(AppRoutes.storeRooms);
-                  } else if (item == 'Collection - Old') {
-                    Get.toNamed(AppRoutes.oldCollections);
+                  } else if (item == 'Collections') {
+                    Get.toNamed(AppRoutes.collections);
                   } else if (item == 'Admin Collections') {
                     Get.toNamed(AppRoutes.adminCollections);
+                  } else if (item == 'Deposits') {
+                    Get.toNamed(AppRoutes.deposits);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

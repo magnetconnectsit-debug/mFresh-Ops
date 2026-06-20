@@ -10,8 +10,10 @@ import 'package:mfresh_ops/modules/splash/views/splash_screen.dart';
 import 'package:mfresh_ops/modules/splash/views/location_permission_screen.dart';
 import 'package:mfresh_ops/modules/authentication/views/login_screen.dart';
 import 'package:mfresh_ops/modules/home/views/home_screen.dart';
-import 'package:mfresh_ops/modules/collections/views/old_collections_screen.dart';
 import 'package:mfresh_ops/modules/collections/views/admin_collections_screen.dart';
+import 'package:mfresh_ops/modules/collections/views/collections_screen.dart';
+import 'package:mfresh_ops/modules/deposits/views/deposits_screen.dart';
+import 'package:mfresh_ops/modules/deposits/views/create_deposit_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/all_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/create_task_screen.dart';
@@ -190,12 +192,20 @@ class AppPages {
       binding: StaffTrackingBinding(),
     ),
     GetPage(
-      name: AppRoutes.oldCollections,
-      page: () => const OldCollectionsScreen(),
-    ),
-    GetPage(
       name: AppRoutes.adminCollections,
       page: () => const AdminCollectionsScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.collections,
+      page: () => const CollectionsScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.deposits,
+      page: () => const DepositsScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.createDeposit,
+      page: () => const CreateDepositScreen(),
     ),
   ];
 }

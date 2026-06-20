@@ -49,12 +49,12 @@ class AdminCollectionsScreen extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF389D6A), // Greenish
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.white,
                         padding: EdgeInsets.symmetric(horizontal: 12.w),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
                         elevation: 1,
                       ),
-                      child: Text('Export Excel', style: AppTextStyle.style_12_500(color: Colors.white)),
+                      child: Text('Export Excel', style: AppTextStyle.style_12_500(color: AppColors.white)),
                     ),
                   ),
                 ],

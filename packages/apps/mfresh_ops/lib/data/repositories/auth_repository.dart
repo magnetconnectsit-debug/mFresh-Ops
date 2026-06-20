@@ -24,102 +24,113 @@ class AuthRepository extends GetxService {
     rxUserPermissions.assignAll(user?.permissions ?? []);
   }
 
+  Future<Map<String, dynamic>> _getDeviceAndFcmInfo() async {
+    bool isDev = kDebugMode;
+    try {
+      if (Get.isRegistered<SettingsService>()) {
+        isDev = isDev || AppConfig.isDevToggle;
+      }
+    } catch (_) {}
+
+    String deviceId = "";
+    String appVersion = "1.0.0";
+
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      appVersion = packageInfo.version;
+    } catch (e) {
+      debugPrint("Error fetching package info: $e");
+    }
+
+    Map<String, dynamic> deviceInfo = {
+      "imei_no": "",
+      "brand": "Unknown",
+      "model": "Unknown",
+      "manufacturer": "Unknown",
+      "os": "Unknown",
+      "os_version": "Unknown",
+      "app_version": appVersion,
+    };
+
+    try {
+      final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        deviceId = androidInfo.id;
+        deviceInfo = {
+          "imei_no": androidInfo.id,
+          "brand": androidInfo.brand,
+          "model": androidInfo.model,
+          "manufacturer": androidInfo.manufacturer,
+          "os": "Android",
+          "os_version": androidInfo.version.release,
+          "app_version": appVersion,
+        };
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        final resolvedId = iosInfo.identifierForVendor ?? "";
+        deviceId = resolvedId;
+        deviceInfo = {
+          "imei_no": resolvedId,
+          "brand": "Apple",
+          "model": iosInfo.model,
+          "manufacturer": "Apple",
+          "os": "iOS",
+          "os_version": iosInfo.systemVersion,
+          "app_version": appVersion,
+        };
+      }
+    } catch (e) {
+      debugPrint("Error fetching device info: $e");
+    }
+
+    String fcmToken = '';
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp();
+      }
+      final FirebaseMessaging messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      final token = await messaging.getToken();
+      if (token != null && token.isNotEmpty) {
+        fcmToken = token;
+      }
+    } catch (e) {
+      debugPrint("Error fetching real FCM token: $e");
+    }
+
+    if (isDev) {
+      deviceId = "android_device_123456";
+      deviceInfo["imei_no"] = "android_device_123456";
+      fcmToken = "firebase_token";
+    }
+
+    return {
+      'device_id': deviceId,
+      'fcm_token': fcmToken,
+      'device_info': deviceInfo,
+    };
+  }
+
   Future<User?> login({
     required String mobile,
     required String password,
   }) async {
     try {
-      bool isDev = kDebugMode;
-      try {
-        if (Get.isRegistered<SettingsService>()) {
-          isDev = isDev || AppConfig.isDevToggle;
-        }
-      } catch (_) {}
-
-      String deviceId = "";
-      String appVersion = "1.0.0";
-
-      try {
-        final packageInfo = await PackageInfo.fromPlatform();
-        appVersion = packageInfo.version;
-      } catch (e) {
-        debugPrint("Error fetching package info: $e");
-      }
-
-      Map<String, dynamic> deviceInfo = {
-        "imei_no": "",
-        "brand": "Unknown",
-        "model": "Unknown",
-        "manufacturer": "Unknown",
-        "os": "Unknown",
-        "os_version": "Unknown",
-        "app_version": appVersion,
-      };
-
-      try {
-        final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-        if (Platform.isAndroid) {
-          final androidInfo = await deviceInfoPlugin.androidInfo;
-          deviceId = androidInfo.id;
-          deviceInfo = {
-            "imei_no": androidInfo.id,
-            "brand": androidInfo.brand,
-            "model": androidInfo.model,
-            "manufacturer": androidInfo.manufacturer,
-            "os": "Android",
-            "os_version": androidInfo.version.release,
-            "app_version": appVersion,
-          };
-        } else if (Platform.isIOS) {
-          final iosInfo = await deviceInfoPlugin.iosInfo;
-          final resolvedId = iosInfo.identifierForVendor ?? "";
-          deviceId = resolvedId;
-          deviceInfo = {
-            "imei_no": resolvedId,
-            "brand": "Apple",
-            "model": iosInfo.model,
-            "manufacturer": "Apple",
-            "os": "iOS",
-            "os_version": iosInfo.systemVersion,
-            "app_version": appVersion,
-          };
-        }
-      } catch (e) {
-        debugPrint("Error fetching device info: $e");
-      }
-
-      if (isDev) {
-        deviceId = "android_device_123456";
-        deviceInfo["imei_no"] = "android_device_123456";
-      }
-
-      String fcmToken = 'firebase_token';
-      try {
-        if (Firebase.apps.isEmpty) {
-          await Firebase.initializeApp();
-        }
-        final FirebaseMessaging messaging = FirebaseMessaging.instance;
-        await messaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        final token = await messaging.getToken();
-        if (token != null && token.isNotEmpty) {
-          fcmToken = token;
-        }
-      } catch (e) {
-        debugPrint("Error fetching real FCM token: $e");
-      }
+      final devInfo = await _getDeviceAndFcmInfo();
 
       final response = await _apiService.post(
         AppConstants.login,
         data: {
           'mobile': mobile,
           'password': password,
-          'device_id': deviceId,
-          'fcm_token': fcmToken,
-          'device_info': deviceInfo,
+          'device_id': devInfo['device_id'],
+          'fcm_token': devInfo['fcm_token'],
+          'device_info': devInfo['device_info'],
         },
       );
 
@@ -186,9 +197,17 @@ class AuthRepository extends GetxService {
     try {
       final response = await _apiService.post(
         AppConstants.sendOtp,
-        data: {'phone_no': mobile},
+        data: {'mob': mobile},
       );
-      return response != null;
+      
+      if (response != null) {
+        if (response['status'] == true) {
+          return true;
+        } else if (response['message'] != null) {
+          throw Exception(response['message'].toString());
+        }
+      }
+      return false;
     } catch (e) {
       rethrow;
     }
@@ -196,20 +215,38 @@ class AuthRepository extends GetxService {
 
   Future<User?> verifyOtp({required String mobile, required String otp}) async {
     try {
+      final devInfo = await _getDeviceAndFcmInfo();
+
       final response = await _apiService.post(
         AppConstants.verifyOtp,
-        data: {'phone_no': mobile, 'otp': otp},
+        data: {
+          'mob': mobile, 
+          'otp': otp,
+          'device_id': devInfo['device_id'],
+          'fcm_token': devInfo['fcm_token'],
+          'device_info': devInfo['device_info'],
+        },
       );
 
-      if (response != null && response['data'] != null) {
-        final user = User.fromJson(response['data']);
-        final String token = response['data']['access_token'] ?? '';
+      if (response != null) {
+        if (response['token'] != null) {
+          final String token = response['token'];
+          final String? refreshToken = response['refresh_token'];
+          final user = User.fromJson(response);
 
-        await _storageService.saveToken(token);
-        await _storageService.saveUser(user);
-        rxUserPermissions.assignAll(user.permissions ?? []);
+          await _storageService.saveToken(token);
+          if (refreshToken != null) {
+            await _storageService.saveRefreshToken(refreshToken);
+          }
+          await _storageService.saveUser(user);
+          rxUserPermissions.assignAll(user.permissions ?? []);
 
-        return user;
+          return user;
+        } else if (response['error'] != null) {
+          throw Exception(response['error'].toString());
+        } else if (response['message'] != null) {
+          throw Exception(response['message'].toString());
+        }
       }
       return null;
     } catch (e) {

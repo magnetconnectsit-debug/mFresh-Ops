@@ -49,8 +49,8 @@ class LoginScreen extends StatelessWidget {
                     // Username Field
                     AppCommonTextField(
                       controller: controller.usernameController,
-                      titleText: 'Username',
-                      hintText: 'Enter your username',
+                      titleText: 'Mobile No.',
+                      hintText: 'Enter your mobile number',
                       keyboardType: TextInputType.text,
                     ),
 

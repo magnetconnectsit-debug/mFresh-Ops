@@ -38,8 +38,8 @@ class LoginController extends GetxController {
 
   void _loadSavedCredentials() {
     if (kDebugMode) {
-      usernameController.text = '6370658717';
-      passwordController.text = 'itadmin@1234';
+      usernameController.text = '7873168884';
+      passwordController.text = r'C5!wN9!rH3$vY6';
       rememberMe.value = true;
       return;
     }
@@ -84,7 +84,7 @@ class LoginController extends GetxController {
     isOtpLogin.value = !isOtpLogin.value;
   }
 
-  void handleLoginAction() {
+  Future<void> handleLoginAction() async {
     if (isOtpLogin.value) {
       if (usernameController.text.isEmpty) {
         AppCommonToastMessage.show(
@@ -93,7 +93,38 @@ class LoginController extends GetxController {
         );
         return;
       }
-      showOtpBottomSheet();
+
+      isLoading.value = true;
+      try {
+        final success = await _authRepository.sendOtp(
+          mobile: usernameController.text,
+        );
+        if (success) {
+          AppCommonToastMessage.show(
+            message: 'OTP Sent Successfully',
+            type: ToastType.success,
+          );
+          showOtpBottomSheet();
+        } else {
+          AppCommonToastMessage.show(
+            message: 'Failed to send OTP',
+            type: ToastType.error,
+          );
+        }
+      } catch (e) {
+        String errorMessage = 'Failed to send OTP';
+        if (e is DioException) {
+          errorMessage = e.response?.data?['message'] ?? errorMessage;
+        } else {
+          errorMessage = e.toString().replaceFirst('Exception: ', '');
+        }
+        AppCommonToastMessage.show(
+          message: errorMessage,
+          type: ToastType.error,
+        );
+      } finally {
+        isLoading.value = false;
+      }
     } else {
       login();
     }
@@ -196,52 +227,60 @@ class LoginController extends GetxController {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              Obx(() => Pinput(
-                length: 6,
-                autofillHints: const [AutofillHints.oneTimeCode],
-                controller: otpController,
-                readOnly: isLoading.value,
-                keyboardType: TextInputType.number,
-                defaultPinTheme: PinTheme(
-                  width: 48,
-                  height: 48,
-                  textStyle: AppTextStyle.style_20_600(color: AppColors.black),
-                  decoration: BoxDecoration(
-                    color: AppColors.blue500.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.grey200),
+              Obx(
+                () => Pinput(
+                  length: 6,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  controller: otpController,
+                  readOnly: isLoading.value,
+                  keyboardType: TextInputType.number,
+                  defaultPinTheme: PinTheme(
+                    width: 48,
+                    height: 48,
+                    textStyle: AppTextStyle.style_20_600(
+                      color: AppColors.black,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.blue500.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.grey200),
+                    ),
                   ),
-                ),
-                focusedPinTheme: PinTheme(
-                  width: 48,
-                  height: 48,
-                  textStyle: AppTextStyle.style_20_600(color: AppColors.black),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.blue500, width: 2),
+                  focusedPinTheme: PinTheme(
+                    width: 48,
+                    height: 48,
+                    textStyle: AppTextStyle.style_20_600(
+                      color: AppColors.black,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.blue500, width: 2),
+                    ),
                   ),
+                  onCompleted: (pin) {
+                    if (!isLoading.value) verifyOtp(pin);
+                  },
                 ),
-                onCompleted: (pin) {
-                  if (!isLoading.value) verifyOtp(pin);
-                },
-              )),
+              ),
               const SizedBox(height: 32),
-              Obx(() => AppCommonButton(
-                text: 'Verify OTP',
-                isLoading: isLoading.value,
-                onPressed: () {
-                  if (isLoading.value) return;
-                  if (otpController.text.length == 6) {
-                    verifyOtp(otpController.text);
-                  } else {
-                    AppCommonToastMessage.show(
-                      message: 'Please enter a valid 6-digit OTP',
-                      type: ToastType.warning,
-                    );
-                  }
-                },
-              )),
+              Obx(
+                () => AppCommonButton(
+                  text: 'Verify OTP',
+                  isLoading: isLoading.value,
+                  onPressed: () {
+                    if (isLoading.value) return;
+                    if (otpController.text.length == 6) {
+                      verifyOtp(otpController.text);
+                    } else {
+                      AppCommonToastMessage.show(
+                        message: 'Please enter a valid 6-digit OTP',
+                        type: ToastType.warning,
+                      );
+                    }
+                  },
+                ),
+              ),
               const SizedBox(height: 16),
             ],
           ),
@@ -252,12 +291,45 @@ class LoginController extends GetxController {
     );
   }
 
-  void verifyOtp(String otp) {
-    // Add real verification logic here later
-    Get.back(); // close bottom sheet
-    AppCommonToastMessage.show(
-      message: 'OTP verified (Placeholder logic)',
-      type: ToastType.success,
-    );
+  Future<void> verifyOtp(String otp) async {
+    isLoading.value = true;
+    try {
+      final user = await _authRepository.verifyOtp(
+        mobile: usernameController.text,
+        otp: otp,
+      );
+
+      if (user != null) {
+        Get.back(); // close bottom sheet
+
+        await _storageService.saveRememberMe(rememberMe.value);
+        if (rememberMe.value) {
+          await _storageService.saveCredentials(
+            mobile: usernameController.text,
+            password: '',
+          );
+        } else {
+          await _storageService.clearCredentials();
+        }
+
+        Get.find<TrackingService>().startAutoTracking();
+        Get.offAllNamed(AppRoutes.home);
+      } else {
+        AppCommonToastMessage.show(
+          message: 'OTP Verification failed.',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      String errorMessage = 'Verification failed';
+      if (e is DioException) {
+        errorMessage = e.response?.data?['message'] ?? errorMessage;
+      } else {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      }
+      AppCommonToastMessage.show(message: errorMessage, type: ToastType.error);
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

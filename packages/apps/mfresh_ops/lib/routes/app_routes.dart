@@ -28,6 +28,8 @@ abstract class AppRoutes {
   static const liveTracking = '/live-tracking';
   static const routeHistory = '/route-history';
   static const staffTracking = '/staff-tracking';
-  static const oldCollections = '/old-collections';
   static const adminCollections = '/admin-collections';
+  static const collections = '/collections';
+  static const deposits = '/deposits';
+  static const createDeposit = '/create-deposit';
 }

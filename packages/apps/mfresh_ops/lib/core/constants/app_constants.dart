@@ -16,8 +16,8 @@ class AppConstants {
   static const String passwordUpdate = 'password-update';
   static const String profileUpdate = 'profile-update';
   static const String allAssignee = 'all-assignee';
-  static const String sendOtp = 'customer/send-otp';
-  static const String verifyOtp = 'customer/login-with-otp';
+  static const String sendOtp = 'adminsend-otp';
+  static const String verifyOtp = 'adminverify-otp';
 
   // Support Tickets
   static const String supportUnits = 'support-units';
