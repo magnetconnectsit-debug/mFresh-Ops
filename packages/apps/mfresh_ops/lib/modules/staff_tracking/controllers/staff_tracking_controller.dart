@@ -13,8 +13,11 @@ import 'dart:async';
 import 'dart:math';
 import 'package:intl/intl.dart';
 
-class StaffTrackingController extends GetxController {
+class StaffTrackingController extends GetxController with GetSingleTickerProviderStateMixin {
   final TrackingRepository _repository = Get.find<TrackingRepository>();
+
+  late TabController tabController;
+  final RxBool isSearching = false.obs;
 
   final RxList<Map<String, dynamic>> allEmployees =
       <Map<String, dynamic>>[].obs;
@@ -38,8 +41,40 @@ class StaffTrackingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    tabController = TabController(length: 2, vsync: this);
     searchController.addListener(_filterEmployees);
     fetchEmployees();
+  }
+
+  @override
+  void onClose() {
+    tabController.dispose();
+    searchController.dispose();
+    _debounceTimer?.cancel();
+    super.onClose();
+  }
+
+  void locateEmployeeOnMap(Map<String, dynamic> emp) {
+    isSearching.value = false;
+    searchController.clear();
+    
+    tabController.animateTo(1);
+    
+    final lat = emp['latitude'] ?? emp['live_status']?['latitude'];
+    final lng = emp['longitude'] ?? emp['live_status']?['longitude'];
+    
+    if (lat != null && lng != null) {
+      final double latitude = double.tryParse(lat.toString()) ?? 0.0;
+      final double longitude = double.tryParse(lng.toString()) ?? 0.0;
+      
+      if (latitude != 0.0 && longitude != 0.0) {
+        mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(latitude, longitude), 16.0),
+        );
+      }
+    }
+    
+    _showEmployeeStatusBottomSheet(emp);
   }
 
   Future<void> fetchEmployees() async {
@@ -51,7 +86,8 @@ class StaffTrackingController extends GetxController {
         allEmployees.value = emps
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
-        _filterEmployees();
+        await _filterEmployees();
+        _fetchLiveStatsForEmployees();
       } else {
         AppCommonToastMessage.show(
           message: response['message'] ?? 'Failed to load staff',
@@ -80,10 +116,56 @@ class StaffTrackingController extends GetxController {
     }
   }
 
+  void _fetchLiveStatsForEmployees() {
+    final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    for (int i = 0; i < allEmployees.length; i++) {
+      final empId = allEmployees[i]['id'] ?? allEmployees[i]['user_id'];
+      if (empId != null) {
+        _repository.getEmployeeSummary(employeeId: empId, date: dateStr).then((res) {
+          if (res != null && res['status'] == true && res['live_status'] != null) {
+            final index = allEmployees.indexWhere((e) => (e['id'] ?? e['user_id']) == empId);
+            if (index != -1) {
+              var updatedEmp = Map<String, dynamic>.from(allEmployees[index]);
+              updatedEmp['live_status'] = res['live_status'];
+              updatedEmp['battery'] = res['live_status']['battery'];
+              updatedEmp['speed'] = res['live_status']['speed'];
+              
+              if (res['live_status']['current_status'] != null) {
+                updatedEmp['current_status'] = res['live_status']['current_status'];
+              }
+              if (res['live_status']['last_seen'] != null) {
+                updatedEmp['last_seen'] = res['live_status']['last_seen'];
+              }
+              if (res['live_status']['latitude'] != null) {
+                updatedEmp['latitude'] = res['live_status']['latitude'];
+              }
+              if (res['live_status']['longitude'] != null) {
+                updatedEmp['longitude'] = res['live_status']['longitude'];
+              }
+
+              allEmployees[index] = updatedEmp;
+              
+              final filterIndex = filteredEmployees.indexWhere((e) => (e['id'] ?? e['user_id']) == empId);
+              if (filterIndex != -1) {
+                filteredEmployees[filterIndex] = updatedEmp;
+              }
+              
+              // Debounce marker updates
+              if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+              _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+                _updateMarkers(shouldFitBounds: false);
+              });
+            }
+          }
+        });
+      }
+    }
+  }
+
   Future<void> _filterEmployees() async {
     final query = searchController.text.toLowerCase();
     if (query.isEmpty) {
-      filteredEmployees.value = allEmployees;
+      filteredEmployees.value = List.from(allEmployees);
     } else {
       filteredEmployees.value = allEmployees.where((emp) {
         final name = (emp['name'] ?? '').toString().toLowerCase();
@@ -424,148 +506,6 @@ class StaffTrackingController extends GetxController {
     );
   }
 
-  void _showClusterBottomSheet(List<dynamic> employees) {
-    Get.bottomSheet(
-      Container(
-        height: Get.height * 0.6,
-        padding: const EdgeInsets.only(top: 16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${employees.length} Users at this location',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: employees.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final emp = Map<String, dynamic>.from(employees[index]);
-                  return _buildBottomSheetEmployeeCard(emp);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
-
-  Widget _buildBottomSheetEmployeeCard(Map<String, dynamic> emp) {
-    final name = emp['name'] ?? 'Unknown';
-    final mobile = emp['mobile'] ?? '';
-    final status = emp['current_status']?.toString().toLowerCase();
-
-    Color statusColor = Colors.grey;
-    String statusText = 'Offline';
-
-    if (status == 'moving') {
-      statusColor = Colors.green;
-      statusText = 'Moving';
-    } else if (status == 'stopped') {
-      statusColor = Colors.orange;
-      statusText = 'Stopped';
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Get.back();
-            _showEmployeeStatusBottomSheet(emp);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.blue500.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      name.toString().isNotEmpty ? name.toString().substring(0, 1).toUpperCase() : 'U',
-                      style: AppTextStyle.style_16_700(color: AppColors.blue500),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: AppTextStyle.style_14_600(color: AppColors.black),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(Icons.phone_iphone_rounded, size: 12, color: AppColors.grey500),
-                          const SizedBox(width: 4),
-                          Text(
-                            mobile,
-                            style: AppTextStyle.style_12_400(color: AppColors.grey600),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: AppTextStyle.style_10_600(color: statusColor),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDetailRow(IconData icon, String label, String value, Color valueColor) {
     return Row(
       children: [
@@ -596,10 +536,4 @@ class StaffTrackingController extends GetxController {
     );
   }
 
-  @override
-  void onClose() {
-    _debounceTimer?.cancel();
-    searchController.dispose();
-    super.onClose();
-  }
 }
