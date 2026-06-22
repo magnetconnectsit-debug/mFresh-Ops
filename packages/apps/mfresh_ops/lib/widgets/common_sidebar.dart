@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/core.dart';
-import 'package:services/storage_service.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:services/storage_service.dart';
 
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});
@@ -105,8 +105,8 @@ class CommonSidebar extends StatelessWidget {
                     value: isTracking,
                     activeTrackColor: const Color(0xFF10B981),
                     activeThumbColor: Colors.white,
-                    onChanged: (val) {
-                      TrackingService.to.toggleTracking();
+                    onChanged: (val) async {
+                      await TrackingService.to.toggleTracking();
                     },
                   ),
                 ],
@@ -182,21 +182,20 @@ class CommonSidebar extends StatelessWidget {
                     _buildExpandableMenuItem(
                       icon: Icons.location_on_outlined,
                       title: 'Tracking',
-                      subItems: ['My Routes', 'Staff Tracking'],
+                      subItems: [
+                        // 'My Routes',
+                        'Staff Tracking',
+                      ],
                       currentRoute: currentRoute,
                     ),
 
                   // Collections & Deposits Expandable Section
-                  _buildExpandableMenuItem(
-                    icon: Icons.attach_money_outlined,
-                    title: 'Collections & Deposits',
-                    subItems: [
-                      'Collections',
-                      'Admin Collections',
-                      'Deposits',
-                    ],
-                    currentRoute: currentRoute,
-                  ),
+                  // _buildExpandableMenuItem(
+                  //   icon: Icons.attach_money_outlined,
+                  //   title: 'Collections & Deposits',
+                  //   subItems: ['Collections', 'Admin Collections', 'Deposits'],
+                  //   currentRoute: currentRoute,
+                  // ),
 
                   _buildMenuItem(
                     icon: Icons.person_outline,

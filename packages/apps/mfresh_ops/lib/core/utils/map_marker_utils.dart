@@ -62,38 +62,91 @@ class MapMarkerUtils {
     required Color color,
     required String text,
     Color textColor = Colors.white,
-    double size = 80,
+    double size = 120, // Increased for wider aspect ratio
   }) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
+
+    final double width = size;
+    final double height = size * 0.85; // Slightly shorter than wide
 
     final Paint paint = Paint()..color = color;
     final Paint borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0;
+      ..strokeWidth = 3.0;
 
-    final double radius = size / 2;
-    canvas.drawCircle(Offset(radius, radius), radius, paint);
-    canvas.drawCircle(Offset(radius, radius), radius, borderPaint);
+    // Define dimensions for the pill
+    final double pillHeight = height * 0.7;
+    final double pillRadius = pillHeight / 2;
+    final Rect pillRect = Rect.fromLTRB(10, 10, width - 10, 10 + pillHeight);
 
-    TextPainter painter = TextPainter(textDirection: TextDirection.ltr);
-    painter.text = TextSpan(
+    // Define the downward pointing triangle
+    final double arrowWidth = 20.0;
+    final double arrowHeight = 15.0;
+    final double centerX = width / 2;
+    final double bottomY = 10 + pillHeight;
+
+    final Path path = Path();
+    // Start at bottom center (tip of arrow)
+    path.moveTo(centerX, bottomY + arrowHeight);
+    // Draw right side of arrow
+    path.lineTo(centerX + arrowWidth / 2, bottomY);
+    // Draw pill shape
+    path.addRRect(RRect.fromRectAndRadius(pillRect, Radius.circular(pillRadius)));
+    // Draw left side of arrow
+    path.moveTo(centerX - arrowWidth / 2, bottomY);
+    path.lineTo(centerX, bottomY + arrowHeight);
+    path.lineTo(centerX + arrowWidth / 2, bottomY);
+    
+    // Combine path (the addRRect and arrow paths can be merged)
+    final Path combinedPath = Path();
+    combinedPath.addRRect(RRect.fromRectAndRadius(pillRect, Radius.circular(pillRadius)));
+    
+    final Path arrowPath = Path();
+    arrowPath.moveTo(centerX - arrowWidth / 2, bottomY - 1); // overlap slightly
+    arrowPath.lineTo(centerX + arrowWidth / 2, bottomY - 1);
+    arrowPath.lineTo(centerX, bottomY + arrowHeight);
+    arrowPath.close();
+
+    final Path finalPath = Path.combine(PathOperation.union, combinedPath, arrowPath);
+
+    // Draw Shadow
+    canvas.drawPath(
+      finalPath.shift(const Offset(0, 5)),
+      Paint()
+        ..color = Colors.black26
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+
+    // Draw Filled Shape
+    canvas.drawPath(finalPath, paint);
+    
+    // Draw Border
+    canvas.drawPath(finalPath, borderPaint);
+
+    // Draw text (initials) in the center of the pill
+    TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
+    textPainter.text = TextSpan(
       text: text,
       style: TextStyle(
-        fontSize: size / 2.5,
+        fontSize: pillHeight * 0.45,
         color: textColor,
         fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
       ),
     );
-    painter.layout();
+    textPainter.layout();
     
-    painter.paint(
+    textPainter.paint(
       canvas,
-      Offset((size - painter.width) / 2, (size - painter.height) / 2),
+      Offset(
+        (width - textPainter.width) / 2,
+        10 + (pillHeight - textPainter.height) / 2,
+      ),
     );
 
-    final ui.Image image = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
+    final ui.Image image = await pictureRecorder.endRecording().toImage(width.toInt(), height.toInt());
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     
     return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());

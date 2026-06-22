@@ -49,20 +49,24 @@ class _DutyStatusCardState extends State<DutyStatusCard>
     });
   }
 
-  void _onDragEnd(DragEndDetails details, bool isTracking) {
+  void _onDragEnd(DragEndDetails details, bool isTracking) async {
     if (_resetController.isAnimating) return;
     _isDragging = false;
 
     if (isTracking) {
       if (_dragPercentage < 0.15) {
-        TrackingService.to.toggleTracking();
-        _animateTo(0.0);
+        final confirmed = await TrackingService.to.toggleTracking();
+        if (confirmed) {
+          _animateTo(0.0);
+        } else {
+          _animateTo(1.0); // Animate back to original position if cancelled
+        }
       } else {
         _animateTo(1.0);
       }
     } else {
       if (_dragPercentage > 0.85) {
-        TrackingService.to.toggleTracking();
+        await TrackingService.to.toggleTracking();
         _animateTo(1.0);
       } else {
         _animateTo(0.0);

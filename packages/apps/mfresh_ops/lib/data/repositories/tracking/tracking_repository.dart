@@ -35,7 +35,14 @@ class TrackingRepository {
   }
 
   Future<dynamic> getSegments({String? date}) async {
-    return await _apiService.post(AppConstants.trackingSegments, data: date != null ? {'date': date} : {});
+    final storage = Get.find<StorageService>();
+    final user = storage.getUser();
+    final data = <String, dynamic>{};
+    if (date != null) data['date'] = date;
+    if (user != null && user.id != null) {
+      data['employee_id'] = user.id;
+    }
+    return await _apiService.post(AppConstants.trackingSegments, data: data);
   }
 
   Future<dynamic> getTodaySummary({String? date}) async {

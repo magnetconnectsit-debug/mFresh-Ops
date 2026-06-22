@@ -23,7 +23,7 @@ class HistoryView extends GetView<HistoryController> {
           children: [
             if (isInitialLoad)
               const Positioned.fill(child: Center(child: CustomAppLoader()))
-            else if (controller.routePoints.isEmpty && controller.staffCurrentLocationMarker.value == null)
+            else if (controller.routePoints.isEmpty)
               Positioned.fill(
                 child: Center(
                   child: Column(
@@ -532,7 +532,7 @@ class HistoryView extends GetView<HistoryController> {
                                                         .spaceBetween,
                                                 children: [
                                                   Text(
-                                                    'Segment ${reversedIndex + 1}',
+                                                    'Trip ${reversedIndex + 1}',
                                                     style:
                                                         AppTextStyle.style_14_600(
                                                           color:
@@ -685,7 +685,7 @@ class HistoryView extends GetView<HistoryController> {
                                                           width: 4,
                                                         ),
                                                         Text(
-                                                          'Share segment',
+                                                          'Share trip',
                                                           style:
                                                               AppTextStyle.style_12_600(
                                                                 color: AppColors

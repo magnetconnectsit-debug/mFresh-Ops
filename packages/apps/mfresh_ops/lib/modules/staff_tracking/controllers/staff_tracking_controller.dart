@@ -13,7 +13,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:intl/intl.dart';
 
-class StaffTrackingController extends GetxController with GetSingleTickerProviderStateMixin {
+class StaffTrackingController extends GetxController
+    with GetSingleTickerProviderStateMixin {
   final TrackingRepository _repository = Get.find<TrackingRepository>();
 
   late TabController tabController;
@@ -28,15 +29,22 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
 
   final RxSet<Marker> employeeMarkers = <Marker>{}.obs;
   GoogleMapController? mapController;
-  
+
   final RxDouble currentZoom = 14.0.obs;
   Timer? _debounceTimer;
 
   // Cache for marker icons to avoid recreating bitmaps continuously
   final Map<String, BitmapDescriptor> _markerCache = {};
 
-  final RxMap<String, dynamic> selectedEmployeeLiveStats = <String, dynamic>{}.obs;
+  final RxMap<String, dynamic> selectedEmployeeLiveStats =
+      <String, dynamic>{}.obs;
   final RxBool isLoadingLiveStats = false.obs;
+
+  final Rx<MapType> currentMapType = MapType.normal.obs;
+
+  void toggleMapType() {
+    currentMapType.value = currentMapType.value == MapType.normal ? MapType.satellite : MapType.normal;
+  }
 
   @override
   void onInit() {
@@ -57,23 +65,23 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
   void locateEmployeeOnMap(Map<String, dynamic> emp) {
     isSearching.value = false;
     searchController.clear();
-    
+
     tabController.animateTo(1);
-    
+
     final lat = emp['latitude'] ?? emp['live_status']?['latitude'];
     final lng = emp['longitude'] ?? emp['live_status']?['longitude'];
-    
+
     if (lat != null && lng != null) {
       final double latitude = double.tryParse(lat.toString()) ?? 0.0;
       final double longitude = double.tryParse(lng.toString()) ?? 0.0;
-      
+
       if (latitude != 0.0 && longitude != 0.0) {
         mapController?.animateCamera(
           CameraUpdate.newLatLngZoom(LatLng(latitude, longitude), 16.0),
         );
       }
     }
-    
+
     _showEmployeeStatusBottomSheet(emp);
   }
 
@@ -108,7 +116,7 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
   void onCameraMove(CameraPosition position) {
     if ((currentZoom.value - position.zoom).abs() > 0.5) {
       currentZoom.value = position.zoom;
-      
+
       if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
       _debounceTimer = Timer(const Duration(milliseconds: 300), () {
         _updateMarkers(shouldFitBounds: false);
@@ -121,17 +129,24 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
     for (int i = 0; i < allEmployees.length; i++) {
       final empId = allEmployees[i]['id'] ?? allEmployees[i]['user_id'];
       if (empId != null) {
-        _repository.getEmployeeSummary(employeeId: empId, date: dateStr).then((res) {
-          if (res != null && res['status'] == true && res['live_status'] != null) {
-            final index = allEmployees.indexWhere((e) => (e['id'] ?? e['user_id']) == empId);
+        _repository.getEmployeeSummary(employeeId: empId, date: dateStr).then((
+          res,
+        ) {
+          if (res != null &&
+              res['status'] == true &&
+              res['live_status'] != null) {
+            final index = allEmployees.indexWhere(
+              (e) => (e['id'] ?? e['user_id']) == empId,
+            );
             if (index != -1) {
               var updatedEmp = Map<String, dynamic>.from(allEmployees[index]);
               updatedEmp['live_status'] = res['live_status'];
               updatedEmp['battery'] = res['live_status']['battery'];
               updatedEmp['speed'] = res['live_status']['speed'];
-              
+
               if (res['live_status']['current_status'] != null) {
-                updatedEmp['current_status'] = res['live_status']['current_status'];
+                updatedEmp['current_status'] =
+                    res['live_status']['current_status'];
               }
               if (res['live_status']['last_seen'] != null) {
                 updatedEmp['last_seen'] = res['live_status']['last_seen'];
@@ -144,12 +159,14 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
               }
 
               allEmployees[index] = updatedEmp;
-              
-              final filterIndex = filteredEmployees.indexWhere((e) => (e['id'] ?? e['user_id']) == empId);
+
+              final filterIndex = filteredEmployees.indexWhere(
+                (e) => (e['id'] ?? e['user_id']) == empId,
+              );
               if (filterIndex != -1) {
                 filteredEmployees[filterIndex] = updatedEmp;
               }
-              
+
               // Debounce marker updates
               if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
               _debounceTimer = Timer(const Duration(milliseconds: 500), () {
@@ -176,16 +193,22 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
     await _updateMarkers(shouldFitBounds: false);
   }
 
-  List<Map<String, dynamic>> _clusterEmployees(List<Map<String, dynamic>> employees, double zoom) {
+  List<Map<String, dynamic>> _clusterEmployees(
+    List<Map<String, dynamic>> employees,
+    double zoom,
+  ) {
     if (zoom >= 11.5) {
       // High zoom: detect overlapping markers and spiderify
       double minDistance = 0.0001; // roughly 11 meters
-      
+
       Map<String, List<Map<String, dynamic>>> preciseGrid = {};
       for (var emp in employees) {
         final latStr = emp['latitude']?.toString();
         final lngStr = emp['longitude']?.toString();
-        if (latStr != null && lngStr != null && latStr != 'null' && lngStr != 'null') {
+        if (latStr != null &&
+            lngStr != null &&
+            latStr != 'null' &&
+            lngStr != 'null') {
           double? lat = double.tryParse(latStr);
           double? lng = double.tryParse(lngStr);
           if (lat != null && lng != null) {
@@ -211,20 +234,22 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
           double centerLat = 0;
           double centerLng = 0;
           for (var emp in group) {
-            centerLat += double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
-            centerLng += double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
+            centerLat +=
+                double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
+            centerLng +=
+                double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
           }
           centerLat /= group.length;
           centerLng /= group.length;
 
           // Expand radius slightly if there are many users
-          double radius = 0.0002 + (group.length * 0.00002); 
+          double radius = 0.0002 + (group.length * 0.00002);
           for (int i = 0; i < group.length; i++) {
             double angle = (i * 2 * pi) / group.length;
             double offsetX = radius * cos(angle);
             // Adjust latitude offset to account for aspect ratio, roughly
-            double offsetY = radius * sin(angle) * 0.8; 
-            
+            double offsetY = radius * sin(angle) * 0.8;
+
             result.add({
               'isCluster': false,
               'employees': [group[i]],
@@ -239,48 +264,53 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
 
     // Grid clustering for low zoom
     double cellSize = 360.0 / (1 << zoom.floor()) * 0.4;
-    
+
     Map<String, List<Map<String, dynamic>>> grid = {};
     for (var emp in employees) {
       final latStr = emp['latitude']?.toString();
       final lngStr = emp['longitude']?.toString();
-      if (latStr != null && lngStr != null && latStr.isNotEmpty && lngStr.isNotEmpty && latStr != 'null' && lngStr != 'null') {
+      if (latStr != null &&
+          lngStr != null &&
+          latStr.isNotEmpty &&
+          lngStr.isNotEmpty &&
+          latStr != 'null' &&
+          lngStr != 'null') {
         double? lat = double.tryParse(latStr);
         double? lng = double.tryParse(lngStr);
-        
+
         if (lat != null && lng != null) {
           int gridX = (lng / cellSize).floor();
           int gridY = (lat / cellSize).floor();
           String key = '${gridX}_$gridY';
-          
+
           grid.putIfAbsent(key, () => []).add(emp);
         }
       }
     }
-    
+
     List<Map<String, dynamic>> clusters = [];
     for (var group in grid.values) {
       if (group.length == 1) {
-         clusters.add({
-           'isCluster': false,
-           'employees': group,
-           'latitude': group[0]['latitude'],
-           'longitude': group[0]['longitude'],
-         });
+        clusters.add({
+          'isCluster': false,
+          'employees': group,
+          'latitude': group[0]['latitude'],
+          'longitude': group[0]['longitude'],
+        });
       } else {
-         double sumLat = 0;
-         double sumLng = 0;
-         for (var emp in group) {
-           sumLat += double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
-           sumLng += double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
-         }
-         clusters.add({
-           'isCluster': true,
-           'employees': group,
-           'count': group.length,
-           'latitude': sumLat / group.length,
-           'longitude': sumLng / group.length,
-         });
+        double sumLat = 0;
+        double sumLng = 0;
+        for (var emp in group) {
+          sumLat += double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
+          sumLng += double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
+        }
+        clusters.add({
+          'isCluster': true,
+          'employees': group,
+          'count': group.length,
+          'latitude': sumLat / group.length,
+          'longitude': sumLng / group.length,
+        });
       }
     }
     return clusters;
@@ -292,8 +322,10 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
 
     for (var cluster in clusters) {
       try {
-        final double lat = double.tryParse(cluster['latitude']?.toString() ?? '0') ?? 0.0;
-        final double lng = double.tryParse(cluster['longitude']?.toString() ?? '0') ?? 0.0;
+        final double lat =
+            double.tryParse(cluster['latitude']?.toString() ?? '0') ?? 0.0;
+        final double lng =
+            double.tryParse(cluster['longitude']?.toString() ?? '0') ?? 0.0;
 
         if (lat == 0.0 && lng == 0.0) continue;
 
@@ -301,7 +333,7 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
           // It's a cluster of multiple employees
           final int count = cluster['count'];
           final String cacheKey = 'cluster_$count';
-          
+
           if (!_markerCache.containsKey(cacheKey)) {
             _markerCache[cacheKey] = await MapMarkerUtils.createClusterMarker(
               count: count,
@@ -309,17 +341,22 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
             );
           }
 
-          newMarkers.add(Marker(
-            markerId: MarkerId('cluster_${lat}_$lng'),
-            position: LatLng(lat, lng),
-            icon: _markerCache[cacheKey]!,
-            onTap: () {
-              // Zoom in to see the cluster spread out
-              mapController?.animateCamera(
-                CameraUpdate.newLatLngZoom(LatLng(lat, lng), currentZoom.value + 2.5),
-              );
-            },
-          ));
+          newMarkers.add(
+            Marker(
+              markerId: MarkerId('cluster_${lat}_$lng'),
+              position: LatLng(lat, lng),
+              icon: _markerCache[cacheKey]!,
+              onTap: () {
+                // Zoom in to see the cluster spread out
+                mapController?.animateCamera(
+                  CameraUpdate.newLatLngZoom(
+                    LatLng(lat, lng),
+                    currentZoom.value + 2.5,
+                  ),
+                );
+              },
+            ),
+          );
         } else {
           // Individual employee
           final emp = cluster['employees'][0];
@@ -348,22 +385,27 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
             );
           }
 
-          newMarkers.add(Marker(
-            markerId: MarkerId('emp_${emp['id']}'),
-            position: LatLng(lat, lng),
-            icon: _markerCache[cacheKey]!,
-            onTap: () {
-              _showEmployeeStatusBottomSheet(emp);
-            },
-          ));
+          newMarkers.add(
+            Marker(
+              markerId: MarkerId('emp_${emp['id']}'),
+              position: LatLng(lat, lng),
+              icon: _markerCache[cacheKey]!,
+              onTap: () {
+                _showEmployeeStatusBottomSheet(emp);
+              },
+            ),
+          );
         }
       } catch (e) {
         debugPrint('Error generating marker for cluster/employee: $e');
-        AppCommonToastMessage.show(message: 'Error generating marker: $e', type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: 'Error generating marker: $e',
+          type: ToastType.error,
+        );
       }
     }
     employeeMarkers.assignAll(newMarkers);
-    
+
     if (shouldFitBounds) {
       // Slight delay to allow map to update before fitting bounds
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -386,7 +428,9 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
 
     if (minLat != null && maxLat != null && minLng != null && maxLng != null) {
       if (minLat == maxLat && minLng == maxLng) {
-        mapController!.animateCamera(CameraUpdate.newLatLngZoom(LatLng(minLat, minLng), 14));
+        mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(minLat, minLng), 14),
+        );
       } else {
         mapController!.animateCamera(
           CameraUpdate.newLatLngBounds(
@@ -404,15 +448,23 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
   void _showEmployeeStatusBottomSheet(Map<String, dynamic> emp) {
     selectedEmployeeLiveStats.clear();
     isLoadingLiveStats.value = true;
-    
+
     final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    _repository.getEmployeeSummary(employeeId: emp['id'] ?? emp['user_id'], date: dateStr).then((res) {
-      if (res != null && res['status'] == true) {
-        selectedEmployeeLiveStats.value = Map<String, dynamic>.from(res['live_status'] ?? {});
-      }
-    }).whenComplete(() {
-      isLoadingLiveStats.value = false;
-    });
+    _repository
+        .getEmployeeSummary(
+          employeeId: emp['id'] ?? emp['user_id'],
+          date: dateStr,
+        )
+        .then((res) {
+          if (res != null && res['status'] == true) {
+            selectedEmployeeLiveStats.value = Map<String, dynamic>.from(
+              res['live_status'] ?? {},
+            );
+          }
+        })
+        .whenComplete(() {
+          isLoadingLiveStats.value = false;
+        });
 
     Get.bottomSheet(
       Container(
@@ -422,9 +474,13 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Obx(() {
-          final liveStats = selectedEmployeeLiveStats.isEmpty ? emp : selectedEmployeeLiveStats;
-          
-          final status = liveStats['current_status']?.toString().toLowerCase() ?? emp['current_status']?.toString().toLowerCase();
+          final liveStats = selectedEmployeeLiveStats.isEmpty
+              ? emp
+              : selectedEmployeeLiveStats;
+
+          final status =
+              liveStats['current_status']?.toString().toLowerCase() ??
+              emp['current_status']?.toString().toLowerCase();
           Color statusColor = Colors.red;
           if (status == 'moving') {
             statusColor = Colors.green;
@@ -432,7 +488,8 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
             statusColor = Colors.orange;
           }
 
-          final lastSeen = liveStats['last_seen'] ?? emp['last_seen'] ?? 'Never';
+          final lastSeen =
+              liveStats['last_seen'] ?? emp['last_seen'] ?? 'Never';
           final battery = liveStats['battery'] ?? emp['battery'];
           final speed = liveStats['speed'] ?? emp['speed'];
 
@@ -453,7 +510,10 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
                       children: [
                         Text(
                           emp['name'] ?? 'Unknown',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         Text(
                           emp['mobile'] ?? 'No Mobile',
@@ -471,16 +531,36 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
                 ],
               ),
               const SizedBox(height: 20),
-              _buildDetailRow(Icons.info_outline, 'Status', status?.toUpperCase() ?? 'OFFLINE', statusColor),
+              _buildDetailRow(
+                Icons.info_outline,
+                'Status',
+                status?.toUpperCase() ?? 'OFFLINE',
+                statusColor,
+              ),
               const SizedBox(height: 12),
-              _buildDetailRow(Icons.access_time, 'Last Seen', AppDateUtils.formatToDateTimeAmPm(lastSeen?.toString()), Colors.black87),
+              _buildDetailRow(
+                Icons.access_time,
+                'Last Seen',
+                AppDateUtils.formatToDateTimeAmPm(lastSeen?.toString()),
+                Colors.black87,
+              ),
               if (battery != null) ...[
                 const SizedBox(height: 12),
-                _buildDetailRow(Icons.battery_std, 'Battery', '$battery%', Colors.black87),
+                _buildDetailRow(
+                  Icons.battery_std,
+                  'Battery',
+                  '$battery%',
+                  Colors.black87,
+                ),
               ],
               if (speed != null) ...[
                 const SizedBox(height: 12),
-                _buildDetailRow(Icons.speed, 'Speed', '${double.tryParse(speed.toString())?.toStringAsFixed(2) ?? 0} km/h', Colors.black87),
+                _buildDetailRow(
+                  Icons.speed,
+                  'Speed',
+                  '${double.tryParse(speed.toString())?.toStringAsFixed(2) ?? 0} km/h',
+                  Colors.black87,
+                ),
               ],
               const SizedBox(height: 24),
               SizedBox(
@@ -493,9 +573,14 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text('View History', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'View History',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -506,17 +591,29 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, Color valueColor) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value,
+    Color valueColor,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
-        Text('$label:', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        Text(
+          '$label:',
+          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             value,
-            style: TextStyle(color: valueColor, fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+              color: valueColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
       ],
@@ -535,5 +632,4 @@ class StaffTrackingController extends GetxController with GetSingleTickerProvide
       },
     );
   }
-
 }

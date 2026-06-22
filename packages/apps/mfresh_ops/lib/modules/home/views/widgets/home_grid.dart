@@ -46,7 +46,7 @@ class HomeGrid extends StatelessWidget {
         subtitle: 'Personal tracking',
         icon: Icons.location_on_rounded,
         gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
-        route: AppRoutes.liveTracking,
+        route: AppRoutes.staffTracking,
         permissionKey: 'tracking_panel',
       ),
       // GridItemData(

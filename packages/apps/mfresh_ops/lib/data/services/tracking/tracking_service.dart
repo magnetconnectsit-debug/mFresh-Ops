@@ -14,6 +14,9 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:flutter/material.dart';
 
 class TrackingService extends GetxService {
   static TrackingService get to => Get.find<TrackingService>();
@@ -22,17 +25,17 @@ class TrackingService extends GetxService {
   final StorageService _storageService = Get.find<StorageService>();
   final LocationService _locationService = GeolocatorLocationService();
   final Battery _battery = Battery();
-  
+
   final RxBool isTracking = false.obs;
   final Rx<int?> sessionId = Rx<int?>(null);
   final Rx<Position?> currentPosition = Rx<Position?>(null);
   final RxBool isSyncing = false.obs;
-  
+
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Timer? _bulkSyncTimer;
   Timer? _foregroundUpdateTimer;
-  
+
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   @override
@@ -46,7 +49,9 @@ class TrackingService extends GetxService {
 
     ever(_storageService.rxIsLoggedIn, (isLoggedIn) {
       if (!isLoggedIn) {
-        debugPrint('TrackingService: User logged out. Stopping foreground task.');
+        debugPrint(
+          'TrackingService: User logged out. Stopping foreground task.',
+        );
         isTracking.value = false;
         sessionId.value = null;
         FlutterForegroundTask.stopService();
@@ -57,14 +62,20 @@ class TrackingService extends GetxService {
   // We split the startup logic so we can call it after login is confirmed
   Future<void> startAutoTracking() async {
     debugPrint('TrackingService: Attempting auto-start...');
-    
+
     final authRepo = Get.find<AuthRepository>();
-    final hasTrackingPanel = authRepo.rxUserPermissions.contains('tracking_panel');
-    final hasBgService = authRepo.rxUserPermissions.contains('background_service');
+    final hasTrackingPanel = authRepo.rxUserPermissions.contains(
+      'tracking_panel',
+    );
+    final hasBgService = authRepo.rxUserPermissions.contains(
+      'background_service',
+    );
     final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
 
     if (hasBgService && !hasDutyPunch && !hasTrackingPanel) {
-      debugPrint('TrackingService: Silent background tracking mode. Auto-starting without user intervention.');
+      debugPrint(
+        'TrackingService: Silent background tracking mode. Auto-starting without user intervention.',
+      );
       await checkCurrentStatus();
       if (!isTracking.value) {
         await startTracking();
@@ -74,15 +85,19 @@ class TrackingService extends GetxService {
 
     final intendedStatus = _storageService.getIntendedTrackingStatus();
     if (intendedStatus == false) {
-      debugPrint('TrackingService: User intentionally off-duty. Aborting auto-start.');
+      debugPrint(
+        'TrackingService: User intentionally off-duty. Aborting auto-start.',
+      );
       isTracking.value = false;
       return;
     }
 
     await checkCurrentStatus();
-    
+
     if (isTracking.value) {
-      debugPrint('TrackingService: Already active on backend, resuming foreground sync');
+      debugPrint(
+        'TrackingService: Already active on backend, resuming foreground sync',
+      );
     } else {
       debugPrint('TrackingService: Not active on backend, staying offline');
     }
@@ -112,7 +127,9 @@ class TrackingService extends GetxService {
   }
 
   void _startConnectivityListener() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
       if (results.any((result) => result != ConnectivityResult.none)) {
         syncOfflineData();
       }
@@ -120,12 +137,15 @@ class TrackingService extends GetxService {
   }
 
   void _startBulkSyncTimer() {
-    _bulkSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) => syncOfflineData());
+    _bulkSyncTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => syncOfflineData(),
+    );
   }
 
   Future<void> syncOfflineData() async {
     if (isSyncing.value || sessionId.value == null) return;
-    
+
     try {
       final box = await Hive.openBox<LocationData>('location_cache_box');
       if (box.isEmpty) return;
@@ -166,11 +186,84 @@ class TrackingService extends GetxService {
     }
   }
 
-  Future<void> toggleTracking() async {
+  Future<bool> toggleTracking({bool bypassConfirmation = false}) async {
     if (isTracking.value) {
+      if (!bypassConfirmation) {
+        final proceed = await Get.dialog<bool>(
+          Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5)),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.red.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 48),
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Confirm Off Duty', style: AppTextStyle.style_20_700(color: AppColors.black)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'This may result in cut in salary.\nDo you want to proceed?',
+                    style: AppTextStyle.style_14_400(color: AppColors.grey600),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.grey300),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () => Get.back(result: false),
+                          child: Text('Cancel', style: AppTextStyle.style_14_600(color: AppColors.grey600)),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: AppColors.red,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () => Get.back(result: true),
+                          child: Text('Proceed', style: AppTextStyle.style_14_600(color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        if (proceed != true) return false;
+      }
       await stopTracking();
+      return true;
     } else {
       await startTracking();
+      return true;
     }
   }
 
@@ -185,7 +278,7 @@ class TrackingService extends GetxService {
     if (pos == null) return;
 
     final deviceId = await _getDeviceId();
-    
+
     final request = TrackingStartRequest(
       deviceId: deviceId,
       latitude: pos.latitude,
@@ -215,7 +308,7 @@ class TrackingService extends GetxService {
       await _startForegroundService();
       return;
     }
-    
+
     final pos = await _locationService.getCurrentPosition();
     final deviceId = await _getDeviceId();
 
@@ -258,7 +351,9 @@ class TrackingService extends GetxService {
 
   Future<bool> _startForegroundService() async {
     final authRepo = Get.find<AuthRepository>();
-    final hasBgPermission = authRepo.rxUserPermissions.contains('background_service');
+    final hasBgPermission = authRepo.rxUserPermissions.contains(
+      'background_service',
+    );
 
     if (isTracking.value && hasBgPermission) {
       if (await FlutterForegroundTask.isRunningService) {
@@ -266,7 +361,8 @@ class TrackingService extends GetxService {
       } else {
         return FlutterForegroundTask.startService(
           notificationTitle: 'Tracking Active',
-          notificationText: 'Your location is being tracked for shift monitoring.',
+          notificationText:
+              'Your location is being tracked for shift monitoring.',
           callback: startCallback,
         );
       }
@@ -285,15 +381,21 @@ class TrackingService extends GetxService {
     }
 
     _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = _locationService.getPositionStream().listen((pos) {
+    _positionStreamSubscription = _locationService.getPositionStream().listen((
+      pos,
+    ) {
       currentPosition.value = pos;
     });
   }
 
   Future<void> _syncLocation(Position pos) async {
     final authRepo = Get.find<AuthRepository>();
-    final hasTrackingPanel = authRepo.rxUserPermissions.contains('tracking_panel');
-    final hasBgService = authRepo.rxUserPermissions.contains('background_service');
+    final hasTrackingPanel = authRepo.rxUserPermissions.contains(
+      'tracking_panel',
+    );
+    final hasBgService = authRepo.rxUserPermissions.contains(
+      'background_service',
+    );
     final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
 
     if (!hasTrackingPanel) {
@@ -303,11 +405,11 @@ class TrackingService extends GetxService {
     }
 
     if (sessionId.value == null) return;
-    
+
     final deviceId = await _getDeviceId();
     final batteryLevel = await _battery.batteryLevel;
     final batteryState = await _battery.batteryState;
-    
+
     final connectivityResults = await Connectivity().checkConnectivity();
     String? networkType;
     if (connectivityResults.isNotEmpty) {
@@ -329,7 +431,9 @@ class TrackingService extends GetxService {
       battery: batteryLevel,
       isCharging: batteryState == BatteryState.charging,
       networkType: networkType,
-      locationTime: _apiDateFormat.format(DateTime.now()), // Use current time for sync heartbeat
+      locationTime: _apiDateFormat.format(
+        DateTime.now(),
+      ), // Use current time for sync heartbeat
     );
 
     final request = LocationUpdateRequest(
