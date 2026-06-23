@@ -1,13 +1,13 @@
 import 'package:intl/intl.dart';
 
-class AdminCollectionRowModel {
+class UserCollectionRowModel {
   final String month;
   final String date;
-  final Map<String, AdminStoreMetricModel> storeMetrics;
-  final AdminStoreMetricModel otherMetrics;
-  final AdminStoreMetricModel totalMetrics;
+  final Map<String, StoreMetricModel> storeMetrics;
+  final StoreMetricModel otherMetrics;
+  final StoreMetricModel totalMetrics;
 
-  AdminCollectionRowModel({
+  UserCollectionRowModel({
     required this.month,
     required this.date,
     required this.storeMetrics,
@@ -15,20 +15,20 @@ class AdminCollectionRowModel {
     required this.totalMetrics,
   });
 
-  factory AdminCollectionRowModel.fromJson(Map<String, dynamic> json) {
-    Map<String, AdminStoreMetricModel> parsedMetrics = {};
+  factory UserCollectionRowModel.fromJson(Map<String, dynamic> json) {
+    Map<String, StoreMetricModel> parsedMetrics = {};
     num totalDashboard = 0;
     num totalActual = 0;
     num totalDifference = 0;
     
-    AdminStoreMetricModel other = AdminStoreMetricModel(actual: '0', dashboard: '0', difference: '0');
+    StoreMetricModel other = StoreMetricModel(actual: '0', dashboard: '0', difference: '0');
 
     if (json['units'] != null && json['units'] is Map) {
       final unitsMap = json['units'] as Map;
       for (final key in unitsMap.keys) {
         final value = unitsMap[key];
         if (value is Map) {
-          final metric = AdminStoreMetricModel.fromJson(Map<String, dynamic>.from(value));
+          final metric = StoreMetricModel.fromJson(Map<String, dynamic>.from(value));
           if (key.toString() == 'Other') {
             other = metric;
           } else {
@@ -44,12 +44,12 @@ class AdminCollectionRowModel {
 
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
-    return AdminCollectionRowModel(
+    return UserCollectionRowModel(
       month: json['month']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       storeMetrics: parsedMetrics,
       otherMetrics: other,
-      totalMetrics: AdminStoreMetricModel(
+      totalMetrics: StoreMetricModel(
         actual: currencyFormat.format(totalActual),
         dashboard: currencyFormat.format(totalDashboard),
         difference: currencyFormat.format(totalDifference),
@@ -61,7 +61,7 @@ class AdminCollectionRowModel {
   }
 }
 
-class AdminStoreMetricModel {
+class StoreMetricModel {
   final String actual;
   final String dashboard;
   final String difference;
@@ -69,7 +69,7 @@ class AdminStoreMetricModel {
   final num dashboardNum;
   final num differenceNum;
 
-  AdminStoreMetricModel({
+  StoreMetricModel({
     required this.actual,
     required this.dashboard,
     required this.difference,
@@ -78,7 +78,7 @@ class AdminStoreMetricModel {
     this.differenceNum = 0,
   });
 
-  factory AdminStoreMetricModel.fromJson(Map<String, dynamic> json) {
+  factory StoreMetricModel.fromJson(Map<String, dynamic> json) {
     num parseNum(dynamic val) {
       if (val == null) return 0;
       if (val is num) return val;
@@ -92,7 +92,7 @@ class AdminStoreMetricModel {
 
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
-    return AdminStoreMetricModel(
+    return StoreMetricModel(
       dashboardNum: dNum,
       actualNum: aNum,
       differenceNum: diffNum,

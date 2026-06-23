@@ -1,30 +1,31 @@
-import 'dart:isolate';
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:core/constants/app_colors.dart';
-import 'package:mfresh_ops/core/constants/app_constants.dart';
-import 'package:mfresh_ops/data/models/user.dart';
-import 'package:mfresh_ops/core/config/app_config.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
-import 'package:mfresh_ops/routes/app_pages.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:mfresh_ops/data/models/tracking_models.dart';
-import 'package:services/services.dart';
-import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:mfresh_ops/data/repositories/user_repository.dart';
-import 'package:mfresh_ops/data/repositories/common_repository.dart';
-import 'package:mfresh_ops/data/repositories/support_repository.dart';
-import 'package:mfresh_ops/data/repositories/task_repository.dart';
-import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:dev/views/widgets/floating_logger_button.dart';
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/core/constants/app_constants.dart';
+import 'package:mfresh_ops/data/models/tracking_models.dart';
+import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/data/repositories/collection_repository.dart';
+import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/support_repository.dart';
+import 'package:mfresh_ops/data/repositories/task_repository.dart';
+import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
+import 'package:mfresh_ops/data/repositories/user_repository.dart';
+import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/routes/app_pages.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:services/services.dart';
 
 // The callback function should be a top-level function or a static function in a class.
 @pragma('vm:entry-point')
@@ -43,10 +44,12 @@ class MyTaskHandler extends TaskHandler {
   void onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
     // This is called every 15 seconds as configured in LocationController
     debugPrint('Foreground Task Repeat Event - Syncing in background');
-    
+
     try {
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       debugPrint('Background Location: ${pos.latitude}, ${pos.longitude}');
     } catch (e) {
@@ -67,7 +70,7 @@ class MyTaskHandler extends TaskHandler {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -114,6 +117,7 @@ Future<void> initServices() async {
   Get.put(InventoryRepository());
   Get.put(TrackingRepository());
   Get.put(TrackingService());
+  Get.put(CollectionRepository());
 }
 
 class OpsApp extends StatelessWidget {

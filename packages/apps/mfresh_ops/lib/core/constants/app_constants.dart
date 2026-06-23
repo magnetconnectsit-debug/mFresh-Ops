@@ -111,7 +111,10 @@ class AppConstants {
   static const String trackingMyStoppages = 'tracking/my-stoppages';
   static const String trackingSegments = 'tracking/segments';
   static const String trackingTodaySummary = 'tracking/today-summary';
-  
+  static const String adminCollectionIndex = 'collectionindex';  // Admin Collection table data api
+  static const String collectionIndex = 'usercollectionindex';  // User Collection table data api
+
+
   // Staff Tracking (Admin)
   static const String staffEmployees = 'employees';
   static const String staffRouteHistory = 'route-history';

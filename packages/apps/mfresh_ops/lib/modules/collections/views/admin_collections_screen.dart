@@ -30,40 +30,44 @@ class AdminCollectionsScreen extends StatelessWidget {
         ),
       ),
       drawer: const CommonSidebar(),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const AdminCollectionsFilters(),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 24.h,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Get.find<AdminCollectionsController>().exportToExcel();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF389D6A), // Greenish
-                        foregroundColor: AppColors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                        elevation: 1,
+      body: RefreshIndicator(
+        onRefresh: () => Get.find<AdminCollectionsController>().onRefresh(),
+        color: AppColors.blue500,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AdminCollectionsFilters(),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 24.h,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Get.find<AdminCollectionsController>().exportToExcel();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF389D6A), // Greenish
+                          foregroundColor: AppColors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 12.w),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                          elevation: 1,
+                        ),
+                        child: Text('Export Excel', style: AppTextStyle.style_12_500(color: AppColors.white)),
                       ),
-                      child: Text('Export Excel', style: AppTextStyle.style_12_500(color: AppColors.white)),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: 8.h),
-            const AdminCollectionsTable(),
-            SizedBox(height: 24.h), // Bottom padding
-          ],
+              SizedBox(height: 8.h),
+              const AdminCollectionsTable(),
+              SizedBox(height: 24.h), // Bottom padding
+            ],
+          ),
         ),
       ),
     );

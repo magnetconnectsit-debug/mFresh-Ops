@@ -18,17 +18,15 @@ class CollectionsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppCommonAppBar(
+      appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
         showAppDrawer: true,
         hasBackButton: false,
         title: Text(
           'Collections',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+          style: AppTextStyle.style_18_700(
+            color: AppColors.black,
           ),
         ),
       ),

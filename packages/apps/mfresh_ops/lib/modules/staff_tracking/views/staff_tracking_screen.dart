@@ -183,7 +183,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                           },
                         ),
                         Positioned(
-                          bottom: 120, // Above Google Maps 'My Location' button
+                          bottom: 120,
                           right: 16,
                           child: FloatingActionButton(
                             mini: true,

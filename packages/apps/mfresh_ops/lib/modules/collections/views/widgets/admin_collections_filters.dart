@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
@@ -58,7 +59,8 @@ class AdminCollectionsFilters extends StatelessWidget {
                     selectedValues: controller.selectedState.value != null ? {controller.selectedState.value!} : {},
                     items: controller.stateOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
                     onChanged: (v) {
-                      controller.selectedState.value = v.isNotEmpty ? v.first : null;
+                      controller.onStateSelected(v.isNotEmpty ? v.first : null);
+                      controller.fetchCollections();
                     },
                   )),
                   Obx(() => MultiSelectDropdownWidget<String>(
@@ -68,18 +70,55 @@ class AdminCollectionsFilters extends StatelessWidget {
                     items: controller.districtOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
                     onChanged: (v) {
                       controller.selectedDistrict.value = v.isNotEmpty ? v.first : null;
+                      controller.fetchCollections();
                     },
                   )),
-                  _buildDateField(
+                  Obx(() => MultiSelectDropdownWidget<String>(
                     label: 'Select Month',
-                    hint: 'May-2026',
-                    icon: Icons.calendar_month_outlined,
-                  ),
-                  _buildDateField(
-                    label: 'Select Date',
-                    hint: 'Enter Date',
-                    icon: Icons.calendar_today_outlined,
-                  ),
+                    isSingleSelect: true,
+                    selectedValues: controller.selectedMonth.value != null ? {controller.selectedMonth.value!} : {},
+                    items: controller.monthOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
+                    onChanged: (v) {
+                      controller.selectedMonth.value = v.isNotEmpty ? v.first : null;
+                      controller.selectedDate.value = null; // Reset date when month changes
+                      controller.fetchCollections();
+                    },
+                  )),
+                  Obx(() {
+                    DateTime initialDate = DateTime.now();
+                    DateTime firstDate = DateTime(2020);
+                    DateTime lastDate = DateTime(2101);
+
+                    if (controller.selectedMonth.value != null) {
+                      try {
+                        final parsedMonth = DateFormat('MMM-yyyy').parse(controller.selectedMonth.value!);
+                        firstDate = DateTime(parsedMonth.year, parsedMonth.month, 1);
+                        lastDate = DateTime(parsedMonth.year, parsedMonth.month + 1, 0);
+                        if (initialDate.isBefore(firstDate) || initialDate.isAfter(lastDate)) {
+                          initialDate = firstDate;
+                        }
+                      } catch (_) {}
+                    }
+
+                    return _buildDateField(
+                      label: 'Select Date',
+                      hint: 'Select Date',
+                      icon: Icons.calendar_today_outlined,
+                      value: controller.selectedDate.value,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: firstDate,
+                          lastDate: lastDate,
+                        );
+                        if (picked != null) {
+                          controller.selectedDate.value = DateFormat('dd-MMM-yyyy').format(picked);
+                          controller.fetchCollections();
+                        }
+                      },
+                    );
+                  }),
                 ],
               ),
             ],
@@ -89,8 +128,18 @@ class AdminCollectionsFilters extends StatelessWidget {
     );
   }
 
-  Widget _buildDateField({required String label, required String hint, required IconData icon}) {
+  Widget _buildDateField({
+    required String label, 
+    required String hint, 
+    required IconData icon,
+    String? value,
+    VoidCallback? onTap,
+  }) {
     return TextFormField(
+      key: ValueKey(value),
+      initialValue: value,
+      readOnly: true,
+      onTap: onTap,
       decoration: InputDecoration(
         labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -111,7 +160,7 @@ class AdminCollectionsFilters extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
+          borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
         ),
       ),
       style: AppTextStyle.style_12_400(color: AppColors.black),

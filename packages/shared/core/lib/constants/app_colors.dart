@@ -251,6 +251,11 @@ class AppColors {
   static const Color scaffoldBg = Color(0xFFFAFAFA);
   static const Color timelineBlue = Color(0xFF90CAF9);
   //endregion
+
+  //region Collections Colors
+  static const Color collectionHeader = Color(0xFF1B2C4E);
+  static const Color collectionPink = Color(0xFFF1D3E9);
+  //endregion
 }
 
 // endregion
