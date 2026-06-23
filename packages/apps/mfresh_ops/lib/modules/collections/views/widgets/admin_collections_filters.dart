@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/collections/controllers/admin_collections_controller.dart';
+import 'package:mfresh_ops/modules/collections/views/widgets/month_year_picker_field.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class AdminCollectionsFilters extends StatelessWidget {
@@ -28,13 +29,10 @@ class AdminCollectionsFilters extends StatelessWidget {
           ),
         ],
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 600;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
               Padding(
                 padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 8.h),
                 child: Text(
@@ -42,88 +40,85 @@ class AdminCollectionsFilters extends StatelessWidget {
                   style: AppTextStyle.style_14_600(color: AppColors.black),
                 ),
               ),
-              GridView(
-                padding: EdgeInsets.zero,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  mainAxisExtent: 34.h,
-                ),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  Obx(() => MultiSelectDropdownWidget<String>(
-                    label: 'Select State',
-                    isSingleSelect: true,
-                    selectedValues: controller.selectedState.value != null ? {controller.selectedState.value!} : {},
-                    items: controller.stateOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
-                    onChanged: (v) {
-                      controller.onStateSelected(v.isNotEmpty ? v.first : null);
-                      controller.fetchCollections();
-                    },
-                  )),
-                  Obx(() => MultiSelectDropdownWidget<String>(
-                    label: 'Select District',
-                    isSingleSelect: true,
-                    selectedValues: controller.selectedDistrict.value != null ? {controller.selectedDistrict.value!} : {},
-                    items: controller.districtOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
-                    onChanged: (v) {
-                      controller.selectedDistrict.value = v.isNotEmpty ? v.first : null;
-                      controller.fetchCollections();
-                    },
-                  )),
-                  Obx(() => MultiSelectDropdownWidget<String>(
-                    label: 'Select Month',
-                    isSingleSelect: true,
-                    selectedValues: controller.selectedMonth.value != null ? {controller.selectedMonth.value!} : {},
-                    items: controller.monthOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
-                    onChanged: (v) {
-                      controller.selectedMonth.value = v.isNotEmpty ? v.first : null;
-                      controller.selectedDate.value = null; // Reset date when month changes
-                      controller.fetchCollections();
-                    },
-                  )),
-                  Obx(() {
-                    DateTime initialDate = DateTime.now();
-                    DateTime firstDate = DateTime(2020);
-                    DateTime lastDate = DateTime(2101);
+              Obx(() {
+                final dateSelected = controller.selectedDate.value != null;
+                final monthSelected = controller.selectedMonth.value != null;
 
-                    if (controller.selectedMonth.value != null) {
-                      try {
-                        final parsedMonth = DateFormat('MMM-yyyy').parse(controller.selectedMonth.value!);
-                        firstDate = DateTime(parsedMonth.year, parsedMonth.month, 1);
-                        lastDate = DateTime(parsedMonth.year, parsedMonth.month + 1, 0);
-                        if (initialDate.isBefore(firstDate) || initialDate.isAfter(lastDate)) {
-                          initialDate = firstDate;
-                        }
-                      } catch (_) {}
-                    }
-
-                    return _buildDateField(
-                      label: 'Select Date',
-                      hint: 'Select Date',
-                      icon: Icons.calendar_today_outlined,
-                      value: controller.selectedDate.value,
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: initialDate,
-                          firstDate: firstDate,
-                          lastDate: lastDate,
-                        );
-                        if (picked != null) {
-                          controller.selectedDate.value = DateFormat('dd-MMM-yyyy').format(picked);
-                          controller.fetchCollections();
-                        }
+                return GridView(
+                  padding: EdgeInsets.zero,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12.w,
+                    mainAxisSpacing: 12.h,
+                    mainAxisExtent: 34.h,
+                  ),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    MultiSelectDropdownWidget<String>(
+                      label: 'Select State',
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedState.value != null ? {controller.selectedState.value!} : {},
+                      items: controller.stateOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
+                      onChanged: (v) {
+                        controller.onStateSelected(v.isNotEmpty ? v.first : null);
+                        controller.fetchCollections();
                       },
-                    );
-                  }),
-                ],
-              ),
+                    ),
+                    MultiSelectDropdownWidget<String>(
+                      label: 'Select District',
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedDistrict.value != null ? {controller.selectedDistrict.value!} : {},
+                      items: controller.districtOptions.map((opt) => DropdownMenuItem(value: opt.value, child: Text(opt.label, style: AppTextStyle.style_12_400(color: AppColors.grey900)))).toList(),
+                      onChanged: (v) {
+                        controller.selectedDistrict.value = v.isNotEmpty ? v.first : null;
+                        controller.fetchCollections();
+                      },
+                    ),
+                    if (!dateSelected)
+                      MonthYearPickerField(
+                        value: controller.selectedMonth.value,
+                        label: 'Select Month',
+                        onChanged: (v) {
+                          controller.selectedMonth.value = v;
+                          controller.fetchCollections();
+                        },
+                      ),
+                    if (!monthSelected)
+                      Builder(
+                        builder: (context) {
+                          DateTime initialDate = DateTime.now();
+                          DateTime firstDate = DateTime(2020);
+                          DateTime lastDate = DateTime(2101);
+
+                          return _buildDateField(
+                            label: 'Select Date',
+                            hint: 'Select Date',
+                            icon: Icons.calendar_today_outlined,
+                            value: controller.selectedDate.value,
+                            onClear: () {
+                              controller.selectedDate.value = null;
+                              controller.fetchCollections();
+                            },
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: initialDate,
+                                firstDate: firstDate,
+                                lastDate: lastDate,
+                              );
+                              if (picked != null) {
+                                controller.selectedDate.value = DateFormat('dd-MMM-yyyy').format(picked);
+                                controller.fetchCollections();
+                              }
+                            },
+                          );
+                        }
+                      ),
+                  ],
+                );
+              }),
             ],
-          );
-        },
       ),
     );
   }
@@ -134,6 +129,7 @@ class AdminCollectionsFilters extends StatelessWidget {
     required IconData icon,
     String? value,
     VoidCallback? onTap,
+    VoidCallback? onClear,
   }) {
     return TextFormField(
       key: ValueKey(value),
@@ -148,7 +144,12 @@ class AdminCollectionsFilters extends StatelessWidget {
         hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300),
         isDense: true,
         contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        suffixIcon: Icon(icon, size: 16.r, color: AppColors.grey300),
+        suffixIcon: value != null && onClear != null 
+          ? GestureDetector(
+              onTap: onClear,
+              child: Icon(Icons.close, size: 14.r, color: AppColors.grey300),
+            )
+          : Icon(icon, size: 16.r, color: AppColors.grey300),
         suffixIconConstraints: BoxConstraints(minWidth: 32.w, minHeight: 16.r),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),

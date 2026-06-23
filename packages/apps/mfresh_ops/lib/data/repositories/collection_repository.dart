@@ -15,8 +15,8 @@ class CollectionRepository extends GetxService {
       final data = <String, dynamic>{};
       if (month != null && month.isNotEmpty) data['month'] = month;
       if (date != null && date.isNotEmpty) data['date'] = date;
-      if (state != null && state.isNotEmpty) data['state'] = state;
-      if (district != null && district.isNotEmpty) data['district'] = district;
+      if (state != null && state.isNotEmpty) data['state_id'] = state;
+      if (district != null && district.isNotEmpty) data['district_id'] = district;
 
       final response = await _apiService.get(
         AppConstants.adminCollectionIndex,
@@ -38,8 +38,8 @@ class CollectionRepository extends GetxService {
       final data = <String, dynamic>{};
       if (month != null && month.isNotEmpty) data['month'] = month;
       if (date != null && date.isNotEmpty) data['date'] = date;
-      if (state != null && state.isNotEmpty) data['state'] = state;
-      if (district != null && district.isNotEmpty) data['district'] = district;
+      if (state != null && state.isNotEmpty) data['state_id'] = state;
+      if (district != null && district.isNotEmpty) data['district_id'] = district;
 
       final response = await _apiService.get(
         AppConstants.collectionIndex,

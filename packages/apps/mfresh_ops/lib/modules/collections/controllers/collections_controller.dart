@@ -25,15 +25,6 @@ class CollectionsController extends GetxController {
   void onInit() {
     super.onInit();
     
-    // Generate months from Jan to Dec of current year
-    final now = DateTime.now();
-    for (int i = 1; i <= 12; i++) {
-      final monthDate = DateTime(now.year, i, 1);
-      final valueFormatted = DateFormat('MMM-yyyy').format(monthDate);
-      final labelFormatted = DateFormat('MMM').format(monthDate); // Only month
-      monthOptions.add(DropdownOption(value: valueFormatted, label: labelFormatted));
-    }
-
     fetchCollections();
   }
 
@@ -43,14 +34,36 @@ class CollectionsController extends GetxController {
     await fetchCollections();
   }
 
+  /// Converts 'Jun-2026' → '2026-06'
+  String? _formatMonthForApi(String? month) {
+    if (month == null || month.isEmpty) return null;
+    try {
+      final parsed = DateFormat('MMM-yyyy').parse(month);
+      return DateFormat('yyyy-MM').format(parsed);
+    } catch (_) {
+      return month;
+    }
+  }
+
+  /// Converts 'dd-MMM-yyyy' → 'yyyy-MM-dd'
+  String? _formatDateForApi(String? date) {
+    if (date == null || date.isEmpty) return null;
+    try {
+      final parsed = DateFormat('dd-MMM-yyyy').parse(date);
+      return DateFormat('yyyy-MM-dd').format(parsed);
+    } catch (_) {
+      return date;
+    }
+  }
+
   Future<void> fetchCollections() async {
     try {
       isLoading.value = true;
       final repo = Get.find<CollectionRepository>();
       
       final response = await repo.getUserCollections(
-        month: selectedMonth.value,
-        date: selectedDate.value,
+        month: _formatMonthForApi(selectedMonth.value),
+        date: _formatDateForApi(selectedDate.value),
       );
 
       if (response != null && response['data'] != null) {
