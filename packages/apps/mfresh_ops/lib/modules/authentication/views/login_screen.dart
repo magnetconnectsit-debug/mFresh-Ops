@@ -115,15 +115,15 @@ class LoginScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                InkWell(
-                                  onTap: () {},
-                                  child: Text(
-                                    'Forget Password',
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ),
+                                // InkWell(
+                                //   onTap: () {},
+                                //   child: Text(
+                                //     'Forget Password',
+                                //     style: AppTextStyle.style_12_600(
+                                //       color: AppColors.primary,
+                                //     ),
+                                //   ),
+                                // ),
                               ],
                             ),
                     ),

@@ -19,6 +19,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/data/models/user.dart';
 
 class TrackingService extends GetxService {
   static TrackingService get to => Get.find<TrackingService>();
@@ -85,6 +86,34 @@ class TrackingService extends GetxService {
       return;
     }
 
+    final dynamic user = _storageService.getUser();
+    if (user != null) {
+      final int? isOnDuty = user.isOnDuty is int
+          ? user.isOnDuty
+          : int.tryParse(user.isOnDuty?.toString() ?? '');
+      if (isOnDuty == 1) {
+        debugPrint('TrackingService: User is_on_duty = 1. Resuming/starting tracking.');
+        isTracking.value = true;
+        await _startForegroundService();
+        _startForegroundUpdateTimer();
+        return;
+      } else if (isOnDuty == 0) {
+        debugPrint('TrackingService: User is_on_duty = 0. Stopping/staying off-duty.');
+        isTracking.value = false;
+        await stopTracking();
+        return;
+      }
+    }
+
+    await checkCurrentStatus();
+
+    if (isTracking.value) {
+      debugPrint(
+        'TrackingService: Already active on backend, resuming foreground sync',
+      );
+      return;
+    }
+
     final intendedStatus = _storageService.getIntendedTrackingStatus();
     if (intendedStatus == false) {
       debugPrint(
@@ -94,14 +123,9 @@ class TrackingService extends GetxService {
       return;
     }
 
-    await checkCurrentStatus();
-
-    if (isTracking.value) {
-      debugPrint(
-        'TrackingService: Already active on backend, resuming foreground sync',
-      );
-    } else {
-      debugPrint('TrackingService: Not active on backend, staying offline');
+    if (intendedStatus == true) {
+      debugPrint('TrackingService: Intended status is true. Starting tracking.');
+      await startTracking();
     }
   }
 

@@ -50,4 +50,44 @@ class CollectionRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> updateAdminActual({
+    required String date,
+    required String unitId,
+    required double actual,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        'adminupdateActual',
+        data: {
+          'date': date,
+          'unit_id': unitId,
+          'actual': actual,
+        },
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> updateActual({
+    required String date,
+    required String unitId,
+    required double actual,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        'updateActual',
+        data: {
+          'date': date,
+          'unit_id': unitId,
+          'actual': actual,
+        },
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

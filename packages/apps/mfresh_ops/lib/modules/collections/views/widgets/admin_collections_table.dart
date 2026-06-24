@@ -69,10 +69,16 @@ class AdminCollectionsTable extends StatelessWidget {
                       _buildDataCell(row.month, width: monthWidth, color: AppColors.white),
                       _buildDataCell(row.date, width: dateWidth, color: AppColors.white),
                       ...stores.map((store) {
-                        return _buildMetricCells(row.storeMetrics[store], subColWidth);
+                        return _buildMetricCells(
+                          row.storeMetrics[store],
+                          subColWidth,
+                          context: context,
+                          date: row.date,
+                          unitId: store,
+                        );
                       }),
                       // Other
-                      _buildMetricCells(row.otherMetrics, subColWidth),
+                      _buildMetricCells(row.otherMetrics, subColWidth, context: context, date: row.date, unitId: 'Other'),
                       // Total
                       _buildMetricCells(row.totalMetrics, subColWidth, isTotal: true),
                     ],
@@ -122,14 +128,19 @@ class AdminCollectionsTable extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricCells(AdminStoreMetricModel? metric, double width, {bool isTotal = false}) {
+  Widget _buildMetricCells(
+    AdminStoreMetricModel? metric,
+    double width, {
+    bool isTotal = false,
+    BuildContext? context,
+    String? date,
+    String? unitId,
+  }) {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     // Actual Cell
     Color actualBg = AppColors.collectionPink;
-    if (!isTotal && metric != null && metric.actualNum != 0) {
-      actualBg = AppColors.white;
-    }
+    final bool isEmpty = metric == null || metric.actualNum == 0;
     String actualText = currencyFormat.format(metric?.actualNum ?? 0);
 
     // Dashboard Cell
@@ -148,9 +159,20 @@ class AdminCollectionsTable extends StatelessWidget {
       diffText = currencyFormat.format(metric.differenceNum);
     }
 
+    final bool isCurrentMonthVal = date != null && _isCurrentMonth(date);
+    final bool isClickable = !isTotal && isEmpty && isCurrentMonthVal && context != null && unitId != null;
+
+    Widget actualCell = _buildDataCell(actualText, width: width, color: actualBg);
+    if (isClickable) {
+      actualCell = InkWell(
+        onTap: () => _showUpdateDialog(context, date, unitId),
+        child: actualCell,
+      );
+    }
+
     return Row(
       children: [
-        _buildDataCell(actualText, width: width, color: actualBg),
+        actualCell,
         _buildDataCell(dashText, width: width, color: AppColors.white),
         _buildDataCell(diffText, width: width, color: diffBg, textColor: diffTextCol, isBold: true),
       ],
@@ -183,6 +205,103 @@ class AdminCollectionsTable extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ),
+    );
+  }
+
+  bool _isCurrentMonth(String dateStr) {
+    try {
+      DateTime parsedDate;
+      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateStr)) {
+        parsedDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+      } else {
+        parsedDate = DateFormat('dd-MMM-yyyy').parse(dateStr);
+      }
+      final now = DateTime.now();
+      return parsedDate.year == now.year && parsedDate.month == now.month;
+    } catch (e) {
+      debugPrint('Error parsing date in _isCurrentMonth: $e');
+      return false;
+    }
+  }
+
+  void _showUpdateDialog(BuildContext context, String date, String unitId) {
+    final TextEditingController actualController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Update Actual Collection',
+                  style: AppTextStyle.style_14_700(color: AppColors.black),
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  'Unit: $unitId  |  Date: $date',
+                  style: AppTextStyle.style_10_400(color: AppColors.grey600),
+                ),
+                SizedBox(height: 16.h),
+                TextFormField(
+                  controller: actualController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Actual Collection Value',
+                    labelStyle: AppTextStyle.style_12_400(color: AppColors.grey600),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
+                    prefixText: '₹ ',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a value';
+                    }
+                    if (double.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('Cancel', style: AppTextStyle.style_12_600(color: AppColors.grey600)),
+                    ),
+                    SizedBox(width: 8.w),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      ),
+                      onPressed: () async {
+                        if (formKey.currentState?.validate() ?? false) {
+                          final double value = double.parse(actualController.text.trim());
+                          Get.back(); // Close dialog
+                          
+                          final adminController = Get.find<AdminCollectionsController>();
+                          await adminController.updateActualValue(date: date, unitId: unitId, actual: value);
+                        }
+                      },
+                      child: Text('Save', style: AppTextStyle.style_12_600(color: AppColors.white)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
     );
   }
 }

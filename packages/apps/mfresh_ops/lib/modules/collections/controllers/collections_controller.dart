@@ -145,4 +145,44 @@ class CollectionsController extends GetxController {
       );
     }
   }
+
+  Future<void> updateActualValue({
+    required String date,
+    required String unitId,
+    required double actual,
+  }) async {
+    try {
+      isLoading.value = true;
+      final repo = Get.find<CollectionRepository>();
+      
+      final apiDate = _formatDateForApi(date) ?? date;
+      
+      final response = await repo.updateActual(
+        date: apiDate,
+        unitId: unitId,
+        actual: actual,
+      );
+      
+      if (response != null && response['success'] == true) {
+        AppCommonToastMessage.show(
+          message: response['message'] ?? 'Value saved successfully!',
+          type: ToastType.success,
+        );
+        await fetchCollections(); // reload table data
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to update value',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error updating user actual value: $e');
+      AppCommonToastMessage.show(
+        message: 'An error occurred while updating the value',
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }
