@@ -32,6 +32,7 @@ class StaffTrackingController extends GetxController
 
   final RxDouble currentZoom = 14.0.obs;
   Timer? _debounceTimer;
+  Timer? _pollingTimer;
 
   // Cache for marker icons to avoid recreating bitmaps continuously
   final Map<String, BitmapDescriptor> _markerCache = {};
@@ -52,6 +53,7 @@ class StaffTrackingController extends GetxController
     tabController = TabController(length: 2, vsync: this);
     searchController.addListener(_filterEmployees);
     fetchEmployees();
+    _startPolling();
   }
 
   @override
@@ -59,7 +61,15 @@ class StaffTrackingController extends GetxController
     tabController.dispose();
     searchController.dispose();
     _debounceTimer?.cancel();
+    _pollingTimer?.cancel();
     super.onClose();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      fetchEmployees(isSilent: true);
+    });
   }
 
   void locateEmployeeOnMap(Map<String, dynamic> emp) {
@@ -85,31 +95,38 @@ class StaffTrackingController extends GetxController
     _showEmployeeStatusBottomSheet(emp);
   }
 
-  Future<void> fetchEmployees() async {
-    isLoading.value = true;
+  Future<void> fetchEmployees({bool isSilent = false}) async {
+    if (!isSilent) {
+      isLoading.value = true;
+    }
     try {
-      final response = await _repository.getEmployees();
+      final response = await _repository.getCurrentStatus();
       if (response != null && response['status'] == true) {
         final List emps = response['employees'] ?? [];
         allEmployees.value = emps
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
         await _filterEmployees();
-        _fetchLiveStatsForEmployees();
       } else {
-        AppCommonToastMessage.show(
-          message: response['message'] ?? 'Failed to load staff',
-          type: ToastType.error,
-        );
+        if (!isSilent) {
+          AppCommonToastMessage.show(
+            message: response['message'] ?? 'Failed to load staff',
+            type: ToastType.error,
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error fetching employees: $e');
-      AppCommonToastMessage.show(
-        message: 'Failed to load staff list',
-        type: ToastType.error,
-      );
+      if (!isSilent) {
+        AppCommonToastMessage.show(
+          message: 'Failed to load staff list',
+          type: ToastType.error,
+        );
+      }
     } finally {
-      isLoading.value = false;
+      if (!isSilent) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -121,61 +138,6 @@ class StaffTrackingController extends GetxController
       _debounceTimer = Timer(const Duration(milliseconds: 300), () {
         _updateMarkers(shouldFitBounds: false);
       });
-    }
-  }
-
-  void _fetchLiveStatsForEmployees() {
-    final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    for (int i = 0; i < allEmployees.length; i++) {
-      final empId = allEmployees[i]['id'] ?? allEmployees[i]['user_id'];
-      if (empId != null) {
-        _repository.getEmployeeSummary(employeeId: empId, date: dateStr).then((
-          res,
-        ) {
-          if (res != null &&
-              res['status'] == true &&
-              res['live_status'] != null) {
-            final index = allEmployees.indexWhere(
-              (e) => (e['id'] ?? e['user_id']) == empId,
-            );
-            if (index != -1) {
-              var updatedEmp = Map<String, dynamic>.from(allEmployees[index]);
-              updatedEmp['live_status'] = res['live_status'];
-              updatedEmp['battery'] = res['live_status']['battery'];
-              updatedEmp['speed'] = res['live_status']['speed'];
-
-              if (res['live_status']['current_status'] != null) {
-                updatedEmp['current_status'] =
-                    res['live_status']['current_status'];
-              }
-              if (res['live_status']['last_seen'] != null) {
-                updatedEmp['last_seen'] = res['live_status']['last_seen'];
-              }
-              if (res['live_status']['latitude'] != null) {
-                updatedEmp['latitude'] = res['live_status']['latitude'];
-              }
-              if (res['live_status']['longitude'] != null) {
-                updatedEmp['longitude'] = res['live_status']['longitude'];
-              }
-
-              allEmployees[index] = updatedEmp;
-
-              final filterIndex = filteredEmployees.indexWhere(
-                (e) => (e['id'] ?? e['user_id']) == empId,
-              );
-              if (filterIndex != -1) {
-                filteredEmployees[filterIndex] = updatedEmp;
-              }
-
-              // Debounce marker updates
-              if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-              _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-                _updateMarkers(shouldFitBounds: false);
-              });
-            }
-          }
-        });
-      }
     }
   }
 

@@ -104,8 +104,8 @@ class AuthRepository extends GetxService {
     }
 
     if (isDev) {
-      deviceId = "android_device_123456";
-      deviceInfo["imei_no"] = "android_device_123456";
+      deviceId = "W1VBS36.62-22-17-2";
+      deviceInfo["imei_no"] = "W1VBS36.62-22-17-2";
       fcmToken = "firebase_token";
     }
 
@@ -178,6 +178,12 @@ class AuthRepository extends GetxService {
 
   Future<bool> logout() async {
     try {
+      try {
+        await _apiService.post(AppConstants.trackingDutyOff);
+      } catch (e) {
+        debugPrint('AuthRepository: dutyOff Exception during logout: $e');
+      }
+
       final response = await _apiService.post(AppConstants.logout);
       if (response != null && response['status'] == true) {
         await _storageService.clearAllStorage();

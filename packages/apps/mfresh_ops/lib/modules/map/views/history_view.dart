@@ -61,10 +61,12 @@ class HistoryView extends GetView<HistoryController> {
                         : 0,
                   ),
                   initialCameraPosition: CameraPosition(
-                    target: controller.routePoints.isNotEmpty 
-                        ? controller.routePoints.first 
-                        : (controller.staffCurrentLocationMarker.value?.position ?? const LatLng(20.5937, 78.9629)),
-                    zoom: controller.routePoints.isNotEmpty || controller.staffCurrentLocationMarker.value != null ? 14 : 4,
+                    target: controller.staffCurrentLocationMarker.value != null
+                        ? controller.staffCurrentLocationMarker.value!.position
+                        : (controller.routePoints.isNotEmpty 
+                            ? controller.routePoints.first 
+                            : const LatLng(20.5937, 78.9629)),
+                    zoom: controller.staffCurrentLocationMarker.value != null ? 14.5 : (controller.routePoints.isNotEmpty ? 14 : 4),
                   ),
                   myLocationEnabled: controller.adminEmployeeId == null,
                   myLocationButtonEnabled: controller.adminEmployeeId == null,
@@ -86,7 +88,7 @@ class HistoryView extends GetView<HistoryController> {
                       ...controller.stopMarkers,
                       if (controller.startMarker.value != null)
                         controller.startMarker.value!,
-                      if (controller.endMarker.value != null)
+                      if (controller.endMarker.value != null && controller.staffCurrentLocationMarker.value == null)
                         controller.endMarker.value!,
                     ],
                     if (controller.movingMarker.value != null)
@@ -96,7 +98,16 @@ class HistoryView extends GetView<HistoryController> {
                   },
                   onMapCreated: (GoogleMapController googleMapController) {
                     controller.mapController = googleMapController;
-                    _fitBounds(googleMapController);
+                    if (controller.staffCurrentLocationMarker.value != null) {
+                      googleMapController.animateCamera(
+                        CameraUpdate.newLatLngZoom(
+                          controller.staffCurrentLocationMarker.value!.position,
+                          14.5,
+                        ),
+                      );
+                    } else {
+                      _fitBounds(googleMapController);
+                    }
                   },
                 ),
               ),
@@ -293,7 +304,9 @@ class HistoryView extends GetView<HistoryController> {
                 ],
               ),
             ),
-            if (controller.routeSegments.isNotEmpty || controller.routeSummary.isNotEmpty)
+            if (controller.routeSegments.isNotEmpty ||
+                controller.routeSummary.isNotEmpty ||
+                controller.liveStatus.isNotEmpty)
               DraggableScrollableSheet(
                 controller: controller.sheetController,
                 initialChildSize: 0.3,

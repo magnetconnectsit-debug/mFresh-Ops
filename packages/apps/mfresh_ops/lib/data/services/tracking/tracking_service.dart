@@ -16,7 +16,9 @@ import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
+import 'package:mfresh_ops/core/config/app_config.dart';
 
 class TrackingService extends GetxService {
   static TrackingService get to => Get.find<TrackingService>();
@@ -259,9 +261,28 @@ class TrackingService extends GetxService {
         );
         if (proceed != true) return false;
       }
+      
+      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
+      try {
+        await _repository.dutyOff();
+      } catch (e) {
+        debugPrint('TrackingService: dutyOff Exception: $e');
+      } finally {
+        if (Get.isDialogOpen ?? false) Get.back();
+      }
+
       await stopTracking();
       return true;
     } else {
+      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
+      try {
+        await _repository.dutyOn();
+      } catch (e) {
+        debugPrint('TrackingService: dutyOn Exception: $e');
+      } finally {
+        if (Get.isDialogOpen ?? false) Get.back();
+      }
+
       await startTracking();
       return true;
     }
@@ -390,19 +411,10 @@ class TrackingService extends GetxService {
 
   Future<void> _syncLocation(Position pos) async {
     final authRepo = Get.find<AuthRepository>();
-    final hasTrackingPanel = authRepo.rxUserPermissions.contains(
-      'tracking_panel',
-    );
     final hasBgService = authRepo.rxUserPermissions.contains(
       'background_service',
     );
-    final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
-
-    if (!hasTrackingPanel) {
-      if (!(hasBgService && !hasDutyPunch)) {
-        return;
-      }
-    }
+    if (!hasBgService) return;
 
     if (sessionId.value == null) return;
 
@@ -467,7 +479,15 @@ class TrackingService extends GetxService {
   }
 
   Future<String> _getDeviceId() async {
-    if (kDebugMode) return 'android_device_123456';
+    bool isDev = kDebugMode;
+    try {
+      if (Get.isRegistered<SettingsService>()) {
+        isDev = isDev || AppConfig.isDevToggle;
+      }
+    } catch (_) {}
+
+    if (isDev) return 'W1VBS36.62-22-17-2';
+
     final deviceInfo = DeviceInfoPlugin();
     if (Platform.isAndroid) {
       final androidInfo = await deviceInfo.androidInfo;

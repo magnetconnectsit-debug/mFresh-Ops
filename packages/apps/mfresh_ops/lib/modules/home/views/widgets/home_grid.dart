@@ -42,21 +42,13 @@ class HomeGrid extends StatelessWidget {
         permissionKey: 'inventory_panel',
       ),
       GridItemData(
-        title: 'My Routes',
-        subtitle: 'Personal tracking',
-        icon: Icons.location_on_rounded,
-        gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+        title: 'Staff Tracking',
+        subtitle: 'Team locations',
+        icon: Icons.people_alt_rounded,
+        gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
         route: AppRoutes.staffTracking,
         permissionKey: 'tracking_panel',
       ),
-      // GridItemData(
-      //   title: 'Staff Tracking',
-      //   subtitle: 'Team locations',
-      //   icon: Icons.people_alt_rounded,
-      //   gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
-      //   route: AppRoutes.staffTracking,
-      //   permissionKey: 'tracking_panel',
-      // ),
     ];
 
     final items = allItems.where((item) {

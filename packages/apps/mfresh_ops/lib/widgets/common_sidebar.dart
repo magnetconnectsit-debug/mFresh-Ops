@@ -177,15 +177,13 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  // Tracking Expandable Section
+                  // Tracking Section
                   if (userPermissions.contains('tracking_panel'))
-                    _buildExpandableMenuItem(
+                    _buildMenuItem(
                       icon: Icons.location_on_outlined,
-                      title: 'Tracking',
-                      subItems: [
-                        'My Routes',
-                        'Staff Tracking',
-                      ],
+                      activeIcon: Icons.location_on,
+                      title: 'Staff Tracking',
+                      route: AppRoutes.staffTracking,
                       currentRoute: currentRoute,
                     ),
 

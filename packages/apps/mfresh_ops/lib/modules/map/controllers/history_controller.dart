@@ -10,6 +10,7 @@ import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:core/constants/app_images.dart';
+import 'package:services/services.dart';
 
 class HistoryController extends GetxController {
   final TrackingRepository _repository = Get.find<TrackingRepository>();
@@ -52,6 +53,8 @@ class HistoryController extends GetxController {
   int? adminEmployeeId;
   String? adminEmployeeName;
 
+  Timer? _historyPollingTimer;
+
   @override
   void onInit() {
     super.onInit();
@@ -81,6 +84,25 @@ class HistoryController extends GetxController {
     }
     _initIcons();
     fetchHistory();
+    _startHistoryPolling();
+  }
+
+  void _startHistoryPolling() {
+    _historyPollingTimer?.cancel();
+    _historyPollingTimer = null;
+
+    final now = DateTime.now();
+    final isToday = selectedDate.value.year == now.year &&
+        selectedDate.value.month == now.month &&
+        selectedDate.value.day == now.day;
+
+    if (isToday) {
+      _historyPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (!isLoading.value && !isReplaying.value) {
+          fetchHistory(isRefresh: true, isSilent: true);
+        }
+      });
+    }
   }
 
   Future<void> _initIcons() async {
@@ -95,13 +117,35 @@ class HistoryController extends GetxController {
       _stopIcon = await MapMarkerUtils.createDotMarker(color: Colors.orange, size: 30);
     }
     _vehicleIcon = await MapMarkerUtils.createNavigationArrowMarker(color: Colors.blueAccent, size: 80);
+
+    if (staffCurrentLocationMarker.value != null) {
+      final name = adminEmployeeName ?? 'User';
+      String initials = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+      if (name.contains(' ')) {
+        final parts = name.split(' ');
+        if (parts.length > 1 && parts[1].isNotEmpty) {
+          initials += parts[1][0].toUpperCase();
+        }
+      }
+      final customIcon = await MapMarkerUtils.createCustomMarker(
+        color: Colors.blue,
+        text: initials,
+      );
+      staffCurrentLocationMarker.value = staffCurrentLocationMarker.value!.copyWith(
+        iconParam: customIcon,
+      );
+    }
   }
 
-  Future<void> fetchHistory({bool isRefresh = false}) async {
-    isLoading.value = true;
-    stopReplay();
+  Future<void> fetchHistory({bool isRefresh = false, bool isSilent = false}) async {
+    if (!isSilent) {
+      isLoading.value = true;
+    }
+    if (!isSilent && !isRefresh) {
+      stopReplay();
+    }
     
-    if (!isRefresh) {
+    if (!isRefresh && !isSilent) {
       routePoints.clear();
       drawnRoutePoints.clear();
       stopMarkers.clear();
@@ -181,6 +225,7 @@ class HistoryController extends GetxController {
         
         // Reverse geocode all stops
         final List<Map<String, dynamic>> processedStops = [];
+        final List<Marker> newStopMarkers = [];
         for (var i = 0; i < stops.length; i++) {
           final Map<String, dynamic> s = Map<String, dynamic>.from(stops[i]);
           double lat = double.parse(s['latitude'].toString());
@@ -206,7 +251,7 @@ class HistoryController extends GetxController {
           s['placeName'] = placeName;
           processedStops.add(s);
 
-          stopMarkers.add(Marker(
+          newStopMarkers.add(Marker(
             markerId: MarkerId('stop_$i'),
             position: LatLng(lat, lng),
             infoWindow: InfoWindow(
@@ -217,20 +262,80 @@ class HistoryController extends GetxController {
             anchor: const Offset(0.5, 0.5),
           ));
         }
+        stopMarkers.assignAll(newStopMarkers);
         rawStoppages.value = processedStops;
       }
 
-      final summaryData = adminEmployeeId != null
-          ? await _repository.getEmployeeSummary(employeeId: adminEmployeeId!, date: dateStr)
-          : await _repository.getTodaySummary(date: dateStr);
-      if (summaryData != null && summaryData['status'] == true) {
-        routeSummary.value = Map<String, dynamic>.from(summaryData['summary'] ?? summaryData['data'] ?? {});
-        if (summaryData['live_status'] != null) {
-          liveStatus.value = Map<String, dynamic>.from(summaryData['live_status']);
-        } else {
-          liveStatus.clear();
+      final now = DateTime.now();
+      final isToday = selectedDate.value.year == now.year &&
+          selectedDate.value.month == now.month &&
+          selectedDate.value.day == now.day;
+      if (isToday) {
+        try {
+          final targetEmployeeId = adminEmployeeId ?? Get.find<StorageService>().getUser()?.id;
+          final statusRes = await _repository.getCurrentStatus();
+          if (statusRes != null && statusRes['status'] == true) {
+            final List emps = statusRes['employees'] ?? [];
+            final emp = emps.firstWhereOrNull((e) => (e['id'] ?? e['user_id']) == targetEmployeeId);
+            if (emp != null) {
+              liveStatus.value = Map<String, dynamic>.from(emp);
+              
+              final lat = emp['latitude'];
+              final lng = emp['longitude'];
+              if (lat != null && lng != null && lat.toString().isNotEmpty && lng.toString().isNotEmpty) {
+                final status = emp['current_status']?.toString().toLowerCase();
+                final isOffDuty = status == null || status.isEmpty || status == 'off-duty' || status == 'offline';
+
+                BitmapDescriptor customIcon;
+                if (isOffDuty && _endIcon != null) {
+                  customIcon = _endIcon!;
+                } else {
+                  Color markerColor = Colors.blue;
+                  if (status == 'moving') {
+                    markerColor = Colors.green;
+                  } else if (status == 'stopped') {
+                    markerColor = Colors.orange;
+                  }
+
+                  final name = adminEmployeeName ?? emp['name'] ?? 'User';
+                  String initials = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+                  if (name.contains(' ')) {
+                    final parts = name.split(' ');
+                    if (parts.length > 1 && parts[1].isNotEmpty) {
+                      initials += parts[1][0].toUpperCase();
+                    }
+                  }
+
+                  customIcon = await MapMarkerUtils.createCustomMarker(
+                    color: markerColor,
+                    text: initials,
+                  );
+                }
+
+                final LatLng newPos = LatLng(double.parse(lat.toString()), double.parse(lng.toString()));
+                staffCurrentLocationMarker.value = Marker(
+                  markerId: const MarkerId('staff_current_location'),
+                  position: newPos,
+                  infoWindow: InfoWindow(
+                    title: adminEmployeeName != null ? '$adminEmployeeName\'s Location' : 'Current Location',
+                    snippet: emp['last_seen'] != null ? 'Last seen: ${emp['last_seen']}' : null,
+                  ),
+                  icon: customIcon,
+                  zIndex: 10,
+                );
+
+                mapController?.animateCamera(
+                  CameraUpdate.newLatLng(newPos),
+                );
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Error fetching current status for employee: $e');
         }
       }
+
+
 
       final segmentData = adminEmployeeId != null
           ? await _repository.getEmployeeSegments(employeeId: adminEmployeeId!, date: dateStr)
@@ -240,9 +345,13 @@ class HistoryController extends GetxController {
       }
     } catch (e) {
       debugPrint('Error fetching history: $e');
-      Get.snackbar('Error', 'Failed to fetch history');
+      if (!isSilent) {
+        Get.snackbar('Error', 'Failed to fetch history');
+      }
     } finally {
-      isLoading.value = false;
+      if (!isSilent) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -256,6 +365,7 @@ class HistoryController extends GetxController {
     if (picked != null && picked != selectedDate.value) {
       selectedDate.value = picked;
       fetchHistory();
+      _startHistoryPolling();
     }
   }
 
@@ -500,6 +610,7 @@ class HistoryController extends GetxController {
   @override
   void onClose() {
     _replayTimer?.cancel();
+    _historyPollingTimer?.cancel();
     super.onClose();
   }
 }

@@ -38,6 +38,15 @@ class User extends HiveObject {
   @HiveField(11)
   final String? roleName;
 
+  @HiveField(12)
+  final int? isOnDuty;
+
+  @HiveField(13)
+  final String? deviceId;
+
+  @HiveField(14)
+  final Map<dynamic, dynamic>? trackingConfig;
+
   User({
     required this.id,
     this.name,
@@ -51,6 +60,9 @@ class User extends HiveObject {
     this.createdAt,
     this.updatedAt,
     this.roleName,
+    this.isOnDuty,
+    this.deviceId,
+    this.trackingConfig,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -84,6 +96,13 @@ class User extends HiveObject {
       createdAt: userData['created_at'],
       updatedAt: userData['updated_at'],
       roleName: userData['role_name']?.toString(),
+      isOnDuty: userData['is_on_duty'] is int
+          ? userData['is_on_duty']
+          : int.tryParse(userData['is_on_duty']?.toString() ?? ''),
+      deviceId: json['device_id']?.toString(),
+      trackingConfig: json['tracking_config'] != null
+          ? Map<dynamic, dynamic>.from(json['tracking_config'] as Map)
+          : null,
     );
   }
 
@@ -101,6 +120,9 @@ class User extends HiveObject {
       'created_at': createdAt,
       'updated_at': updatedAt,
       'role_name': roleName,
+      'is_on_duty': isOnDuty,
+      'device_id': deviceId,
+      'tracking_config': trackingConfig,
     };
   }
 }
@@ -127,6 +149,21 @@ class UserAdapter extends TypeAdapter<User> {
       roleName = reader.read();
     } catch (_) {}
 
+    dynamic isOnDuty;
+    try {
+      isOnDuty = reader.read();
+    } catch (_) {}
+
+    dynamic deviceId;
+    try {
+      deviceId = reader.read();
+    } catch (_) {}
+
+    dynamic trackingConfig;
+    try {
+      trackingConfig = reader.read();
+    } catch (_) {}
+
     return User(
       id: id,
       name: name,
@@ -140,6 +177,9 @@ class UserAdapter extends TypeAdapter<User> {
       createdAt: createdAt,
       updatedAt: updatedAt,
       roleName: roleName,
+      isOnDuty: isOnDuty,
+      deviceId: deviceId,
+      trackingConfig: trackingConfig,
     );
   }
 
@@ -157,5 +197,8 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.createdAt);
     writer.write(obj.updatedAt);
     writer.write(obj.roleName);
+    writer.write(obj.isOnDuty);
+    writer.write(obj.deviceId);
+    writer.write(obj.trackingConfig);
   }
 }
