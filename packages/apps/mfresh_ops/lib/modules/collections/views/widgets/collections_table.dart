@@ -60,46 +60,54 @@ class CollectionsTable extends StatelessWidget {
                   ],
                 ),
                 // Data Rows
-                ...controller.filteredCollections.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final row = entry.value;
-                  final bool isEven = index % 2 == 0;
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: controller.filteredCollections.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final row = entry.value;
+                        final bool isEven = index % 2 == 0;
 
-                  return Row(
-                    children: [
-                      _buildDataCell(row.month, width: monthWidth),
-                      _buildDataCell(row.date, width: dateWidth),
-                      ...stores.map((store) {
-                        final actualValue = row.storeMetrics[store]?.actualNum;
-                        return _buildUnitCell(
-                          actualValue,
-                          width: unitWidth,
-                          isEven: isEven,
-                          context: context,
-                          date: row.date,
-                          unitId: store,
+                        return Row(
+                          children: [
+                            _buildDataCell(row.month, width: monthWidth),
+                            _buildDataCell(row.date, width: dateWidth),
+                            ...stores.map((store) {
+                              final actualValue = row.storeMetrics[store]?.actualNum;
+                              return _buildUnitCell(
+                                actualValue,
+                                width: unitWidth,
+                                isEven: isEven,
+                                context: context,
+                                date: row.date,
+                                unitId: store,
+                              );
+                            }),
+                            // Other
+                            _buildUnitCell(
+                              row.otherMetrics.actualNum,
+                              width: unitWidth,
+                              isEven: isEven,
+                              context: context,
+                              date: row.date,
+                              unitId: 'Other',
+                            ),
+                            // Total
+                            _buildDataCell(
+                              row.totalMetrics.actual,
+                              width: unitWidth,
+                              color: AppColors.collectionPink, // Pinkish highlight for totals
+                              isBold: true,
+                            ),
+                          ],
                         );
-                      }),
-                      // Other
-                      _buildUnitCell(
-                        row.otherMetrics.actualNum,
-                        width: unitWidth,
-                        isEven: isEven,
-                        context: context,
-                        date: row.date,
-                        unitId: 'Other',
-                      ),
-                      // Total
-                      _buildDataCell(
-                        row.totalMetrics.actual,
-                        width: unitWidth,
-                        color: AppColors
-                            .collectionPink, // Pinkish highlight for totals
-                        isBold: true,
-                      ),
-                    ],
-                  );
-                }),
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -256,6 +264,7 @@ class CollectionsTable extends StatelessWidget {
                 ),
                 SizedBox(height: 16.h),
                 TextFormField(
+                  autofocus: true,
                   controller: actualController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,

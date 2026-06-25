@@ -61,44 +61,81 @@ class CreateDepositScreen extends StatelessWidget {
                   ),
                   child: Text(
                     controller.editingItem != null ? 'Edit Deposit Form' : 'Deposit Form',
-                    style: AppTextStyle.style_14_600(color: AppColors.black),
+                    style: AppTextStyle.style_12_600(color: AppColors.black),
                   ),
                 ),
                 
                 // Form Body
                 Padding(
-                  padding: EdgeInsets.all(16.w),
+                  padding: EdgeInsets.all(12.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Deposited Date*'),
-                      SizedBox(height: 6.h),
-                      _buildDateField(controller),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Deposited Date*'),
+                                SizedBox(height: 6.h),
+                                _buildDateField(controller),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Actual Deposit*'),
+                                SizedBox(height: 6.h),
+                                _buildTextField(controller),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       
-                      SizedBox(height: 16.h),
-                      _buildLabel('Actual Deposit*'),
-                      SizedBox(height: 6.h),
-                      _buildTextField(controller),
+                      SizedBox(height: 12.h),
                       
-                      SizedBox(height: 16.h),
-                      _buildLabel('For Month*'),
-                      SizedBox(height: 6.h),
-                      _buildMonthField(controller),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('For Month*'),
+                                SizedBox(height: 6.h),
+                                _buildMonthField(controller),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel(controller.editingItem != null ? 'Supervisor File' : 'Supervisor File*'),
+                                SizedBox(height: 6.h),
+                                _buildFilePicker(controller),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       
-                      SizedBox(height: 16.h),
-                      _buildLabel(controller.editingItem != null ? 'Supervisor File (PDF/Image)' : 'Supervisor File* (PDF/Image)'),
-                      SizedBox(height: 6.h),
-                      _buildFilePicker(controller),
-                      
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 12.h),
                       _buildLabel('Remarks'),
                       SizedBox(height: 6.h),
                       _buildTextArea(controller),
                       
-                      SizedBox(height: 24.h),
+                      SizedBox(height: 20.h),
                       SizedBox(
                         width: double.infinity,
-                        height: 40.h,
+                        height: 36.h,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0D6EFD), // Blue button from mockup
@@ -135,7 +172,7 @@ class CreateDepositScreen extends StatelessWidget {
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
         isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
           borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
@@ -168,7 +205,7 @@ class CreateDepositScreen extends StatelessWidget {
       maxLines: 4,
       decoration: InputDecoration(
         isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
           borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
@@ -190,13 +227,13 @@ class CreateDepositScreen extends StatelessWidget {
     return Obx(() => GestureDetector(
       onTap: controller.pickDate,
       child: Container(
-        height: 36.h,
+        height: 32.h,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(4.r),
           border: Border.all(color: AppColors.borderColor, width: 1.0),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        padding: EdgeInsets.symmetric(horizontal: 10.w),
         child: Row(
           children: [
             Expanded(
@@ -205,6 +242,7 @@ class CreateDepositScreen extends StatelessWidget {
                 style: AppTextStyle.style_12_400(
                   color: controller.depositedDate.value == null ? AppColors.grey300 : AppColors.black,
                 ),
+                maxLines: 1,
               ),
             ),
             Icon(Icons.calendar_today_outlined, size: 16.r, color: AppColors.black),
@@ -228,6 +266,7 @@ class CreateDepositScreen extends StatelessWidget {
       return MonthYearPickerField(
         value: displayVal,
         label: 'Select Month',
+        showFloatingLabel: false,
         onChanged: (val) {
           if (val == null) {
             controller.forMonth.value = null;
@@ -248,7 +287,7 @@ class CreateDepositScreen extends StatelessWidget {
     return Obx(() {
       final hasFile = controller.supervisorFileName.value != null;
       return Container(
-        height: 36.h,
+        height: 32.h,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(4.r),
@@ -259,7 +298,7 @@ class CreateDepositScreen extends StatelessWidget {
             GestureDetector(
               onTap: controller.pickFile,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F9FA),
                   border: Border(
@@ -275,12 +314,15 @@ class CreateDepositScreen extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                child: Text(
-                  hasFile ? controller.supervisorFileName.value! : 'No file chosen',
-                  style: AppTextStyle.style_12_400(color: AppColors.black),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    hasFile ? controller.supervisorFileName.value! : 'No file chosen',
+                    style: AppTextStyle.style_12_400(color: hasFile ? AppColors.black : AppColors.grey300),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ),

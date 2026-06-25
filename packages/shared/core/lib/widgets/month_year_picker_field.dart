@@ -13,6 +13,7 @@ class MonthYearPickerField extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.label = 'Select Month',
+    this.showFloatingLabel = true,
   });
 
   /// Currently selected value in 'MMM-yyyy' format, or null if none.
@@ -23,6 +24,7 @@ class MonthYearPickerField extends StatelessWidget {
   final ValueChanged<String?> onChanged;
 
   final String label;
+  final bool showFloatingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +32,12 @@ class MonthYearPickerField extends StatelessWidget {
       onTap: () => _openPicker(context),
       child: InputDecorator(
         decoration: InputDecoration(
-          labelText: label,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelText: showFloatingLabel ? label : null,
+          floatingLabelBehavior: showFloatingLabel ? FloatingLabelBehavior.always : FloatingLabelBehavior.never,
           labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
           isDense: true,
           contentPadding:
-              EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+              showFloatingLabel ? EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h) : EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide:

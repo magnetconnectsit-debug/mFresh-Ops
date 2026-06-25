@@ -60,30 +60,38 @@ class AdminCollectionsTable extends StatelessWidget {
                   ],
                 ),
                 // Data Rows
-                ...controller.filteredCollections.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final row = entry.value;
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: controller.filteredCollections.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final row = entry.value;
 
-                  return Row(
-                    children: [
-                      _buildDataCell(row.month, width: monthWidth, color: AppColors.white),
-                      _buildDataCell(row.date, width: dateWidth, color: AppColors.white),
-                      ...stores.map((store) {
-                        return _buildMetricCells(
-                          row.storeMetrics[store],
-                          subColWidth,
-                          context: context,
-                          date: row.date,
-                          unitId: store,
+                        return Row(
+                          children: [
+                            _buildDataCell(row.month, width: monthWidth, color: AppColors.white),
+                            _buildDataCell(row.date, width: dateWidth, color: AppColors.white),
+                            ...stores.map((store) {
+                              return _buildMetricCells(
+                                row.storeMetrics[store],
+                                subColWidth,
+                                context: context,
+                                date: row.date,
+                                unitId: store,
+                              );
+                            }),
+                            // Other
+                            _buildMetricCells(row.otherMetrics, subColWidth, context: context, date: row.date, unitId: 'Other'),
+                            // Total
+                            _buildMetricCells(row.totalMetrics, subColWidth, isTotal: true),
+                          ],
                         );
-                      }),
-                      // Other
-                      _buildMetricCells(row.otherMetrics, subColWidth, context: context, date: row.date, unitId: 'Other'),
-                      // Total
-                      _buildMetricCells(row.totalMetrics, subColWidth, isTotal: true),
-                    ],
-                  );
-                }),
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -252,6 +260,7 @@ class AdminCollectionsTable extends StatelessWidget {
                 ),
                 SizedBox(height: 16.h),
                 TextFormField(
+                  autofocus: true,
                   controller: actualController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(

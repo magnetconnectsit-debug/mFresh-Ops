@@ -8,9 +8,10 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/modules/deposits/controllers/deposits_controller.dart';
 import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_filters.dart';
-import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_summary.dart';
+
 import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_table.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class DepositsScreen extends StatelessWidget {
   const DepositsScreen({super.key});
@@ -36,78 +37,88 @@ class DepositsScreen extends StatelessWidget {
         onRefresh: controller.onRefresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // SizedBox(height: 8.h),
-              // const DepositsFilters(),
+          child: Obx(() {
+            final authRepo = Get.find<AuthRepository>();
+            final permissions = authRepo.rxUserPermissions;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // if (permissions.contains('deposit_filter')) ...[
+                //   SizedBox(height: 8.h),
+                //   const DepositsFilters(),
+                // ],
 
-              SizedBox(height: 6.h),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 24.h,
-                      child: ElevatedButton(
-                        onPressed: controller.exportToExcel,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF389D6A), // Greenish
-                          foregroundColor: AppColors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.r),
+                SizedBox(height: 6.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 24.h,
+                        child: ElevatedButton(
+                          onPressed: controller.exportToExcel,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF389D6A), // Greenish
+                            foregroundColor: AppColors.white,
+                            padding: EdgeInsets.symmetric(horizontal: 12.w),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                            elevation: 1,
                           ),
-                          elevation: 1,
-                        ),
-                        child: Text(
-                          'Export Excel',
-                          style: AppTextStyle.style_12_500(
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    SizedBox(
-                      height: 24.h,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Get.toNamed(AppRoutes.createDeposit);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF389D6A), // Greenish
-                          foregroundColor: AppColors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                          elevation: 1,
-                        ),
-                        child: Text(
-                          'Deposite Cash',
-                          style: AppTextStyle.style_12_500(
-                            color: AppColors.white,
+                          child: Text(
+                            'Export Excel',
+                            style: AppTextStyle.style_12_500(
+                              color: AppColors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      if (permissions.contains('deposit_onboarding')) ...[
+                        SizedBox(width: 8.w),
+                        SizedBox(
+                          height: 24.h,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Get.toNamed(AppRoutes.createDeposit);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF389D6A), // Greenish
+                              foregroundColor: AppColors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 12.w),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4.r),
+                              ),
+                              elevation: 1,
+                            ),
+                            child: Text(
+                              'Deposite Cash',
+                              style: AppTextStyle.style_12_500(
+                                color: AppColors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 8.h),
-              // const DepositsSummary(),
+                SizedBox(height: 8.h),
+                // const DepositsSummary(),
 
-              // SizedBox(height: 16.h),
-              const DepositsTable(),
+                if (permissions.contains('deposit_table')) ...[
+                  // SizedBox(height: 16.h),
+                  const DepositsTable(),
+                ],
 
               SizedBox(height: 80.h),
             ],
-          ),
-        ),
+          );
+        }),
       ),
-    );
+    ),
+  );
   }
 }

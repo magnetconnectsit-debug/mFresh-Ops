@@ -33,16 +33,13 @@ class CollectionsScreen extends StatelessWidget {
       drawer: const CommonSidebar(),
       body: AppRefreshIndicator(
         onRefresh: controller.onRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 16.h),
-              const CollectionsTable(),
-              SizedBox(height: 80.h),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 16.h),
+            const Expanded(child: CollectionsTable()),
+            SizedBox(height: 16.h),
+          ],
         ),
       ),
     );

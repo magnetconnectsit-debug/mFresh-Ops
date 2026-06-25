@@ -9,6 +9,7 @@ import 'package:core/widgets/custom_app_loader.dart';
 import 'package:core/widgets/app_image_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class DepositsTable extends StatelessWidget {
   const DepositsTable({super.key});
@@ -43,14 +44,17 @@ class DepositsTable extends StatelessWidget {
             );
           }
 
+          final permissions = Get.find<AuthRepository>().rxUserPermissions;
+          final bool showActionColumn = permissions.contains('deposit_table_action');
+
           return Table(
-            columnWidths: const {
-              0: FixedColumnWidth(50),
-              1: FixedColumnWidth(75),
-              2: FixedColumnWidth(55),
-              3: FixedColumnWidth(55),
-              4: FixedColumnWidth(130),
-              5: FixedColumnWidth(75),
+            columnWidths: {
+              0: const FixedColumnWidth(50),
+              1: const FixedColumnWidth(75),
+              2: const FixedColumnWidth(55),
+              3: const FixedColumnWidth(55),
+              4: const FixedColumnWidth(130),
+              if (showActionColumn) 5: const FixedColumnWidth(75),
             },
             border: TableBorder(
               horizontalInside: BorderSide(color: AppColors.borderColor, width: 1.0),
@@ -65,7 +69,7 @@ class DepositsTable extends StatelessWidget {
                   _buildHeaderCell('Month'),
                   _buildHeaderCell('File', padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 12.h)),
                   _buildHeaderCell('Remark'),
-                  _buildHeaderCell('Action'),
+                  if (showActionColumn) _buildHeaderCell('Action'),
                 ],
               ),
               ...controller.filteredDeposits.map((item) {
@@ -77,7 +81,7 @@ class DepositsTable extends StatelessWidget {
                     _buildRowGestureDetector(item.id, _buildDataCell(_formatMonth(item.month), isExpanded), controller),
                     _buildImageCell(context, item.fileUrl),
                     _buildRowGestureDetector(item.id, _buildDataCell(item.remark, isExpanded), controller),
-                    _buildActionCell(context, item, controller),
+                    if (showActionColumn) _buildActionCell(context, item, controller),
                   ],
                 );
               }),
@@ -199,42 +203,45 @@ class DepositsTable extends StatelessWidget {
   }
 
   Widget _buildActionCell(BuildContext context, DepositItem item, DepositsController controller) {
+    final permissions = Get.find<AuthRepository>().rxUserPermissions;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          GestureDetector(
-            onTap: () {
-              Get.toNamed(AppRoutes.createDeposit, arguments: item);
-            },
-            child: Icon(Icons.edit_outlined, size: 20.r, color: AppColors.grey500),
-          ),
-          GestureDetector(
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Delete Deposit'),
-                  content: const Text('Are you sure you want to delete this cash deposit?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        controller.deleteDepositItem(item.id);
-                      },
-                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: Icon(Icons.delete_outline, size: 20.r, color: Colors.red.withValues(alpha: 0.8)),
-          ),
+          if (permissions.contains('Edit_CashDeposit'))
+            GestureDetector(
+              onTap: () {
+                Get.toNamed(AppRoutes.createDeposit, arguments: item);
+              },
+              child: Icon(Icons.edit_outlined, size: 20.r, color: AppColors.grey500),
+            ),
+          if (permissions.contains('Delete_CashDeposit'))
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Deposit'),
+                    content: const Text('Are you sure you want to delete this cash deposit?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          controller.deleteDepositItem(item.id);
+                        },
+                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: Icon(Icons.delete_outline, size: 20.r, color: Colors.red.withValues(alpha: 0.8)),
+            ),
         ],
       ),
     );
