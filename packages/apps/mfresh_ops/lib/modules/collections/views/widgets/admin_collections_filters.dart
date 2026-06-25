@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/collections/controllers/admin_collections_controller.dart';
-import 'package:mfresh_ops/modules/collections/views/widgets/month_year_picker_field.dart';
+import 'package:core/widgets/month_year_picker_field.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class AdminCollectionsFilters extends StatelessWidget {

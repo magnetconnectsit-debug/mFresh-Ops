@@ -96,7 +96,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     completedByName: 'Loading Completer',
                   ),
                 )
-              : controller.allDailyTasks.where((task) {
+              : (controller.isFiltered ? controller.tasks : controller.allDailyTasks).where((task) {
                   final status = task.status.toLowerCase();
                   if (controller.activeTab.value == 0) {
                     return status != 'completed' &&

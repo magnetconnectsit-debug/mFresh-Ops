@@ -160,12 +160,12 @@ class AdminCollectionsTable extends StatelessWidget {
     }
 
     final bool isCurrentMonthVal = date != null && _isCurrentMonth(date);
-    final bool isClickable = !isTotal && isEmpty && isCurrentMonthVal && context != null && unitId != null;
+    final bool isClickable = !isTotal && !isEmpty && isCurrentMonthVal && context != null && unitId != null;
 
     Widget actualCell = _buildDataCell(actualText, width: width, color: actualBg);
     if (isClickable) {
       actualCell = InkWell(
-        onTap: () => _showUpdateDialog(context, date, unitId),
+        onTap: () => _showUpdateDialog(context, date, unitId, currentValue: metric?.actualNum),
         child: actualCell,
       );
     }
@@ -224,8 +224,10 @@ class AdminCollectionsTable extends StatelessWidget {
     }
   }
 
-  void _showUpdateDialog(BuildContext context, String date, String unitId) {
-    final TextEditingController actualController = TextEditingController();
+  void _showUpdateDialog(BuildContext context, String date, String unitId, {num? currentValue}) {
+    final TextEditingController actualController = TextEditingController(
+      text: currentValue != null && currentValue != 0 ? currentValue.toString() : '',
+    );
     final formKey = GlobalKey<FormState>();
 
     Get.dialog(

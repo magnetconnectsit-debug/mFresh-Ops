@@ -123,6 +123,12 @@ class AppConstants {
   // Collection and deposit
   static const String adminCollectionIndex = 'collectionindex';  // Admin Collection table data api
   static const String collectionIndex = 'usercollectionindex';  // User Collection table data api
+  static const String adminCollectionActualUpdate = 'adminupdateActual'; // Admin actual value update api
+  static const String collectionActualUpdate = 'updateActual'; // User actual value update api
+  static const String cashDepositList = 'cash-deposit'; // Cash deposit list api
+  static const String cashDepositStore = 'cash-deposit/store'; // Store cash deposit api
+  static const String cashDepositUpdate = 'cash-deposit/update'; // Update cash deposit api
+  static const String cashDepositDelete = 'deposit/delete'; // Delete cash deposit api
   // endregion
 
   // region Hive Keys

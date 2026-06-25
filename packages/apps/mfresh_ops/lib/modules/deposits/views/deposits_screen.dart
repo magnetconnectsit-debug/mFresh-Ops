@@ -10,6 +10,7 @@ import 'package:mfresh_ops/modules/deposits/controllers/deposits_controller.dart
 import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_filters.dart';
 import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_summary.dart';
 import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_table.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
 
 class DepositsScreen extends StatelessWidget {
   const DepositsScreen({super.key});
@@ -27,7 +28,7 @@ class DepositsScreen extends StatelessWidget {
         hasBackButton: false,
         title: Text(
           'Deposits',
-style: AppTextStyle.style_18_700(color: AppColors.black),
+          style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
       ),
       drawer: const CommonSidebar(),
@@ -38,10 +39,10 @@ style: AppTextStyle.style_18_700(color: AppColors.black),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 8.h),
-              const DepositsFilters(),
-              
-              SizedBox(height: 4.h),
+              // SizedBox(height: 8.h),
+              // const DepositsFilters(),
+
+              SizedBox(height: 6.h),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Row(
@@ -50,17 +51,22 @@ style: AppTextStyle.style_18_700(color: AppColors.black),
                     SizedBox(
                       height: 24.h,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Download excel action
-                        },
+                        onPressed: controller.exportToExcel,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF389D6A), // Greenish
                           foregroundColor: AppColors.white,
                           padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
                           elevation: 1,
                         ),
-                        child: Text('Export Excel', style: AppTextStyle.style_12_500(color: AppColors.white)),
+                        child: Text(
+                          'Export Excel',
+                          style: AppTextStyle.style_12_500(
+                            color: AppColors.white,
+                          ),
+                        ),
                       ),
                     ),
                     SizedBox(width: 8.w),
@@ -68,29 +74,36 @@ style: AppTextStyle.style_18_700(color: AppColors.black),
                       height: 24.h,
                       child: ElevatedButton(
                         onPressed: () {
-                          Get.toNamed('/create-deposit');
+                          Get.toNamed(AppRoutes.createDeposit);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF389D6A), // Greenish
                           foregroundColor: AppColors.white,
                           padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
                           elevation: 1,
                         ),
-                        child: Text('Deposite Cash', style: AppTextStyle.style_12_500(color: AppColors.white)),
+                        child: Text(
+                          'Deposite Cash',
+                          style: AppTextStyle.style_12_500(
+                            color: AppColors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               SizedBox(height: 8.h),
-              const DepositsSummary(),
-              
-              SizedBox(height: 16.h),
+              // const DepositsSummary(),
+
+              // SizedBox(height: 16.h),
               const DepositsTable(),
-              
-              SizedBox(height: 24.h),
+
+              SizedBox(height: 80.h),
             ],
           ),
         ),

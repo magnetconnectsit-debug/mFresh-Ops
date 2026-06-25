@@ -30,7 +30,7 @@ class HomeGrid extends StatelessWidget {
         subtitle: 'Daily operations',
         icon: Icons.assignment_rounded,
         gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-        route: null,
+        route: AppRoutes.dailyTasks,
         permissionKey: 'Task_Sheduler_Pannel',
       ),
       GridItemData(
@@ -58,13 +58,14 @@ class HomeGrid extends StatelessWidget {
 
     return GridView.builder(
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16.r,
         mainAxisSpacing: 16.r,
-        childAspectRatio: 0.85,
+        childAspectRatio: 1.15,
       ),
       itemBuilder: (context, index) {
         return _buildGridCard(items[index]);
@@ -122,23 +123,23 @@ class HomeGrid extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(20.r),
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: EdgeInsets.all(12.r),
+                        padding: EdgeInsets.all(8.r),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: item.gradient,
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(16.r),
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
-                        child: Icon(item.icon, color: Colors.white, size: 28.r),
+                        child: Icon(item.icon, color: Colors.white, size: 22.r),
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 6.h),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,13 +147,17 @@ class HomeGrid extends StatelessWidget {
                           children: [
                             Text(
                               item.title,
-                              style: AppTextStyle.style_14_700(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyle.style_12_700(
                                 color: AppColors.black,
                               ),
                             ),
-                            SizedBox(height: 2.h),
+                            SizedBox(height: 1.h),
                             Text(
                               item.subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: AppTextStyle.style_10_400(
                                 color: AppColors.grey300,
                               ),

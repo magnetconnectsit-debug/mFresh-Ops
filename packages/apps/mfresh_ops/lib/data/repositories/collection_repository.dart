@@ -58,7 +58,7 @@ class CollectionRepository extends GetxService {
   }) async {
     try {
       final response = await _apiService.post(
-        'adminupdateActual',
+        AppConstants.adminCollectionActualUpdate,
         data: {
           'date': date,
           'unit_id': unitId,
@@ -78,7 +78,7 @@ class CollectionRepository extends GetxService {
   }) async {
     try {
       final response = await _apiService.post(
-        'updateActual',
+        AppConstants.collectionActualUpdate,
         data: {
           'date': date,
           'unit_id': unitId,

@@ -14,56 +14,58 @@ class DepositsSummary extends StatelessWidget {
     final controller = Get.find<DepositsController>();
     final NumberFormat currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
-    final items = controller.monthlySummary.entries.toList();
+    return Obx(() {
+      final items = controller.monthlySummary.entries.toList();
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            ...items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final monthlyEntry = entry.value;
-              final isLast = index == items.length - 1;
-              
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 100.w, // Fixed width for horizontal scrolling
-                    height: 48.h, // Maintain smaller height
-                    child: _buildSummaryCard(
-                      title: monthlyEntry.key,
-                      amount: currencyFormat.format(monthlyEntry.value),
-                      isHighlighted: false,
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              ...items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final monthlyEntry = entry.value;
+                final isLast = index == items.length - 1;
+                
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 100.w, // Fixed width for horizontal scrolling
+                      height: 48.h, // Maintain smaller height
+                      child: _buildSummaryCard(
+                        title: monthlyEntry.key,
+                        amount: currencyFormat.format(monthlyEntry.value),
+                        isHighlighted: false,
+                      ),
                     ),
-                  ),
-                  if (!isLast)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w),
-                      child: Icon(Icons.add, size: 14.r, color: AppColors.black),
-                    ),
-                ],
-              );
-            }),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Text('=', style: AppTextStyle.style_16_600(color: AppColors.black)),
-            ),
-            SizedBox(
-              width: 100.w,
-              height: 48.h, // Using same 48.h height here to maintain horizontal row consistency, or 36.h if they wanted Total specifically smaller. Let's use 48.h so they all align.
-              child: _buildSummaryCard(
-                title: 'Total',
-                amount: currencyFormat.format(controller.totalDeposit),
-                isHighlighted: true,
+                    if (!isLast)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w),
+                        child: Icon(Icons.add, size: 14.r, color: AppColors.black),
+                      ),
+                  ],
+                );
+              }),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                child: Text('=', style: AppTextStyle.style_16_600(color: AppColors.black)),
               ),
-            ),
-          ],
+              SizedBox(
+                width: 100.w,
+                height: 48.h, // Using same 48.h height here to maintain horizontal row consistency
+                child: _buildSummaryCard(
+                  title: 'Total',
+                  amount: currencyFormat.format(controller.totalDeposit),
+                  isHighlighted: true,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildSummaryCard({

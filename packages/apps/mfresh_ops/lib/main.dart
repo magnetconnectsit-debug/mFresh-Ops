@@ -16,6 +16,7 @@ import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/collection_repository.dart';
+import 'package:mfresh_ops/data/repositories/deposit_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
@@ -118,6 +119,7 @@ Future<void> initServices() async {
   Get.put(TrackingRepository());
   Get.put(TrackingService());
   Get.put(CollectionRepository());
+  Get.put(DepositRepository());
 }
 
 class OpsApp extends StatelessWidget {

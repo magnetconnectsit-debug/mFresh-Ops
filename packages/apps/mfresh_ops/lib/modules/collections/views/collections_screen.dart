@@ -40,7 +40,7 @@ class CollectionsScreen extends StatelessWidget {
             children: [
               SizedBox(height: 16.h),
               const CollectionsTable(),
-              SizedBox(height: 24.h),
+              SizedBox(height: 80.h),
             ],
           ),
         ),

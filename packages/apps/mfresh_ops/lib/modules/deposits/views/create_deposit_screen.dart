@@ -5,23 +5,27 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/deposits/controllers/create_deposit_controller.dart';
+import 'package:core/widgets/month_year_picker_field.dart';
+import 'package:intl/intl.dart';
 
 class CreateDepositScreen extends StatelessWidget {
   const CreateDepositScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Delete existing controller to make sure it recreates with fresh state (especially when switching between add and edit)
+    Get.delete<CreateDepositController>();
     final controller = Get.put(CreateDepositController());
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppCommonAppBar(
+      appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
         hasBackButton: true,
         title: Text(
-          'Deposite Cash',
-          style: TextStyle(
+          controller.editingItem != null ? 'Edit Deposit' : 'Deposite Cash',
+          style: const TextStyle(
             color: AppColors.black,
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -30,82 +34,88 @@ class CreateDepositScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(4.r),
-            border: Border.all(color: AppColors.borderColor, width: 1.0),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(4.r),
-                    topRight: Radius.circular(4.r),
-                  ),
-                  border: Border(
-                    bottom: BorderSide(color: AppColors.borderColor, width: 1.0),
-                  ),
-                ),
-                child: Text(
-                  'Deposit Form',
-                  style: AppTextStyle.style_14_600(color: AppColors.black),
-                ),
-              ),
-              
-              // Form Body
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel('Deposited Date*'),
-                    SizedBox(height: 6.h),
-                    _buildDateField(controller),
-                    
-                    SizedBox(height: 16.h),
-                    _buildLabel('Actual Deposit*'),
-                    SizedBox(height: 6.h),
-                    _buildTextField(),
-                    
-                    SizedBox(height: 16.h),
-                    _buildLabel('For Month*'),
-                    SizedBox(height: 6.h),
-                    _buildMonthField(controller),
-                    
-                    SizedBox(height: 16.h),
-                    _buildLabel('Supervisor File* (PDF/Image)'),
-                    SizedBox(height: 6.h),
-                    _buildFilePicker(controller),
-                    
-                    SizedBox(height: 16.h),
-                    _buildLabel('Remarks'),
-                    SizedBox(height: 6.h),
-                    _buildTextArea(),
-                    
-                    SizedBox(height: 24.h),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 40.h,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D6EFD), // Blue button from screenshot
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                        ),
-                        onPressed: controller.submit,
-                        child: Text('Submit', style: AppTextStyle.style_14_600(color: AppColors.white)),
-                      ),
+        child: Form(
+          key: controller.formKey,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(4.r),
+              border: Border.all(color: AppColors.borderColor, width: 1.0),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(4.r),
+                      topRight: Radius.circular(4.r),
                     ),
-                  ],
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.borderColor, width: 1.0),
+                    ),
+                  ),
+                  child: Text(
+                    controller.editingItem != null ? 'Edit Deposit Form' : 'Deposit Form',
+                    style: AppTextStyle.style_14_600(color: AppColors.black),
+                  ),
                 ),
-              ),
-            ],
+                
+                // Form Body
+                Padding(
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Deposited Date*'),
+                      SizedBox(height: 6.h),
+                      _buildDateField(controller),
+                      
+                      SizedBox(height: 16.h),
+                      _buildLabel('Actual Deposit*'),
+                      SizedBox(height: 6.h),
+                      _buildTextField(controller),
+                      
+                      SizedBox(height: 16.h),
+                      _buildLabel('For Month*'),
+                      SizedBox(height: 6.h),
+                      _buildMonthField(controller),
+                      
+                      SizedBox(height: 16.h),
+                      _buildLabel(controller.editingItem != null ? 'Supervisor File (PDF/Image)' : 'Supervisor File* (PDF/Image)'),
+                      SizedBox(height: 6.h),
+                      _buildFilePicker(controller),
+                      
+                      SizedBox(height: 16.h),
+                      _buildLabel('Remarks'),
+                      SizedBox(height: 6.h),
+                      _buildTextArea(controller),
+                      
+                      SizedBox(height: 24.h),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 40.h,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D6EFD), // Blue button from mockup
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                          ),
+                          onPressed: controller.submit,
+                          child: Text(
+                            controller.editingItem != null ? 'Update' : 'Submit',
+                            style: AppTextStyle.style_14_600(color: AppColors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -119,34 +129,42 @@ class CreateDepositScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField() {
-    return SizedBox(
-      height: 36.h,
-      child: TextFormField(
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-          ),
+  Widget _buildTextField(CreateDepositController controller) {
+    return TextFormField(
+      controller: controller.actualDepositController,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
         ),
-        style: AppTextStyle.style_12_400(color: AppColors.black),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(color: AppColors.borderColor, width: 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
+        ),
       ),
+      style: AppTextStyle.style_12_400(color: AppColors.black),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Please enter actual deposit amount';
+        }
+        if (double.tryParse(value) == null) {
+          return 'Please enter a valid number';
+        }
+        return null;
+      },
     );
   }
 
-  Widget _buildTextArea() {
+  Widget _buildTextArea(CreateDepositController controller) {
     return TextFormField(
+      controller: controller.remarksController,
       maxLines: 4,
       decoration: InputDecoration(
         isDense: true,
@@ -197,30 +215,33 @@ class CreateDepositScreen extends StatelessWidget {
   }
 
   Widget _buildMonthField(CreateDepositController controller) {
-    return Obx(() => GestureDetector(
-      onTap: controller.selectMonth,
-      child: Container(
-        height: 36.h,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FA), // Slightly gray like in screenshot for dropdown
-          borderRadius: BorderRadius.circular(4.r),
-          border: Border.all(color: AppColors.borderColor, width: 1.0),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                controller.forMonth.value ?? 'Select Month',
-                style: AppTextStyle.style_12_400(
-                  color: controller.forMonth.value == null ? AppColors.grey500 : AppColors.black,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ));
+    return Obx(() {
+      String? displayVal;
+      if (controller.forMonth.value != null) {
+        try {
+          final parsed = DateFormat('yyyy-MM').parse(controller.forMonth.value!);
+          displayVal = DateFormat('MMM-yyyy').format(parsed);
+        } catch (_) {
+          displayVal = controller.forMonth.value;
+        }
+      }
+      return MonthYearPickerField(
+        value: displayVal,
+        label: 'Select Month',
+        onChanged: (val) {
+          if (val == null) {
+            controller.forMonth.value = null;
+          } else {
+            try {
+              final parsed = DateFormat('MMM-yyyy').parse(val);
+              controller.forMonth.value = DateFormat('yyyy-MM').format(parsed);
+            } catch (_) {
+              controller.forMonth.value = val;
+            }
+          }
+        },
+      );
+    });
   }
 
   Widget _buildFilePicker(CreateDepositController controller) {

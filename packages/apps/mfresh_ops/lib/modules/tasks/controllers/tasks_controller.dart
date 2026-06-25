@@ -140,6 +140,7 @@ class TasksController extends GetxController {
     selectedAssignees.clear();
     tasks.clear();
     dailyTasks.clear();
+    allDailyTasks.clear();
     await fetchAllData();
   }
 

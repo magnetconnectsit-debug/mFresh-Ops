@@ -13,6 +13,8 @@ class AppImageView extends StatelessWidget {
   final Widget? placeholder;
   final Widget? errorWidget;
   final Color backgroundColor;
+  final int? memCacheWidth;
+  final int? memCacheHeight;
 
   const AppImageView({
     super.key,
@@ -24,6 +26,8 @@ class AppImageView extends StatelessWidget {
     this.placeholder,
     this.errorWidget,
     this.backgroundColor = AppColors.white,
+    this.memCacheWidth,
+    this.memCacheHeight,
   });
 
   @override
@@ -44,6 +48,8 @@ class AppImageView extends StatelessWidget {
                 width: width,
                 height: height,
                 fit: fit,
+                memCacheWidth: memCacheWidth,
+                memCacheHeight: memCacheHeight,
                 placeholder: (context, url) => placeholder ?? _buildPlaceholder(),
                 errorWidget: (context, url, error) =>
                     errorWidget ?? _buildErrorWidget(),

@@ -188,12 +188,12 @@ class CommonSidebar extends StatelessWidget {
                     ),
 
                   // Collections & Deposits Expandable Section
-                  // _buildExpandableMenuItem(
-                  //   icon: Icons.attach_money_outlined,
-                  //   title: 'Collections & Deposits',
-                  //   subItems: ['Admin Collections', 'Collections', 'Deposits'],
-                  //   currentRoute: currentRoute,
-                  // ),
+                  _buildExpandableMenuItem(
+                    icon: Icons.attach_money_outlined,
+                    title: 'Collections & Deposits',
+                    subItems: ['Admin Collections', 'Collections', 'Deposits'],
+                    currentRoute: currentRoute,
+                  ),
 
                   _buildMenuItem(
                     icon: Icons.person_outline,

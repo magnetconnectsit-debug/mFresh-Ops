@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                  padding: EdgeInsets.only(left: 20.w, right: 20.w, top: 10.h, bottom: 8.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -92,25 +92,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(height: 12.h),
                       const HomeGrid(),
-                      SizedBox(height: 20.h),
                       Obx(() {
                         final authRepo = Get.find<AuthRepository>();
                         if (authRepo.rxUserPermissions.contains('duty_punch')) {
                           return Column(
                             children: [
+                              SizedBox(height: 12.h),
                               const DutyStatusCard(),
-                              SizedBox(height: 16.h),
                             ],
                           );
                         }
                         return const SizedBox.shrink();
                       }),
+                      SizedBox(height: 10.h),
                       Center(
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(
-                            vertical: 8.h,
-                            horizontal: 6.w,
+                            vertical: 14.h,
+                            horizontal: 10.w,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -131,15 +131,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Image.asset(
                                 AppImages.appLogo,
-                                width: 140.w,
-                                height: 40.h,
+                                width: 280.w,
+                                height: 75.h,
                                 fit: BoxFit.contain,
                               ),
                             ],
                           ),
                         ),
                       ),
-                      SizedBox(height: 24.h),
+                      SizedBox(height: 8.h),
                     ],
                   ),
                 ),
