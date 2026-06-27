@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
+import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:core/utils/app_common_toast_message.dart';

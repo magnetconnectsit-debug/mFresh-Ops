@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -178,7 +179,7 @@ class CommonSidebar extends StatelessWidget {
                     ),
 
                   // Tracking Section
-                  if (userPermissions.contains('tracking_panel'))
+                  if (kDebugMode || userPermissions.contains('tracking_panel'))
                     _buildMenuItem(
                       icon: Icons.location_on_outlined,
                       activeIcon: Icons.location_on,

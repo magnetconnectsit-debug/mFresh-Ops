@@ -104,8 +104,8 @@ class AuthRepository extends GetxService {
     }
 
     if (isDev) {
-      deviceId = "W1VBS36.62-22-17-2";
-      deviceInfo["imei_no"] = "W1VBS36.62-22-17-2";
+      deviceId = "QKR1.191246.002";
+      deviceInfo["imei_no"] = "QKR1.191246.002";
       fcmToken = "firebase_token";
     }
 

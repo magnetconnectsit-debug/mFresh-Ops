@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
+import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:services/services.dart';
 import 'package:intl/intl.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -19,7 +20,6 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
-import 'package:mfresh_ops/data/models/user.dart';
 
 class TrackingService extends GetxService {
   static TrackingService get to => Get.find<TrackingService>();
@@ -401,6 +401,16 @@ class TrackingService extends GetxService {
     );
 
     if (isTracking.value && hasBgPermission) {
+      if (sessionId.value != null) {
+        await FlutterForegroundTask.saveData(key: 'session_id', value: sessionId.value!);
+      }
+      final token = _storageService.getToken();
+      if (token != null) {
+        await FlutterForegroundTask.saveData(key: 'token', value: token);
+      }
+      final deviceId = await _getDeviceId();
+      await FlutterForegroundTask.saveData(key: 'device_id', value: deviceId);
+
       if (await FlutterForegroundTask.isRunningService) {
         return FlutterForegroundTask.restartService();
       } else {
@@ -417,8 +427,9 @@ class TrackingService extends GetxService {
   }
 
   void _startLocationUpdates() async {
-    final hasPermission = await _locationService.requestPermissions();
-    if (!hasPermission) return;
+    // Check permission instead of requesting to prevent conflicts with LocationPermissionController
+    final permission = await ph.Permission.location.status;
+    if (!permission.isGranted) return;
 
     final initialPos = await _locationService.getCurrentPosition();
     if (initialPos != null) {
@@ -510,7 +521,7 @@ class TrackingService extends GetxService {
       }
     } catch (_) {}
 
-    if (isDev) return 'W1VBS36.62-22-17-2';
+    if (isDev) return 'QKR1.191246.002';
 
     final deviceInfo = DeviceInfoPlugin();
     if (Platform.isAndroid) {

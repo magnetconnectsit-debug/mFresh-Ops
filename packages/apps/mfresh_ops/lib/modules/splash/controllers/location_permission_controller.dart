@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:core/core.dart';
 
 class LocationPermissionController extends GetxController with WidgetsBindingObserver {
   final StorageService _storageService = Get.find<StorageService>();
@@ -66,11 +67,29 @@ class LocationPermissionController extends GetxController with WidgetsBindingObs
         }
       }
 
-      // If either was permanently denied, we prompt the user to open settings
+      // If either is not granted, we show a toast. We only open settings if permanently denied.
       final currentFg = await Permission.location.status;
       final currentBg = await Permission.locationAlways.status;
-      if (currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied) {
-        await openAppSettings();
+      if (!currentFg.isGranted || !currentBg.isGranted) {
+        AppCommonToastMessage.show(
+          message: 'Please select "Allow all the time" in location permissions to use this app.',
+          type: ToastType.error,
+        );
+        
+        if (currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied) {
+          Get.defaultDialog(
+            title: 'Permission Required',
+            middleText: 'Location permissions are permanently denied. Please enable them in app settings to continue.',
+            textConfirm: 'Open Settings',
+            textCancel: 'Cancel',
+            confirmTextColor: Colors.white,
+            buttonColor: AppColors.primary,
+            onConfirm: () async {
+              Get.back();
+              await openAppSettings();
+            },
+          );
+        }
       }
     } catch (e) {
       debugPrint("Error requesting location permissions: $e");

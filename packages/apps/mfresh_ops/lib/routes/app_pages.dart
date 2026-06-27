@@ -41,7 +41,7 @@ import 'package:mfresh_ops/modules/staff_tracking/bindings/staff_tracking_bindin
 import 'package:mfresh_ops/modules/staff_tracking/views/staff_tracking_screen.dart';
 import 'package:mfresh_ops/modules/map/bindings/location_binding.dart';
 import 'package:mfresh_ops/modules/map/controllers/history_controller.dart';
-import 'package:mfresh_ops/data/repositories/tracking/tracking_repository.dart';
+import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
