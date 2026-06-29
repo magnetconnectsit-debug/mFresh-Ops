@@ -26,6 +26,7 @@ class StaffTrackingController extends GetxController
       <Map<String, dynamic>>[].obs;
   final RxBool isLoading = true.obs;
   final TextEditingController searchController = TextEditingController();
+  final RxString selectedFilter = 'Total'.obs;
 
   final RxSet<Marker> employeeMarkers = <Marker>{}.obs;
   GoogleMapController? mapController;
@@ -51,7 +52,7 @@ class StaffTrackingController extends GetxController
   void onInit() {
     super.onInit();
     tabController = TabController(length: 2, vsync: this);
-    searchController.addListener(_filterEmployees);
+    searchController.addListener(filterEmployees);
     fetchEmployees();
     _startPolling();
   }
@@ -106,7 +107,7 @@ class StaffTrackingController extends GetxController
         allEmployees.value = emps
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
-        await _filterEmployees();
+        await filterEmployees();
       } else {
         if (!isSilent) {
           AppCommonToastMessage.show(
@@ -141,17 +142,36 @@ class StaffTrackingController extends GetxController
     }
   }
 
-  Future<void> _filterEmployees() async {
+  Future<void> filterEmployees() async {
     final query = searchController.text.toLowerCase();
-    if (query.isEmpty) {
-      filteredEmployees.value = List.from(allEmployees);
-    } else {
-      filteredEmployees.value = allEmployees.where((emp) {
+    final filter = selectedFilter.value;
+
+    List<Map<String, dynamic>> temp = allEmployees;
+
+    // Apply status filter
+    if (filter != 'Total') {
+      temp = temp.where((emp) {
+        final status = emp['current_status']?.toString().toLowerCase() ?? '';
+        if (filter == 'Moving') return status == 'moving';
+        if (filter == 'Stopped') return status == 'stopped';
+        
+        final isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+        if (filter == 'On Duty') return isOnDuty;
+        if (filter == 'Off Duty') return !isOnDuty;
+        return true;
+      }).toList();
+    }
+
+    // Apply search query
+    if (query.isNotEmpty) {
+      temp = temp.where((emp) {
         final name = (emp['name'] ?? '').toString().toLowerCase();
         final mobile = (emp['mobile'] ?? '').toString().toLowerCase();
         return name.contains(query) || mobile.contains(query);
       }).toList();
     }
+
+    filteredEmployees.value = temp;
     await _updateMarkers(shouldFitBounds: false);
   }
 
@@ -339,12 +359,31 @@ class StaffTrackingController extends GetxController
             }
           }
 
-          final String cacheKey = 'emp_${initials}_${markerColor.hashCode}';
+          final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+          final Color borderColor = isOnDuty ? AppColors.green : AppColors.red;
+
+          final String imageUrl = emp['image_url']?.toString() ?? '';
+          final bool hasImage = imageUrl.isNotEmpty && !imageUrl.endsWith('/NA');
+          
+          final String cacheKey = hasImage 
+              ? 'emp_img_${emp['id']}_${markerColor.hashCode}_${borderColor.hashCode}'
+              : 'emp_${initials}_${markerColor.hashCode}_${borderColor.hashCode}';
+
           if (!_markerCache.containsKey(cacheKey)) {
-            _markerCache[cacheKey] = await MapMarkerUtils.createCustomMarker(
-              color: markerColor,
-              text: initials,
-            );
+            if (hasImage) {
+              _markerCache[cacheKey] = await MapMarkerUtils.createNetworkImageMarker(
+                imageUrl: imageUrl,
+                color: markerColor,
+                fallbackText: initials,
+                borderColor: borderColor,
+              );
+            } else {
+              _markerCache[cacheKey] = await MapMarkerUtils.createCustomMarker(
+                color: markerColor,
+                text: initials,
+                borderColor: borderColor,
+              );
+            }
           }
 
           newMarkers.add(

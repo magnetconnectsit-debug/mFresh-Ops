@@ -126,4 +126,50 @@ class AppDateUtils {
       return rawDate;
     }
   }
+
+  static String formatToRelativeTimeOrDateTimeAmPm(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return 'Never';
+    try {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed == null) return rawDate;
+
+      final local = parsed.toLocal();
+      final now = DateTime.now();
+      final difference = now.difference(local);
+
+      // If less than 24 hours ago and on the same or previous day within 24h
+      if (difference.inHours < 24 && difference.inDays == 0) {
+        if (difference.isNegative || difference.inSeconds < 5) {
+          return 'Just now';
+        } else if (difference.inSeconds < 60) {
+          final secs = difference.inSeconds;
+          return '$secs sec${secs > 1 ? 's' : ''} ago';
+        } else if (difference.inMinutes < 60) {
+          final mins = difference.inMinutes;
+          return '$mins min${mins > 1 ? 's' : ''} ago';
+        } else {
+          final hours = difference.inHours;
+          return '$hours hr${hours > 1 ? 's' : ''} ago';
+        }
+      }
+
+      return formatToDateTimeAmPm(rawDate);
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  static bool isOlderThanMinutes(String? rawDate, int minutes) {
+    if (rawDate == null || rawDate.isEmpty) return true;
+    try {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed == null) return true;
+      
+      final local = parsed.toLocal();
+      final now = DateTime.now();
+      return now.difference(local).inMinutes >= minutes;
+    } catch (_) {
+      return true;
+    }
+  }
 }

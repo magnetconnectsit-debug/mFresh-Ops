@@ -13,6 +13,7 @@ import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_action_buttons.
 import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_table_elements.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/core.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class AllTasksScreen extends StatefulWidget {
   const AllTasksScreen({super.key});
@@ -89,6 +90,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
         showAppDrawer: true,
         hasBackButton: false,
         iconColor: AppColors.black,
+        topHeader: const CommonShortcutHeader(),
       ),
       drawer: const CommonSidebar(),
       body: RefreshIndicator(

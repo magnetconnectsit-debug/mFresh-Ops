@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 
 class DutyStatusCard extends StatelessWidget {
@@ -25,7 +26,7 @@ class DutyStatusCard extends StatelessWidget {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isTracking ? AppColors.primaryGreen.withOpacity(0.3) : AppColors.borderColor,
+            color: isTracking ? AppColors.primaryGreen : AppColors.red,
             width: 1.2.r,
           ),
           boxShadow: [
@@ -80,20 +81,29 @@ class DutyStatusCard extends StatelessWidget {
               ),
             ),
 
-            // Right adaptive switch toggle
-            Transform.scale(
-              scale: 0.85,
-              child: Switch.adaptive(
-                value: isTracking,
-                activeColor: AppColors.primaryGreen,
-                activeTrackColor: AppColors.primaryGreen.withOpacity(0.2),
-                inactiveThumbColor: AppColors.grey200,
-                inactiveTrackColor: AppColors.grey50,
-                onChanged: (val) async {
-                  await TrackingService.to.toggleTracking();
-                },
-              ),
-            ),
+            // Right adaptive switch toggle or loader
+            TrackingService.to.isToggling.value
+                ? Padding(
+                    padding: EdgeInsets.only(right: 12.w),
+                    child: SizedBox(
+                      width: 24.r,
+                      height: 24.r,
+                      child: const CustomAppLoader(),
+                    ),
+                  )
+                : Transform.scale(
+                    scale: 0.85,
+                    child: Switch.adaptive(
+                      value: isTracking,
+                      activeColor: AppColors.primaryGreen,
+                      activeTrackColor: AppColors.primaryGreen.withOpacity(0.2),
+                      inactiveThumbColor: AppColors.grey200,
+                      inactiveTrackColor: AppColors.grey50,
+                      onChanged: (val) async {
+                        await TrackingService.to.toggleTracking();
+                      },
+                    ),
+                  ),
           ],
         ),
       );

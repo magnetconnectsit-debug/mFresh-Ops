@@ -159,6 +159,18 @@ class StorageService extends GetxService {
     return _settingsBox.get('intended_tracking_status') as bool?;
   }
 
+  Future<void> saveTrackingSessionId(int sessionId) async {
+    await _settingsBox.put('tracking_session_id', sessionId);
+  }
+
+  int? getTrackingSessionId() {
+    return _settingsBox.get('tracking_session_id') as int?;
+  }
+
+  Future<void> clearTrackingSessionId() async {
+    await _settingsBox.delete('tracking_session_id');
+  }
+
   Future<void> saveShowLogger(bool show) async {
     await _settingsBox.put(_showLoggerKey, show);
   }

@@ -10,7 +10,9 @@ import '../controllers/unit_inventory_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'widgets/unit_inventory_filters.dart';
 import 'widgets/unit_inventory_table.dart';
+import 'widgets/unit_inventory_table.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class UnitInventoryScreen extends StatelessWidget {
   const UnitInventoryScreen({super.key});
@@ -30,6 +32,7 @@ class UnitInventoryScreen extends StatelessWidget {
             elevation: 0,
             showAppDrawer: true,
             hasBackButton: false,
+            topHeader: const CommonShortcutHeader(),
             title: Text(
               'Unit Inventory',
               style: AppTextStyle.style_18_700(color: AppColors.black),
@@ -52,6 +55,7 @@ class UnitInventoryScreen extends StatelessWidget {
           elevation: 0,
           showAppDrawer: true,
           hasBackButton: false,
+          topHeader: const CommonShortcutHeader(),
           title: controller.isSearching.value
               ? AppCommonSearchBar(
                   controller: controller.searchController,

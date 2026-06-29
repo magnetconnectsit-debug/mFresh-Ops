@@ -28,13 +28,26 @@ class CommonSidebar extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 30.r,
-                    backgroundColor: AppColors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 40.r,
-                      color: AppColors.primary,
+                  ClipOval(
+                    child: Container(
+                      width: 60.r,
+                      height: 60.r,
+                      color: AppColors.white,
+                      child: (Get.find<StorageService>().getUser()?.imageUrl != null && Get.find<StorageService>().getUser()!.imageUrl!.isNotEmpty)
+                          ? Image.network(
+                              Get.find<StorageService>().getUser()!.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Icon(
+                                Icons.person,
+                                size: 40.r,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.person,
+                              size: 40.r,
+                              color: AppColors.primary,
+                            ),
                     ),
                   ),
                   SizedBox(height: 10.h),

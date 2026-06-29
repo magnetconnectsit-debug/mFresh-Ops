@@ -8,6 +8,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/modules/collections/controllers/collections_controller.dart';
 import 'package:mfresh_ops/modules/collections/views/widgets/collections_table.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class CollectionsScreen extends StatelessWidget {
   const CollectionsScreen({super.key});
@@ -23,6 +24,7 @@ class CollectionsScreen extends StatelessWidget {
         elevation: 0,
         showAppDrawer: true,
         hasBackButton: false,
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           'Collections',
           style: AppTextStyle.style_18_700(

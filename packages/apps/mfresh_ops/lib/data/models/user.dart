@@ -47,6 +47,12 @@ class User extends HiveObject {
   @HiveField(14)
   final Map<dynamic, dynamic>? trackingConfig;
 
+  @HiveField(15)
+  final String? imageUrl;
+
+  @HiveField(16)
+  final int? trackingSessionId;
+
   User({
     required this.id,
     this.name,
@@ -63,6 +69,8 @@ class User extends HiveObject {
     this.isOnDuty,
     this.deviceId,
     this.trackingConfig,
+    this.imageUrl,
+    this.trackingSessionId,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -99,10 +107,14 @@ class User extends HiveObject {
       isOnDuty: userData['is_on_duty'] is int
           ? userData['is_on_duty']
           : int.tryParse(userData['is_on_duty']?.toString() ?? ''),
-      deviceId: json['device_id']?.toString(),
-      trackingConfig: json['tracking_config'] != null
-          ? Map<dynamic, dynamic>.from(json['tracking_config'] as Map)
+      deviceId: json['device_id']?.toString() ?? userData['device_id']?.toString(),
+      trackingConfig: json['tracking_config'] != null || userData['tracking_config'] != null
+          ? Map<dynamic, dynamic>.from(json['tracking_config'] ?? userData['tracking_config'])
           : null,
+      imageUrl: userData['image_url']?.toString(),
+      trackingSessionId: userData['tracking_session_id'] is int
+          ? userData['tracking_session_id']
+          : int.tryParse(userData['tracking_session_id']?.toString() ?? ''),
     );
   }
 
@@ -164,6 +176,16 @@ class UserAdapter extends TypeAdapter<User> {
       trackingConfig = reader.read();
     } catch (_) {}
 
+    dynamic imageUrl;
+    try {
+      imageUrl = reader.read();
+    } catch (_) {}
+
+    dynamic trackingSessionId;
+    try {
+      trackingSessionId = reader.read();
+    } catch (_) {}
+
     return User(
       id: id,
       name: name,
@@ -180,6 +202,8 @@ class UserAdapter extends TypeAdapter<User> {
       isOnDuty: isOnDuty,
       deviceId: deviceId,
       trackingConfig: trackingConfig,
+      imageUrl: imageUrl,
+      trackingSessionId: trackingSessionId,
     );
   }
 
@@ -200,5 +224,7 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.isOnDuty);
     writer.write(obj.deviceId);
     writer.write(obj.trackingConfig);
+    writer.write(obj.imageUrl);
+    writer.write(obj.trackingSessionId);
   }
 }

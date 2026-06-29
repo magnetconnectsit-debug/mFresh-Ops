@@ -1,25 +1,26 @@
 import 'dart:async';
-import 'package:permission_handler/permission_handler.dart' as ph;
-import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
-import 'package:services/services.dart';
-import 'package:intl/intl.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:mfresh_ops/main.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'package:battery_plus/battery_plus.dart';
-import 'package:mfresh_ops/data/models/tracking_models.dart';
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
-import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/data/models/tracking_models.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
+import 'package:mfresh_ops/main.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
+import 'package:services/services.dart';
 
 class TrackingService extends GetxService {
   static TrackingService get to => Get.find<TrackingService>();
@@ -33,6 +34,7 @@ class TrackingService extends GetxService {
   final Rx<int?> sessionId = Rx<int?>(null);
   final Rx<Position?> currentPosition = Rx<Position?>(null);
   final RxBool isSyncing = false.obs;
+  final RxBool isToggling = false.obs;
 
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
@@ -92,13 +94,44 @@ class TrackingService extends GetxService {
           ? user.isOnDuty
           : int.tryParse(user.isOnDuty?.toString() ?? '');
       if (isOnDuty == 1) {
-        debugPrint('TrackingService: User is_on_duty = 1. Resuming/starting tracking.');
+        debugPrint(
+          'TrackingService: User is_on_duty = 1. Resuming/starting tracking.',
+        );
         isTracking.value = true;
+        sessionId.value = user.trackingSessionId ?? _storageService.getTrackingSessionId();
+        if (user.trackingSessionId != null) {
+          await _storageService.saveTrackingSessionId(user.trackingSessionId!);
+        }
         await _startForegroundService();
         _startForegroundUpdateTimer();
+
+        // Verify with backend, but force start if backend tracking is inactive
+        try {
+          final data = await _repository.getCurrentStatus();
+          if (data != null && data['status'] == true) {
+            final active = data['tracking_active'] ?? false;
+            final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
+            
+            if (active) {
+               sessionId.value = newSessionId;
+               if (newSessionId != null) {
+                 await _storageService.saveTrackingSessionId(newSessionId);
+               }
+            } else {
+               // Backend tracking is inactive despite is_on_duty = 1. Force start session.
+               debugPrint('TrackingService: Backend tracking inactive, forcing startTracking().');
+               await _repository.dutyOn();
+               await startTracking();
+            }
+          }
+        } catch (e) {
+          debugPrint('TrackingService: error verifying status: $e');
+        }
         return;
       } else if (isOnDuty == 0) {
-        debugPrint('TrackingService: User is_on_duty = 0. Stopping/staying off-duty.');
+        debugPrint(
+          'TrackingService: User is_on_duty = 0. Stopping/staying off-duty.',
+        );
         isTracking.value = false;
         await stopTracking();
         return;
@@ -124,7 +157,9 @@ class TrackingService extends GetxService {
     }
 
     if (intendedStatus == true) {
-      debugPrint('TrackingService: Intended status is true. Starting tracking.');
+      debugPrint(
+        'TrackingService: Intended status is true. Starting tracking.',
+      );
       await startTracking();
     }
   }
@@ -143,7 +178,8 @@ class TrackingService extends GetxService {
         playSound: false,
       ),
       foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 5000, // Check every 5 seconds
+        interval: 5000,
+        // Check every 5 seconds
         isOnceEvent: false,
         autoRunOnBoot: true,
         allowWakeLock: true,
@@ -201,7 +237,11 @@ class TrackingService extends GetxService {
       final data = await _repository.getCurrentStatus();
       if (data != null && data['status'] == true) {
         isTracking.value = data['tracking_active'] ?? false;
-        sessionId.value = data['session_id'];
+        final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
+        sessionId.value = newSessionId;
+        if (newSessionId != null) {
+          await _storageService.saveTrackingSessionId(newSessionId);
+        }
         if (isTracking.value) {
           _startForegroundService();
           _startForegroundUpdateTimer();
@@ -217,7 +257,9 @@ class TrackingService extends GetxService {
       if (!bypassConfirmation) {
         final proceed = await Get.dialog<bool>(
           Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             elevation: 0,
             backgroundColor: Colors.transparent,
             child: Container(
@@ -227,7 +269,11 @@ class TrackingService extends GetxService {
                 shape: BoxShape.rectangle,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5)),
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
                 ],
               ),
               child: Column(
@@ -239,10 +285,17 @@ class TrackingService extends GetxService {
                       color: AppColors.red.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 48),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppColors.red,
+                      size: 48,
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  Text('Confirm Off Duty', style: AppTextStyle.style_20_700(color: AppColors.black)),
+                  Text(
+                    'Confirm Off Duty',
+                    style: AppTextStyle.style_20_700(color: AppColors.black),
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     'This may result in cut in salary.\nDo you want to proceed?',
@@ -257,10 +310,17 @@ class TrackingService extends GetxService {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: const BorderSide(color: AppColors.grey300),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           onPressed: () => Get.back(result: false),
-                          child: Text('Cancel', style: AppTextStyle.style_14_600(color: AppColors.grey600)),
+                          child: Text(
+                            'Cancel',
+                            style: AppTextStyle.style_14_600(
+                              color: AppColors.grey600,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -270,10 +330,17 @@ class TrackingService extends GetxService {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             backgroundColor: AppColors.red,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           onPressed: () => Get.back(result: true),
-                          child: Text('Proceed', style: AppTextStyle.style_14_600(color: Colors.white)),
+                          child: Text(
+                            'Proceed',
+                            style: AppTextStyle.style_14_600(
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -285,29 +352,27 @@ class TrackingService extends GetxService {
         );
         if (proceed != true) return false;
       }
-      
-      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
+
+      isToggling.value = true;
       try {
         await _repository.dutyOff();
+        await stopTracking();
       } catch (e) {
         debugPrint('TrackingService: dutyOff Exception: $e');
       } finally {
-        if (Get.isDialogOpen ?? false) Get.back();
+        isToggling.value = false;
       }
-
-      await stopTracking();
       return true;
     } else {
-      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
+      isToggling.value = true;
       try {
         await _repository.dutyOn();
+        await startTracking();
       } catch (e) {
         debugPrint('TrackingService: dutyOn Exception: $e');
       } finally {
-        if (Get.isDialogOpen ?? false) Get.back();
+        isToggling.value = false;
       }
-
-      await startTracking();
       return true;
     }
   }
@@ -334,7 +399,11 @@ class TrackingService extends GetxService {
     try {
       final data = await _repository.startTracking(request);
       if (data != null && data['status'] == true) {
-        sessionId.value = data['session_id'];
+        final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
+        sessionId.value = newSessionId;
+        if (newSessionId != null) {
+          await _storageService.saveTrackingSessionId(newSessionId);
+        }
         isTracking.value = true;
         await _storageService.saveIntendedTrackingStatus(true);
         await _startForegroundService();
@@ -349,8 +418,9 @@ class TrackingService extends GetxService {
     if (sessionId.value == null) {
       isTracking.value = false;
       await _storageService.saveIntendedTrackingStatus(false);
-      _stopForegroundUpdateTimer();
+      await _storageService.clearTrackingSessionId();
       await _startForegroundService();
+      _stopForegroundUpdateTimer();
       return;
     }
 
@@ -372,8 +442,9 @@ class TrackingService extends GetxService {
         isTracking.value = false;
         sessionId.value = null;
         await _storageService.saveIntendedTrackingStatus(false);
+        await _storageService.clearTrackingSessionId();
+        await _startForegroundService(); // This actually stops it when isTracking is false
         _stopForegroundUpdateTimer();
-        await _startForegroundService();
       }
     } catch (e) {
       debugPrint('TrackingService: stopTracking Exception: $e');
@@ -402,7 +473,10 @@ class TrackingService extends GetxService {
 
     if (isTracking.value && hasBgPermission) {
       if (sessionId.value != null) {
-        await FlutterForegroundTask.saveData(key: 'session_id', value: sessionId.value!);
+        await FlutterForegroundTask.saveData(
+          key: 'session_id',
+          value: sessionId.value!,
+        );
       }
       final token = _storageService.getToken();
       if (token != null) {
@@ -414,6 +488,12 @@ class TrackingService extends GetxService {
       if (await FlutterForegroundTask.isRunningService) {
         return FlutterForegroundTask.restartService();
       } else {
+        if (!kIsWeb && Platform.isAndroid) {
+          final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+          if (!isIgnoring) {
+            await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+          }
+        }
         return FlutterForegroundTask.startService(
           notificationTitle: 'Tracking Active',
           notificationText:
@@ -473,7 +553,7 @@ class TrackingService extends GetxService {
       latitude: pos.latitude,
       longitude: pos.longitude,
       accuracy: pos.accuracy,
-      speed: pos.speed,
+      speed: pos.speed * 3.6, // Convert m/s to km/h
       heading: pos.heading,
       battery: batteryLevel,
       isCharging: batteryState == BatteryState.charging,
@@ -521,7 +601,7 @@ class TrackingService extends GetxService {
       }
     } catch (_) {}
 
-    if (isDev) return 'QKR1.191246.002';
+    if (isDev) return 'BP2A.250605.031.A3';
 
     final deviceInfo = DeviceInfoPlugin();
     if (Platform.isAndroid) {

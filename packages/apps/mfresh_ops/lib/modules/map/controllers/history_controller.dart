@@ -1,3 +1,4 @@
+import 'package:core/constants/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
@@ -306,10 +307,24 @@ class HistoryController extends GetxController {
                     }
                   }
 
-                  customIcon = await MapMarkerUtils.createCustomMarker(
-                    color: markerColor,
-                    text: initials,
-                  );
+                  final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+                  final Color borderColor = isOnDuty ? AppColors.green : AppColors.red;
+
+                  final imageUrl = emp['image_url']?.toString();
+                  if (imageUrl != null && !imageUrl.endsWith('/NA') && imageUrl.isNotEmpty) {
+                    customIcon = await MapMarkerUtils.createNetworkImageMarker(
+                      imageUrl: imageUrl,
+                      color: markerColor,
+                      fallbackText: initials,
+                      borderColor: borderColor,
+                    );
+                  } else {
+                    customIcon = await MapMarkerUtils.createCustomMarker(
+                      color: markerColor,
+                      text: initials,
+                      borderColor: borderColor,
+                    );
+                  }
                 }
 
                 final LatLng newPos = LatLng(double.parse(lat.toString()), double.parse(lng.toString()));

@@ -20,10 +20,16 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppCommonAppBar(
-        title: Text('Profile'),
+      appBar: AppCommonAppBar(
+        title: const Text('Profile'),
         showAppDrawer: true,
         hasBackButton: false,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit, color: AppColors.primary, size: 22.r),
+            onPressed: () => _showEditDialog(context, controller),
+          ),
+        ],
       ),
       drawer: const CommonSidebar(),
       body: RefreshIndicator(
@@ -34,12 +40,7 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             children: [
               _buildProfileHeader(controller),
-              _buildTabs(controller),
-              Obx(
-                () => controller.currentTab.value == 0
-                    ? _buildOverviewTab(controller)
-                    : _buildEditProfileTab(context, controller),
-              ),
+              _buildOverviewTab(controller),
             ],
           ),
         ),
@@ -85,7 +86,7 @@ class ProfileScreen extends StatelessWidget {
                             fit: BoxFit.cover,
                           )
                         : AppImageView(
-                            imageUrl: controller.user.value?.uimage,
+                            imageUrl: controller.user.value?.imageUrl ?? controller.user.value?.uimage,
                             width: 110.r,
                             height: 110.r,
                             borderRadius: 55.r,
@@ -134,64 +135,9 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTabs(ProfileController controller) {
-    return Padding(
-      padding: EdgeInsets.all(24.r),
-      child: Container(
-        padding: EdgeInsets.all(6.r),
-        decoration: BoxDecoration(
-          color: AppColors.grey100.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Row(
-          children: [
-            _buildTabItem(controller, 0, 'Overview'),
-            _buildTabItem(controller, 1, 'Edit Profile'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabItem(ProfileController controller, int index, String label) {
-    return Expanded(
-      child: Obx(() {
-        final isSelected = controller.currentTab.value == index;
-        return GestureDetector(
-          onTap: () => controller.updateTab(index),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: isSelected
-                    ? AppTextStyle.style_14_700(color: AppColors.primary)
-                    : AppTextStyle.style_14_500(color: AppColors.grey300),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
   Widget _buildOverviewTab(ProfileController controller) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
       child: Obx(() {
         final user = controller.user.value;
         return Column(
@@ -250,93 +196,142 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEditProfileTab(
-    BuildContext context,
-    ProfileController controller,
-  ) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Profile Image',
-            style: AppTextStyle.style_14_600(color: AppColors.black),
+  void _showEditDialog(BuildContext context, ProfileController controller) {
+    // Reset selected image on open
+    controller.selectedImage.value = null;
+    if (controller.user.value != null) {
+      controller.nameController.text = controller.user.value!.name ?? '';
+      controller.passwordController.clear();
+    }
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Container(
+          padding: EdgeInsets.all(24.r),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(20.r),
           ),
-          SizedBox(height: 12.h),
-          Center(
+          child: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Obx(
-                  () => Container(
-                    width: 80.r,
-                    height: 80.r,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.grey100),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(40.r),
-                      child: controller.selectedImage.value != null
-                          ? Image.file(
-                              controller.selectedImage.value!,
-                              fit: BoxFit.cover,
-                            )
-                          : AppImageView(
-                              imageUrl: controller.user.value?.uimage,
-                              width: 80.r,
-                              height: 80.r,
-                              borderRadius: 40.r,
-                              fit: BoxFit.cover,
-                            ),
-                    ),
+                Text(
+                  'Edit Profile',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
+                SizedBox(height: 24.h),
+                // Profile Image Section
+                GestureDetector(
+                  onTap: () => _showImageSourceSheet(context, controller),
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Obx(
+                        () => Container(
+                          width: 80.r,
+                          height: 80.r,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary, width: 2),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(40.r),
+                            child: controller.selectedImage.value != null
+                                ? Image.file(
+                                    controller.selectedImage.value!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : AppImageView(
+                                    imageUrl: controller.user.value?.imageUrl ??
+                                        controller.user.value?.uimage,
+                                    width: 80.r,
+                                    height: 80.r,
+                                    borderRadius: 40.r,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(4.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.white, width: 2),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt_rounded,
+                          color: AppColors.white,
+                          size: 14.r,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 12.h),
-                AppCommonButton(
-                  text: 'Upload',
-                  onPressed: () => _showImageSourceSheet(context, controller),
-                  width: 100.w,
-                  height: 32.h,
-                  isSmall: true,
+                SizedBox(height: 24.h),
+                AppCommonTextField(
+                  controller: controller.nameController,
+                  titleText: 'Full Name',
+                  hintText: 'Enter full name',
+                ),
+                SizedBox(height: 16.h),
+                AppCommonTextField(
+                  controller: controller.passwordController,
+                  titleText: 'New Password',
+                  hintText: 'Enter new password (optional)',
+                  obscureText: true,
+                ),
+                SizedBox(height: 32.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          side: const BorderSide(color: AppColors.grey300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        onPressed: () {
+                          controller.selectedImage.value = null; // reset
+                          Get.back();
+                        },
+                        child: Text(
+                          'Cancel',
+                          style: AppTextStyle.style_14_600(color: AppColors.grey600),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          backgroundColor: AppColors.primary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await controller.saveProfile();
+                        },
+                        child: Text(
+                          'OK',
+                          style: AppTextStyle.style_14_600(color: AppColors.white),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          SizedBox(height: 24.h),
-          AppCommonTextField(
-            controller: controller.nameController,
-            titleText: 'Full Name',
-            hintText: 'Enter full name',
-          ),
-          SizedBox(height: 16.h),
-          AppCommonTextField(
-            controller: controller.phoneController,
-            titleText: 'Phone',
-            hintText: 'Enter phone number',
-            keyboardType: TextInputType.phone,
-          ),
-          SizedBox(height: 16.h),
-          AppCommonTextField(
-            controller: controller.emailController,
-            titleText: 'Email',
-            hintText: 'Enter email address',
-            keyboardType: TextInputType.emailAddress,
-          ),
-          SizedBox(height: 16.h),
-          AppCommonTextField(
-            controller: controller.passwordController,
-            titleText: 'Password',
-            hintText: 'Enter new password',
-            obscureText: true,
-          ),
-          SizedBox(height: 32.h),
-          AppCommonButton(
-            text: 'Save Changes',
-            onPressed: () => controller.saveProfile(),
-          ),
-          SizedBox(height: 32.h),
-        ],
+        ),
       ),
     );
   }

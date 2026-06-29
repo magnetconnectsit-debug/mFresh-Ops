@@ -8,6 +8,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../controllers/support_dashboard_controller.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class SupportDashboardScreen extends GetView<SupportDashboardController> {
   const SupportDashboardScreen({super.key});
@@ -20,6 +21,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
         title: Text('Support Ticket Dashboard'),
         showAppDrawer: true,
         hasBackButton: false,
+        topHeader: const CommonShortcutHeader(),
       ),
       drawer: const CommonSidebar(),
       body: Obx(() {

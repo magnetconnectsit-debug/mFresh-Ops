@@ -12,6 +12,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
@@ -190,6 +191,14 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  
+  // Preload fonts to prevent flashing and layout shifts
+  try {
+    await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
+  } catch (e) {
+    debugPrint('Failed to preload fonts: $e');
+  }
+
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());
   Hive.registerAdapter(LocationDataAdapter());

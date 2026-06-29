@@ -7,6 +7,8 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mfresh_ops/modules/staff_tracking/controllers/staff_tracking_controller.dart';
 import 'package:mfresh_ops/modules/staff_tracking/views/widgets/employee_tracking_card.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
 
 class StaffTrackingScreen extends GetView<StaffTrackingController> {
   const StaffTrackingScreen({super.key});
@@ -14,15 +16,18 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
+      drawer: const CommonSidebar(),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
+        preferredSize: const Size.fromHeight(kToolbarHeight + 50),
         child: Obx(() {
           return AppCommonAppBar(
             title: controller.isSearching.value
                 ? _buildSearchAutocomplete(context)
                 : const Text('Staff Tracking'),
-            hasBackButton: !controller.isSearching.value,
+            hasBackButton: false,
+            showAppDrawer: true,
+            topHeader: const CommonShortcutHeader(),
             actions: [
               IconButton(
                 icon: Icon(
@@ -44,7 +49,8 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
       ),
       body: Column(
         children: [
-          // Modern Segmented Tab Bar
+          // Stats Row
+          _buildStatsRow(controller),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             height: 40,
@@ -329,5 +335,99 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
     );
   }
 
-  // Employee card moved to EmployeeTrackingCard widget
+  Widget _buildStatsRow(StaffTrackingController controller) {
+    return Obx(() {
+      int total = controller.allEmployees.length;
+      int onDuty = 0;
+      int offDuty = 0;
+      int stopped = 0;
+      int moving = 0;
+
+      for (var emp in controller.allEmployees) {
+        final status = emp['current_status']?.toString().toLowerCase();
+        
+        // Count statuses
+        if (status == 'moving') {
+          moving++;
+        } else if (status == 'stopped') {
+          stopped++;
+        }
+
+        // Infer duty status
+        final isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true || status == 'moving' || status == 'stopped' || status == 'on duty';
+        if (isOnDuty) {
+          onDuty++;
+        } else {
+          offDuty++;
+        }
+      }
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: _buildStatItem(controller, 'Total', total, AppColors.black)),
+            Expanded(child: _buildStatItem(controller, 'On Duty', onDuty, Colors.blue)),
+            Expanded(child: _buildStatItem(controller, 'Off Duty', offDuty, Colors.grey)),
+            Expanded(child: _buildStatItem(controller, 'Stopped', stopped, Colors.orange)),
+            Expanded(child: _buildStatItem(controller, 'Moving', moving, Colors.green)),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildStatItem(StaffTrackingController controller, String label, int count, Color color) {
+    final isSelected = controller.selectedFilter.value == label;
+    return InkWell(
+      onTap: () {
+        controller.selectedFilter.value = label;
+        controller.filterEmployees();
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color.withValues(alpha: 0.5) : Colors.transparent,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              count.toString(),
+              style: AppTextStyle.style_16_700(color: color),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: AppTextStyle.style_10_500(color: isSelected ? color : AppColors.grey600).copyWith(fontSize: 9),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }

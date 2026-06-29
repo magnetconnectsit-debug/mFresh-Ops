@@ -11,6 +11,7 @@ import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:services/api_services.dart';
 import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
 
 class AuthRepository extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();
@@ -104,8 +105,8 @@ class AuthRepository extends GetxService {
     }
 
     if (isDev) {
-      deviceId = "QKR1.191246.002";
-      deviceInfo["imei_no"] = "QKR1.191246.002";
+      deviceId = "BP2A.250605.031.A3";
+      deviceInfo["imei_no"] = "BP2A.250605.031.A3";
       fcmToken = "firebase_token";
     }
 
@@ -113,6 +114,7 @@ class AuthRepository extends GetxService {
       'device_id': deviceId,
       'fcm_token': fcmToken,
       'device_info': deviceInfo,
+      'is_dev': isDev ? 1 : 0,
     };
   }
 
@@ -129,6 +131,7 @@ class AuthRepository extends GetxService {
           'mobile': mobile,
           'password': password,
           'device_id': devInfo['device_id'],
+          'is_dev': devInfo['is_dev'],
           'fcm_token': devInfo['fcm_token'],
           'device_info': devInfo['device_info'],
         },
@@ -146,6 +149,10 @@ class AuthRepository extends GetxService {
           }
           await _storageService.saveUser(user);
           rxUserPermissions.assignAll(user.permissions ?? []);
+
+          try {
+            Get.find<TrackingService>().startAutoTracking();
+          } catch (_) {}
 
           return user;
         } else if (response['error'] != null) {
@@ -168,6 +175,11 @@ class AuthRepository extends GetxService {
         final user = User.fromJson(response);
         await _storageService.saveUser(user);
         rxUserPermissions.assignAll(user.permissions ?? []);
+        
+        try {
+          Get.find<TrackingService>().startAutoTracking();
+        } catch (_) {}
+        
         return user;
       }
       return null;
@@ -229,6 +241,7 @@ class AuthRepository extends GetxService {
           'mob': mobile, 
           'otp': otp,
           'device_id': devInfo['device_id'],
+          'is_dev': devInfo['is_dev'],
           'fcm_token': devInfo['fcm_token'],
           'device_info': devInfo['device_info'],
         },

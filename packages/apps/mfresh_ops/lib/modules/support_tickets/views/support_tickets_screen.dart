@@ -8,6 +8,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 import 'widgets/support_tickets_header.dart';
 import 'widgets/support_filter_section.dart';
@@ -32,6 +33,7 @@ class SupportTicketsScreen extends StatelessWidget {
         elevation: 1,
         showAppDrawer: true,
         hasBackButton: false,
+        topHeader: const CommonShortcutHeader(),
         title: Obx(
           () => controller.isSearching.value
               ? AppCommonSearchBar(
@@ -77,14 +79,14 @@ class SupportTicketsScreen extends StatelessWidget {
                     return [
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.fromLTRB(10.w, 16.h, 10.w, 0),
+                          padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               SupportTicketsHeader(
                                 controller: controller,
                                 showSkeleton: showSkeleton,
-                                canViewFilter: canViewFilter, // Added this line
+                                canViewFilter: canViewFilter,
                               ),
                               SizedBox(height: 6.h),
                               if (canViewFilter) ...[

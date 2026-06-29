@@ -12,7 +12,7 @@ class GeolocatorLocationService implements LocationService {
   @override
   Future<Position?> getCurrentPosition() async {
     return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
     );
   }
 
@@ -20,7 +20,7 @@ class GeolocatorLocationService implements LocationService {
   Stream<Position> getPositionStream() {
     return Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
+        accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 0,
       ),
     );

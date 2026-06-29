@@ -12,6 +12,7 @@ import 'widgets/store_inventory_filters.dart';
 import 'widgets/store_inventory_action_buttons.dart';
 import 'widgets/store_inventory_table.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class StoreInventoryScreen extends StatelessWidget {
   const StoreInventoryScreen({super.key});
@@ -31,6 +32,7 @@ class StoreInventoryScreen extends StatelessWidget {
             elevation: 0,
             showAppDrawer: true,
             hasBackButton: false,
+            topHeader: const CommonShortcutHeader(),
             title: Text(
               'Store Inventory',
               style: AppTextStyle.style_18_700(color: AppColors.black),
@@ -53,6 +55,7 @@ class StoreInventoryScreen extends StatelessWidget {
           elevation: 0,
           showAppDrawer: true,
           hasBackButton: false,
+          topHeader: const CommonShortcutHeader(),
           title: controller.isSearching.value
               ? AppCommonSearchBar(
                   controller: controller.searchController,

@@ -14,6 +14,7 @@ import 'package:mfresh_ops/modules/tasks/views/widgets/daily_task_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_stat_item.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_tabs.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class DailyTasksScreen extends StatefulWidget {
   const DailyTasksScreen({super.key});
@@ -49,6 +50,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
         showAppDrawer: true,
         hasBackButton: false,
         iconColor: AppColors.black,
+        topHeader: const CommonShortcutHeader(),
       ),
       drawer: const CommonSidebar(),
       body: RefreshIndicator(

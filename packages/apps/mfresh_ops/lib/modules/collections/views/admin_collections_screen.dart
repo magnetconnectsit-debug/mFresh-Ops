@@ -9,6 +9,7 @@ import 'package:mfresh_ops/modules/collections/controllers/admin_collections_con
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'widgets/admin_collections_filters.dart';
 import 'widgets/admin_collections_table.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class AdminCollectionsScreen extends StatelessWidget {
   const AdminCollectionsScreen({super.key});
@@ -25,6 +26,7 @@ class AdminCollectionsScreen extends StatelessWidget {
         elevation: 0,
         showAppDrawer: true,
         hasBackButton: false,
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           'Admin Collection',
           style: AppTextStyle.style_18_700(color: AppColors.black),

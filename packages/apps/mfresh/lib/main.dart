@@ -1,3 +1,4 @@
+import 'package:google_fonts/google_fonts.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:dev/views/widgets/floating_logger_button.dart';
@@ -134,6 +135,13 @@ Future<void> initServices() async {
 // region Main Entry
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Preload fonts to prevent flashing and layout shifts
+  try {
+    await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
+  } catch (e) {
+    debugPrint('Failed to preload fonts: $e');
+  }
 
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());

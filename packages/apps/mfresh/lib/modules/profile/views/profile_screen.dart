@@ -284,30 +284,35 @@ class ProfileScreen extends StatelessWidget {
 
               SizedBox(height: 12.h),
 
-              _buildExpandableSection(
-                title: 'Refer & Earn',
-                isExpanded: controller.isReferEarnExpanded,
-                onTap: controller.toggleReferEarn,
-                children: [],
-              ),
+              // _buildExpandableSection(
+              //   title: 'Refer & Earn',
+              //   isExpanded: controller.isReferEarnExpanded,
+              //   onTap: controller.toggleReferEarn,
+              //   children: [],
+              // ),
 
-              SizedBox(height: 12.h),
+              // SizedBox(height: 12.h),
 
               _buildExpandableSection(
-                title: 'Help & Support',
+                title: 'Contact Us',
                 isExpanded: controller.isHelpSupportExpanded,
-                onTap: controller.toggleHelpSupport,
+                onTap: () => Get.to(
+                      () => const AppCommonWebView(
+                        url: AppConstants.contactUs,
+                        title: 'Contact Us',
+                      ),
+                    ),
                 children: [],
               ),
 
-              SizedBox(height: 12.h),
+              // SizedBox(height: 12.h),
 
-              _buildExpandableSection(
-                title: 'Feedback',
-                isExpanded: controller.isFeedbackExpanded,
-                onTap: controller.toggleFeedback,
-                children: [],
-              ),
+              // _buildExpandableSection(
+              //   title: 'Feedback',
+              //   isExpanded: controller.isFeedbackExpanded,
+              //   onTap: controller.toggleFeedback,
+              //   children: [],
+              // ),
 
               SizedBox(height: 12.h),
 
