@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/widgets/custom_app_loader.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/core/utils/map_marker_utils.dart';
 
 class AnimatedLiveMap extends StatefulWidget {

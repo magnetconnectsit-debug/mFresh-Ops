@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/widgets/custom_app_loader.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
 
 class DutyStatusCard extends StatelessWidget {
   const DutyStatusCard({super.key});
@@ -16,9 +16,15 @@ class DutyStatusCard extends StatelessWidget {
       final isSyncing = TrackingService.to.isSyncing.value;
 
       // Premium theme coloring using central AppColors definitions
-      final Color activeColor = isTracking ? AppColors.primaryGreen : AppColors.red;
-      final Color innerBgColor = isTracking ? AppColors.primaryGreen.withOpacity(0.08) : AppColors.red1;
-      final Color cardGlowColor = isTracking ? AppColors.primaryGreen.withOpacity(0.06) : Colors.black.withOpacity(0.02);
+      final Color activeColor = isTracking
+          ? AppColors.primaryGreen
+          : AppColors.red;
+      final Color innerBgColor = isTracking
+          ? AppColors.primaryGreen.withOpacity(0.08)
+          : AppColors.red1;
+      final Color cardGlowColor = isTracking
+          ? AppColors.primaryGreen.withOpacity(0.06)
+          : Colors.black.withOpacity(0.02);
 
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
@@ -50,7 +56,9 @@ class DutyStatusCard extends StatelessWidget {
               ),
               child: Center(
                 child: Icon(
-                  isTracking ? Icons.radar_rounded : Icons.power_settings_new_rounded,
+                  isTracking
+                      ? Icons.radar_rounded
+                      : Icons.power_settings_new_rounded,
                   color: activeColor,
                   size: 20.r,
                 ),
@@ -63,7 +71,7 @@ class DutyStatusCard extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    isTracking ? 'Shift is Active' : 'Start Your Shift',
+                    isTracking ? 'Duty On' : 'Duty OFF',
                     style: AppTextStyle.style_14_700(color: AppColors.black),
                   ),
                   if (isTracking && isSyncing) ...[

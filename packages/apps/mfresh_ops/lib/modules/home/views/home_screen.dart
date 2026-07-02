@@ -87,23 +87,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Management Hub',
+                        'Mark Your Attendance',
                         style: AppTextStyle.style_14_700(color: AppColors.black),
                       ),
                       SizedBox(height: 12.h),
-                      const HomeGrid(),
                       Obx(() {
                         final authRepo = Get.find<AuthRepository>();
                         if (authRepo.rxUserPermissions.contains('duty_punch')) {
                           return Column(
                             children: [
-                              SizedBox(height: 12.h),
                               const DutyStatusCard(),
+                              SizedBox(height: 12.h),
                             ],
                           );
                         }
                         return const SizedBox.shrink();
                       }),
+                      const HomeGrid(),
                       SizedBox(height: 10.h),
                       Center(
                         child: Container(

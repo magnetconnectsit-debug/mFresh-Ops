@@ -101,12 +101,47 @@ class CreateDepositController extends GetxController {
   }
 
   Future<void> pickFile() async {
+    Get.bottomSheet(
+      Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () {
+                  Get.back();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Gallery'),
+                onTap: () {
+                  Get.back();
+                  _pickImage(ImageSource.gallery);
+                },
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: source);
     if (image != null) {
       selectedFile = File(image.path);
       supervisorFileName.value = image.name;
     }
+  }
+
+  void clearFile() {
+    selectedFile = null;
+    supervisorFileName.value = null;
   }
 
   Future<void> submit() async {

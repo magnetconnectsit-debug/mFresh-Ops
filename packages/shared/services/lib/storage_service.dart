@@ -139,6 +139,14 @@ class StorageService extends GetxService {
     await _userBox.delete(_userKey);
   }
 
+  Future<void> saveHasShownAutoStartPrompt(bool shown) async {
+    await _settingsBox.put('has_shown_auto_start_prompt', shown);
+  }
+
+  bool getHasShownAutoStartPrompt() {
+    return _settingsBox.get('has_shown_auto_start_prompt', defaultValue: false);
+  }
+
   // endregion
 
   // region Settings Methods

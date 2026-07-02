@@ -152,13 +152,34 @@ class StaffTrackingController extends GetxController
     if (filter != 'Total') {
       temp = temp.where((emp) {
         final status = emp['current_status']?.toString().toLowerCase() ?? '';
+        final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true || emp['is_on_duty'] == '1';
+        final lastSeen = emp['last_seen'];
+        
+        bool isNotInstalled = lastSeen == null && emp['live_status'] == null;
+        
+        if (filter == 'Not Installed') return isNotInstalled;
+        
+        // If not installed, they shouldn't appear in other filters
+        if (isNotInstalled) return false;
+        
+        if (filter == 'Off Duty') return !isOnDuty;
+        
+        // If off duty, they shouldn't appear in Live/NotLive/Moving/Stopped
+        if (!isOnDuty) return false;
+        
+        if (filter == 'On Duty') return true;
+        
         if (filter == 'Moving') return status == 'moving';
         if (filter == 'Stopped') return status == 'stopped';
         
-        final isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
-        if (filter == 'On Duty') return isOnDuty;
-        if (filter == 'Off Duty') return !isOnDuty;
-        return true;
+        if (filter == 'Live') {
+           return !AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
+        }
+        if (filter == 'Not Live') {
+           return AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
+        }
+        
+        return false;
       }).toList();
     }
 

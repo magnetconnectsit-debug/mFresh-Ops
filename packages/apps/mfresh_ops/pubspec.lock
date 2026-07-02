@@ -49,6 +49,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
+  auto_start_flutter:
+    dependency: "direct main"
+    description:
+      name: auto_start_flutter
+      sha256: cb518769b6d4ae3ce4cf62d018b1a2ab78fc7946c2e18edcfcd8c466763251e5
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.0"
   barcode:
     dependency: transitive
     description:
@@ -565,7 +573,7 @@ packages:
     source: hosted
     version: "5.0.0"
   flutter_local_notifications:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_local_notifications
       sha256: "2b50e938a275e1ad77352d6a25e25770f4130baa61eaf02de7a9a884680954ad"

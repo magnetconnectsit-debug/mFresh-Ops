@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:auto_start_flutter/auto_start_flutter.dart';
+import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
+
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
@@ -117,11 +120,6 @@ class TrackingService extends GetxService {
                if (newSessionId != null) {
                  await _storageService.saveTrackingSessionId(newSessionId);
                }
-            } else {
-               // Backend tracking is inactive despite is_on_duty = 1. Force start session.
-               debugPrint('TrackingService: Backend tracking inactive, forcing startTracking().');
-               await _repository.dutyOn();
-               await startTracking();
             }
           }
         } catch (e) {
@@ -491,7 +489,27 @@ class TrackingService extends GetxService {
         if (!kIsWeb && Platform.isAndroid) {
           final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
           if (!isIgnoring) {
-            await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+            try {
+              await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+            } catch (e) {
+              debugPrint('Battery optimization request error: $e');
+            }
+          }
+          
+          try {
+            final isAutoStartAvail = await isAutoStartAvailable;
+            if (isAutoStartAvail == true && !_storageService.getHasShownAutoStartPrompt()) {
+              await _storageService.saveHasShownAutoStartPrompt(true);
+              if (Get.context != null) {
+                await showDialog(
+                  context: Get.context!,
+                  barrierDismissible: false,
+                  builder: (context) => const AutoStartDialog(),
+                );
+              }
+            }
+          } catch (e) {
+            debugPrint('AutoStart check failed: $e');
           }
         }
         return FlutterForegroundTask.startService(
@@ -537,6 +555,11 @@ class TrackingService extends GetxService {
     final batteryLevel = await _battery.batteryLevel;
     final batteryState = await _battery.batteryState;
 
+    if (pos.accuracy > 150.0) {
+      debugPrint('TrackingService: Discarding location due to poor accuracy (${pos.accuracy}m)');
+      return;
+    }
+
     final connectivityResults = await Connectivity().checkConnectivity();
     String? networkType;
     if (connectivityResults.isNotEmpty) {
@@ -549,11 +572,14 @@ class TrackingService extends GetxService {
       }
     }
 
+    double speedKmH = pos.speed * 3.6;
+
+
     final locationData = LocationData(
       latitude: pos.latitude,
       longitude: pos.longitude,
       accuracy: pos.accuracy,
-      speed: pos.speed * 3.6, // Convert m/s to km/h
+      speed: speedKmH,
       heading: pos.heading,
       battery: batteryLevel,
       isCharging: batteryState == BatteryState.charging,

@@ -6,6 +6,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:dev/views/widgets/floating_logger_button.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -28,10 +30,17 @@ import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/services/push_notification_service.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint('Handling a background message: ${message.messageId}');
+}
 
 // The callback function should be a top-level function or a static function in a class.
 @pragma('vm:entry-point')
@@ -41,6 +50,9 @@ void startCallback() {
 }
 
 class MyTaskHandler extends TaskHandler {
+  StreamSubscription<Position>? _positionStream;
+  Position? _latestPosition;
+
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
     debugPrint('Foreground Task Started');
@@ -55,6 +67,16 @@ class MyTaskHandler extends TaskHandler {
         // already registered
       }
     }
+
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 0,
+          ),
+        ).listen((Position position) {
+          _latestPosition = position;
+        });
   }
 
   @override
@@ -72,17 +94,17 @@ class MyTaskHandler extends TaskHandler {
       final deviceId = await FlutterForegroundTask.getData<String>(
         key: 'device_id',
       );
-
       if (sessionId == null || token == null || deviceId == null) {
         debugPrint('Background Task missing data. Cannot sync.');
         return;
       }
 
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      if (_latestPosition == null) {
+        debugPrint('Background Task: Waiting for location fix...');
+        return;
+      }
+
+      final pos = _latestPosition!;
       debugPrint('Background Location: ${pos.latitude}, ${pos.longitude}');
 
       final batteryLevel = await Battery().batteryLevel;
@@ -176,6 +198,7 @@ class MyTaskHandler extends TaskHandler {
   @override
   void onDestroy(DateTime timestamp, SendPort? sendPort) {
     debugPrint('Foreground Task Destroyed');
+    _positionStream?.cancel();
   }
 
   @override
@@ -191,13 +214,18 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Preload fonts to prevent flashing and layout shifts
   try {
     await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
   } catch (e) {
     debugPrint('Failed to preload fonts: $e');
   }
+
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
+  }
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await Hive.initFlutter();
   Hive.registerAdapter(UserAdapter());
@@ -209,6 +237,9 @@ void main() async {
 Future<void> initServices() async {
   // Initialize LoggerService (No dependencies)
   Get.put(LoggerService());
+
+  // Initialize Push Notification Service
+  Get.put(PushNotificationService());
 
   // Initialize StorageService (Hive-based)
   final storageService = await Get.putAsync(() => StorageService().init());

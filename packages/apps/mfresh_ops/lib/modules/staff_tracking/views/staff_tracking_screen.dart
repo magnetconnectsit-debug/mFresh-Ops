@@ -5,6 +5,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/staff_tracking/controllers/staff_tracking_controller.dart';
 import 'package:mfresh_ops/modules/staff_tracking/views/widgets/employee_tracking_card.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
@@ -112,7 +113,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                 // Tab 1: List
                 Column(
                   children: [
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     Expanded(
                       child: Obx(() {
                         if (controller.isLoading.value &&
@@ -131,7 +132,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                             itemCount: controller.filteredEmployees.length,
                             separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                             itemBuilder: (context, index) {
                               final emp = controller.filteredEmployees[index];
                               return EmployeeTrackingCard(
@@ -144,6 +145,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                         );
                       }),
                     ),
+                    const SizedBox(height: 10),
                   ],
                 ),
 
@@ -152,7 +154,9 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                   margin: const EdgeInsets.only(top: 8),
                   decoration: BoxDecoration(
                     color: AppColors.white,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.black.withValues(alpha: 0.08),
@@ -163,51 +167,54 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                     child: Obx(() {
-                    return Stack(
-                      children: [
-                        GoogleMap(
-                          mapType: controller.currentMapType.value,
-                          initialCameraPosition: const CameraPosition(
-                            target: LatLng(
-                              20.5937,
-                              78.9629,
-                            ), // Center on India roughly
-                            zoom: 4,
+                      return Stack(
+                        children: [
+                          GoogleMap(
+                            mapType: controller.currentMapType.value,
+                            initialCameraPosition: const CameraPosition(
+                              target: LatLng(
+                                20.5937,
+                                78.9629,
+                              ), // Center on India roughly
+                              zoom: 4,
+                            ),
+                            markers: controller.employeeMarkers.toSet(),
+                            myLocationButtonEnabled: true,
+                            myLocationEnabled: true,
+                            mapToolbarEnabled: false,
+                            zoomControlsEnabled: false,
+                            onMapCreated: (mapController) {
+                              controller.mapController = mapController;
+                            },
+                            onCameraMove: (CameraPosition position) {
+                              controller.onCameraMove(position);
+                            },
                           ),
-                          markers: controller.employeeMarkers.toSet(),
-                          myLocationButtonEnabled: true,
-                          myLocationEnabled: true,
-                          mapToolbarEnabled: false,
-                          zoomControlsEnabled: false,
-                          onMapCreated: (mapController) {
-                            controller.mapController = mapController;
-                          },
-                          onCameraMove: (CameraPosition position) {
-                            controller.onCameraMove(position);
-                          },
-                        ),
-                        Positioned(
-                          bottom: 120,
-                          right: 16,
-                          child: FloatingActionButton(
-                            mini: true,
-                            heroTag: 'staff_map_type_fab',
-                            backgroundColor: AppColors.white,
-                            onPressed: controller.toggleMapType,
-                            child: Icon(
-                              controller.currentMapType.value == MapType.normal
-                                  ? Icons.satellite_alt_rounded
-                                  : Icons.map_rounded,
-                              color: AppColors.blue500,
+                          Positioned(
+                            bottom: 120,
+                            right: 16,
+                            child: FloatingActionButton(
+                              mini: true,
+                              heroTag: 'staff_map_type_fab',
+                              backgroundColor: AppColors.white,
+                              onPressed: controller.toggleMapType,
+                              child: Icon(
+                                controller.currentMapType.value ==
+                                        MapType.normal
+                                    ? Icons.satellite_alt_rounded
+                                    : Icons.map_rounded,
+                                color: AppColors.blue500,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  }),
-                ),
+                        ],
+                      );
+                    }),
+                  ),
                 ), // Close Container
               ],
             ),
@@ -343,91 +350,337 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
       int stopped = 0;
       int moving = 0;
 
-      for (var emp in controller.allEmployees) {
-        final status = emp['current_status']?.toString().toLowerCase();
-        
-        // Count statuses
-        if (status == 'moving') {
-          moving++;
-        } else if (status == 'stopped') {
-          stopped++;
-        }
+      int live = 0;
+      int notLive = 0;
+      int notInstalled = 0;
 
-        // Infer duty status
-        final isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true || status == 'moving' || status == 'stopped' || status == 'on duty';
-        if (isOnDuty) {
-          onDuty++;
-        } else {
+      for (var emp in controller.allEmployees) {
+        final status = emp['current_status']?.toString().toLowerCase() ?? '';
+        final bool isOnDuty =
+            emp['is_on_duty'] == 1 ||
+            emp['is_on_duty'] == true ||
+            emp['is_on_duty'] == '1';
+        final lastSeen = emp['last_seen'];
+
+        bool isNotInstalled = lastSeen == null && emp['live_status'] == null;
+
+        if (isNotInstalled) {
+          notInstalled++;
+        } else if (!isOnDuty) {
           offDuty++;
+        } else {
+          onDuty++;
+
+          if (status == 'moving') {
+            moving++;
+          } else if (status == 'stopped') {
+            stopped++;
+          }
+
+          final bool isLive = !AppDateUtils.isOlderThanMinutes(
+            lastSeen?.toString(),
+            10,
+          );
+          if (isLive) {
+            live++;
+          } else {
+            notLive++;
+          }
         }
       }
 
       return Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
+              blurRadius: 4,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Expanded(child: _buildStatItem(controller, 'Total', total, AppColors.black)),
-            Expanded(child: _buildStatItem(controller, 'On Duty', onDuty, Colors.blue)),
-            Expanded(child: _buildStatItem(controller, 'Off Duty', offDuty, Colors.grey)),
-            Expanded(child: _buildStatItem(controller, 'Stopped', stopped, Colors.orange)),
-            Expanded(child: _buildStatItem(controller, 'Moving', moving, Colors.green)),
+            // Row 1: Total Staff
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  controller.selectedFilter.value = 'Total';
+                  controller.filterEmployees();
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: Obx(() {
+                  final isSelected = controller.selectedFilter.value == 'Total';
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFD4E4FF)
+                          : const Color(0xFFEBF3FF),
+                      border: Border.all(
+                        color: const Color(0xFFB3D4FF),
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFFB3D4FF,
+                                ).withValues(alpha: 0.4),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.people_alt_outlined,
+                          size: 16,
+                          color: AppColors.black,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$total',
+                          style: AppTextStyle.style_12_600(
+                            color: AppColors.black,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Total Staff',
+                          style: AppTextStyle.style_10_500(
+                            color: AppColors.grey700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Row 2: On Duty, Off Duty, Not Installed
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatBox(
+                    controller,
+                    'On Duty',
+                    onDuty,
+                    Colors.green,
+                    Icons.work_outline,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _buildStatBox(
+                    controller,
+                    'Off Duty',
+                    offDuty,
+                    Colors.red,
+                    Icons.home_work_outlined,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _buildStatBox(
+                    controller,
+                    'Not Installed',
+                    notInstalled,
+                    Colors.grey,
+                    Icons.mobile_off_outlined,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+
+            // Row 3: Live/Not Live & Moving/Stopped
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildRowStatItem(
+                          controller,
+                          'Live',
+                          live,
+                          Colors.green,
+                          Icons.wifi,
+                        ),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                        _buildRowStatItem(
+                          controller,
+                          'Not Live',
+                          notLive,
+                          Colors.orange,
+                          Icons.wifi_off,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildRowStatItem(
+                          controller,
+                          'Moving',
+                          moving,
+                          Colors.blue,
+                          Icons.directions_run,
+                        ),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                        _buildRowStatItem(
+                          controller,
+                          'Stopped',
+                          stopped,
+                          Colors.deepOrangeAccent,
+                          Icons.front_hand,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       );
     });
   }
 
-  Widget _buildStatItem(StaffTrackingController controller, String label, int count, Color color) {
+  Widget _buildStatBox(
+    StaffTrackingController controller,
+    String label,
+    int count,
+    Color color,
+    IconData icon,
+  ) {
     final isSelected = controller.selectedFilter.value == label;
-    return InkWell(
-      onTap: () {
-        controller.selectedFilter.value = label;
-        controller.filterEmployees();
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? color.withValues(alpha: 0.5) : Colors.transparent,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          controller.selectedFilter.value = label;
+          controller.filterEmployees();
+        },
+        borderRadius: BorderRadius.circular(6),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.15) : Colors.white,
+            border: Border.all(
+              color: isSelected ? color : Colors.grey.shade300,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              count.toString(),
-              style: AppTextStyle.style_16_700(color: color),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTextStyle.style_10_500(color: isSelected ? color : AppColors.grey600).copyWith(fontSize: 9),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? color : Colors.grey.shade600,
+              ),
+              const SizedBox(width: 4),
+              Text('$count', style: AppTextStyle.style_12_600(color: color)),
+              const SizedBox(width: 2),
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppTextStyle.style_9_400(
+                    color: isSelected ? AppColors.black : Colors.grey.shade700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildRowStatItem(
+    StaffTrackingController controller,
+    String label,
+    int count,
+    Color dotColor,
+    IconData icon,
+  ) {
+    final isSelected = controller.selectedFilter.value == label;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          controller.selectedFilter.value = label;
+          controller.filterEmployees();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          color: isSelected
+              ? dotColor.withValues(alpha: 0.15)
+              : Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Row(
+            children: [
+              Icon(icon, size: 14, color: dotColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTextStyle.style_10_500(
+                  color: isSelected ? AppColors.black : Colors.grey.shade700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$count',
+                style: AppTextStyle.style_12_600(color: AppColors.black),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

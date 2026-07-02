@@ -9,7 +9,6 @@ import 'package:geocoding/geocoding.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:services/services.dart';
 
@@ -40,12 +39,11 @@ class HistoryController extends GetxController {
   final RxDouble replayProgress = 0.0.obs;
   final RxString currentReplayTime = ''.obs;
   final Rx<Marker?> movingMarker = Rx<Marker?>(null);
+  final RxInt playbackSpeed = 1.obs;
   
   Timer? _replayTimer;
   int _replayIndex = 0;
   BitmapDescriptor? _vehicleIcon;
-  
-  final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd');
   
   BitmapDescriptor? _startIcon;
   BitmapDescriptor? _endIcon;
@@ -76,7 +74,7 @@ class HistoryController extends GetxController {
               snippet: args['last_seen'] != null ? 'Last seen: ${args['last_seen']}' : null,
             ),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-            zIndex: 10,
+            zIndexInt: 10,
           );
         } catch (e) {
           debugPrint('Failed to parse staff current location: $e');
@@ -252,7 +250,7 @@ class HistoryController extends GetxController {
           s['placeName'] = placeName;
           processedStops.add(s);
 
-          newStopMarkers.add(Marker(
+          final stopMarker = Marker(
             markerId: MarkerId('stop_$i'),
             position: LatLng(lat, lng),
             infoWindow: InfoWindow(
@@ -261,7 +259,9 @@ class HistoryController extends GetxController {
             ),
             icon: _stopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
             anchor: const Offset(0.5, 0.5),
-          ));
+            zIndexInt: 5,
+          );
+          newStopMarkers.add(stopMarker);
         }
         stopMarkers.assignAll(newStopMarkers);
         rawStoppages.value = processedStops;
@@ -336,7 +336,7 @@ class HistoryController extends GetxController {
                     snippet: emp['last_seen'] != null ? 'Last seen: ${emp['last_seen']}' : null,
                   ),
                   icon: customIcon,
-                  zIndex: 10,
+                  zIndexInt: 10,
                 );
 
                 mapController?.animateCamera(
@@ -396,23 +396,43 @@ class HistoryController extends GetxController {
     isReplaying.value = true;
     isPaused.value = false;
 
+    _startReplayTimer();
+  }
+
+  void _startReplayTimer() {
     _replayTimer?.cancel();
-    _replayTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    final speed = playbackSpeed.value;
+    int delayMs;
+    switch (speed) {
+      case 4:
+        delayMs = 40;
+        break;
+      case 2:
+        delayMs = 120;
+        break;
+      case 1:
+      default:
+        delayMs = 300;
+        break;
+    }
+    
+    _replayTimer = Timer.periodic(Duration(milliseconds: delayMs), (timer) {
       if (_replayIndex >= routePoints.length - 1) {
         stopReplay();
         return;
       }
 
       final LatLng current = routePoints[_replayIndex];
+      
+      if (_replayIndex < routeTimes.length) {
+        currentReplayTime.value = routeTimes[_replayIndex];
+      }
+
       final LatLng next = routePoints[_replayIndex + 1];
       final double bearing = _calculateBearing(current, next);
 
       _replayIndex++;
       replayProgress.value = _replayIndex / (routePoints.length - 1);
-      
-      if (_replayIndex < routeTimes.length) {
-        currentReplayTime.value = routeTimes[_replayIndex];
-      }
       
       drawnRoutePoints.value = routePoints.sublist(0, _replayIndex + 1);
 
@@ -422,7 +442,11 @@ class HistoryController extends GetxController {
         icon: _vehicleIcon ?? BitmapDescriptor.defaultMarker,
         rotation: bearing,
         anchor: const Offset(0.5, 0.5),
-        zIndex: 100,
+        zIndexInt: 100,
+      );
+
+      mapController?.moveCamera(
+        CameraUpdate.newLatLng(current),
       );
     });
   }
@@ -434,6 +458,21 @@ class HistoryController extends GetxController {
 
   GoogleMapController? mapController;
   final DraggableScrollableController sheetController = DraggableScrollableController();
+
+  void togglePlaybackSpeed() {
+    if (playbackSpeed.value == 1) {
+      playbackSpeed.value = 2;
+    } else if (playbackSpeed.value == 2) {
+      playbackSpeed.value = 4;
+    } else {
+      playbackSpeed.value = 1;
+    }
+    
+    if (isReplaying.value && !isPaused.value) {
+      // Restart timer with new speed without resetting progress
+      _startReplayTimer();
+    }
+  }
 
   void onStopTapped(int index) {
     if (index >= 0 && index < rawStoppages.length) {
@@ -536,11 +575,6 @@ class HistoryController extends GetxController {
     }
   }
 
-  Future<void> shareLocation(double lat, double lng, String name) async {
-    final String googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
-    await Share.share('Check out this stop location: $name\n$googleMapsUrl');
-  }
-
   void toggleMapType() {
     currentMapType.value = currentMapType.value == MapType.normal ? MapType.satellite : MapType.normal;
   }
@@ -584,6 +618,9 @@ class HistoryController extends GetxController {
     if (routePoints.isEmpty) return;
     _replayIndex = (progress * (routePoints.length - 1)).round();
     replayProgress.value = progress;
+    
+    final LatLng current = routePoints[_replayIndex];
+    mapController?.animateCamera(CameraUpdate.newLatLng(current));
     drawnRoutePoints.value = routePoints.sublist(0, _replayIndex + 1);
     
     if (_replayIndex < routeTimes.length) {
@@ -601,7 +638,7 @@ class HistoryController extends GetxController {
         icon: _vehicleIcon ?? BitmapDescriptor.defaultMarker,
         rotation: bearing,
         anchor: const Offset(0.5, 0.5),
-        zIndex: 100,
+        zIndexInt: 100,
       );
     }
   }

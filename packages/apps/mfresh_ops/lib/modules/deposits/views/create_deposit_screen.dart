@@ -7,6 +7,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/deposits/controllers/create_deposit_controller.dart';
 import 'package:core/widgets/month_year_picker_field.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
 
 class CreateDepositScreen extends StatelessWidget {
   const CreateDepositScreen({super.key});
@@ -48,7 +49,10 @@ class CreateDepositScreen extends StatelessWidget {
                 // Header
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 12.h,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.only(
@@ -56,15 +60,20 @@ class CreateDepositScreen extends StatelessWidget {
                       topRight: Radius.circular(4.r),
                     ),
                     border: Border(
-                      bottom: BorderSide(color: AppColors.borderColor, width: 1.0),
+                      bottom: BorderSide(
+                        color: AppColors.borderColor,
+                        width: 1.0,
+                      ),
                     ),
                   ),
                   child: Text(
-                    controller.editingItem != null ? 'Edit Deposit Form' : 'Deposit Form',
+                    controller.editingItem != null
+                        ? 'Edit Deposit Form'
+                        : 'Deposit Form',
                     style: AppTextStyle.style_12_600(color: AppColors.black),
                   ),
                 ),
-                
+
                 // Form Body
                 Padding(
                   padding: EdgeInsets.all(12.w),
@@ -97,9 +106,9 @@ class CreateDepositScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       SizedBox(height: 12.h),
-                      
+
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -118,7 +127,11 @@ class CreateDepositScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildLabel(controller.editingItem != null ? 'Supervisor File' : 'Supervisor File*'),
+                                _buildLabel(
+                                  controller.editingItem != null
+                                      ? 'Supervisor File'
+                                      : 'Supervisor File*',
+                                ),
                                 SizedBox(height: 6.h),
                                 _buildFilePicker(controller),
                               ],
@@ -126,25 +139,33 @@ class CreateDepositScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       SizedBox(height: 12.h),
                       _buildLabel('Remarks'),
                       SizedBox(height: 6.h),
                       _buildTextArea(controller),
-                      
+
                       SizedBox(height: 20.h),
                       SizedBox(
                         width: double.infinity,
                         height: 36.h,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D6EFD), // Blue button from mockup
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                            backgroundColor: const Color(
+                              0xFF0D6EFD,
+                            ), // Blue button from mockup
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
                           ),
                           onPressed: controller.submit,
                           child: Text(
-                            controller.editingItem != null ? 'Update' : 'Submit',
-                            style: AppTextStyle.style_14_600(color: AppColors.white),
+                            controller.editingItem != null
+                                ? 'Update'
+                                : 'Submit',
+                            style: AppTextStyle.style_14_600(
+                              color: AppColors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -160,10 +181,7 @@ class CreateDepositScreen extends StatelessWidget {
   }
 
   Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: AppTextStyle.style_12_600(color: AppColors.black),
-    );
+    return Text(text, style: AppTextStyle.style_12_600(color: AppColors.black));
   }
 
   Widget _buildTextField(CreateDepositController controller) {
@@ -224,32 +242,40 @@ class CreateDepositScreen extends StatelessWidget {
   }
 
   Widget _buildDateField(CreateDepositController controller) {
-    return Obx(() => GestureDetector(
-      onTap: controller.pickDate,
-      child: Container(
-        height: 32.h,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(4.r),
-          border: Border.all(color: AppColors.borderColor, width: 1.0),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 10.w),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                controller.depositedDate.value ?? 'dd-mm-yyyy',
-                style: AppTextStyle.style_12_400(
-                  color: controller.depositedDate.value == null ? AppColors.grey300 : AppColors.black,
+    return Obx(
+      () => GestureDetector(
+        onTap: controller.pickDate,
+        child: Container(
+          height: 32.h,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(4.r),
+            border: Border.all(color: AppColors.borderColor, width: 1.0),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 10.w),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  controller.depositedDate.value ?? 'dd-mm-yyyy',
+                  style: AppTextStyle.style_12_400(
+                    color: controller.depositedDate.value == null
+                        ? AppColors.grey300
+                        : AppColors.black,
+                  ),
+                  maxLines: 1,
                 ),
-                maxLines: 1,
               ),
-            ),
-            Icon(Icons.calendar_today_outlined, size: 16.r, color: AppColors.black),
-          ],
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 16.r,
+                color: AppColors.black,
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildMonthField(CreateDepositController controller) {
@@ -257,7 +283,9 @@ class CreateDepositScreen extends StatelessWidget {
       String? displayVal;
       if (controller.forMonth.value != null) {
         try {
-          final parsed = DateFormat('yyyy-MM').parse(controller.forMonth.value!);
+          final parsed = DateFormat(
+            'yyyy-MM',
+          ).parse(controller.forMonth.value!);
           displayVal = DateFormat('MMM-yyyy').format(parsed);
         } catch (_) {
           displayVal = controller.forMonth.value;
@@ -286,49 +314,141 @@ class CreateDepositScreen extends StatelessWidget {
   Widget _buildFilePicker(CreateDepositController controller) {
     return Obx(() {
       final hasFile = controller.supervisorFileName.value != null;
-      return Container(
-        height: 32.h,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(4.r),
-          border: Border.all(color: AppColors.borderColor, width: 1.0),
-        ),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: controller.pickFile,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
-                  border: Border(
-                    right: BorderSide(color: AppColors.borderColor, width: 1.0),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 32.h,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(4.r),
+              border: Border.all(color: AppColors.borderColor, width: 1.0),
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: controller.pickFile,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      border: Border(
+                        right: BorderSide(
+                          color: AppColors.borderColor,
+                          width: 1.0,
+                        ),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Choose file',
+                      style: AppTextStyle.style_12_400(color: AppColors.black),
+                    ),
                   ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Choose file',
-                  style: AppTextStyle.style_12_400(color: AppColors.black),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    hasFile ? controller.supervisorFileName.value! : 'No file chosen',
-                    style: AppTextStyle.style_12_400(color: hasFile ? AppColors.black : AppColors.grey300),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        hasFile
+                            ? controller.supervisorFileName.value!
+                            : 'No file chosen',
+                        style: AppTextStyle.style_12_400(
+                          color: hasFile ? AppColors.black : AppColors.grey300,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
+          ),
+          if (hasFile) ...[
+            SizedBox(height: 8.h),
+            _buildImagePreview(controller),
           ],
-        ),
+        ],
       );
     });
+  }
+
+  Widget _buildImagePreview(CreateDepositController controller) {
+    final file = controller.selectedFile;
+    final fileUrl = controller.editingItem?.fileUrl;
+
+    Widget imageWidget;
+    if (file != null) {
+      imageWidget = Image.file(file, fit: BoxFit.cover);
+    } else if (fileUrl != null) {
+      imageWidget = Image.network(fileUrl, fit: BoxFit.cover);
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () {
+            Get.dialog(
+              Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: EdgeInsets.zero,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    InteractiveViewer(
+                      child: file != null
+                          ? Image.file(file)
+                          : Image.network(fileUrl!),
+                    ),
+                    Positioned(
+                      top: 40,
+                      right: 20,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                        onPressed: () => Get.back(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            height: 100.h,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4.r),
+              border: Border.all(color: AppColors.borderColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: imageWidget,
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: controller.clearFile,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 14),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

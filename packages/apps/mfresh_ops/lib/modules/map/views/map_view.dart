@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/map/views/widgets/animated_live_map.dart';
 

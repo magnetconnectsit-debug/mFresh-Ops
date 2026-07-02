@@ -11,7 +11,7 @@ import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:services/api_services.dart';
 import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/models/user.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
 
 class AuthRepository extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();

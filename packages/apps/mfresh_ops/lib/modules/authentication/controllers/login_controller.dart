@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:mfresh_ops/data/services/tracking/tracking_service.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
 import 'package:core/constants/app_colors.dart';

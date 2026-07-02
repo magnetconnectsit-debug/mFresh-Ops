@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 class HistoryView extends GetView<HistoryController> {
   const HistoryView({super.key});
@@ -298,6 +297,24 @@ class HistoryView extends GetView<HistoryController> {
                             }
                             return const SizedBox.shrink();
                           }),
+                          const SizedBox(width: 8),
+                          Obx(() => GestureDetector(
+                                onTap: controller.togglePlaybackSpeed,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.blue500
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${controller.playbackSpeed.value}x',
+                                    style: AppTextStyle.style_12_600(
+                                        color: AppColors.blue500),
+                                  ),
+                                ),
+                              )),
                         ],
                       ),
                     ),
@@ -389,12 +406,15 @@ class HistoryView extends GetView<HistoryController> {
                                     final live = controller.liveStatus;
                                     final summaryItems = <Widget>[];
 
-                                    if (live['current_status'] != null)
+                                    if (live['current_status'] != null) {
                                       summaryItems.add(_buildSummaryItem(Icons.info_outline, 'Status', live['current_status'].toString().toUpperCase()));
-                                    if (live['battery'] != null)
+                                    }
+                                    if (live['battery'] != null) {
                                       summaryItems.add(_buildSummaryItem(Icons.battery_std, 'Battery', '${live['battery']}%'));
-                                    if (live['speed'] != null)
+                                    }
+                                    if (live['speed'] != null) {
                                       summaryItems.add(_buildSummaryItem(Icons.speed, 'Speed', '${double.tryParse(live['speed'].toString())?.toStringAsFixed(2) ?? 0} km/h'));
+                                    }
                                     if (live['last_seen'] != null) {
                                       String formatLastSeen(String dt) {
                                         try {
@@ -670,39 +690,6 @@ class HistoryView extends GetView<HistoryController> {
                                                               AppTextStyle.style_12_600(
                                                                 color: AppColors
                                                                     .blue500,
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 24),
-                                                  InkWell(
-                                                    onTap: () {
-                                                      controller.shareLocation(
-                                                        fromLat,
-                                                        fromLng,
-                                                        'Lat: $fromLat, Lng: $fromLng',
-                                                      );
-                                                    },
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        const Icon(
-                                                          Icons.share_rounded,
-                                                          size: 18,
-                                                          color:
-                                                              AppColors.blue500,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                        Text(
-                                                          'Share trip',
-                                                          style:
-                                                              AppTextStyle.style_12_600(
-                                                                color: AppColors
-                                                                    .grey700,
                                                               ),
                                                         ),
                                                       ],

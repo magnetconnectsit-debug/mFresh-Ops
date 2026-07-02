@@ -25,22 +25,32 @@ class EmployeeTrackingCard extends StatelessWidget {
     final battery = employee['battery'] ?? liveStatus?['battery'];
     final speed = employee['speed'] ?? liveStatus?['speed'];
 
+    final bool isOnDuty =
+        employee['is_on_duty'] == 1 ||
+        employee['is_on_duty'] == true ||
+        employee['is_on_duty'] == '1';
+
     Color statusColor = AppColors.red;
-    Color statusBgColor = AppColors.red.withValues(alpha: 0.1);
     String statusText = 'Offline';
 
-    final isStale = AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
-
-    if (!isStale) {
-      if (status == 'moving') {
-        statusColor = AppColors.green;
-        statusBgColor = AppColors.green.withValues(alpha: 0.1);
-        statusText = 'Moving';
-      } else if (status == 'stopped') {
-        statusColor = AppColors.orange;
-        statusBgColor = AppColors.orange.withValues(alpha: 0.1);
-        statusText = 'Stopped';
-      }
+    if (status == 'moving') {
+      statusColor = AppColors.green;
+      statusText = 'Moving';
+    } else if (status == 'stopped') {
+      statusColor = AppColors.orange;
+      statusText = 'Stopped';
+    } else if (status == 'offline') {
+      statusColor = AppColors.red;
+      statusText = 'Offline';
+    } else if (status == 'duty on' ||
+        status == 'on duty' ||
+        status == 'onduty' ||
+        isOnDuty) {
+      statusColor = AppColors.blue500;
+      statusText = 'On Duty';
+    } else {
+      statusColor = AppColors.grey500;
+      statusText = 'Off Duty';
     }
 
     String formattedLastSeen = AppDateUtils.formatToRelativeTimeOrDateTimeAmPm(
@@ -51,17 +61,22 @@ class EmployeeTrackingCard extends StatelessWidget {
     final hasImage =
         imageUrl != null && !imageUrl.endsWith('/NA') && imageUrl.isNotEmpty;
 
-    final bool isOnDuty = employee['is_on_duty'] == 1 || employee['is_on_duty'] == true;
-    final Color borderStatusColor = isOnDuty ? AppColors.green : AppColors.red;
+    final bool isStale10Min = AppDateUtils.isOlderThanMinutes(
+      lastSeen?.toString(),
+      10,
+    );
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
+        border: isStale10Min
+            ? Border.all(color: AppColors.orange, width: 2.0)
+            : Border.all(color: AppColors.grey200, width: 1.0),
         boxShadow: [
           BoxShadow(
             color: AppColors.grey500.withValues(alpha: 0.1),
-            blurRadius: 10,
+            blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],
@@ -72,7 +87,7 @@ class EmployeeTrackingCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -82,8 +97,8 @@ class EmployeeTrackingCard extends StatelessWidget {
                   children: [
                     // Avatar
                     SizedBox(
-                      height: 48,
-                      width: 48,
+                      height: 40,
+                      width: 40,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -94,7 +109,9 @@ class EmployeeTrackingCard extends StatelessWidget {
                                   ? LinearGradient(
                                       colors: [
                                         AppColors.blue500,
-                                        AppColors.blue500.withValues(alpha: 0.7),
+                                        AppColors.blue500.withValues(
+                                          alpha: 0.7,
+                                        ),
                                       ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
@@ -138,7 +155,7 @@ class EmployeeTrackingCard extends StatelessWidget {
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: borderStatusColor, width: 2),
+                              border: Border.all(color: statusColor, width: 2),
                             ),
                           ),
                         ],
@@ -253,9 +270,9 @@ class EmployeeTrackingCard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 Divider(color: AppColors.grey50, height: 1, thickness: 1),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
 
                 // Bottom Section (Stats)
                 Row(
