@@ -609,7 +609,7 @@ class EditTicketScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Icon(
+            const FaIcon(
               FontAwesomeIcons.whatsapp,
               size: 18,
               color: Colors.green,
@@ -678,7 +678,7 @@ class EditTicketScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
+                        const FaIcon(
                           FontAwesomeIcons.whatsapp,
                           color: Colors.green,
                           size: 18,
