@@ -25,7 +25,7 @@ import 'package:mfresh_ops/main.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:services/services.dart';
 
-class TrackingService extends GetxService {
+class TrackingService extends GetxService with WidgetsBindingObserver {
   static TrackingService get to => Get.find<TrackingService>();
 
   final TrackingRepository _repository = Get.find<TrackingRepository>();
@@ -43,12 +43,23 @@ class TrackingService extends GetxService {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Timer? _bulkSyncTimer;
   Timer? _foregroundUpdateTimer;
+  Box<LocationData>? _locationCacheBox;
+  Position? _lastSyncedPosition;
+  DateTime? _lastSyncedAt;
+  List<ConnectivityResult> _connectivityResults = const [
+    ConnectivityResult.none,
+  ];
+  bool _isOnline = false;
+
+  static const double _minSyncDistanceMeters = 10.0;
+  static const Duration _minSyncInterval = Duration(seconds: 30);
 
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     debugPrint('TrackingService: onInit()');
     _initForegroundTask();
     _startLocationUpdates();
@@ -62,9 +73,32 @@ class TrackingService extends GetxService {
         );
         isTracking.value = false;
         sessionId.value = null;
+        _resetLocationSyncState();
+        _stopForegroundUpdateTimer();
         FlutterForegroundTask.stopService();
       }
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      return;
+    }
+
+    unawaited(_restoreTrackingOnResume());
+  }
+
+  Future<void> _restoreTrackingOnResume() async {
+    if (!isTracking.value && sessionId.value == null) {
+      return;
+    }
+
+    if (await FlutterForegroundTask.isRunningService) {
+      return;
+    }
+
+    await checkCurrentStatus();
   }
 
   // We split the startup logic so we can call it after login is confirmed
@@ -105,8 +139,7 @@ class TrackingService extends GetxService {
         if (user.trackingSessionId != null) {
           await _storageService.saveTrackingSessionId(user.trackingSessionId!);
         }
-        await _startForegroundService();
-        _startForegroundUpdateTimer();
+        await _refreshLocationSyncLoop();
 
         // Verify with backend, but force start if backend tracking is inactive
         try {
@@ -114,12 +147,18 @@ class TrackingService extends GetxService {
           if (data != null && data['status'] == true) {
             final active = data['tracking_active'] ?? false;
             final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
-            
+
             if (active) {
-               sessionId.value = newSessionId;
-               if (newSessionId != null) {
-                 await _storageService.saveTrackingSessionId(newSessionId);
-               }
+              sessionId.value = newSessionId;
+              if (newSessionId != null) {
+                await _storageService.saveTrackingSessionId(newSessionId);
+                if (hasBgService) {
+                  await FlutterForegroundTask.saveData(
+                    key: 'session_id',
+                    value: newSessionId,
+                  );
+                }
+              }
             }
           }
         } catch (e) {
@@ -187,13 +226,16 @@ class TrackingService extends GetxService {
   }
 
   void _startConnectivityListener() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      results,
-    ) {
-      if (results.any((result) => result != ConnectivityResult.none)) {
-        syncOfflineData();
-      }
-    });
+    unawaited(
+      Connectivity()
+          .checkConnectivity()
+          .then(_updateConnectivityState)
+          .catchError((_) {}),
+    );
+
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      _updateConnectivityState,
+    );
   }
 
   void _startBulkSyncTimer() {
@@ -203,11 +245,103 @@ class TrackingService extends GetxService {
     );
   }
 
+  Future<Box<LocationData>> _getLocationCacheBox() async {
+    _locationCacheBox ??= await Hive.openBox<LocationData>(
+      'location_cache_box',
+    );
+    return _locationCacheBox!;
+  }
+
+  void _updateConnectivityState(List<ConnectivityResult> results) {
+    final wasOnline = _isOnline;
+    _connectivityResults = results;
+    _isOnline = results.any((result) => result != ConnectivityResult.none);
+
+    if (!wasOnline && _isOnline) {
+      unawaited(syncOfflineData());
+    }
+  }
+
+  String? _networkTypeFromConnectivity(List<ConnectivityResult> results) {
+    if (results.isEmpty || results.contains(ConnectivityResult.none)) {
+      return null;
+    }
+
+    if (results.contains(ConnectivityResult.wifi)) {
+      return 'wifi';
+    }
+    if (results.contains(ConnectivityResult.mobile)) {
+      return 'mobile';
+    }
+
+    return results.first.name;
+  }
+
+  void _markLocationSynced(Position pos) {
+    _lastSyncedPosition = pos;
+    _lastSyncedAt = pos.timestamp ?? DateTime.now();
+  }
+
+  void _resetLocationSyncState() {
+    _lastSyncedPosition = null;
+    _lastSyncedAt = null;
+  }
+
+  bool _shouldSkipLocationUpdate(Position pos) {
+    if (pos.accuracy > 150.0) {
+      debugPrint(
+        'TrackingService: Discarding location due to poor accuracy (${pos.accuracy}m)',
+      );
+      return true;
+    }
+
+    final lastPosition = _lastSyncedPosition;
+    final lastSyncedAt = _lastSyncedAt;
+    if (lastPosition == null || lastSyncedAt == null) {
+      return false;
+    }
+
+    final currentTime = pos.timestamp ?? DateTime.now();
+    final distanceMeters = Geolocator.distanceBetween(
+      lastPosition.latitude,
+      lastPosition.longitude,
+      pos.latitude,
+      pos.longitude,
+    );
+    final elapsed = currentTime.difference(lastSyncedAt);
+
+    if (distanceMeters < _minSyncDistanceMeters &&
+        elapsed < _minSyncInterval) {
+      debugPrint(
+        'TrackingService: Skipping unchanged location update '
+        '(distance: ${distanceMeters.toStringAsFixed(1)}m, '
+        'elapsed: ${elapsed.inSeconds}s)',
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<void> _refreshLocationSyncLoop() async {
+    final authRepo = Get.find<AuthRepository>();
+    final hasBgPermission = authRepo.rxUserPermissions.contains(
+      'background_service',
+    );
+    final foregroundStarted = await _startForegroundService();
+
+    if (hasBgPermission && foregroundStarted) {
+      _stopForegroundUpdateTimer();
+    } else {
+      _startForegroundUpdateTimer();
+    }
+  }
+
   Future<void> syncOfflineData() async {
     if (isSyncing.value || sessionId.value == null) return;
 
     try {
-      final box = await Hive.openBox<LocationData>('location_cache_box');
+      final box = await _getLocationCacheBox();
       if (box.isEmpty) return;
 
       isSyncing.value = true;
@@ -241,8 +375,12 @@ class TrackingService extends GetxService {
           await _storageService.saveTrackingSessionId(newSessionId);
         }
         if (isTracking.value) {
-          _startForegroundService();
-          _startForegroundUpdateTimer();
+          _resetLocationSyncState();
+          await _refreshLocationSyncLoop();
+        } else {
+          _resetLocationSyncState();
+          _stopForegroundUpdateTimer();
+          await _startForegroundService();
         }
       }
     } catch (e) {
@@ -404,8 +542,8 @@ class TrackingService extends GetxService {
         }
         isTracking.value = true;
         await _storageService.saveIntendedTrackingStatus(true);
-        await _startForegroundService();
-        _startForegroundUpdateTimer();
+        _markLocationSynced(pos);
+        await _refreshLocationSyncLoop();
       }
     } catch (e) {
       debugPrint('TrackingService: startTracking Exception: $e');
@@ -417,6 +555,7 @@ class TrackingService extends GetxService {
       isTracking.value = false;
       await _storageService.saveIntendedTrackingStatus(false);
       await _storageService.clearTrackingSessionId();
+      _resetLocationSyncState();
       await _startForegroundService();
       _stopForegroundUpdateTimer();
       return;
@@ -441,6 +580,7 @@ class TrackingService extends GetxService {
         sessionId.value = null;
         await _storageService.saveIntendedTrackingStatus(false);
         await _storageService.clearTrackingSessionId();
+        _resetLocationSyncState();
         await _startForegroundService(); // This actually stops it when isTracking is false
         _stopForegroundUpdateTimer();
       }
@@ -543,37 +683,32 @@ class TrackingService extends GetxService {
   }
 
   Future<void> _syncLocation(Position pos) async {
-    final authRepo = Get.find<AuthRepository>();
-    final hasBgService = authRepo.rxUserPermissions.contains(
-      'background_service',
-    );
-    if (!hasBgService) return;
-
     if (sessionId.value == null) return;
+    if (_shouldSkipLocationUpdate(pos)) return;
 
     final deviceId = await _getDeviceId();
     final batteryLevel = await _battery.batteryLevel;
     final batteryState = await _battery.batteryState;
-
-    if (pos.accuracy > 150.0) {
-      debugPrint('TrackingService: Discarding location due to poor accuracy (${pos.accuracy}m)');
-      return;
-    }
-
-    final connectivityResults = await Connectivity().checkConnectivity();
-    String? networkType;
-    if (connectivityResults.isNotEmpty) {
-      if (connectivityResults.contains(ConnectivityResult.wifi)) {
-        networkType = 'wifi';
-      } else if (connectivityResults.contains(ConnectivityResult.mobile)) {
-        networkType = 'mobile';
-      } else {
-        networkType = connectivityResults.first.name;
+    final connectivityResults = _connectivityResults;
+    final networkType = _networkTypeFromConnectivity(connectivityResults);
+    double speedKmH = pos.speed * 3.6;
+    
+    // Prevent stationary heartbeat updates from capturing instantaneous GPS jitter speeds
+    if (_lastSyncedPosition != null) {
+      final distance = Geolocator.distanceBetween(
+        _lastSyncedPosition!.latitude,
+        _lastSyncedPosition!.longitude,
+        pos.latitude,
+        pos.longitude,
+      );
+      if (distance < _minSyncDistanceMeters) {
+        speedKmH = 0.0;
       }
     }
 
-    double speedKmH = pos.speed * 3.6;
-
+    final locationTime = _apiDateFormat.format(
+      DateTime.now(),
+    ); // Use current time for sync heartbeat
 
     final locationData = LocationData(
       latitude: pos.latitude,
@@ -584,9 +719,7 @@ class TrackingService extends GetxService {
       battery: batteryLevel,
       isCharging: batteryState == BatteryState.charging,
       networkType: networkType,
-      locationTime: _apiDateFormat.format(
-        DateTime.now(),
-      ), // Use current time for sync heartbeat
+      locationTime: locationTime,
     );
 
     final request = LocationUpdateRequest(
@@ -604,18 +737,25 @@ class TrackingService extends GetxService {
     );
 
     try {
-      if (connectivityResults.contains(ConnectivityResult.none)) {
-        final box = await Hive.openBox<LocationData>('location_cache_box');
+      final isOffline = !_isOnline ||
+          connectivityResults.isEmpty ||
+          connectivityResults.contains(ConnectivityResult.none);
+
+      if (isOffline) {
+        final box = await _getLocationCacheBox();
         await box.add(locationData);
+        _markLocationSynced(pos);
         debugPrint('TrackingService: Location cached offline (No internet)');
       } else {
         await _repository.updateLocation(request);
-        debugPrint('TrackingService: Synced 5s update');
+        _markLocationSynced(pos);
+        debugPrint('TrackingService: Synced location update');
       }
     } catch (e) {
       debugPrint('TrackingService: Sync failed, caching: $e');
-      final box = await Hive.openBox<LocationData>('location_cache_box');
+      final box = await _getLocationCacheBox();
       await box.add(locationData);
+      _markLocationSynced(pos);
     }
   }
 
@@ -642,10 +782,12 @@ class TrackingService extends GetxService {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _positionStreamSubscription?.cancel();
     _connectivitySubscription?.cancel();
     _bulkSyncTimer?.cancel();
     _foregroundUpdateTimer?.cancel();
+    _resetLocationSyncState();
     super.onClose();
   }
 }

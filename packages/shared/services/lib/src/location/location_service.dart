@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 abstract class LocationService {
@@ -9,21 +11,46 @@ abstract class LocationService {
 }
 
 class GeolocatorLocationService implements LocationService {
-  @override
-  Future<Position?> getCurrentPosition() async {
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
+  LocationSettings _locationSettings() {
+    if (kIsWeb) {
+      return WebSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 10,
+      );
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 10,
+        intervalDuration: const Duration(seconds: 5),
+        forceLocationManager: true,
+      );
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 10,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+      );
+    }
+
+    return const LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 10,
     );
   }
 
   @override
+  Future<Position?> getCurrentPosition() async {
+    return await Geolocator.getCurrentPosition(locationSettings: _locationSettings());
+  }
+
+  @override
   Stream<Position> getPositionStream() {
-    return Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 0,
-      ),
-    );
+    return Geolocator.getPositionStream(locationSettings: _locationSettings());
   }
 
   @override

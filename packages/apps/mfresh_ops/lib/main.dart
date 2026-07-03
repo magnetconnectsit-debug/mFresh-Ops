@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:battery_plus/battery_plus.dart';
@@ -52,6 +53,25 @@ void startCallback() {
 class MyTaskHandler extends TaskHandler {
   StreamSubscription<Position>? _positionStream;
   Position? _latestPosition;
+  DateTime? _latestPositionAt;
+  Position? _lastSyncedPosition;
+  DateTime? _lastSyncedAt;
+  Box<LocationData>? _locationCacheBox;
+  final Battery _battery = Battery();
+  final Connectivity _connectivity = Connectivity();
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      headers: {
+        'Accept': 'application/json',
+      },
+    ),
+  );
+
+  static const double _minimumUpdateDistanceMeters = 10.0;
+  static const Duration _minimumUpdateInterval = Duration(seconds: 30);
+  static const Duration _stalePositionThreshold = Duration(seconds: 12);
 
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
@@ -68,58 +88,156 @@ class MyTaskHandler extends TaskHandler {
       }
     }
 
+    _locationCacheBox = await Hive.openBox<LocationData>('location_cache_box');
+
     _positionStream =
         Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 0,
-          ),
+          locationSettings: _streamLocationSettings(),
         ).listen((Position position) {
           _latestPosition = position;
+          _latestPositionAt = position.timestamp ?? DateTime.now();
         });
+  }
+
+  LocationSettings _streamLocationSettings() {
+    if (Platform.isAndroid) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+        intervalDuration: const Duration(seconds: 5),
+        forceLocationManager: true,
+      );
+    }
+
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10,
+    );
+  }
+
+  LocationSettings _fallbackLocationSettings() {
+    if (Platform.isAndroid) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+        intervalDuration: const Duration(seconds: 5),
+        forceLocationManager: true,
+        timeLimit: const Duration(seconds: 10),
+      );
+    }
+
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10,
+      timeLimit: Duration(seconds: 10),
+    );
+  }
+
+  Future<Position?> _resolvePosition() async {
+    final latestPosition = _latestPosition;
+    final latestAt = _latestPositionAt;
+    final isFresh =
+        latestPosition != null &&
+        latestAt != null &&
+        DateTime.now().difference(latestAt) <= _stalePositionThreshold;
+
+    if (isFresh) {
+      return latestPosition;
+    }
+
+    try {
+      final freshPosition = await Geolocator.getCurrentPosition(
+        locationSettings: _fallbackLocationSettings(),
+      );
+      _latestPosition = freshPosition;
+      _latestPositionAt = freshPosition.timestamp ?? DateTime.now();
+      return freshPosition;
+    } catch (e) {
+      debugPrint('Background Task: fallback current position failed: $e');
+      return isFresh ? latestPosition : null;
+    }
+  }
+
+  bool _shouldSendUpdate(Position position) {
+    if (position.accuracy > 150.0) {
+      debugPrint(
+        'Background Task: Skipping update due to poor accuracy (${position.accuracy}m)',
+      );
+      return false;
+    }
+
+    final lastPosition = _lastSyncedPosition;
+    final lastSyncedAt = _lastSyncedAt;
+    if (lastPosition == null || lastSyncedAt == null) {
+      return true;
+    }
+
+    final currentTime = position.timestamp ?? DateTime.now();
+    final distanceMeters = Geolocator.distanceBetween(
+      lastPosition.latitude,
+      lastPosition.longitude,
+      position.latitude,
+      position.longitude,
+    );
+    final elapsed = currentTime.difference(lastSyncedAt);
+
+    return distanceMeters >= _minimumUpdateDistanceMeters ||
+        elapsed >= _minimumUpdateInterval;
+  }
+
+  String? _networkTypeFromConnectivity(List<ConnectivityResult> results) {
+    if (results.isEmpty || results.contains(ConnectivityResult.none)) {
+      return null;
+    }
+
+    if (results.contains(ConnectivityResult.wifi)) {
+      return 'wifi';
+    }
+    if (results.contains(ConnectivityResult.mobile)) {
+      return 'mobile';
+    }
+
+    return results.first.name;
+  }
+
+  Future<void> _cacheLocation(LocationData locationData) async {
+    final box = _locationCacheBox ??= await Hive.openBox<LocationData>(
+      'location_cache_box',
+    );
+    await box.add(locationData);
+  }
+
+  void _markLocationSynced(Position position) {
+    _lastSyncedPosition = position;
+    _lastSyncedAt = position.timestamp ?? DateTime.now();
   }
 
   @override
   void onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
-    // This is called every 15 seconds as configured in LocationController
+    // The foreground task wakes on a fixed interval; we still throttle sends below.
     debugPrint('Foreground Task Repeat Event - Syncing in background');
 
     LocationData? locationDataToCache;
+    Position? positionToMark;
 
     try {
-      final sessionId = await FlutterForegroundTask.getData<int>(
-        key: 'session_id',
-      );
-      final token = await FlutterForegroundTask.getData<String>(key: 'token');
-      final deviceId = await FlutterForegroundTask.getData<String>(
-        key: 'device_id',
-      );
-      if (sessionId == null || token == null || deviceId == null) {
-        debugPrint('Background Task missing data. Cannot sync.');
-        return;
-      }
-
-      if (_latestPosition == null) {
+      final pos = await _resolvePosition();
+      if (pos == null) {
         debugPrint('Background Task: Waiting for location fix...');
         return;
       }
 
-      final pos = _latestPosition!;
+      if (!_shouldSendUpdate(pos)) {
+        return;
+      }
+      positionToMark = pos;
+
       debugPrint('Background Location: ${pos.latitude}, ${pos.longitude}');
 
-      final batteryLevel = await Battery().batteryLevel;
-      final batteryState = await Battery().batteryState;
-      final connectivityResults = await Connectivity().checkConnectivity();
-      String? networkType;
-      if (connectivityResults.isNotEmpty) {
-        if (connectivityResults.contains(ConnectivityResult.wifi)) {
-          networkType = 'wifi';
-        } else if (connectivityResults.contains(ConnectivityResult.mobile)) {
-          networkType = 'mobile';
-        } else {
-          networkType = connectivityResults.first.name;
-        }
-      }
+      final batteryLevel = await _battery.batteryLevel;
+      final batteryState = await _battery.batteryState;
+      final connectivityResults = await _connectivity.checkConnectivity();
+      final networkType = _networkTypeFromConnectivity(connectivityResults);
 
       final locationTimeStr = DateFormat(
         'yyyy-MM-dd HH:mm:ss',
@@ -138,18 +256,29 @@ class MyTaskHandler extends TaskHandler {
         locationTime: locationTimeStr,
       );
 
-      final uri = '${AppConfig.baseUrl}${AppConstants.trackingLocationUpdate}';
+      if (connectivityResults.contains(ConnectivityResult.none)) {
+        await _cacheLocation(locationDataToCache);
+        _markLocationSynced(pos);
+        debugPrint(
+          'TrackingService: Location cached offline in background task',
+        );
+        return;
+      }
 
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Accept': 'application/json',
-          },
-        ),
+      final sessionId = await FlutterForegroundTask.getData<int>(
+        key: 'session_id',
       );
+      final token = await FlutterForegroundTask.getData<String>(key: 'token');
+      final deviceId = await FlutterForegroundTask.getData<String>(
+        key: 'device_id',
+      );
+      if (sessionId == null || token == null || deviceId == null) {
+        debugPrint('Background Task missing data. Cannot sync.');
+        return;
+      }
+
+      final uri = '${AppConfig.baseUrl}${AppConstants.trackingLocationUpdate}';
+      _dio.options.headers['Authorization'] = 'Bearer $token';
 
       final body = {
         'session_id': sessionId,
@@ -165,15 +294,8 @@ class MyTaskHandler extends TaskHandler {
         'location_time': locationTimeStr,
       };
 
-      if (connectivityResults.contains(ConnectivityResult.none)) {
-        throw DioException(
-          requestOptions: RequestOptions(path: uri),
-          type: DioExceptionType.connectionError,
-          error: 'No internet connection',
-        );
-      }
-
-      final response = await dio.post(uri, data: body);
+      final response = await _dio.post(uri, data: body);
+      _markLocationSynced(pos);
       debugPrint('Background location sync status: ${response.statusCode}');
     } on DioException catch (e) {
       debugPrint(
@@ -181,8 +303,10 @@ class MyTaskHandler extends TaskHandler {
       );
       try {
         if (locationDataToCache != null) {
-          final box = await Hive.openBox<LocationData>('location_cache_box');
-          await box.add(locationDataToCache);
+          await _cacheLocation(locationDataToCache);
+          if (positionToMark != null) {
+            _markLocationSynced(positionToMark);
+          }
           debugPrint(
             'TrackingService: Location cached offline in background task',
           );
@@ -192,6 +316,16 @@ class MyTaskHandler extends TaskHandler {
       }
     } catch (e) {
       debugPrint('Background location fetch/sync failed: $e');
+      try {
+        if (locationDataToCache != null) {
+          await _cacheLocation(locationDataToCache);
+          if (positionToMark != null) {
+            _markLocationSynced(positionToMark);
+          }
+        }
+      } catch (boxErr) {
+        debugPrint('Failed to cache offline in background: $boxErr');
+      }
     }
   }
 
