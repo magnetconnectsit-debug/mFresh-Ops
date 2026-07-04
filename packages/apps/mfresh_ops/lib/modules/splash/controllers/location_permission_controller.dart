@@ -77,10 +77,13 @@ class LocationPermissionController extends GetxController with WidgetsBindingObs
           type: ToastType.error,
         );
         
-        if (currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied) {
+        // On iOS, if the prompt doesn't show or is denied, we must direct the user to settings
+        final shouldShowSettings = currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied || (Platform.isIOS && (currentFg.isDenied || currentBg.isDenied));
+        
+        if (shouldShowSettings) {
           Get.defaultDialog(
             title: 'Permission Required',
-            middleText: 'Location permissions are permanently denied. Please enable them in app settings to continue.',
+            middleText: 'Location permissions are required. Please enable them in app settings to continue.',
             textConfirm: 'Open Settings',
             textCancel: 'Cancel',
             confirmTextColor: Colors.white,

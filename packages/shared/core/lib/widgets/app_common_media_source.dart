@@ -10,14 +10,13 @@ class AppCommonMediaSource {
     required VoidCallback onChooseVideo,
   }) {
     Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      Material(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 48,
@@ -76,7 +75,7 @@ class AppCommonMediaSource {
             const SizedBox(height: 12),
           ],
         ),
-      ),
+      )),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );

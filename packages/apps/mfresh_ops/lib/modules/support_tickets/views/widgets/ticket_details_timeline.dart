@@ -67,16 +67,15 @@ class TicketDetailsTimeline extends StatelessWidget {
     TicketDetailsController controller,
   ) {
     Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
+      Material(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Take a Photo'),
               onTap: () {
@@ -110,7 +109,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -906,17 +905,16 @@ class TicketDetailsTimeline extends StatelessWidget {
               InkWell(
                 onTap: () async {
                   Get.bottomSheet(
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
+                    Material(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           ListTile(
                             leading: const Icon(Icons.camera_alt),
                             title: const Text('Take a Photo'),
@@ -995,7 +993,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
+                    )),
                   );
                 },
                 child: const Row(
