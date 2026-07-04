@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +48,7 @@ class LocationPermissionScreen extends StatelessWidget {
               SizedBox(height: 16.h),
               // Description
               Text(
-                'This app is for operations and logistics. To start using the app, you must allow background location permission "Allow all the time" so that your location can be tracked while tasks are active.',
+                'This app is for operations and logistics. To start using the app, you must allow background location permission ${Platform.isIOS ? '"Always"' : '"Allow all the time"'} so that your location can be tracked while tasks are active.',
                 textAlign: TextAlign.center,
                 style: AppTextStyle.style_12_400(color: const Color(0xFF6C757D)),
               ),
@@ -65,7 +66,7 @@ class LocationPermissionScreen extends StatelessWidget {
                   children: [
                     _buildGuideItem('1', 'Click the button below to request permission.'),
                     SizedBox(height: 8.h),
-                    _buildGuideItem('2', 'Select "Allow all the time" or "Allow in Settings" to enable background location tracking.'),
+                    _buildGuideItem('2', 'Select ${Platform.isIOS ? '"Always"' : '"Allow all the time"'} or "Allow in Settings" to enable background location tracking.'),
                     SizedBox(height: 8.h),
                     _buildGuideItem('3', 'Without background location, the app cannot be opened.'),
                   ],
