@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Flutter Run -&gt; 'firebase_remote_config_example'" type="FlutterRunConfigurationType" factoryName="Flutter">
+    <option name="filePath" value="$PROJECT_DIR$/packages/apps/mfresh/build/ios/SourcePackages/firebase_remote_config-6.4.0/example/lib/main.dart" />
+    <method v="2" />
+  </configuration>
+</component>
