@@ -370,7 +370,7 @@ class TicketDetailsHeader extends StatelessWidget {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 10),
+                FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 10),
                 SizedBox(width: 4),
                 Text(
                   "WhatsApp",
