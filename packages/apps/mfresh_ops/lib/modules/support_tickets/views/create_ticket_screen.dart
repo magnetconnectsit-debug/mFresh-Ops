@@ -541,7 +541,7 @@ class CreateTicketScreen extends StatelessWidget {
                     Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const FaIcon(
+                        FaIcon(
                           FontAwesomeIcons.whatsapp,
                           color: Colors.green,
                           size: 20,
