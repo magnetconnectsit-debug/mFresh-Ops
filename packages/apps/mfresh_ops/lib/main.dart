@@ -221,6 +221,12 @@ class MyTaskHandler extends TaskHandler {
     Position? positionToMark;
 
     try {
+      final isEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isEnabled) {
+        debugPrint('Background Task: Location service disabled. Skipping sync.');
+        return;
+      }
+
       final pos = await _resolvePosition();
       if (pos == null) {
         debugPrint('Background Task: Waiting for location fix...');
