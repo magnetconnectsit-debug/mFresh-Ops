@@ -493,6 +493,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       try {
         await _repository.dutyOff();
         await stopTracking();
+        try {
+          await Get.find<AuthRepository>().fetchProfile();
+        } catch (_) {}
       } catch (e) {
         debugPrint('TrackingService: dutyOff Exception: $e');
       } finally {
@@ -504,6 +507,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       try {
         await _repository.dutyOn();
         await startTracking();
+        try {
+          await Get.find<AuthRepository>().fetchProfile();
+        } catch (_) {}
       } catch (e) {
         debugPrint('TrackingService: dutyOn Exception: $e');
       } finally {
@@ -684,6 +690,15 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
   Future<void> _syncLocation(Position pos) async {
     if (sessionId.value == null) return;
+    
+    // Check if location service is actually enabled.
+    // If user turned off GPS, stop sending stale location updates.
+    final isEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isEnabled) {
+      debugPrint('TrackingService: Location service disabled. Skipping sync.');
+      return;
+    }
+
     if (_shouldSkipLocationUpdate(pos)) return;
 
     final deviceId = await _getDeviceId();
