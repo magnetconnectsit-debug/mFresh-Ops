@@ -41,13 +41,13 @@ class _FloatingLoggerButtonState extends State<FloatingLoggerButton> {
     return Positioned(
       bottom: _offset.dy,
       right: _offset.dx,
-      child: Draggable(
-        feedback: _buildButton(context, isFeedback: true),
-        childWhenDragging: const SizedBox.shrink(),
-        onDragEnd: (details) {
+      child: GestureDetector(
+        onPanUpdate: (details) {
           setState(() {
-            final size = MediaQuery.of(context).size;
-            _offset = Offset(0, size.height - details.offset.dy - 50);
+            _offset = Offset(
+              _offset.dx - details.delta.dx,
+              _offset.dy - details.delta.dy,
+            );
           });
         },
         child: _buildButton(context),
