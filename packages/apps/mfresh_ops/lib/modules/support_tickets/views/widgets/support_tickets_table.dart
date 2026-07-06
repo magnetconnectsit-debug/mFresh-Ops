@@ -17,7 +17,7 @@ const List<(String, double)> _kColumns = [
   ('Subject', 140),
   ('Project', 110),
   ('Category', 110),
-  ('Sub-Category', 110),
+  ('Sub-Category', 115),
   ('Status', 80),
   ('Priority', 90),
   ('Assignee', 100),

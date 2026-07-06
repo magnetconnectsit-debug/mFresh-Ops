@@ -91,10 +91,19 @@ class _AppCommonPdfViewerState extends State<AppCommonPdfViewer> {
     }
   }
 
-  Future<void> _sharePdf() async {
+  Future<void> _sharePdf(BuildContext context) async {
     final path = widget.filePath ?? await _downloadPdf(silent: true);
     if (path != null) {
-      await Share.shareXFiles([XFile(path)], text: 'Check out this ${widget.title}');
+      final box = context.findRenderObject() as RenderBox?;
+      final rect = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, MediaQuery.of(context).size.height / 2);
+
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: 'Check out this ${widget.title}',
+        sharePositionOrigin: rect,
+      );
     } else {
       AppCommonToastMessage.show(message: 'Failed to prepare file for sharing', type: ToastType.error);
     }
@@ -107,9 +116,11 @@ class _AppCommonPdfViewerState extends State<AppCommonPdfViewer> {
       appBar: AppCommonAppBar(
         title: Text(widget.title.sanitize),
         actions: [
-          IconButton(
-            onPressed: _sharePdf,
-            icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
+          Builder(
+            builder: (ctx) => IconButton(
+              onPressed: () => _sharePdf(ctx),
+              icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
+            ),
           ),
           Obx(() => IconButton(
                 onPressed: (_isDownloading.value || widget.filePath != null) ? null : () => _downloadPdf(),
