@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
+import 'package:dio/dio.dart' as dio;
 
 class TrackingRepository {
   final ApiService _apiService = Get.find<ApiService>();
@@ -35,6 +36,13 @@ class TrackingRepository {
     return await _apiService.get(
       AppConstants.trackingCurrentStatus,
       query: {'_t': DateTime.now().millisecondsSinceEpoch.toString()},
+      options: dio.Options(
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      ),
     );
   }
 
