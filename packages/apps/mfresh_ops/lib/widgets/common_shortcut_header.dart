@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 
 class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -17,7 +18,7 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -43,28 +44,47 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          _buildShortcutButton(
-            label: 'Ticket',
-            onTap: () {
-              if (Get.currentRoute != AppRoutes.supportTickets) {
-                Get.toNamed(AppRoutes.supportTickets);
-              }
-            },
-            color: const Color(0xFFE3F2FD),
-            textColor: const Color(0xFF1976D2),
-          ),
-          SizedBox(width: 8.w),
-          _buildShortcutButton(
-            label: 'Tasks',
-            onTap: () {
-              if (Get.currentRoute != AppRoutes.dailyTasks) {
-                Get.toNamed(AppRoutes.dailyTasks);
-              }
-            },
-            color: const Color(0xFFF3E5F5),
-            textColor: const Color(0xFF7B1FA2),
-          ),
-          SizedBox(width: 8.w),
+          Obx(() {
+            final authRepo = Get.find<AuthRepository>();
+            final userPermissions = authRepo.rxUserPermissions;
+            if (!userPermissions.contains('maintenance_panel')) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: EdgeInsets.only(right: 8.w),
+              child: _buildShortcutButton(
+                label: 'Ticket',
+                onTap: () {
+                  if (Get.currentRoute != AppRoutes.supportTickets) {
+                    Get.toNamed(AppRoutes.supportTickets);
+                  }
+                },
+                color: const Color(0xFFE3F2FD),
+                textColor: const Color(0xFF1976D2),
+              ),
+            );
+          }),
+          Obx(() {
+            final authRepo = Get.find<AuthRepository>();
+            final userPermissions = authRepo.rxUserPermissions;
+            if (!userPermissions.contains('Task_Sheduler_Pannel') ||
+                !userPermissions.contains('Daily_Task')) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: EdgeInsets.only(right: 8.w),
+              child: _buildShortcutButton(
+                label: 'Tasks',
+                onTap: () {
+                  if (Get.currentRoute != AppRoutes.dailyTasks) {
+                    Get.toNamed(AppRoutes.dailyTasks);
+                  }
+                },
+                color: const Color(0xFFF3E5F5),
+                textColor: const Color(0xFF7B1FA2),
+              ),
+            );
+          }),
           _buildShortcutIcon(
             icon: Icons.notifications_none_rounded,
             onTap: () {

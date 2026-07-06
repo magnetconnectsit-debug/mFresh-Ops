@@ -166,12 +166,13 @@ class CommonSidebar extends StatelessWidget {
                     currentRoute: currentRoute,
                   ),
 
-                  _buildExpandableMenuItem(
-                    icon: Icons.support_agent_outlined,
-                    title: 'Support Ticket',
-                    subItems: ['Support Ticket'],
-                    currentRoute: currentRoute,
-                  ),
+                  if (userPermissions.contains('maintenance_panel'))
+                    _buildExpandableMenuItem(
+                      icon: Icons.support_agent_outlined,
+                      title: 'Support Ticket',
+                      subItems: ['Support Ticket'],
+                      currentRoute: currentRoute,
+                    ),
 
                   // Task Scheduler Expandable Section
                   if (showTaskScheduler && taskSubItems.isNotEmpty)
