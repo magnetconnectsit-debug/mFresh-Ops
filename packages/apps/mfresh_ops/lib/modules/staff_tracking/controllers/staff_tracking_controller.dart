@@ -68,7 +68,7 @@ class StaffTrackingController extends GetxController
 
   void _startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       fetchEmployees(isSilent: true);
     });
   }
