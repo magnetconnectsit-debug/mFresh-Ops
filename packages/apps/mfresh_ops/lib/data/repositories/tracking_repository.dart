@@ -32,7 +32,10 @@ class TrackingRepository {
   }
 
   Future<dynamic> getCurrentStatus() async {
-    return await _apiService.get(AppConstants.trackingCurrentStatus);
+    return await _apiService.get(
+      AppConstants.trackingCurrentStatus,
+      query: {'_t': DateTime.now().millisecondsSinceEpoch.toString()},
+    );
   }
 
   Future<dynamic> dutyOn() async {
