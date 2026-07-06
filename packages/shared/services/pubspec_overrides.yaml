@@ -1,4 +1,8 @@
-# melos_managed_dependency_overrides: core
+# melos_managed_dependency_overrides: core,firebase_messaging,firebase_remote_config
 dependency_overrides:
   core:
-    path: ..\\core
+    path: ../core
+  firebase_messaging:
+    path: ../../apps/mfresh/build/ios/SourcePackages/firebase_messaging-16.2.0
+  firebase_remote_config:
+    path: ../../apps/mfresh/build/ios/SourcePackages/firebase_remote_config-6.4.0

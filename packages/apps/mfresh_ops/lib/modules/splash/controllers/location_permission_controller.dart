@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -72,14 +73,17 @@ class LocationPermissionController extends GetxController with WidgetsBindingObs
       final currentBg = await Permission.locationAlways.status;
       if (!currentFg.isGranted || !currentBg.isGranted) {
         AppCommonToastMessage.show(
-          message: 'Please select "Allow all the time" in location permissions to use this app.',
+          message: 'Please select ${Platform.isIOS ? '"Always"' : '"Allow all the time"'} in location permissions to use this app.',
           type: ToastType.error,
         );
         
-        if (currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied) {
+        // On iOS, if the prompt doesn't show or is denied, we must direct the user to settings
+        final shouldShowSettings = currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied || (Platform.isIOS && (currentFg.isDenied || currentBg.isDenied));
+        
+        if (shouldShowSettings) {
           Get.defaultDialog(
             title: 'Permission Required',
-            middleText: 'Location permissions are permanently denied. Please enable them in app settings to continue.',
+            middleText: 'Location permissions are required. Please enable them in app settings to continue.',
             textConfirm: 'Open Settings',
             textCancel: 'Cancel',
             confirmTextColor: Colors.white,

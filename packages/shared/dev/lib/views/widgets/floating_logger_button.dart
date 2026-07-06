@@ -16,65 +16,43 @@ class _FloatingLoggerButtonState extends State<FloatingLoggerButton> {
   Offset _offset = const Offset(0, 100);
   final settings = Get.find<SettingsService>();
 
+  bool _show = false;
+
   @override
   void initState() {
     super.initState();
+    _checkVisibility();
     everAll([settings.showLogger, settings.isDevMode], (_) {
-      if (settings.showLogger.value || settings.isDevMode.value || kDebugMode) {
-        _showOverlay();
-      } else {
-        _hideOverlay();
-      }
-    });
-
-    // Show initially if enabled, in dev mode, or in debug mode
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (settings.showLogger.value || settings.isDevMode.value || kDebugMode) {
-        _showOverlay();
-      }
+      _checkVisibility();
     });
   }
 
-  void _showOverlay() {
-    if (_overlayEntry != null) return;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        bottom: _offset.dy,
-        right: _offset.dx,
-        child: Draggable(
-          feedback: _buildButton(context, isFeedback: true),
-          childWhenDragging: const SizedBox.shrink(),
-          onDragEnd: (details) {
-            setState(() {
-              // Update position based on screen size to keep it on the right edge
-              final size = MediaQuery.of(context).size;
-              _offset = Offset(0, size.height - details.offset.dy - 50);
-              _overlayEntry?.markNeedsBuild();
-            });
-          },
-          child: _buildButton(context),
-        ),
-      ),
-    );
-
-    Overlay.of(Get.overlayContext!).insert(_overlayEntry!);
-  }
-
-  void _hideOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  @override
-  void dispose() {
-    _hideOverlay();
-    super.dispose();
+  void _checkVisibility() {
+    final shouldShow = settings.showLogger.value || settings.isDevMode.value || kDebugMode;
+    if (_show != shouldShow) {
+      if (mounted) setState(() => _show = shouldShow);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox.shrink(); // This widget doesn't render anything itself
+    if (!_show) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: _offset.dy,
+      right: _offset.dx,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _offset = Offset(
+              _offset.dx - details.delta.dx,
+              _offset.dy - details.delta.dy,
+            );
+          });
+        },
+        child: _buildButton(context),
+      ),
+    );
   }
 
   Widget _buildButton(BuildContext context, {bool isFeedback = false}) {
