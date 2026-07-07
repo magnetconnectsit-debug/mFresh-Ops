@@ -1,12 +1,8 @@
-# melos_managed_dependency_overrides: core,dev,firebase_messaging,firebase_remote_config,services
+# melos_managed_dependency_overrides: core,dev,services
 dependency_overrides:
   core:
     path: ../../shared/core
   dev:
     path: ../../shared/dev
-  firebase_messaging:
-    path: build/ios/SourcePackages/firebase_messaging-16.2.0
-  firebase_remote_config:
-    path: build/ios/SourcePackages/firebase_remote_config-6.4.0
   services:
     path: ../../shared/services
