@@ -85,7 +85,7 @@ Future<void> initServices() async {
   debugPrint('🔗 [mfresh] Active API: $activeUrl');
 
   final RemoteConfigService remoteConfigService = await Get.putAsync(
-        () => RemoteConfigService().init(defaultBaseUrl: activeUrl),
+    () => RemoteConfigService().init(defaultBaseUrl: activeUrl),
   );
 
   final String fetchedBaseUrl = AppConfig.isDev
@@ -99,14 +99,13 @@ Future<void> initServices() async {
   Get.put(ConnectivityService());
 
   await Get.putAsync(
-        () =>
-        DioClient().init(
-          publicPaths: [
-            AppConstants.login,
-            AppConstants.sendOtp,
-            AppConstants.verifyOtp,
-          ],
-        ),
+    () => DioClient().init(
+      publicPaths: [
+        AppConstants.login,
+        AppConstants.sendOtp,
+        AppConstants.verifyOtp,
+      ],
+    ),
   );
 
   Get.put(ApiService());
@@ -180,41 +179,40 @@ class MyApp extends StatelessWidget {
             return Directionality(
               textDirection: TextDirection.ltr,
               child: Obx(
-                    () =>
-                    Stack(
-                      children: [
-                        GetMaterialApp(
-                          title: 'mFresh',
-                          debugShowCheckedModeBanner: false,
-                          theme: ThemeData(
-                            primaryColor: AppColors.primary,
-                            scaffoldBackgroundColor: AppColors.white,
-                            colorScheme: ColorScheme.fromSeed(
-                              seedColor: AppColors.primary,
-                              brightness: Brightness.light,
-                            ),
-                            appBarTheme: AppBarTheme(
-                              elevation: 0,
-                              backgroundColor: AppColors.white,
-                              surfaceTintColor: AppColors.transparent,
-                              iconTheme: const IconThemeData(
-                                color: AppColors.black1,
-                              ),
-                              titleTextStyle: AppTextStyle.style_18_600(
-                                color: AppColors.black1,
-                              ),
-                            ),
-                          ),
-                          initialRoute: AppRoutes.initial,
-                          getPages: AppPages.routes,
-                          defaultTransition: Transition.cupertino,
+                () => Stack(
+                  children: [
+                    GetMaterialApp(
+                      title: 'mFresh',
+                      debugShowCheckedModeBanner: false,
+                      theme: ThemeData(
+                        primaryColor: AppColors.primary,
+                        scaffoldBackgroundColor: AppColors.white,
+                        colorScheme: ColorScheme.fromSeed(
+                          seedColor: AppColors.primary,
+                          brightness: Brightness.light,
                         ),
-                        if (settings.showLogger.value ||
-                            settings.isDevMode.value ||
-                            kDebugMode)
-                          const FloatingLoggerButton(),
-                      ],
+                        appBarTheme: AppBarTheme(
+                          elevation: 0,
+                          backgroundColor: AppColors.white,
+                          surfaceTintColor: AppColors.transparent,
+                          iconTheme: const IconThemeData(
+                            color: AppColors.black1,
+                          ),
+                          titleTextStyle: AppTextStyle.style_18_600(
+                            color: AppColors.black1,
+                          ),
+                        ),
+                      ),
+                      initialRoute: AppRoutes.initial,
+                      getPages: AppPages.routes,
+                      defaultTransition: Transition.cupertino,
                     ),
+                    if (settings.showLogger.value ||
+                        settings.isDevMode.value ||
+                        kDebugMode)
+                      const FloatingLoggerButton(),
+                  ],
+                ),
               ),
             );
           },
