@@ -211,7 +211,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         priority: NotificationPriority.LOW,
       ),
       iosNotificationOptions: const IOSNotificationOptions(
-        showNotification: true,
+        showNotification: false,
         playSound: false,
       ),
       foregroundTaskOptions: const ForegroundTaskOptions(
