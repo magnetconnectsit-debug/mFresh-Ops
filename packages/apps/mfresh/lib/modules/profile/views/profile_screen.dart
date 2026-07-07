@@ -1,3 +1,4 @@
+import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -125,27 +126,30 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppCommonAppBar(
+        hasBackButton: true,
+        title: Text('Profile'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Column(
             children: [
               SizedBox(height: 16.h),
-              // Header with Title and History
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Profile',
-                    style: AppTextStyle.style_20_700(color: AppColors.black),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.history, size: 24.sp, color: AppColors.black),
-                    onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Text(
+              //       'Profile',
+              //       style: AppTextStyle.style_20_700(color: AppColors.black),
+              //     ),
+              //     IconButton(
+              //       icon: Icon(Icons.history, size: 24.sp, color: AppColors.black),
+              //       onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
+              //     ),
+              //   ],
+              // ),
+              // SizedBox(height: 16.h),
               // User Card (Orange Header)
               Container(
                 width: double.infinity,
