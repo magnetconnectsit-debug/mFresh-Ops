@@ -172,7 +172,7 @@ class MyTaskHandler extends TaskHandler {
       return true;
     }
 
-    final currentTime = position.timestamp ?? DateTime.now();
+    final currentTime = position.timestamp;
     final distanceMeters = Geolocator.distanceBetween(
       lastPosition.latitude,
       lastPosition.longitude,
