@@ -99,22 +99,97 @@ class DutyStatusCard extends StatelessWidget {
                       child: const CustomAppLoader(),
                     ),
                   )
-                : Transform.scale(
-                    scale: 0.85,
-                    child: Switch.adaptive(
-                      value: isTracking,
-                      activeColor: AppColors.primaryGreen,
-                      activeTrackColor: AppColors.primaryGreen.withOpacity(0.2),
-                      inactiveThumbColor: AppColors.grey200,
-                      inactiveTrackColor: AppColors.grey50,
-                      onChanged: (val) async {
-                        await TrackingService.to.toggleTracking();
-                      },
-                    ),
+                : CustomLiquidSwitch(
+                    value: isTracking,
+                    activeColor: AppColors.primaryGreen,
+                    inactiveColor: AppColors.grey50,
+                    onChanged: (val) async {
+                      await TrackingService.to.toggleTracking();
+                    },
                   ),
           ],
         ),
       );
     });
+  }
+}
+
+class CustomLiquidSwitch extends StatefulWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  const CustomLiquidSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  State<CustomLiquidSwitch> createState() => _CustomLiquidSwitchState();
+}
+
+class _CustomLiquidSwitchState extends State<CustomLiquidSwitch> {
+  bool _isPressed = false;
+  bool _isAnimating = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) async {
+        setState(() {
+          _isPressed = false;
+          _isAnimating = true;
+        });
+        widget.onChanged(!widget.value);
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          setState(() => _isAnimating = false);
+        }
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.92 : 1.0, // Overall squeeze effect
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutBack,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          width: 52,
+          height: 32,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: widget.value ? widget.activeColor : widget.inactiveColor,
+          ),
+          child: AnimatedAlign(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.elasticOut, // Bouncy snapping logic
+            alignment: widget.value ? Alignment.centerRight : Alignment.centerLeft,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              width: _isPressed || _isAnimating ? 36 : 28, // The liquid stretch
+              height: 28,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
