@@ -172,8 +172,8 @@ class _CustomLiquidSwitchState extends State<CustomLiquidSwitch> {
             alignment: widget.value ? Alignment.centerRight : Alignment.centerLeft,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              width: _isPressed || _isAnimating ? 36 : 28, // The liquid stretch
+              curve: Curves.easeOutBack,
+              width: _isAnimating ? 46 : (_isPressed ? 34 : 28), // Huge stretch across the track
               height: 28,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
