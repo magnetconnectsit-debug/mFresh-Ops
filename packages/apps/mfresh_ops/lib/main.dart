@@ -159,30 +159,9 @@ class MyTaskHandler extends TaskHandler {
   }
 
   bool _shouldSendUpdate(Position position) {
-    if (position.accuracy > 150.0) {
-      debugPrint(
-        'Background Task: Skipping update due to poor accuracy (${position.accuracy}m)',
-      );
-      return false;
-    }
-
-    final lastPosition = _lastSyncedPosition;
-    final lastSyncedAt = _lastSyncedAt;
-    if (lastPosition == null || lastSyncedAt == null) {
-      return true;
-    }
-
-    final currentTime = position.timestamp;
-    final distanceMeters = Geolocator.distanceBetween(
-      lastPosition.latitude,
-      lastPosition.longitude,
-      position.latitude,
-      position.longitude,
-    );
-    final elapsed = currentTime.difference(lastSyncedAt);
-
-    return distanceMeters >= _minimumUpdateDistanceMeters ||
-        elapsed >= _minimumUpdateInterval;
+    // Per user request: DO NOT throttle or abort updates as long as tracking is active.
+    // Location update should happen even if standing still or if accuracy is low.
+    return true;
   }
 
   String? _networkTypeFromConnectivity(List<ConnectivityResult> results) {
@@ -295,17 +274,20 @@ class MyTaskHandler extends TaskHandler {
         'speed': pos.speed,
         'heading': pos.heading,
         'battery': batteryLevel,
-        'isCharging': isCharging,
-        'networkType': networkType,
+        'is_charging': isCharging,
+        'network_type': networkType,
         'location_time': locationTimeStr,
       };
+
+      debugPrint('Background Sync URI: $uri');
+      debugPrint('Background Sync Body: $body');
 
       final response = await _dio.post(uri, data: body);
       _markLocationSynced(pos);
       debugPrint('Background location sync status: ${response.statusCode}');
     } on DioException catch (e) {
       debugPrint(
-        'Background location sync DioError: ${e.message}. Caching offline.',
+        'Background location sync DioError: ${e.message} | Response: ${e.response?.data}. Caching offline.',
       );
       try {
         if (locationDataToCache != null) {

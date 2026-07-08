@@ -2,13 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_start_flutter/auto_start_flutter.dart';
-import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
-
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/custom_app_loader.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +15,7 @@ import 'package:get/get.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
@@ -45,14 +43,10 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   Timer? _foregroundUpdateTimer;
   Box<LocationData>? _locationCacheBox;
   Position? _lastSyncedPosition;
-  DateTime? _lastSyncedAt;
   List<ConnectivityResult> _connectivityResults = const [
     ConnectivityResult.none,
   ];
   bool _isOnline = false;
-
-  static const double _minSyncDistanceMeters = 10.0;
-  static const Duration _minSyncInterval = Duration(seconds: 30);
 
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
@@ -130,49 +124,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       final int? isOnDuty = user.isOnDuty is int
           ? user.isOnDuty
           : int.tryParse(user.isOnDuty?.toString() ?? '');
-      if (isOnDuty == 1) {
-        debugPrint(
-          'TrackingService: User is_on_duty = 1. Resuming/starting tracking.',
-        );
-        isTracking.value = true;
-        sessionId.value = user.trackingSessionId ?? _storageService.getTrackingSessionId();
-        if (user.trackingSessionId != null) {
-          await _storageService.saveTrackingSessionId(user.trackingSessionId!);
-        }
-        await _refreshLocationSyncLoop();
-
-        // Verify with backend, but force start if backend tracking is inactive
-        try {
-          final data = await _repository.getCurrentStatus();
-          if (data != null && data['status'] == true) {
-            final active = data['tracking_active'] ?? false;
-            final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
-
-            if (active) {
-              sessionId.value = newSessionId;
-              if (newSessionId != null) {
-                await _storageService.saveTrackingSessionId(newSessionId);
-                if (hasBgService) {
-                  await FlutterForegroundTask.saveData(
-                    key: 'session_id',
-                    value: newSessionId,
-                  );
-                }
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint('TrackingService: error verifying status: $e');
-        }
-        return;
-      } else if (isOnDuty == 0) {
-        debugPrint(
-          'TrackingService: User is_on_duty = 0. Stopping/staying off-duty.',
-        );
-        isTracking.value = false;
-        await stopTracking();
-        return;
-      }
+      // We know isOnDuty status, but we STILL need to fetch the real session_id 
+      // from checkCurrentStatus() because the profile API does not return it!
     }
 
     await checkCurrentStatus();
@@ -277,49 +230,15 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     return results.first.name;
   }
 
-  void _markLocationSynced(Position pos) {
-    _lastSyncedPosition = pos;
-    _lastSyncedAt = pos.timestamp ?? DateTime.now();
-  }
+  // Sync state tracking removed per user request (no throttling)
+  void _markLocationSynced(Position pos) {}
 
-  void _resetLocationSyncState() {
-    _lastSyncedPosition = null;
-    _lastSyncedAt = null;
-  }
+  void _resetLocationSyncState() {}
+  static const double _minSyncDistanceMeters = 10.0;
 
   bool _shouldSkipLocationUpdate(Position pos) {
-    if (pos.accuracy > 150.0) {
-      debugPrint(
-        'TrackingService: Discarding location due to poor accuracy (${pos.accuracy}m)',
-      );
-      return true;
-    }
-
-    final lastPosition = _lastSyncedPosition;
-    final lastSyncedAt = _lastSyncedAt;
-    if (lastPosition == null || lastSyncedAt == null) {
-      return false;
-    }
-
-    final currentTime = pos.timestamp ?? DateTime.now();
-    final distanceMeters = Geolocator.distanceBetween(
-      lastPosition.latitude,
-      lastPosition.longitude,
-      pos.latitude,
-      pos.longitude,
-    );
-    final elapsed = currentTime.difference(lastSyncedAt);
-
-    if (distanceMeters < _minSyncDistanceMeters &&
-        elapsed < _minSyncInterval) {
-      debugPrint(
-        'TrackingService: Skipping unchanged location update '
-        '(distance: ${distanceMeters.toStringAsFixed(1)}m, '
-        'elapsed: ${elapsed.inSeconds}s)',
-      );
-      return true;
-    }
-
+    // Per user request: DO NOT throttle or abort updates as long as is_on_duty == 1.
+    // Location update should happen even if standing still or if accuracy is low.
     return false;
   }
 
@@ -367,20 +286,39 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   Future<void> checkCurrentStatus() async {
     try {
       final data = await _repository.getCurrentStatus();
-      if (data != null && data['status'] == true) {
-        isTracking.value = data['tracking_active'] ?? false;
-        final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
+      final user = _storageService.getUser();
+      if (data != null && user != null) {
+        bool active = false;
+        int? newSessionId;
+        
+        final employees = data['employees'];
+        if (employees is List) {
+          final currentUserData = employees.firstWhere(
+            (e) => e['id'] == user.id || e['id'].toString() == user.id.toString(),
+            orElse: () => null,
+          );
+          if (currentUserData != null) {
+            active = (currentUserData['is_on_duty'] == 1 || currentUserData['is_on_duty'] == '1');
+            newSessionId = currentUserData['session_id'] is int 
+                ? currentUserData['session_id'] 
+                : int.tryParse(currentUserData['session_id']?.toString() ?? '');
+          }
+        }
+
+        isTracking.value = active;
         sessionId.value = newSessionId;
         if (newSessionId != null) {
           await _storageService.saveTrackingSessionId(newSessionId);
+          await FlutterForegroundTask.saveData(
+            key: 'session_id',
+            value: newSessionId as Object,
+          );
         }
         if (isTracking.value) {
-          _resetLocationSyncState();
           await _refreshLocationSyncLoop();
         } else {
-          _resetLocationSyncState();
           _stopForegroundUpdateTimer();
-          await _startForegroundService();
+          await _startForegroundService(); // This actually stops it when isTracking is false
         }
       }
     } catch (e) {
@@ -633,7 +571,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         return FlutterForegroundTask.restartService();
       } else {
         if (!kIsWeb && Platform.isAndroid) {
-          final isIgnoring = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+          final isIgnoring =
+              await FlutterForegroundTask.isIgnoringBatteryOptimizations;
           if (!isIgnoring) {
             try {
               await FlutterForegroundTask.requestIgnoreBatteryOptimization();
@@ -641,10 +580,11 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
               debugPrint('Battery optimization request error: $e');
             }
           }
-          
+
           try {
             final isAutoStartAvail = await isAutoStartAvailable;
-            if (isAutoStartAvail == true && !_storageService.getHasShownAutoStartPrompt()) {
+            if (isAutoStartAvail == true &&
+                !_storageService.getHasShownAutoStartPrompt()) {
               await _storageService.saveHasShownAutoStartPrompt(true);
               if (Get.context != null) {
                 await showDialog(
@@ -690,7 +630,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
   Future<void> _syncLocation(Position pos) async {
     if (sessionId.value == null) return;
-    
+
     // Check if location service is actually enabled.
     // If user turned off GPS, stop sending stale location updates.
     final isEnabled = await Geolocator.isLocationServiceEnabled();
@@ -707,7 +647,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     final connectivityResults = _connectivityResults;
     final networkType = _networkTypeFromConnectivity(connectivityResults);
     double speedKmH = pos.speed * 3.6;
-    
+
     // Prevent stationary heartbeat updates from capturing instantaneous GPS jitter speeds
     if (_lastSyncedPosition != null) {
       final distance = Geolocator.distanceBetween(
@@ -752,7 +692,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     );
 
     try {
-      final isOffline = !_isOnline ||
+      final isOffline =
+          !_isOnline ||
           connectivityResults.isEmpty ||
           connectivityResults.contains(ConnectivityResult.none);
 
