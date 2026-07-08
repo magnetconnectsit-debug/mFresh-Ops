@@ -20,7 +20,9 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
       backgroundColor: AppColors.white,
       drawer: const CommonSidebar(),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight + 50),
+        preferredSize: const AppCommonAppBar(
+          topHeader: CommonShortcutHeader(),
+        ).preferredSize,
         child: Obx(() {
           return AppCommonAppBar(
             title: controller.isSearching.value
