@@ -45,7 +45,14 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<Position?> getCurrentPosition() async {
-    return await Geolocator.getCurrentPosition(locationSettings: _locationSettings());
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: _locationSettings(),
+      ).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('getCurrentPosition error/timeout, falling back to last known: $e');
+      return await Geolocator.getLastKnownPosition();
+    }
   }
 
   @override

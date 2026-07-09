@@ -112,9 +112,10 @@ class User extends HiveObject {
           ? Map<dynamic, dynamic>.from(json['tracking_config'] ?? userData['tracking_config'])
           : null,
       imageUrl: userData['image_url']?.toString(),
-      trackingSessionId: userData['tracking_session_id'] is int
-          ? userData['tracking_session_id']
-          : int.tryParse(userData['tracking_session_id']?.toString() ?? ''),
+      // trackingSessionId: userData['tracking_session_id'] is int
+      //     ? userData['tracking_session_id']
+      //     : int.tryParse(userData['tracking_session_id']?.toString() ?? ''),
+      trackingSessionId: null, // Ignore from API since it provides stale data, use current-status instead
     );
   }
 

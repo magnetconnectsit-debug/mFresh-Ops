@@ -121,15 +121,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       return;
     }
 
-    final dynamic user = _storageService.getUser();
-    if (user != null) {
-      final int? isOnDuty = user.isOnDuty is int
-          ? user.isOnDuty
-          : int.tryParse(user.isOnDuty?.toString() ?? '');
-      // We still call checkCurrentStatus() to fetch a fresh profile from the network,
-      // guaranteeing we get the latest tracking_session_id directly from the backend.
-    }
-
+    // We call checkCurrentStatus() to fetch a fresh profile from the network,
+    // guaranteeing we get the latest tracking_session_id directly from the backend.
     await checkCurrentStatus();
 
     if (isTracking.value) {
@@ -291,11 +284,23 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     try {
       // Fetch latest profile to get fresh tracking_session_id and is_on_duty
       await Get.find<AuthRepository>().fetchProfile();
+      final statusResp = await _repository.getCurrentStatus();
       final user = _storageService.getUser();
 
       if (user != null) {
         bool active = user.isOnDuty == 1;
-        int? newSessionId = user.trackingSessionId;
+        int? newSessionId = _storageService.getTrackingSessionId();
+
+        if (statusResp != null && statusResp['status'] == true) {
+          final List emps = statusResp['employees'] ?? [];
+          final emp = emps.firstWhere((e) => (e['id'] ?? e['user_id']) == user.id, orElse: () => null);
+          if (emp != null) {
+            active = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+            newSessionId = emp['session_id'] != null
+                ? int.tryParse(emp['session_id'].toString())
+                : null;
+          }
+        }
 
         isTracking.value = active;
         sessionId.value = newSessionId;
@@ -459,14 +464,16 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     }
 
     final pos = await _locationService.getCurrentPosition();
-    if (pos == null) return;
+    if (pos == null) {
+      debugPrint('TrackingService: Could not get location, proceeding with fallback coordinates');
+    }
 
     final deviceId = await _getDeviceId();
 
     final request = TrackingStartRequest(
       deviceId: deviceId,
-      latitude: pos.latitude,
-      longitude: pos.longitude,
+      latitude: pos?.latitude ?? 0.0,
+      longitude: pos?.longitude ?? 0.0,
       startTime: _apiDateFormat.format(DateTime.now()),
     );
 
@@ -480,7 +487,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         }
         isTracking.value = true;
         await _storageService.saveIntendedTrackingStatus(true);
-        _markLocationSynced(pos);
+        if (pos != null) {
+          _markLocationSynced(pos);
+        }
         await _refreshLocationSyncLoop();
       }
     } catch (e) {
