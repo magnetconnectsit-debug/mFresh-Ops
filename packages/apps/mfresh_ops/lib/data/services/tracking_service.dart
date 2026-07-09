@@ -47,6 +47,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     ConnectivityResult.none,
   ];
   bool _isOnline = false;
+  bool _isCheckingStatus = false;
+  bool _hasRequestedBatteryOpt = false;
 
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
@@ -124,8 +126,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       final int? isOnDuty = user.isOnDuty is int
           ? user.isOnDuty
           : int.tryParse(user.isOnDuty?.toString() ?? '');
-      // We know isOnDuty status, but we STILL need to fetch the real session_id 
-      // from checkCurrentStatus() because the profile API does not return it!
+      // We still call checkCurrentStatus() to fetch a fresh profile from the network,
+      // guaranteeing we get the latest tracking_session_id directly from the backend.
     }
 
     await checkCurrentStatus();
@@ -284,26 +286,16 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   }
 
   Future<void> checkCurrentStatus() async {
+    if (_isCheckingStatus) return;
+    _isCheckingStatus = true;
     try {
-      final data = await _repository.getCurrentStatus();
+      // Fetch latest profile to get fresh tracking_session_id and is_on_duty
+      await Get.find<AuthRepository>().fetchProfile();
       final user = _storageService.getUser();
-      if (data != null && user != null) {
-        bool active = false;
-        int? newSessionId;
-        
-        final employees = data['employees'];
-        if (employees is List) {
-          final currentUserData = employees.firstWhere(
-            (e) => e['id'] == user.id || e['id'].toString() == user.id.toString(),
-            orElse: () => null,
-          );
-          if (currentUserData != null) {
-            active = (currentUserData['is_on_duty'] == 1 || currentUserData['is_on_duty'] == '1');
-            newSessionId = currentUserData['session_id'] is int 
-                ? currentUserData['session_id'] 
-                : int.tryParse(currentUserData['session_id']?.toString() ?? '');
-          }
-        }
+
+      if (user != null) {
+        bool active = user.isOnDuty == 1;
+        int? newSessionId = user.trackingSessionId;
 
         isTracking.value = active;
         sessionId.value = newSessionId;
@@ -323,6 +315,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint('TrackingService: checkCurrentStatus Exception: $e');
+    } finally {
+      _isCheckingStatus = false;
     }
   }
 
@@ -573,7 +567,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         if (!kIsWeb && Platform.isAndroid) {
           final isIgnoring =
               await FlutterForegroundTask.isIgnoringBatteryOptimizations;
-          if (!isIgnoring) {
+          if (!isIgnoring && !_hasRequestedBatteryOpt) {
+            _hasRequestedBatteryOpt = true;
             try {
               await FlutterForegroundTask.requestIgnoreBatteryOptimization();
             } catch (e) {
