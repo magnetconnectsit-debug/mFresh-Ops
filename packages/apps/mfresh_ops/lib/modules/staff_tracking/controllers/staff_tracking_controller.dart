@@ -599,7 +599,7 @@ class StaffTrackingController extends GetxController
                 _buildDetailRow(
                   Icons.speed,
                   'Speed',
-                  '${((double.tryParse(speed.toString()) ?? 0.0) * 3.6).toStringAsFixed(2)} km/h',
+                  '${double.tryParse(speed.toString())?.toStringAsFixed(2) ?? 0} km/h',
                   Colors.black87,
                 ),
               ],

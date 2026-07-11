@@ -413,7 +413,7 @@ class HistoryView extends GetView<HistoryController> {
                                       summaryItems.add(_buildSummaryItem(Icons.battery_std, 'Battery', '${live['battery']}%'));
                                     }
                                     if (live['speed'] != null) {
-                                      summaryItems.add(_buildSummaryItem(Icons.speed, 'Speed', '${((double.tryParse(live['speed'].toString()) ?? 0.0) * 3.6).toStringAsFixed(2)} km/h'));
+                                      summaryItems.add(_buildSummaryItem(Icons.speed, 'Speed', '${double.tryParse(live['speed'].toString())?.toStringAsFixed(2) ?? 0} km/h'));
                                     }
                                     if (live['last_seen'] != null) {
                                       String formatLastSeen(String dt) {

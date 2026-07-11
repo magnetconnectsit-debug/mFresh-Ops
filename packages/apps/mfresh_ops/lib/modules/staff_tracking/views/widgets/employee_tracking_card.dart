@@ -319,7 +319,7 @@ class EmployeeTrackingCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           speed != null
-                              ? '${((double.tryParse(speed.toString()) ?? 0.0) * 3.6).toStringAsFixed(0)} km/h'
+                              ? '${double.tryParse(speed.toString())?.toStringAsFixed(0) ?? 0} km/h'
                               : 'N/A',
                           style: AppTextStyle.style_10_500(
                             color: AppColors.grey600,
