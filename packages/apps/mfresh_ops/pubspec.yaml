@@ -1,6 +1,6 @@
 name: mfresh_ops
 description: "Magnet Connects Operations App (mfresh_ops)."
-version: 1.0.12+21
+version: 1.0.13+22
 publish_to: 'none'
 
 environment:

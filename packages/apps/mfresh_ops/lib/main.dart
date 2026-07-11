@@ -14,6 +14,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -57,12 +58,14 @@ void startCallback() {
 class MyTaskHandler extends TaskHandler {
   // region State Variables
   StreamSubscription<Position>? _positionStream;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Position? _latestPosition;
   DateTime? _latestPositionAt;
-  Box<LocationData>? _locationCacheBox;
 
   final Battery _battery = Battery();
   final Connectivity _connectivity = Connectivity();
+  final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 15),
@@ -74,6 +77,8 @@ class MyTaskHandler extends TaskHandler {
   int _cachedBatteryLevel = 100;
   bool _cachedIsCharging = false;
   DateTime? _lastBatteryCheck;
+  DateTime? _lastSyncedAt;
+  DateTime? _lastProcessedLocationTime;
 
   // Queue Processing Architecture
   final Queue<Position> _uploadQueue = Queue<Position>();
@@ -110,6 +115,7 @@ class MyTaskHandler extends TaskHandler {
       value: true,
     ); // Ownership claim
     await _updateBatteryState();
+    _lastProcessedLocationTime = DateTime.now();
 
     try {
       await Hive.initFlutter();
@@ -119,6 +125,20 @@ class MyTaskHandler extends TaskHandler {
       if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
         Hive.registerAdapter(UserAdapter());
       }
+
+      // Initialize local notifications inside background isolate
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: DarwinInitializationSettings(
+              requestSoundPermission: false,
+              requestBadgePermission: false,
+              requestAlertPermission: false,
+            ),
+          );
+      await _localNotificationsPlugin.initialize(settings: initializationSettings);
     } catch (_) {}
 
     _notificationUpdateTimer = Timer.periodic(
@@ -126,12 +146,23 @@ class MyTaskHandler extends TaskHandler {
       (_) => _updateNotificationSafely(),
     );
 
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
+      results,
+    ) {
+      final isOnline = results.any(
+        (result) => result != ConnectivityResult.none,
+      );
+      if (isOnline) {
+        unawaited(_syncOfflineCache());
+      }
+    });
+
     _positionStream =
         Geolocator.getPositionStream(
           locationSettings: _streamLocationSettings(),
         ).listen((Position position) async {
           _latestPosition = position;
-          _latestPositionAt = position.timestamp ?? DateTime.now();
+          _latestPositionAt = position.timestamp;
 
           if (position.accuracy >
               TrackingConstants.maxAcceptableAccuracyMeters) {
@@ -153,7 +184,9 @@ class MyTaskHandler extends TaskHandler {
   @override
   void onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
     debugPrint('========== BACKGROUND REPEAT EVENT ==========');
-    debugPrint('Is running service: ${await FlutterForegroundTask.isRunningService}');
+    debugPrint(
+      'Is running service: ${await FlutterForegroundTask.isRunningService}',
+    );
 
     final permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.deniedForever ||
@@ -182,15 +215,12 @@ class MyTaskHandler extends TaskHandler {
   void onDestroy(DateTime timestamp, SendPort? sendPort) async {
     _notificationUpdateTimer?.cancel();
     await _positionStream?.cancel();
+    await _connectivitySubscription?.cancel();
 
     // Drain pending RAM queue cache before killing container
     while (_uploadQueue.isNotEmpty) {
       final dropPos = _uploadQueue.removeFirst();
       await _cacheLocationSafely(await _createLocationData(dropPos));
-    }
-
-    if (_locationCacheBox != null && _locationCacheBox!.isOpen) {
-      await _locationCacheBox!.close();
     }
 
     await FlutterForegroundTask.removeData(key: 'bg_owner');
@@ -206,6 +236,7 @@ class MyTaskHandler extends TaskHandler {
   // region Queue Processing & Sync Engine
   void _enqueueLocation(Position pos, {bool force = false}) {
     debugPrint('Enqueue location: $pos | force: $force');
+    _lastProcessedLocationTime = DateTime.now();
     if (!force && _lastQueuedPosition != null) {
       if (!TrackingConstants.shouldSyncMovement(
         lastProcessedPosition: _lastQueuedPosition,
@@ -270,43 +301,48 @@ class MyTaskHandler extends TaskHandler {
       battery: _cachedBatteryLevel,
       isCharging: _cachedIsCharging,
       networkType: 'background_isolate',
-      locationTime: DateFormat('yyyy-MM-dd HH:mm:ss').format(pos.timestamp),
+      locationTime: DateFormat('yyyy-MM-dd HH:mm:ss').format(pos.timestamp.toLocal()),
     );
   }
 
   Future<void> _syncOfflineCache() async {
     try {
-      final box = await _getLocationCacheBox();
-      if (box.isEmpty) return;
+      final box = await Hive.openBox<LocationData>('location_cache_box');
+      if (box.isEmpty) {
+        await box.close();
+        return;
+      }
 
       final connectivityResults = await _connectivity.checkConnectivity();
 
       if (connectivityResults.isEmpty ||
           connectivityResults.contains(ConnectivityResult.none)) {
+        await box.close();
         return;
       }
 
-      final sessionIdRaw =
-      await FlutterForegroundTask.getData<Object>(key: 'session_id');
+      final sessionIdRaw = await FlutterForegroundTask.getData<Object>(
+        key: 'session_id',
+      );
       final sessionId = int.tryParse(sessionIdRaw?.toString() ?? '');
 
-      final token =
-      await FlutterForegroundTask.getData<String>(key: 'token');
+      final token = await FlutterForegroundTask.getData<String>(key: 'token');
 
-      final deviceId =
-      await FlutterForegroundTask.getData<String>(key: 'device_id');
+      final deviceId = await FlutterForegroundTask.getData<String>(
+        key: 'device_id',
+      );
 
       if (sessionId == null ||
           sessionId <= 0 ||
           token == null ||
           deviceId == null) {
+        await box.close();
         return;
       }
 
       _dio.options.headers['Authorization'] = 'Bearer $token';
 
-      final uri =
-          '${AppConfig.baseUrl}${AppConstants.trackingLocationUpdate}';
+      final uri = '${AppConfig.baseUrl}${AppConstants.trackingLocationUpdate}';
 
       final keysToDelete = <dynamic>[];
 
@@ -332,9 +368,10 @@ class MyTaskHandler extends TaskHandler {
             },
           );
 
-          if (response.statusCode == 200 ||
-              response.statusCode == 201) {
+          if (response.statusCode == 200 || response.statusCode == 201) {
             keysToDelete.add(key);
+            _lastSyncedAt = DateTime.now();
+            _updateNotificationSafely();
           } else {
             break;
           }
@@ -351,6 +388,7 @@ class MyTaskHandler extends TaskHandler {
       if (keysToDelete.isNotEmpty) {
         await box.deleteAll(keysToDelete);
       }
+      await box.close();
     } catch (_) {}
   }
 
@@ -385,7 +423,9 @@ class MyTaskHandler extends TaskHandler {
         key: 'device_id',
       );
 
-      debugPrint('Upload details - session_id: $sessionId, hasToken: ${token != null}, deviceId: $deviceId');
+      debugPrint(
+        'Upload details - session_id: $sessionId, hasToken: ${token != null}, deviceId: $deviceId',
+      );
 
       if (sessionId == null ||
           sessionId <= 0 ||
@@ -426,7 +466,9 @@ class MyTaskHandler extends TaskHandler {
         } on DioException catch (e) {
           debugPrint('Upload attempt $i failed with DioException: $e');
           if (e.response?.statusCode == 401) {
-            debugPrint('Upload failed with 401 Unauthorized. Stopping service.');
+            debugPrint(
+              'Upload failed with 401 Unauthorized. Stopping service.',
+            );
             await FlutterForegroundTask.stopService();
             return;
           }
@@ -440,10 +482,14 @@ class MyTaskHandler extends TaskHandler {
       if (success) {
         debugPrint('Upload SUCCESSFUL');
         _totalUploads++;
+        _lastSyncedAt = DateTime.now();
         await _updatePersistentStorage(pos);
+        _updateNotificationSafely();
 
         if (_totalUploads % 20 == 0) {
-          debugPrint('Triggering offline cache sync after 20 successful uploads.');
+          debugPrint(
+            'Triggering offline cache sync after 20 successful uploads.',
+          );
           unawaited(_syncOfflineCache());
         }
       } else {
@@ -477,11 +523,41 @@ class MyTaskHandler extends TaskHandler {
   }
 
   Future<void> _updateNotificationSafely() async {
+    final String syncedText = _lastSyncedAt != null
+        ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
+        : 'Never';
     FlutterForegroundTask.updateService(
       notificationTitle: 'Tracking Active',
-      notificationText:
-          'Tracking Active Uploaded: $_totalUploads | Queue: ${_uploadQueue.length}',
+      notificationText: 'Tracking Active | Last Synced: $syncedText',
     );
+
+    final lastLocTime = _lastProcessedLocationTime;
+    if (lastLocTime != null &&
+        DateTime.now().difference(lastLocTime) > const Duration(minutes: 5)) {
+      await _localNotificationsPlugin.show(
+        id: 999,
+        title: 'Duty Not Recording',
+        body: 'Your duty status is not being recorded. Please open the app.',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'duty_status_channel',
+            'Duty Status Alerts',
+            channelDescription:
+                'Shows popup notifications when starting or stopping duty.',
+            icon: '@mipmap/ic_launcher',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+      );
+    }
   }
 
   LocationSettings _streamLocationSettings() {
@@ -546,25 +622,16 @@ class MyTaskHandler extends TaskHandler {
         return isFresh ? latestPosition : null;
       }
       _latestPosition = freshPosition;
-      _latestPositionAt = freshPosition.timestamp ?? DateTime.now();
+      _latestPositionAt = freshPosition.timestamp;
       return freshPosition;
     } catch (_) {
       return isFresh ? latestPosition : null;
     }
   }
 
-  Future<Box<LocationData>> _getLocationCacheBox() async {
-    if (_locationCacheBox == null || !_locationCacheBox!.isOpen) {
-      _locationCacheBox = await Hive.openBox<LocationData>(
-        'location_cache_box',
-      );
-    }
-    return _locationCacheBox!;
-  }
-
   Future<void> _cacheLocationSafely(LocationData locationData) async {
     try {
-      final box = await _getLocationCacheBox();
+      final box = await Hive.openBox<LocationData>('location_cache_box');
 
       if (box.isNotEmpty) {
         final last = box.getAt(box.length - 1);
@@ -583,14 +650,18 @@ class MyTaskHandler extends TaskHandler {
               ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
           if (dist < 5.0 &&
               timeDiff < TrackingConstants.stationaryHeartbeatMaxInterval &&
-              accuracyDiff < 15.0)
+              accuracyDiff < 15.0) {
+            await box.close();
             return;
+          }
         }
       }
 
-      if (box.length >= TrackingConstants.maxOfflineLocations)
+      if (box.length >= TrackingConstants.maxOfflineLocations) {
         await box.deleteAt(0);
+      }
       await box.add(locationData);
+      await box.close();
     } catch (_) {}
   }
 

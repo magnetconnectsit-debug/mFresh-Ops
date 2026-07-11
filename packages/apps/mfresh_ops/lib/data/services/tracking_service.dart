@@ -21,6 +21,7 @@ import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
+import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/main.dart';
@@ -51,7 +52,6 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   Timer? _bulkSyncTimer;
   Timer? _foregroundUpdateTimer;
   Timer? _notificationUpdateTimer;
-  Box<LocationData>? _locationCacheBox;
 
   // Optimized Device Caching
   String? _cachedDeviceId;
@@ -65,6 +65,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   bool _isOnline = false;
   bool _isCheckingStatus = false;
   bool _isStartingTracking = false;
+  DateTime? _lastSyncedAt;
+  DateTime? _lastProcessedLocationTime;
 
   // Queue Processing Architecture
   final Queue<Position> _uploadQueue = Queue<Position>();
@@ -140,9 +142,6 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     _foregroundUpdateTimer?.cancel();
     _notificationUpdateTimer?.cancel();
 
-    // Fire and forget cache cleanup avoiding async override signature mismatch
-    unawaited(_locationCacheBox?.close());
-
     super.onClose();
   }
 
@@ -174,6 +173,18 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     if (isTracking.value && sessionId.value != null && sessionId.value! > 0)
       return;
 
+    // Offline-first startup rescue: check if user was active before app kill
+    final savedSessionId = _storageService.getTrackingSessionId();
+    final intendedStatus = _storageService.getIntendedTrackingStatus();
+
+    if (intendedStatus == true && savedSessionId != null && savedSessionId > 0) {
+      debugPrint('Resuming tracking from local storage offline-first: session $savedSessionId');
+      sessionId.value = savedSessionId;
+      isTracking.value = true;
+      _lastProcessedLocationTime = DateTime.now();
+      await _refreshLocationSyncLoop();
+    }
+
     final authRepo = Get.find<AuthRepository>();
     final hasTrackingPanel = authRepo.rxUserPermissions.contains(
       'tracking_panel',
@@ -184,16 +195,27 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
 
     if (hasBgService && !hasDutyPunch && !hasTrackingPanel) {
-      if (!_isCheckingStatus) await checkCurrentStatus();
-      if (!isTracking.value) await startTracking();
+      try {
+        if (!_isCheckingStatus) await checkCurrentStatus();
+      } catch (_) {}
+      if (!isTracking.value) {
+        try {
+          await startTracking();
+        } catch (_) {}
+      }
       return;
     }
 
-    if (!_isCheckingStatus) await checkCurrentStatus();
+    try {
+      if (!_isCheckingStatus) await checkCurrentStatus();
+    } catch (_) {}
     if (isTracking.value) return;
 
-    final intendedStatus = _storageService.getIntendedTrackingStatus();
-    if (intendedStatus == true) await startTracking();
+    if (intendedStatus == true) {
+      try {
+        await startTracking();
+      } catch (_) {}
+    }
   }
 
   Future<void> startTracking() async {
@@ -213,7 +235,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         deviceId: _cachedDeviceId ?? 'unknown',
         latitude: pos?.latitude ?? 0.0,
         longitude: pos?.longitude ?? 0.0,
-        startTime: _apiDateFormat.format(pos?.timestamp ?? DateTime.now()),
+        startTime: _apiDateFormat.format((pos?.timestamp ?? DateTime.now()).toLocal()),
       );
 
       final data = await _repository.startTracking(request);
@@ -223,11 +245,20 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         if (newSessionId != null && newSessionId > 0) {
           await _storageService.saveTrackingSessionId(newSessionId);
           isTracking.value = true;
+          _lastProcessedLocationTime = DateTime.now();
           await _storageService.saveIntendedTrackingStatus(true);
           if (pos != null) _enqueueLocation(pos);
           await _refreshLocationSyncLoop();
+          try {
+            Get.find<PushNotificationService>().showNotification(
+              title: 'Duty On',
+              body: 'You are now ON duty. Your location is being tracked.',
+            );
+          } catch (_) {}
         }
       }
+    } catch (e) {
+      debugPrint('Error in startTracking: $e');
     } finally {
       _isStartingTracking = false;
     }
@@ -249,7 +280,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       'device_id': _cachedDeviceId,
       'latitude': pos?.latitude,
       'longitude': pos?.longitude,
-      'end_time': _apiDateFormat.format(pos?.timestamp ?? DateTime.now()),
+      'end_time': _apiDateFormat.format((pos?.timestamp ?? DateTime.now()).toLocal()),
     };
 
     try {
@@ -276,6 +307,13 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     _lastQueuedPosition = null;
     await FlutterForegroundTask.removeData(key: 'bg_owner');
     await FlutterForegroundTask.stopService();
+
+    try {
+      Get.find<PushNotificationService>().showNotification(
+        title: 'Duty Off',
+        body: 'You are now OFF duty. Location tracking has stopped.',
+      );
+    } catch (_) {}
   }
 
   Future<bool> toggleTracking({bool bypassConfirmation = false}) async {
@@ -350,6 +388,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           await FlutterForegroundTask.stopService();
         }
       }
+    } catch (e) {
+      debugPrint('Error in checkCurrentStatus: $e');
     } finally {
       _isCheckingStatus = false;
     }
@@ -431,6 +471,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   // region Queue & Upload Worker Pipeline
   void _enqueueLocation(Position pos, {bool force = false}) {
     debugPrint('Foreground Enqueue location: $pos | force: $force');
+    _lastProcessedLocationTime = DateTime.now();
     if (!force && _lastQueuedPosition != null) {
       final distance = Geolocator.distanceBetween(
         _lastQueuedPosition!.latitude,
@@ -490,7 +531,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       battery: _cachedBatteryLevel,
       isCharging: _cachedIsCharging,
       networkType: _networkTypeFromConnectivity(_connectivityResults),
-      locationTime: _apiDateFormat.format(pos.timestamp),
+      locationTime: _apiDateFormat.format(pos.timestamp.toLocal()),
     );
   }
 
@@ -559,7 +600,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       if (success) {
         debugPrint('Foreground Upload SUCCESSFUL');
         _totalUploads++;
+        _lastSyncedAt = DateTime.now();
         await _updatePersistentStorage(pos);
+        unawaited(_updateNotificationSafely());
       } else {
         debugPrint('Foreground Upload FAILED after all retries. Caching locally.');
         await _cacheLocationSafely(locationData);
@@ -595,8 +638,11 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       return;
 
     try {
-      final box = await _getLocationCacheBox();
-      if (box.isEmpty) return;
+      final box = await Hive.openBox<LocationData>('location_cache_box');
+      if (box.isEmpty) {
+        await box.close();
+        return;
+      }
 
       isSyncing.value = true;
       final deviceId = await _getDeviceId();
@@ -625,10 +671,13 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         if (data != null && data['status'] == true) {
           final keysToDelete = batchEntries.map((e) => e.key).toList();
           await box.deleteAll(keysToDelete);
+          _lastSyncedAt = DateTime.now();
+          unawaited(_updateNotificationSafely());
         } else {
           break; // Hard abort on first batch failure
         }
       }
+      await box.close();
     } catch (_) {
     } finally {
       isSyncing.value = false;
@@ -644,8 +693,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         channelId: 'tracking_service',
         channelName: 'Tracking Service',
         channelDescription: 'Maintains location tracking in background',
-        channelImportance: NotificationChannelImportance.LOW,
-        priority: NotificationPriority.LOW,
+        channelImportance: NotificationChannelImportance.DEFAULT,
+        priority: NotificationPriority.DEFAULT,
       ),
       iosNotificationOptions: const IOSNotificationOptions(
         showNotification: false,
@@ -741,18 +790,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     });
   }
 
-  Future<Box<LocationData>> _getLocationCacheBox() async {
-    if (_locationCacheBox == null || !_locationCacheBox!.isOpen) {
-      _locationCacheBox = await Hive.openBox<LocationData>(
-        'location_cache_box',
-      );
-    }
-    return _locationCacheBox!;
-  }
-
   Future<void> _cacheLocationSafely(LocationData locationData) async {
     try {
-      final box = await _getLocationCacheBox();
+      final box = await Hive.openBox<LocationData>('location_cache_box');
       if (box.isNotEmpty) {
         final last = box.getAt(box.length - 1);
         if (last != null) {
@@ -770,13 +810,17 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
               ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
           if (dist < 5.0 &&
               timeDiff < TrackingConstants.stationaryHeartbeatMaxInterval &&
-              accuracyDiff < 15.0)
+              accuracyDiff < 15.0) {
+            await box.close();
             return;
+          }
         }
       }
-      if (box.length >= TrackingConstants.maxOfflineLocations)
+      if (box.length >= TrackingConstants.maxOfflineLocations) {
         await box.deleteAt(0);
+      }
       await box.add(locationData);
+      await box.close();
     } catch (_) {}
   }
 
@@ -797,10 +841,26 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
   Future<void> _updateNotificationSafely() async {
     if (await FlutterForegroundTask.isRunningService) {
+      final String syncedText = _lastSyncedAt != null
+          ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
+          : 'Never';
       FlutterForegroundTask.updateService(
         notificationTitle: 'Tracking Active',
-        notificationText: 'Tracking Session Live | Uploads: $_totalUploads',
+        notificationText: 'Tracking Active | Last Synced: $syncedText',
       );
+    }
+
+    if (isTracking.value) {
+      final lastLocTime = _lastProcessedLocationTime;
+      if (lastLocTime != null &&
+          DateTime.now().difference(lastLocTime) > const Duration(minutes: 5)) {
+        try {
+          Get.find<PushNotificationService>().showNotification(
+            title: 'Duty Not Recording',
+            body: 'Your duty status is not being recorded. Please open the app.',
+          );
+        } catch (_) {}
+      }
     }
   }
 

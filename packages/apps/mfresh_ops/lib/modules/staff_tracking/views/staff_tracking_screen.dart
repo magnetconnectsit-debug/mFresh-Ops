@@ -30,6 +30,46 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
             showAppDrawer: true,
             topHeader: const CommonShortcutHeader(),
             actions: [
+              Obx(() {
+                final count = controller.selectedEmployeeIds.length;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.filter_alt_rounded,
+                        color: AppColors.black,
+                      ),
+                      onPressed: () => controller.showMultiSelectStaffBottomSheet(),
+                    ),
+                    if (count > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }),
               IconButton(
                 icon: Icon(
                   controller.isSearching.value

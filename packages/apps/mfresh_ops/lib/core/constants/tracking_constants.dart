@@ -187,7 +187,7 @@ class TrackingConstants {
   }
 
   static double normalizeSpeed(double speed) {
-    if (!isValidSpeed(speed)) {
+    if (!isValidSpeed(speed) || speed < 0.6) {
       return 0.0;
     }
 

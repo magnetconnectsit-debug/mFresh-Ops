@@ -27,6 +27,7 @@ class StaffTrackingController extends GetxController
   final RxBool isLoading = true.obs;
   final TextEditingController searchController = TextEditingController();
   final RxString selectedFilter = 'Total'.obs;
+  final RxSet<dynamic> selectedEmployeeIds = <dynamic>{}.obs;
 
   final RxSet<Marker> employeeMarkers = <Marker>{}.obs;
   GoogleMapController? mapController;
@@ -100,6 +101,10 @@ class StaffTrackingController extends GetxController
   Future<void> fetchEmployees({bool isSilent = false}) async {
     if (!isSilent) {
       isLoading.value = true;
+      selectedEmployeeIds.clear();
+      selectedFilter.value = 'Total';
+      searchController.clear();
+      isSearching.value = false;
     }
     try {
       final response = await _repository.getCurrentStatus();
@@ -148,6 +153,14 @@ class StaffTrackingController extends GetxController
     final filter = selectedFilter.value;
 
     List<Map<String, dynamic>> temp = allEmployees;
+
+    // Apply multiple staff selection filter
+    if (selectedEmployeeIds.isNotEmpty) {
+      temp = temp.where((emp) {
+        final id = emp['id'] ?? emp['user_id'];
+        return id != null && selectedEmployeeIds.contains(id);
+      }).toList();
+    }
 
     // Apply status filter
     if (filter != 'Total') {
@@ -586,8 +599,7 @@ class StaffTrackingController extends GetxController
                 _buildDetailRow(
                   Icons.speed,
                   'Speed',
-                  '${double.tryParse(speed.toString())?.toStringAsFixed(2) ??
-                      0} km/h',
+                  '${((double.tryParse(speed.toString()) ?? 0.0) * 3.6).toStringAsFixed(2)} km/h',
                   Colors.black87,
                 ),
               ],
@@ -657,6 +669,192 @@ class StaffTrackingController extends GetxController
         'current_lng': employee['longitude'],
         'last_seen': employee['last_seen'],
       },
+    );
+  }
+
+  void showMultiSelectStaffBottomSheet() {
+    final RxSet<dynamic> tempSelectedIds = RxSet<dynamic>({...selectedEmployeeIds});
+    final RxString searchSelectionQuery = ''.obs;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        constraints: BoxConstraints(
+          maxHeight: Get.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Select Staff',
+                  style: AppTextStyle.style_18_600(color: AppColors.black),
+                ),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        if (tempSelectedIds.length == allEmployees.length) {
+                          tempSelectedIds.clear();
+                        } else {
+                          tempSelectedIds.assignAll(
+                            allEmployees.map((e) => e['id'] ?? e['user_id']).toList(),
+                          );
+                        }
+                      },
+                      child: Obx(() {
+                        final isAll = tempSelectedIds.length == allEmployees.length;
+                        return Text(
+                          isAll ? 'Clear All' : 'Select All',
+                          style: AppTextStyle.style_14_600(color: AppColors.blue500),
+                        );
+                      }),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Get.back(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search staff name...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.blue500),
+                ),
+              ),
+              onChanged: (val) {
+                searchSelectionQuery.value = val.toLowerCase();
+              },
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() {
+                final query = searchSelectionQuery.value;
+                final list = allEmployees.where((emp) {
+                  final name = (emp['name'] ?? '').toString().toLowerCase();
+                  return name.contains(query);
+                }).toList();
+
+                if (list.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No matching staff found',
+                      style: AppTextStyle.style_14_500(color: AppColors.grey500),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: list.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.grey100),
+                  itemBuilder: (context, index) {
+                    final emp = list[index];
+                    final id = emp['id'] ?? emp['user_id'];
+                    return Obx(() {
+                      final isChecked = tempSelectedIds.contains(id);
+                      return CheckboxListTile(
+                        value: isChecked,
+                        title: Text(
+                          emp['name'] ?? 'Unknown',
+                          style: AppTextStyle.style_14_600(color: AppColors.black),
+                        ),
+                        subtitle: Text(
+                          emp['mobile'] ?? 'No Mobile',
+                          style: AppTextStyle.style_12_500(color: AppColors.grey500),
+                        ),
+                        activeColor: AppColors.blue500,
+                        checkboxShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        onChanged: (val) {
+                          if (val == true) {
+                            tempSelectedIds.add(id);
+                          } else {
+                            tempSelectedIds.remove(id);
+                          }
+                        },
+                      );
+                    });
+                  },
+                );
+              }),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      selectedEmployeeIds.clear();
+                      filterEmployees();
+                      Get.back();
+                      _updateMarkers(shouldFitBounds: true);
+                    },
+                    child: Text(
+                      'Reset Filter',
+                      style: AppTextStyle.style_14_600(color: AppColors.red),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: AppColors.blue500,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      selectedEmployeeIds.assignAll(tempSelectedIds);
+                      filterEmployees();
+                      Get.back();
+                      if (selectedEmployeeIds.isNotEmpty) {
+                        _updateMarkers(shouldFitBounds: true);
+                      }
+                    },
+                    child: Text(
+                      'Apply',
+                      style: AppTextStyle.style_14_600(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 }
