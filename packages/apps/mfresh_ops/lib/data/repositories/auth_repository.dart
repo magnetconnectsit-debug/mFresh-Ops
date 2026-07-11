@@ -192,6 +192,11 @@ class AuthRepository extends GetxService {
     try {
       try {
         await _apiService.post(AppConstants.trackingDutyOff);
+        try {
+          await Get.find<TrackingService>().stopTracking();
+        } catch (e) {
+          debugPrint('AuthRepository: stopTracking Exception during logout: $e');
+        }
       } catch (e) {
         debugPrint('AuthRepository: dutyOff Exception during logout: $e');
       }

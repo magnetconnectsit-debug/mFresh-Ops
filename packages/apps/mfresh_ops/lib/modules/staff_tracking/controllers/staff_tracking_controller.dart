@@ -45,7 +45,8 @@ class StaffTrackingController extends GetxController
   final Rx<MapType> currentMapType = MapType.normal.obs;
 
   void toggleMapType() {
-    currentMapType.value = currentMapType.value == MapType.normal ? MapType.satellite : MapType.normal;
+    currentMapType.value =
+    currentMapType.value == MapType.normal ? MapType.satellite : MapType.normal;
   }
 
   @override
@@ -152,33 +153,34 @@ class StaffTrackingController extends GetxController
     if (filter != 'Total') {
       temp = temp.where((emp) {
         final status = emp['current_status']?.toString().toLowerCase() ?? '';
-        final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true || emp['is_on_duty'] == '1';
+        final bool isOnDuty = emp['is_on_duty'] == 1 ||
+            emp['is_on_duty'] == true || emp['is_on_duty'] == '1';
         final lastSeen = emp['last_seen'];
-        
+
         bool isNotInstalled = lastSeen == null && emp['live_status'] == null;
-        
+
         if (filter == 'Not Installed') return isNotInstalled;
-        
+
         // If not installed, they shouldn't appear in other filters
         if (isNotInstalled) return false;
-        
+
         if (filter == 'Off Duty') return !isOnDuty;
-        
+
         // If off duty, they shouldn't appear in Live/NotLive/Moving/Stopped
         if (!isOnDuty) return false;
-        
+
         if (filter == 'On Duty') return true;
-        
+
         if (filter == 'Moving') return status == 'moving';
         if (filter == 'Stopped') return status == 'stopped';
-        
+
         if (filter == 'Live') {
-           return !AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
+          return !AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
         }
         if (filter == 'Not Live') {
-           return AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
+          return AppDateUtils.isOlderThanMinutes(lastSeen?.toString(), 10);
         }
-        
+
         return false;
       }).toList();
     }
@@ -197,9 +199,8 @@ class StaffTrackingController extends GetxController
   }
 
   List<Map<String, dynamic>> _clusterEmployees(
-    List<Map<String, dynamic>> employees,
-    double zoom,
-  ) {
+      List<Map<String, dynamic>> employees,
+      double zoom,) {
     if (zoom >= 11.5) {
       // High zoom: detect overlapping markers and spiderify
       double minDistance = 0.0001; // roughly 11 meters
@@ -380,19 +381,24 @@ class StaffTrackingController extends GetxController
             }
           }
 
-          final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+          final bool isOnDuty = emp['is_on_duty'] == 1 ||
+              emp['is_on_duty'] == true;
           final Color borderColor = isOnDuty ? AppColors.green : AppColors.red;
 
           final String imageUrl = emp['image_url']?.toString() ?? '';
-          final bool hasImage = imageUrl.isNotEmpty && !imageUrl.endsWith('/NA');
-          
-          final String cacheKey = hasImage 
-              ? 'emp_img_${emp['id']}_${markerColor.hashCode}_${borderColor.hashCode}'
-              : 'emp_${initials}_${markerColor.hashCode}_${borderColor.hashCode}';
+          final bool hasImage = imageUrl.isNotEmpty &&
+              !imageUrl.endsWith('/NA');
+
+          final String cacheKey = hasImage
+              ? 'emp_img_${emp['id']}_${markerColor.hashCode}_${borderColor
+              .hashCode}'
+              : 'emp_${initials}_${markerColor.hashCode}_${borderColor
+              .hashCode}';
 
           if (!_markerCache.containsKey(cacheKey)) {
             if (hasImage) {
-              _markerCache[cacheKey] = await MapMarkerUtils.createNetworkImageMarker(
+              _markerCache[cacheKey] =
+              await MapMarkerUtils.createNetworkImageMarker(
                 imageUrl: imageUrl,
                 color: markerColor,
                 fallbackText: initials,
@@ -474,19 +480,19 @@ class StaffTrackingController extends GetxController
     final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _repository
         .getEmployeeSummary(
-          employeeId: emp['id'] ?? emp['user_id'],
-          date: dateStr,
-        )
+      employeeId: emp['id'] ?? emp['user_id'],
+      date: dateStr,
+    )
         .then((res) {
-          if (res != null && res['status'] == true) {
-            selectedEmployeeLiveStats.value = Map<String, dynamic>.from(
-              res['live_status'] ?? {},
-            );
-          }
-        })
+      if (res != null && res['status'] == true) {
+        selectedEmployeeLiveStats.value = Map<String, dynamic>.from(
+          res['live_status'] ?? {},
+        );
+      }
+    })
         .whenComplete(() {
-          isLoadingLiveStats.value = false;
-        });
+      isLoadingLiveStats.value = false;
+    });
 
     Get.bottomSheet(
       Container(
@@ -502,7 +508,7 @@ class StaffTrackingController extends GetxController
 
           final status =
               liveStats['current_status']?.toString().toLowerCase() ??
-              emp['current_status']?.toString().toLowerCase();
+                  emp['current_status']?.toString().toLowerCase();
           Color statusColor = Colors.red;
           if (status == 'moving') {
             statusColor = Colors.green;
@@ -580,7 +586,8 @@ class StaffTrackingController extends GetxController
                 _buildDetailRow(
                   Icons.speed,
                   'Speed',
-                  '${double.tryParse(speed.toString())?.toStringAsFixed(2) ?? 0} km/h',
+                  '${double.tryParse(speed.toString())?.toStringAsFixed(2) ??
+                      0} km/h',
                   Colors.black87,
                 ),
               ],
@@ -613,12 +620,10 @@ class StaffTrackingController extends GetxController
     );
   }
 
-  Widget _buildDetailRow(
-    IconData icon,
-    String label,
-    String value,
-    Color valueColor,
-  ) {
+  Widget _buildDetailRow(IconData icon,
+      String label,
+      String value,
+      Color valueColor,) {
     return Row(
       children: [
         Icon(icon, size: 20, color: Colors.grey[600]),

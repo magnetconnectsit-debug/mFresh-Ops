@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 
 class AppConstants {
@@ -7,6 +8,7 @@ class AppConstants {
   // region Base URL
   static String baseUrl = AppConfig.baseUrl;
   static const bool isDevBuild = kDebugMode;
+
   // endregion
 
   // region API Endpoints
@@ -121,14 +123,21 @@ class AppConstants {
   static const String staffSummary = 'summary';
 
   // Collection and deposit
-  static const String adminCollectionIndex = 'collectionindex';  // Admin Collection table data api
-  static const String collectionIndex = 'usercollectionindex';  // User Collection table data api
-  static const String adminCollectionActualUpdate = 'adminupdateActual'; // Admin actual value update api
-  static const String collectionActualUpdate = 'updateActual'; // User actual value update api
+  static const String adminCollectionIndex =
+      'collectionindex'; // Admin Collection table data api
+  static const String collectionIndex =
+      'usercollectionindex'; // User Collection table data api
+  static const String adminCollectionActualUpdate =
+      'adminupdateActual'; // Admin actual value update api
+  static const String collectionActualUpdate =
+      'updateActual'; // User actual value update api
   static const String cashDepositList = 'cash-deposit'; // Cash deposit list api
-  static const String cashDepositStore = 'cash-deposit/store'; // Store cash deposit api
-  static const String cashDepositUpdate = 'cash-deposit/update'; // Update cash deposit api
-  static const String cashDepositDelete = 'deposit/delete'; // Delete cash deposit api
+  static const String cashDepositStore =
+      'cash-deposit/store'; // Store cash deposit api
+  static const String cashDepositUpdate =
+      'cash-deposit/update'; // Update cash deposit api
+  static const String cashDepositDelete =
+      'deposit/delete'; // Delete cash deposit api
   // endregion
 
   // region Hive Keys
@@ -136,3 +145,4 @@ class AppConstants {
   static const String userKey = 'currentUser';
   // endregion
 }
+

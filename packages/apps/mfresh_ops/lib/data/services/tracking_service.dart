@@ -1,4 +1,6 @@
+// region Imports
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 
 import 'package:auto_start_flutter/auto_start_flutter.dart';
@@ -7,6 +9,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -15,6 +18,7 @@ import 'package:get/get.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
@@ -22,8 +26,11 @@ import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/main.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:services/services.dart';
+// endregion
 
+// region TrackingService Class
 class TrackingService extends GetxService with WidgetsBindingObserver {
+  // region Dependencies & State
   static TrackingService get to => Get.find<TrackingService>();
 
   final TrackingRepository _repository = Get.find<TrackingRepository>();
@@ -38,68 +45,134 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   final RxBool isToggling = false.obs;
 
   StreamSubscription<Position>? _positionStreamSubscription;
+  StreamSubscription<ServiceStatus>? _gpsServiceSubscription;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+
   Timer? _bulkSyncTimer;
   Timer? _foregroundUpdateTimer;
+  Timer? _notificationUpdateTimer;
   Box<LocationData>? _locationCacheBox;
-  Position? _lastSyncedPosition;
+
+  // Optimized Device Caching
+  String? _cachedDeviceId;
+  int _cachedBatteryLevel = 100;
+  bool _cachedIsCharging = false;
+  DateTime? _lastBatteryCheck;
+
   List<ConnectivityResult> _connectivityResults = const [
     ConnectivityResult.none,
   ];
   bool _isOnline = false;
   bool _isCheckingStatus = false;
-  bool _hasRequestedBatteryOpt = false;
+  bool _isStartingTracking = false;
+
+  // Queue Processing Architecture
+  final Queue<Position> _uploadQueue = Queue<Position>();
+  Position? _lastQueuedPosition; // Fast RAM deduplication state
+  bool _isWorkerRunning = false;
+  int _totalUploads = 0;
+  DateTime? _lastDiskWriteAt;
 
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    debugPrint('TrackingService: onInit()');
+
+    _initDeviceCache();
     _initForegroundTask();
     _startLocationUpdates();
     _startConnectivityListener();
-    _startBulkSyncTimer();
+    _startGpsListener();
+    _startBackgroundTimers();
 
-    ever(_storageService.rxIsLoggedIn, (isLoggedIn) {
+    ever(_storageService.rxIsLoggedIn, (isLoggedIn) async {
       if (!isLoggedIn) {
-        debugPrint(
-          'TrackingService: User logged out. Stopping foreground task.',
-        );
         isTracking.value = false;
         sessionId.value = null;
-        _resetLocationSyncState();
-        _stopForegroundUpdateTimer();
-        FlutterForegroundTask.stopService();
+        await _flushQueueAndStop();
       }
     });
   }
 
+  Future<void> _initDeviceCache() async {
+    _cachedDeviceId = await _getDeviceId();
+    await _updateBatteryState();
+  }
+
+  Future<void> _updateBatteryState() async {
+    try {
+      _cachedBatteryLevel = await _battery.batteryLevel;
+      _cachedIsCharging =
+          (await _battery.batteryState) == BatteryState.charging;
+      _lastBatteryCheck = DateTime.now();
+    } catch (_) {}
+  }
+
+  void _startBackgroundTimers() {
+    _bulkSyncTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => syncOfflineData(),
+    );
+    _notificationUpdateTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _updateNotificationSafely(),
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
-      return;
-    }
-
+    if (state != AppLifecycleState.resumed) return;
     unawaited(_restoreTrackingOnResume());
   }
 
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _positionStreamSubscription?.cancel();
+    _connectivitySubscription?.cancel();
+    _gpsServiceSubscription?.cancel();
+    _bulkSyncTimer?.cancel();
+    _foregroundUpdateTimer?.cancel();
+    _notificationUpdateTimer?.cancel();
+
+    // Fire and forget cache cleanup avoiding async override signature mismatch
+    unawaited(_locationCacheBox?.close());
+
+    super.onClose();
+  }
+
+  // endregion
+
+  // region Core Operations
   Future<void> _restoreTrackingOnResume() async {
-    if (!isTracking.value && sessionId.value == null) {
+    if (!isTracking.value && (sessionId.value == null || sessionId.value! <= 0))
+      return;
+
+    // Ownership check via shared memory state
+    final bool isBgOwner =
+        await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
+    final bool isRunning = await FlutterForegroundTask.isRunningService;
+
+    // LMK Fail-safe: If OS killed service but bg_owner flag survived, rescue the UI isolate
+    if (isBgOwner && !isRunning) {
+      await FlutterForegroundTask.removeData(key: 'bg_owner');
+      await checkCurrentStatus();
       return;
     }
 
-    if (await FlutterForegroundTask.isRunningService) {
-      return;
-    }
-
+    if (isBgOwner) return; // Background isolate is healthy and owns execution
     await checkCurrentStatus();
   }
 
-  // We split the startup logic so we can call it after login is confirmed
   Future<void> startAutoTracking() async {
-    debugPrint('TrackingService: Attempting auto-start...');
+    if (_isStartingTracking) return;
+    if (isTracking.value && sessionId.value != null && sessionId.value! > 0)
+      return;
 
     final authRepo = Get.find<AuthRepository>();
     final hasTrackingPanel = authRepo.rxUserPermissions.contains(
@@ -111,130 +184,232 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
 
     if (hasBgService && !hasDutyPunch && !hasTrackingPanel) {
-      debugPrint(
-        'TrackingService: Silent background tracking mode. Auto-starting without user intervention.',
-      );
-      await checkCurrentStatus();
-      if (!isTracking.value) {
-        await startTracking();
-      }
+      if (!_isCheckingStatus) await checkCurrentStatus();
+      if (!isTracking.value) await startTracking();
       return;
     }
 
-    // We call checkCurrentStatus() to fetch a fresh profile from the network,
-    // guaranteeing we get the latest tracking_session_id directly from the backend.
-    await checkCurrentStatus();
-
-    if (isTracking.value) {
-      debugPrint(
-        'TrackingService: Already active on backend, resuming foreground sync',
-      );
-      return;
-    }
+    if (!_isCheckingStatus) await checkCurrentStatus();
+    if (isTracking.value) return;
 
     final intendedStatus = _storageService.getIntendedTrackingStatus();
-    if (intendedStatus == false) {
-      debugPrint(
-        'TrackingService: User intentionally off-duty. Aborting auto-start.',
+    if (intendedStatus == true) await startTracking();
+  }
+
+  Future<void> startTracking() async {
+    if (_isStartingTracking) return;
+    if (isTracking.value || (sessionId.value != null && sessionId.value! > 0))
+      return;
+
+    _isStartingTracking = true;
+
+    try {
+      final hasPermission = await _locationService.requestPermissions();
+      if (!hasPermission) return;
+
+      final pos = await _locationService.getCurrentPosition();
+
+      final request = TrackingStartRequest(
+        deviceId: _cachedDeviceId ?? 'unknown',
+        latitude: pos?.latitude ?? 0.0,
+        longitude: pos?.longitude ?? 0.0,
+        startTime: _apiDateFormat.format(pos?.timestamp ?? DateTime.now()),
       );
-      isTracking.value = false;
+
+      final data = await _repository.startTracking(request);
+      if (data != null && data['status'] == true) {
+        final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
+        sessionId.value = newSessionId;
+        if (newSessionId != null && newSessionId > 0) {
+          await _storageService.saveTrackingSessionId(newSessionId);
+          isTracking.value = true;
+          await _storageService.saveIntendedTrackingStatus(true);
+          if (pos != null) _enqueueLocation(pos);
+          await _refreshLocationSyncLoop();
+        }
+      }
+    } finally {
+      _isStartingTracking = false;
+    }
+  }
+
+  Future<void> stopTracking() async {
+    if (sessionId.value == null || sessionId.value! <= 0) {
+      await _flushQueueAndStop();
       return;
     }
 
-    if (intendedStatus == true) {
-      debugPrint(
-        'TrackingService: Intended status is true. Starting tracking.',
-      );
-      await startTracking();
+    // Graceful Shutdown Sequence
+    await _processUploadQueue(); // 1. Flush RAM
+    await syncOfflineData(); // 2. Flush Database
+
+    final pos = await _locationService.getCurrentPosition();
+    final request = {
+      'session_id': sessionId.value,
+      'device_id': _cachedDeviceId,
+      'latitude': pos?.latitude,
+      'longitude': pos?.longitude,
+      'end_time': _apiDateFormat.format(pos?.timestamp ?? DateTime.now()),
+    };
+
+    try {
+      final data = await _repository.stopTracking(request);
+      if (data != null && data['status'] == true) {
+        await _flushQueueAndStop();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _flushQueueAndStop() async {
+    isTracking.value = false;
+    sessionId.value = null;
+    await _storageService.saveIntendedTrackingStatus(false);
+    await _storageService.clearTrackingSessionId();
+    _stopForegroundUpdateTimer();
+
+    // Ensure final queue elements are dumped to DB
+    while (_uploadQueue.isNotEmpty) {
+      final dropPos = _uploadQueue.removeFirst();
+      await _cacheLocationSafely(await _createLocationData(dropPos));
+    }
+
+    _lastQueuedPosition = null;
+    await FlutterForegroundTask.removeData(key: 'bg_owner');
+    await FlutterForegroundTask.stopService();
+  }
+
+  Future<bool> toggleTracking({bool bypassConfirmation = false}) async {
+    if (isToggling.value) return false;
+    isToggling.value = true;
+
+    try {
+      if (isTracking.value) {
+        if (!bypassConfirmation) {
+          final proceed = await _showOffDutyDialog();
+          if (proceed != true) return false;
+        }
+        await _repository.dutyOff();
+        await stopTracking();
+        try {
+          await Get.find<AuthRepository>().fetchProfile();
+        } catch (_) {}
+        return true;
+      } else {
+        await _repository.dutyOn();
+        await startTracking();
+        try {
+          await Get.find<AuthRepository>().fetchProfile();
+        } catch (_) {}
+        return true;
+      }
+    } finally {
+      isToggling.value = false;
     }
   }
 
-  void _initForegroundTask() {
-    FlutterForegroundTask.init(
-      androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'tracking_service',
-        channelName: 'Tracking Service',
-        channelDescription: 'Maintains location tracking in background',
-        channelImportance: NotificationChannelImportance.LOW,
-        priority: NotificationPriority.LOW,
-      ),
-      iosNotificationOptions: const IOSNotificationOptions(
-        showNotification: false,
-        playSound: false,
-      ),
-      foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 5000,
-        // Check every 5 seconds
-        isOnceEvent: false,
-        autoRunOnBoot: true,
-        allowWakeLock: true,
-        allowWifiLock: true,
-      ),
-    );
-  }
+  Future<void> checkCurrentStatus() async {
+    if (_isCheckingStatus) return;
+    _isCheckingStatus = true;
+    try {
+      final statusResp = await _repository.getCurrentStatus();
+      final user = _storageService.getUser();
 
-  void _startConnectivityListener() {
-    unawaited(
-      Connectivity()
-          .checkConnectivity()
-          .then(_updateConnectivityState)
-          .catchError((_) {}),
-    );
+      if (user != null && statusResp != null && statusResp['status'] == true) {
+        bool active = user.isOnDuty == 1;
+        int? newSessionId = _storageService.getTrackingSessionId();
 
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
-      _updateConnectivityState,
-    );
-  }
+        final List emps = statusResp['employees'] ?? [];
+        final emp = emps.firstWhere(
+          (e) => (e['id'] ?? e['user_id']) == user.id,
+          orElse: () => null,
+        );
 
-  void _startBulkSyncTimer() {
-    _bulkSyncTimer = Timer.periodic(
-      const Duration(minutes: 5),
-      (_) => syncOfflineData(),
-    );
-  }
+        if (emp != null) {
+          active = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+          newSessionId = emp['session_id'] != null
+              ? int.tryParse(emp['session_id'].toString())
+              : null;
+        }
 
-  Future<Box<LocationData>> _getLocationCacheBox() async {
-    _locationCacheBox ??= await Hive.openBox<LocationData>(
-      'location_cache_box',
-    );
-    return _locationCacheBox!;
-  }
+        isTracking.value = active;
+        sessionId.value = newSessionId;
 
-  void _updateConnectivityState(List<ConnectivityResult> results) {
-    final wasOnline = _isOnline;
-    _connectivityResults = results;
-    _isOnline = results.any((result) => result != ConnectivityResult.none);
+        if (newSessionId != null && newSessionId > 0) {
+          await _storageService.saveTrackingSessionId(newSessionId);
+          await FlutterForegroundTask.saveData(
+            key: 'session_id',
+            value: newSessionId as Object,
+          );
+        }
 
-    if (!wasOnline && _isOnline) {
-      unawaited(syncOfflineData());
+        if (isTracking.value) {
+          await _refreshLocationSyncLoop();
+        } else {
+          _stopForegroundUpdateTimer();
+          await FlutterForegroundTask.removeData(key: 'bg_owner');
+          await FlutterForegroundTask.stopService();
+        }
+      }
+    } finally {
+      _isCheckingStatus = false;
     }
   }
 
-  String? _networkTypeFromConnectivity(List<ConnectivityResult> results) {
-    if (results.isEmpty || results.contains(ConnectivityResult.none)) {
-      return null;
-    }
+  // endregion
 
-    if (results.contains(ConnectivityResult.wifi)) {
-      return 'wifi';
-    }
-    if (results.contains(ConnectivityResult.mobile)) {
-      return 'mobile';
-    }
+  // region Foreground Hybrid Sync Logic
+  void _startLocationUpdates() async {
+    final permission = await ph.Permission.location.status;
+    if (!permission.isGranted) return;
 
-    return results.first.name;
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = _locationService.getPositionStream().listen((
+      pos,
+    ) async {
+      currentPosition.value = pos;
+
+      // Ownership Architecture: Verify Background is NOT actively the owner
+      final bool isBgOwner =
+          await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
+      if (isTracking.value && !isBgOwner) {
+        if (pos.accuracy > TrackingConstants.maxAcceptableAccuracyMeters) {
+          _cacheLocationSafely(await _createLocationData(pos));
+          return;
+        }
+
+        if (TrackingConstants.shouldSyncMovement(
+          lastProcessedPosition: _lastQueuedPosition,
+          currentPosition: pos,
+        )) {
+          _enqueueLocation(pos);
+        }
+      }
+    });
   }
 
-  // Sync state tracking removed per user request (no throttling)
-  void _markLocationSynced(Position pos) {}
+  void _startForegroundUpdateTimer() {
+    _foregroundUpdateTimer?.cancel();
+    _foregroundUpdateTimer = Timer.periodic(const Duration(seconds: 60), (
+      _,
+    ) async {
+      debugPrint('========== FOREGROUND TIMER EVENT ==========');
+      final bool isBgOwner =
+          await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
+      debugPrint('Foreground Timer - isTracking: ${isTracking.value}, isBgOwner: $isBgOwner');
+      if (isTracking.value && !isBgOwner) {
+        final pos = await _locationService.getCurrentPosition();
+        debugPrint('Foreground Timer resolved position: $pos');
+        if (pos != null) {
+          currentPosition.value = pos;
+          _enqueueLocation(pos, force: true);
+        }
+      }
+    });
+  }
 
-  void _resetLocationSyncState() {}
-  static const double _minSyncDistanceMeters = 10.0;
-
-  bool _shouldSkipLocationUpdate(Position pos) {
-    // Per user request: DO NOT throttle or abort updates as long as is_on_duty == 1.
-    // Location update should happen even if standing still or if accuracy is low.
-    return false;
+  void _stopForegroundUpdateTimer() {
+    _foregroundUpdateTimer?.cancel();
+    _foregroundUpdateTimer = null;
   }
 
   Future<void> _refreshLocationSyncLoop() async {
@@ -251,303 +426,239 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     }
   }
 
+  // endregion
+
+  // region Queue & Upload Worker Pipeline
+  void _enqueueLocation(Position pos, {bool force = false}) {
+    debugPrint('Foreground Enqueue location: $pos | force: $force');
+    if (!force && _lastQueuedPosition != null) {
+      final distance = Geolocator.distanceBetween(
+        _lastQueuedPosition!.latitude,
+        _lastQueuedPosition!.longitude,
+        pos.latitude,
+        pos.longitude,
+      );
+      final elapsed = pos.timestamp.difference(_lastQueuedPosition!.timestamp);
+      if (distance < 3.0 && elapsed < TrackingConstants.minSyncCooldown) {
+        debugPrint('Foreground Enqueue: Ignored by distance/cooldown filter.');
+        return;
+      }
+    }
+
+    if (_uploadQueue.length >= TrackingConstants.maxUploadQueueSize) {
+      final dropPos = _uploadQueue.removeFirst();
+      _createLocationData(
+        dropPos,
+      ).then((locData) => _cacheLocationSafely(locData));
+    }
+
+    _lastQueuedPosition = pos;
+    _uploadQueue.add(pos);
+
+    if (!_isWorkerRunning) {
+      _isWorkerRunning = true;
+      unawaited(_processUploadQueue());
+    }
+  }
+
+  Future<void> _processUploadQueue() async {
+    debugPrint('Foreground processing upload queue. Current size: ${_uploadQueue.length}');
+    try {
+      while (_uploadQueue.isNotEmpty) {
+        final pos = _uploadQueue.removeFirst();
+        await _executeUpload(pos);
+      }
+    } finally {
+      _isWorkerRunning = false;
+      debugPrint('Foreground processing upload queue finished.');
+    }
+  }
+
+  Future<LocationData> _createLocationData(Position pos) async {
+    if (_lastBatteryCheck == null ||
+        DateTime.now().difference(_lastBatteryCheck!) >
+            const Duration(minutes: 5)) {
+      await _updateBatteryState();
+    }
+
+    return LocationData(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      accuracy: pos.accuracy,
+      speed: TrackingConstants.normalizeSpeed(pos.speed),
+      heading: TrackingConstants.normalizeHeading(pos.heading),
+      battery: _cachedBatteryLevel,
+      isCharging: _cachedIsCharging,
+      networkType: _networkTypeFromConnectivity(_connectivityResults),
+      locationTime: _apiDateFormat.format(pos.timestamp),
+    );
+  }
+
+  Future<void> _executeUpload(Position pos) async {
+    debugPrint('Foreground executing upload for pos: $pos');
+    if (sessionId.value == null || sessionId.value! <= 0) {
+      debugPrint('Foreground Upload failed: missing sessionId (${sessionId.value}).');
+      return;
+    }
+
+    try {
+      final isEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isEnabled) {
+        debugPrint('Foreground Upload failed: Location services not enabled.');
+        return;
+      }
+
+      final locationData = await _createLocationData(pos);
+      final isOffline =
+          !_isOnline ||
+          _connectivityResults.isEmpty ||
+          _connectivityResults.contains(ConnectivityResult.none);
+
+      if (isOffline) {
+        debugPrint('Foreground Upload: Offline, caching location data.');
+        await _cacheLocationSafely(locationData);
+        await _updatePersistentStorage(pos);
+        return;
+      }
+
+      final request = LocationUpdateRequest(
+        sessionId: sessionId.value!,
+        deviceId: _cachedDeviceId ?? 'unknown',
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        accuracy: locationData.accuracy,
+        speed: locationData.speed,
+        heading: locationData.heading,
+        battery: locationData.battery,
+        isCharging: locationData.isCharging,
+        networkType: locationData.networkType,
+        locationTime: locationData.locationTime,
+      );
+
+      debugPrint('Foreground Uploading location to API: ${request.toJson()}');
+      bool success = false;
+      for (int i = 0; i < 3; i++) {
+        try {
+          await _repository.updateLocation(request);
+          success = true;
+          break;
+        } on DioException catch (e) {
+          debugPrint('Foreground Upload attempt $i failed with DioException: $e');
+          if (e.response?.statusCode == 401) {
+            debugPrint('Foreground Upload 401 Unauthorized. Stopping tracking.');
+            await _flushQueueAndStop();
+            return;
+          }
+          await Future.delayed(TrackingConstants.calculateRetryDelay(i));
+        } catch (e) {
+          debugPrint('Foreground Upload attempt $i failed with generic exception: $e');
+          await Future.delayed(TrackingConstants.calculateRetryDelay(i));
+        }
+      }
+
+      if (success) {
+        debugPrint('Foreground Upload SUCCESSFUL');
+        _totalUploads++;
+        await _updatePersistentStorage(pos);
+      } else {
+        debugPrint('Foreground Upload FAILED after all retries. Caching locally.');
+        await _cacheLocationSafely(locationData);
+        await _updatePersistentStorage(pos);
+      }
+    } catch (e) {
+      debugPrint('Foreground Upload exception: $e');
+    }
+  }
+
+  Future<void> _updatePersistentStorage(Position pos) async {
+    if (_lastDiskWriteAt == null ||
+        DateTime.now().difference(_lastDiskWriteAt!) >
+            const Duration(seconds: 30)) {
+      await FlutterForegroundTask.saveData(
+        key: 'last_lat',
+        value: pos.latitude,
+      );
+      await FlutterForegroundTask.saveData(
+        key: 'last_lng',
+        value: pos.longitude,
+      );
+      await FlutterForegroundTask.saveData(
+        key: 'last_time',
+        value: pos.timestamp.toIso8601String(),
+      );
+      _lastDiskWriteAt = DateTime.now();
+    }
+  }
+
   Future<void> syncOfflineData() async {
-    if (isSyncing.value || sessionId.value == null) return;
+    if (isSyncing.value || sessionId.value == null || sessionId.value! <= 0)
+      return;
 
     try {
       final box = await _getLocationCacheBox();
       if (box.isEmpty) return;
 
       isSyncing.value = true;
-      final cachedLocations = box.values.toList();
       final deviceId = await _getDeviceId();
-      final request = BulkSyncRequest(
-        sessionId: sessionId.value!,
-        deviceId: deviceId,
-        locations: cachedLocations,
-      );
 
-      final data = await _repository.bulkSync(request);
-      if (data != null && data['status'] == true) {
-        await box.clear();
+      final entries = box.toMap().entries.toList()
+        ..sort((a, b) => a.value.locationTime.compareTo(b.value.locationTime));
+
+      for (
+        var i = 0;
+        i < entries.length;
+        i += TrackingConstants.bulkSyncBatchSize
+      ) {
+        final end = (i + TrackingConstants.bulkSyncBatchSize > entries.length)
+            ? entries.length
+            : i + TrackingConstants.bulkSyncBatchSize;
+        final batchEntries = entries.sublist(i, end);
+        final batchValues = batchEntries.map((e) => e.value).toList();
+
+        final request = BulkSyncRequest(
+          sessionId: sessionId.value!,
+          deviceId: deviceId,
+          locations: batchValues,
+        );
+
+        final data = await _repository.bulkSync(request);
+        if (data != null && data['status'] == true) {
+          final keysToDelete = batchEntries.map((e) => e.key).toList();
+          await box.deleteAll(keysToDelete);
+        } else {
+          break; // Hard abort on first batch failure
+        }
       }
-    } catch (e) {
-      debugPrint('TrackingService: Bulk sync failed: $e');
+    } catch (_) {
     } finally {
       isSyncing.value = false;
     }
   }
 
-  Future<void> checkCurrentStatus() async {
-    if (_isCheckingStatus) return;
-    _isCheckingStatus = true;
-    try {
-      // Fetch latest profile to get fresh tracking_session_id and is_on_duty
-      await Get.find<AuthRepository>().fetchProfile();
-      final statusResp = await _repository.getCurrentStatus();
-      final user = _storageService.getUser();
+  // endregion
 
-      if (user != null) {
-        bool active = user.isOnDuty == 1;
-        int? newSessionId = _storageService.getTrackingSessionId();
-
-        if (statusResp != null && statusResp['status'] == true) {
-          final List emps = statusResp['employees'] ?? [];
-          final emp = emps.firstWhere((e) => (e['id'] ?? e['user_id']) == user.id, orElse: () => null);
-          if (emp != null) {
-            active = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
-            newSessionId = emp['session_id'] != null
-                ? int.tryParse(emp['session_id'].toString())
-                : null;
-          }
-        }
-
-        isTracking.value = active;
-        sessionId.value = newSessionId;
-        if (newSessionId != null) {
-          await _storageService.saveTrackingSessionId(newSessionId);
-          await FlutterForegroundTask.saveData(
-            key: 'session_id',
-            value: newSessionId as Object,
-          );
-        }
-        if (isTracking.value) {
-          await _refreshLocationSyncLoop();
-        } else {
-          _stopForegroundUpdateTimer();
-          await _startForegroundService(); // This actually stops it when isTracking is false
-        }
-      }
-    } catch (e) {
-      debugPrint('TrackingService: checkCurrentStatus Exception: $e');
-    } finally {
-      _isCheckingStatus = false;
-    }
-  }
-
-  Future<bool> toggleTracking({bool bypassConfirmation = false}) async {
-    if (isTracking.value) {
-      if (!bypassConfirmation) {
-        final proceed = await Get.dialog<bool>(
-          Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.rectangle,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: AppColors.red,
-                      size: 48,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Confirm Off Duty',
-                    style: AppTextStyle.style_20_700(color: AppColors.black),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'This may result in cut in salary.\nDo you want to proceed?',
-                    style: AppTextStyle.style_14_400(color: AppColors.grey600),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 28),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: const BorderSide(color: AppColors.grey300),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => Get.back(result: false),
-                          child: Text(
-                            'Cancel',
-                            style: AppTextStyle.style_14_600(
-                              color: AppColors.grey600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            backgroundColor: AppColors.red,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => Get.back(result: true),
-                          child: Text(
-                            'Proceed',
-                            style: AppTextStyle.style_14_600(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        if (proceed != true) return false;
-      }
-
-      isToggling.value = true;
-      try {
-        await _repository.dutyOff();
-        await stopTracking();
-        try {
-          await Get.find<AuthRepository>().fetchProfile();
-        } catch (_) {}
-      } catch (e) {
-        debugPrint('TrackingService: dutyOff Exception: $e');
-      } finally {
-        isToggling.value = false;
-      }
-      return true;
-    } else {
-      isToggling.value = true;
-      try {
-        await _repository.dutyOn();
-        await startTracking();
-        try {
-          await Get.find<AuthRepository>().fetchProfile();
-        } catch (_) {}
-      } catch (e) {
-        debugPrint('TrackingService: dutyOn Exception: $e');
-      } finally {
-        isToggling.value = false;
-      }
-      return true;
-    }
-  }
-
-  Future<void> startTracking() async {
-    final hasPermission = await _locationService.requestPermissions();
-    if (!hasPermission) {
-      debugPrint('TrackingService: No location permission');
-      return;
-    }
-
-    final pos = await _locationService.getCurrentPosition();
-    if (pos == null) {
-      debugPrint('TrackingService: Could not get location, proceeding with fallback coordinates');
-    }
-
-    final deviceId = await _getDeviceId();
-
-    final request = TrackingStartRequest(
-      deviceId: deviceId,
-      latitude: pos?.latitude ?? 0.0,
-      longitude: pos?.longitude ?? 0.0,
-      startTime: _apiDateFormat.format(DateTime.now()),
+  // region Foreground Task & Platform Config
+  void _initForegroundTask() {
+    FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
+        channelId: 'tracking_service',
+        channelName: 'Tracking Service',
+        channelDescription: 'Maintains location tracking in background',
+        channelImportance: NotificationChannelImportance.LOW,
+        priority: NotificationPriority.LOW,
+      ),
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: false,
+        playSound: false,
+      ),
+      foregroundTaskOptions: const ForegroundTaskOptions(
+        interval: 60000,
+        isOnceEvent: false,
+        autoRunOnBoot: true,
+        allowWakeLock: true,
+        allowWifiLock: true,
+      ),
     );
-
-    try {
-      final data = await _repository.startTracking(request);
-      if (data != null && data['status'] == true) {
-        final newSessionId = int.tryParse(data['session_id']?.toString() ?? '');
-        sessionId.value = newSessionId;
-        if (newSessionId != null) {
-          await _storageService.saveTrackingSessionId(newSessionId);
-        }
-        isTracking.value = true;
-        await _storageService.saveIntendedTrackingStatus(true);
-        if (pos != null) {
-          _markLocationSynced(pos);
-        }
-        await _refreshLocationSyncLoop();
-      }
-    } catch (e) {
-      debugPrint('TrackingService: startTracking Exception: $e');
-    }
-  }
-
-  Future<void> stopTracking() async {
-    if (sessionId.value == null) {
-      isTracking.value = false;
-      await _storageService.saveIntendedTrackingStatus(false);
-      await _storageService.clearTrackingSessionId();
-      _resetLocationSyncState();
-      await _startForegroundService();
-      _stopForegroundUpdateTimer();
-      return;
-    }
-
-    final pos = await _locationService.getCurrentPosition();
-    final deviceId = await _getDeviceId();
-
-    final request = {
-      'session_id': sessionId.value,
-      'device_id': deviceId,
-      'latitude': pos?.latitude,
-      'longitude': pos?.longitude,
-      'end_time': _apiDateFormat.format(DateTime.now()),
-    };
-
-    try {
-      final data = await _repository.stopTracking(request);
-      if (data != null && data['status'] == true) {
-        await syncOfflineData();
-        isTracking.value = false;
-        sessionId.value = null;
-        await _storageService.saveIntendedTrackingStatus(false);
-        await _storageService.clearTrackingSessionId();
-        _resetLocationSyncState();
-        await _startForegroundService(); // This actually stops it when isTracking is false
-        _stopForegroundUpdateTimer();
-      }
-    } catch (e) {
-      debugPrint('TrackingService: stopTracking Exception: $e');
-    }
-  }
-
-  void _startForegroundUpdateTimer() {
-    _foregroundUpdateTimer?.cancel();
-    _foregroundUpdateTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (isTracking.value && currentPosition.value != null) {
-        _syncLocation(currentPosition.value!);
-      }
-    });
-  }
-
-  void _stopForegroundUpdateTimer() {
-    _foregroundUpdateTimer?.cancel();
-    _foregroundUpdateTimer = null;
   }
 
   Future<bool> _startForegroundService() async {
@@ -557,55 +668,46 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     );
 
     if (isTracking.value && hasBgPermission) {
-      if (sessionId.value != null) {
+      if (sessionId.value != null && sessionId.value! > 0) {
         await FlutterForegroundTask.saveData(
           key: 'session_id',
           value: sessionId.value!,
         );
       }
       final token = _storageService.getToken();
-      if (token != null) {
+      if (token != null)
         await FlutterForegroundTask.saveData(key: 'token', value: token);
-      }
-      final deviceId = await _getDeviceId();
-      await FlutterForegroundTask.saveData(key: 'device_id', value: deviceId);
+      await FlutterForegroundTask.saveData(
+        key: 'device_id',
+        value: _cachedDeviceId ?? 'unknown',
+      );
 
       if (await FlutterForegroundTask.isRunningService) {
-        return FlutterForegroundTask.restartService();
+        return true;
       } else {
         if (!kIsWeb && Platform.isAndroid) {
-          final isIgnoring =
-              await FlutterForegroundTask.isIgnoringBatteryOptimizations;
-          if (!isIgnoring && !_hasRequestedBatteryOpt) {
-            _hasRequestedBatteryOpt = true;
-            try {
-              await FlutterForegroundTask.requestIgnoreBatteryOptimization();
-            } catch (e) {
-              debugPrint('Battery optimization request error: $e');
-            }
-          }
-
+          try {
+            await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+          } catch (_) {}
           try {
             final isAutoStartAvail = await isAutoStartAvailable;
             if (isAutoStartAvail == true &&
                 !_storageService.getHasShownAutoStartPrompt()) {
               await _storageService.saveHasShownAutoStartPrompt(true);
-              if (Get.context != null) {
-                await showDialog(
-                  context: Get.context!,
-                  barrierDismissible: false,
-                  builder: (context) => const AutoStartDialog(),
-                );
-              }
+              Future.delayed(const Duration(seconds: 2), () {
+                if (Get.context != null)
+                  showDialog(
+                    context: Get.context!,
+                    barrierDismissible: false,
+                    builder: (context) => const AutoStartDialog(),
+                  );
+              });
             }
-          } catch (e) {
-            debugPrint('AutoStart check failed: $e');
-          }
+          } catch (_) {}
         }
         return FlutterForegroundTask.startService(
           notificationTitle: 'Tracking Active',
-          notificationText:
-              'Your location is being tracked for shift monitoring.',
+          notificationText: 'Location is being actively tracked.',
           callback: startCallback,
         );
       }
@@ -614,140 +716,195 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     }
   }
 
-  void _startLocationUpdates() async {
-    // Check permission instead of requesting to prevent conflicts with LocationPermissionController
-    final permission = await ph.Permission.location.status;
-    if (!permission.isGranted) return;
+  // endregion
 
-    final initialPos = await _locationService.getCurrentPosition();
-    if (initialPos != null) {
-      currentPosition.value = initialPos;
-    }
+  // region Internal Helpers
+  void _startConnectivityListener() {
+    unawaited(
+      Connectivity()
+          .checkConnectivity()
+          .then(_updateConnectivityState)
+          .catchError((_) {}),
+    );
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      _updateConnectivityState,
+    );
+  }
 
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = _locationService.getPositionStream().listen((
-      pos,
+  void _startGpsListener() {
+    _gpsServiceSubscription = Geolocator.getServiceStatusStream().listen((
+      ServiceStatus status,
     ) {
-      currentPosition.value = pos;
+      if (status == ServiceStatus.enabled && isTracking.value) {
+        _refreshLocationSyncLoop();
+      }
     });
   }
 
-  Future<void> _syncLocation(Position pos) async {
-    if (sessionId.value == null) return;
-
-    // Check if location service is actually enabled.
-    // If user turned off GPS, stop sending stale location updates.
-    final isEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!isEnabled) {
-      debugPrint('TrackingService: Location service disabled. Skipping sync.');
-      return;
-    }
-
-    if (_shouldSkipLocationUpdate(pos)) return;
-
-    final deviceId = await _getDeviceId();
-    final batteryLevel = await _battery.batteryLevel;
-    final batteryState = await _battery.batteryState;
-    final connectivityResults = _connectivityResults;
-    final networkType = _networkTypeFromConnectivity(connectivityResults);
-    double speedKmH = pos.speed * 3.6;
-
-    // Prevent stationary heartbeat updates from capturing instantaneous GPS jitter speeds
-    if (_lastSyncedPosition != null) {
-      final distance = Geolocator.distanceBetween(
-        _lastSyncedPosition!.latitude,
-        _lastSyncedPosition!.longitude,
-        pos.latitude,
-        pos.longitude,
+  Future<Box<LocationData>> _getLocationCacheBox() async {
+    if (_locationCacheBox == null || !_locationCacheBox!.isOpen) {
+      _locationCacheBox = await Hive.openBox<LocationData>(
+        'location_cache_box',
       );
-      if (distance < _minSyncDistanceMeters) {
-        speedKmH = 0.0;
-      }
     }
+    return _locationCacheBox!;
+  }
 
-    final locationTime = _apiDateFormat.format(
-      DateTime.now(),
-    ); // Use current time for sync heartbeat
-
-    final locationData = LocationData(
-      latitude: pos.latitude,
-      longitude: pos.longitude,
-      accuracy: pos.accuracy,
-      speed: speedKmH,
-      heading: pos.heading,
-      battery: batteryLevel,
-      isCharging: batteryState == BatteryState.charging,
-      networkType: networkType,
-      locationTime: locationTime,
-    );
-
-    final request = LocationUpdateRequest(
-      sessionId: sessionId.value!,
-      deviceId: deviceId,
-      latitude: locationData.latitude,
-      longitude: locationData.longitude,
-      accuracy: locationData.accuracy,
-      speed: locationData.speed,
-      heading: locationData.heading,
-      battery: locationData.battery,
-      isCharging: locationData.isCharging,
-      networkType: locationData.networkType,
-      locationTime: locationData.locationTime,
-    );
-
+  Future<void> _cacheLocationSafely(LocationData locationData) async {
     try {
-      final isOffline =
-          !_isOnline ||
-          connectivityResults.isEmpty ||
-          connectivityResults.contains(ConnectivityResult.none);
-
-      if (isOffline) {
-        final box = await _getLocationCacheBox();
-        await box.add(locationData);
-        _markLocationSynced(pos);
-        debugPrint('TrackingService: Location cached offline (No internet)');
-      } else {
-        await _repository.updateLocation(request);
-        _markLocationSynced(pos);
-        debugPrint('TrackingService: Synced location update');
-      }
-    } catch (e) {
-      debugPrint('TrackingService: Sync failed, caching: $e');
       final box = await _getLocationCacheBox();
+      if (box.isNotEmpty) {
+        final last = box.getAt(box.length - 1);
+        if (last != null) {
+          final dist = Geolocator.distanceBetween(
+            last.latitude,
+            last.longitude,
+            locationData.latitude,
+            locationData.longitude,
+          );
+          final timeDiff = DateTime.parse(
+            locationData.locationTime,
+          ).difference(DateTime.parse(last.locationTime));
+
+          double accuracyDiff =
+              ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
+          if (dist < 5.0 &&
+              timeDiff < TrackingConstants.stationaryHeartbeatMaxInterval &&
+              accuracyDiff < 15.0)
+            return;
+        }
+      }
+      if (box.length >= TrackingConstants.maxOfflineLocations)
+        await box.deleteAt(0);
       await box.add(locationData);
-      _markLocationSynced(pos);
+    } catch (_) {}
+  }
+
+  void _updateConnectivityState(List<ConnectivityResult> results) {
+    final wasOnline = _isOnline;
+    _connectivityResults = results;
+    _isOnline = results.any((result) => result != ConnectivityResult.none);
+    if (!wasOnline && _isOnline) unawaited(syncOfflineData());
+  }
+
+  String _networkTypeFromConnectivity(List<ConnectivityResult> results) {
+    if (results.isEmpty || results.contains(ConnectivityResult.none))
+      return 'offline';
+    if (results.contains(ConnectivityResult.wifi)) return 'wifi';
+    if (results.contains(ConnectivityResult.mobile)) return 'mobile';
+    return results.first.name;
+  }
+
+  Future<void> _updateNotificationSafely() async {
+    if (await FlutterForegroundTask.isRunningService) {
+      FlutterForegroundTask.updateService(
+        notificationTitle: 'Tracking Active',
+        notificationText: 'Tracking Session Live | Uploads: $_totalUploads',
+      );
     }
   }
 
   Future<String> _getDeviceId() async {
     bool isDev = kDebugMode;
     try {
-      if (Get.isRegistered<SettingsService>()) {
+      if (Get.isRegistered<SettingsService>())
         isDev = isDev || AppConfig.isDevToggle;
-      }
     } catch (_) {}
-
     if (isDev) return 'BP2A.250605.031.A3';
 
     final deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) {
-      final androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.id;
-    } else if (Platform.isIOS) {
-      final iosInfo = await deviceInfo.iosInfo;
-      return iosInfo.identifierForVendor ?? 'ios_device';
-    }
+    if (Platform.isAndroid) return (await deviceInfo.androidInfo).id;
+    if (Platform.isIOS)
+      return (await deviceInfo.iosInfo).identifierForVendor ?? 'ios_device';
     return 'unknown_device';
   }
 
-  @override
-  void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _positionStreamSubscription?.cancel();
-    _connectivitySubscription?.cancel();
-    _bulkSyncTimer?.cancel();
-    _foregroundUpdateTimer?.cancel();
-    _resetLocationSyncState();
-    super.onClose();
+  Future<bool?> _showOffDutyDialog() {
+    return Get.dialog<bool>(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.red,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Confirm Off Duty',
+                style: AppTextStyle.style_20_700(color: AppColors.black),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'This may result in cut in salary.\nDo you want to proceed?',
+                style: AppTextStyle.style_14_400(color: AppColors.grey600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.grey300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Get.back(result: false),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.grey600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: AppColors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Get.back(result: true),
+                      child: Text(
+                        'Proceed',
+                        style: AppTextStyle.style_14_600(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+
+  // endregion
 }
+
+// endregion

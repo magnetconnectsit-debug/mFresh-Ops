@@ -1,11 +1,11 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart' as d;
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
+import 'package:mfresh_ops/data/models/user.dart';
 import 'package:services/api_services.dart';
 import 'package:services/storage_service.dart';
-import 'package:mfresh_ops/data/models/user.dart';
-import 'package:mfresh_ops/data/services/tracking_service.dart';
-import 'dart:io';
-import 'package:dio/dio.dart' as d;
 
 class UserRepository extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();
@@ -17,12 +17,6 @@ class UserRepository extends GetxService {
       if (response != null && response['user'] != null) {
         final user = User.fromJson(response);
         await _storageService.saveUser(user);
-        
-        // Ensure tracking service syncs with the updated user duty status
-        try {
-          Get.find<TrackingService>().startAutoTracking();
-        } catch (_) {}
-
         return user;
       }
       return null;
@@ -60,12 +54,9 @@ class UserRepository extends GetxService {
         AppConstants.profileUpdate,
         data: data,
       );
-      
-      // If profile update returns user data, update local storage
-      if (response != null && (response['user'] != null || response['data'] != null)) {
-        // Fetch full profile again to get updated URL, or parse data.
-        // Wait, the profile-update API returns {"status": true, "message": "...", "data": {"name": "...", "image": "..."}}
-        // The GET profile API returns full user object. It's safer to re-fetch the profile.
+
+      if (response != null &&
+          (response['user'] != null || response['data'] != null)) {
         return await getProfile();
       }
       return null;
