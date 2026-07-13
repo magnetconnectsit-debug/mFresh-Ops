@@ -252,7 +252,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           try {
             Get.find<PushNotificationService>().showNotification(
               title: 'Duty On',
-              body: 'You are now ON duty. Your location is being tracked.',
+              body: 'You are now ON duty. Your shift is being recorded.',
             );
           } catch (_) {}
         }
@@ -311,7 +311,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     try {
       Get.find<PushNotificationService>().showNotification(
         title: 'Duty Off',
-        body: 'You are now OFF duty. Location tracking has stopped.',
+        body: 'You are now OFF duty. Click to change the duty status.',
       );
     } catch (_) {}
   }
@@ -755,8 +755,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           } catch (_) {}
         }
         return FlutterForegroundTask.startService(
-          notificationTitle: 'Tracking Active',
-          notificationText: 'Location is being actively tracked.',
+          notificationTitle: 'Duty Active',
+          notificationText: 'Shift is being actively recorded.',
           callback: startCallback,
         );
       }
@@ -845,8 +845,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
           : 'Never';
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Tracking Active',
-        notificationText: 'Tracking Active | Last Synced: $syncedText',
+        notificationTitle: 'Shift Active',
+        notificationText: 'Shift Active | Last Synced: $syncedText',
       );
     }
 
