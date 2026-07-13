@@ -149,22 +149,20 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
   // region Core Operations
   Future<void> _restoreTrackingOnResume() async {
-    if (!isTracking.value && (sessionId.value == null || sessionId.value! <= 0))
-      return;
+    final token = _storageService.getToken();
+    if (token == null || token.isEmpty) return;
 
-    // Ownership check via shared memory state
+    debugPrint('Restoring tracking state on app resume...');
     final bool isBgOwner =
         await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
     final bool isRunning = await FlutterForegroundTask.isRunningService;
 
     // LMK Fail-safe: If OS killed service but bg_owner flag survived, rescue the UI isolate
     if (isBgOwner && !isRunning) {
+      debugPrint('Failsafe: OS killed background service, resetting ownership flag.');
       await FlutterForegroundTask.removeData(key: 'bg_owner');
-      await checkCurrentStatus();
-      return;
     }
 
-    if (isBgOwner) return; // Background isolate is healthy and owns execution
     await checkCurrentStatus();
   }
 
@@ -851,9 +849,14 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     }
 
     if (isTracking.value) {
-      final lastLocTime = _lastProcessedLocationTime;
-      if (lastLocTime != null &&
-          DateTime.now().difference(lastLocTime) > const Duration(minutes: 5)) {
+      final lastTimeStr = await FlutterForegroundTask.getData<String>(key: 'last_time');
+      final lastLocTime = lastTimeStr != null ? DateTime.tryParse(lastTimeStr) : null;
+      
+      // Fallback to local in-memory timestamp if persistent time is null
+      final actualLastLocTime = lastLocTime ?? _lastProcessedLocationTime;
+
+      if (actualLastLocTime != null &&
+          DateTime.now().difference(actualLastLocTime) > const Duration(minutes: 5)) {
         try {
           Get.find<PushNotificationService>().showNotification(
             title: 'Duty Not Recording',
