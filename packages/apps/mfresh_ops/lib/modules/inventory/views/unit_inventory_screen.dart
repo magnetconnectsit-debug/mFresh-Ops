@@ -10,7 +10,6 @@ import '../controllers/unit_inventory_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'widgets/unit_inventory_filters.dart';
 import 'widgets/unit_inventory_table.dart';
-import 'widgets/unit_inventory_table.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 

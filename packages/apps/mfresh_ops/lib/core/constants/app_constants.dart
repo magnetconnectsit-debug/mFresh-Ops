@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 
 class AppConstants {

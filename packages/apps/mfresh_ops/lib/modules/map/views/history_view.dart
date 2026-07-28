@@ -70,18 +70,11 @@ class HistoryView extends GetView<HistoryController> {
                   myLocationEnabled: controller.adminEmployeeId == null,
                   myLocationButtonEnabled: controller.adminEmployeeId == null,
                   mapType: controller.currentMapType.value,
-                  polylines: {
-                    Polyline(
-                      polylineId: const PolylineId('route'),
-                      points: controller.drawnRoutePoints.toList(),
-                      color: AppColors.blue500,
-                      width: 5,
-                      jointType: JointType.round,
-                      startCap: Cap.roundCap,
-                      endCap: Cap.roundCap,
-                      geodesic: true,
-                    ),
+                  onCameraMove: (CameraPosition position) {
+                    controller.currentZoom.value = position.zoom;
                   },
+                  circles: controller.employeeCircles.toSet(),
+                  polylines: controller.routePolylines,
                   markers: {
                     if (controller.routePoints.isNotEmpty) ...[
                       ...controller.stopMarkers,

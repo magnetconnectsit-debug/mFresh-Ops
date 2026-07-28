@@ -73,7 +73,7 @@ class MapView extends GetView<TrackingService> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isTracking ? 'Shift: Active' : 'Shift: Inactive',
+                            isTracking ? 'Duty: Active' : 'Duty: Inactive',
                             style: AppTextStyle.style_14_700(
                               color: isTracking ? const Color(0xFF10B981) : Colors.red,
                             ),

@@ -42,8 +42,8 @@ class HomeGrid extends StatelessWidget {
         permissionKey: 'inventory_panel',
       ),
       GridItemData(
-        title: 'Staff Tracking',
-        subtitle: 'Team locations',
+        title: 'Attendance',
+        subtitle: 'Team attendance',
         icon: Icons.people_alt_rounded,
         gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
         route: AppRoutes.staffTracking,

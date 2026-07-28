@@ -24,7 +24,7 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace = "com.mFreshOps"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -39,7 +39,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion // Minimum required for Google Maps and Foreground Service
-        targetSdk = 35 // Required for Foreground Service Type 'location'
+        targetSdk = 36 // Required for Google Play API level requirements
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 

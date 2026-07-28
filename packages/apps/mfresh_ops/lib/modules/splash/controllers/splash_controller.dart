@@ -5,7 +5,7 @@ import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-
+import 'package:geolocator/geolocator.dart';
 class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
   final AppUpdateService _updateService = Get.find<AppUpdateService>();
@@ -32,16 +32,21 @@ class SplashController extends GetxController {
     await Future.delayed(const Duration(seconds: 2));
 
     // 2. Check and enforce location permissions
+    bool isLocationValid = false;
     try {
       final fgGranted = await Permission.location.isGranted;
       final bgGranted = await Permission.locationAlways.isGranted;
 
-      if (!fgGranted || !bgGranted) {
-        Get.offAllNamed(AppRoutes.locationPermission);
-        return;
+      if (fgGranted && bgGranted) {
+        isLocationValid = true;
       }
     } catch (e) {
       debugPrint("Splash Location Check Error: $e");
+    }
+
+    if (!isLocationValid) {
+      Get.offAllNamed(AppRoutes.locationPermission);
+      return;
     }
 
     final token = _storageService.getToken();
@@ -51,6 +56,11 @@ class SplashController extends GetxController {
       // Proactively fetch latest profile and permissions on startup
       await Get.find<AuthRepository>().fetchProfile();
       Get.offAllNamed(AppRoutes.home);
+      
+      // Trigger the global GPS & permission check on cold start
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _trackingService.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      });
     } else {
       Get.offAllNamed(AppRoutes.login);
     }

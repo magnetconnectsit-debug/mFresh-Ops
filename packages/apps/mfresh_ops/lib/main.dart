@@ -87,6 +87,7 @@ class MyTaskHandler extends TaskHandler {
   int _totalUploads = 0;
   DateTime? _lastDiskWriteAt;
   Timer? _notificationUpdateTimer;
+  DateTime? _lastNotificationShownTime;
 
   // endregion
 
@@ -116,6 +117,7 @@ class MyTaskHandler extends TaskHandler {
     ); // Ownership claim
     await _updateBatteryState();
     _lastProcessedLocationTime = DateTime.now();
+    _lastNotificationShownTime = null;
 
     try {
       await Hive.initFlutter();
@@ -527,36 +529,41 @@ class MyTaskHandler extends TaskHandler {
         ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
         : 'Never';
     FlutterForegroundTask.updateService(
-      notificationTitle: 'Tracking Active',
-      notificationText: 'Tracking Active | Last Synced: $syncedText',
+      notificationTitle: 'Duty Active',
+      notificationText: 'Duty Active | Last Synced: $syncedText',
     );
 
     final lastLocTime = _lastProcessedLocationTime;
     if (lastLocTime != null &&
-        DateTime.now().difference(lastLocTime) > const Duration(minutes: 5)) {
-      await _localNotificationsPlugin.show(
-        id: 999,
-        title: 'Duty Not Recording',
-        body: 'Your duty status is not being recorded. Please open the app.',
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'duty_status_channel',
-            'Duty Status Alerts',
-            channelDescription:
-                'Shows popup notifications when starting or stopping duty.',
-            icon: '@mipmap/ic_launcher',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
+        DateTime.now().difference(lastLocTime) > const Duration(hours: 1)) {
+      final lastShown = _lastNotificationShownTime;
+      if (lastShown == null ||
+          DateTime.now().difference(lastShown) > const Duration(hours: 1)) {
+        _lastNotificationShownTime = DateTime.now();
+        await _localNotificationsPlugin.show(
+          id: 999,
+          title: 'Off Duty',
+          body: 'You are now Off Duty. Click to change the duty status.',
+          notificationDetails: const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'duty_status_channel',
+              'Duty Status Alerts',
+              channelDescription:
+                  'Shows popup notifications when starting or stopping duty.',
+              icon: '@mipmap/ic_launcher',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
           ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
-      );
+        );
+      }
     }
   }
 

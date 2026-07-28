@@ -58,7 +58,7 @@ class TrackingConstants {
   static const Duration stalePositionThreshold = Duration(seconds: 12);
 
   /// Stationary heartbeat.
-  static const Duration stationaryHeartbeatMaxInterval = Duration(minutes: 10);
+  static const Duration stationaryHeartbeatMaxInterval = Duration(minutes: 1);
 
   // ===========================================================================
   // Queue

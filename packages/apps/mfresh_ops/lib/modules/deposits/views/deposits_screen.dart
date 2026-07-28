@@ -7,7 +7,6 @@ import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/modules/deposits/controllers/deposits_controller.dart';
-import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_filters.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 import 'package:mfresh_ops/modules/deposits/views/widgets/deposits_table.dart';

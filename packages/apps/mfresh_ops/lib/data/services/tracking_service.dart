@@ -25,6 +25,7 @@ import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/main.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:services/services.dart';
 // endregion
@@ -74,6 +75,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   bool _isWorkerRunning = false;
   int _totalUploads = 0;
   DateTime? _lastDiskWriteAt;
+  DateTime? _lastNotificationShownTime;
 
   final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
@@ -129,7 +131,137 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
+    
+    unawaited(_enforceLocationServicesOnResume());
     unawaited(_restoreTrackingOnResume());
+  }
+
+  Future<void> _enforceLocationServicesOnResume() async {
+    try {
+       final token = _storageService.getToken();
+       if (token == null || token.isEmpty) return; 
+
+       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+       if (!serviceEnabled) {
+          _showGpsDisabledDialog();
+       } else {
+          _closeGpsDisabledDialog();
+          
+          final fgGranted = await ph.Permission.location.isGranted;
+          final bgGranted = await ph.Permission.locationAlways.isGranted;
+          if (!fgGranted || !bgGranted) {
+             if (Get.currentRoute != AppRoutes.locationPermission) {
+                Get.offAllNamed(AppRoutes.locationPermission);
+             }
+          }
+       }
+    } catch (e) {
+       debugPrint("Error enforcing location services on resume: $e");
+    }
+  }
+
+  bool _isGpsDialogShowing = false;
+  void _showGpsDisabledDialog() {
+    if (_isGpsDialogShowing) return;
+    _isGpsDialogShowing = true;
+    
+    Get.dialog(
+      PopScope(
+        canPop: false,
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10.0,
+                  offset: Offset(0.0, 10.0),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.location_off_rounded,
+                    color: Colors.orange,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Location is Disabled',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Please turn on your device location to continue using the app.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Geolocator.openLocationSettings();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Open Settings',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void _closeGpsDisabledDialog() {
+    if (_isGpsDialogShowing) {
+       Get.back();
+       _isGpsDialogShowing = false;
+    }
   }
 
   @override
@@ -159,7 +291,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
     // LMK Fail-safe: If OS killed service but bg_owner flag survived, rescue the UI isolate
     if (isBgOwner && !isRunning) {
-      debugPrint('Failsafe: OS killed background service, resetting ownership flag.');
+      debugPrint(
+        'Failsafe: OS killed background service, resetting ownership flag.',
+      );
       await FlutterForegroundTask.removeData(key: 'bg_owner');
     }
 
@@ -175,8 +309,12 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     final savedSessionId = _storageService.getTrackingSessionId();
     final intendedStatus = _storageService.getIntendedTrackingStatus();
 
-    if (intendedStatus == true && savedSessionId != null && savedSessionId > 0) {
-      debugPrint('Resuming tracking from local storage offline-first: session $savedSessionId');
+    if (intendedStatus == true &&
+        savedSessionId != null &&
+        savedSessionId > 0) {
+      debugPrint(
+        'Resuming tracking from local storage offline-first: session $savedSessionId',
+      );
       sessionId.value = savedSessionId;
       isTracking.value = true;
       _lastProcessedLocationTime = DateTime.now();
@@ -233,7 +371,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         deviceId: _cachedDeviceId ?? 'unknown',
         latitude: pos?.latitude ?? 0.0,
         longitude: pos?.longitude ?? 0.0,
-        startTime: _apiDateFormat.format((pos?.timestamp ?? DateTime.now()).toLocal()),
+        startTime: _apiDateFormat.format(
+          (pos?.timestamp ?? DateTime.now()).toLocal(),
+        ),
       );
 
       final data = await _repository.startTracking(request);
@@ -244,13 +384,14 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           await _storageService.saveTrackingSessionId(newSessionId);
           isTracking.value = true;
           _lastProcessedLocationTime = DateTime.now();
+          _lastNotificationShownTime = null;
           await _storageService.saveIntendedTrackingStatus(true);
           if (pos != null) _enqueueLocation(pos);
           await _refreshLocationSyncLoop();
           try {
             Get.find<PushNotificationService>().showNotification(
-              title: 'Duty On',
-              body: 'You are now ON duty. Your shift is being recorded.',
+              title: 'On Duty',
+              body: 'You are now ON duty.',
             );
           } catch (_) {}
         }
@@ -278,7 +419,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       'device_id': _cachedDeviceId,
       'latitude': pos?.latitude,
       'longitude': pos?.longitude,
-      'end_time': _apiDateFormat.format((pos?.timestamp ?? DateTime.now()).toLocal()),
+      'end_time': _apiDateFormat.format(
+        (pos?.timestamp ?? DateTime.now()).toLocal(),
+      ),
     };
 
     try {
@@ -292,6 +435,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   Future<void> _flushQueueAndStop() async {
     isTracking.value = false;
     sessionId.value = null;
+    _lastNotificationShownTime = null;
     await _storageService.saveIntendedTrackingStatus(false);
     await _storageService.clearTrackingSessionId();
     _stopForegroundUpdateTimer();
@@ -308,7 +452,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
     try {
       Get.find<PushNotificationService>().showNotification(
-        title: 'Duty Off',
+        title: 'Off Duty',
         body: 'You are now OFF duty. Click to change the duty status.',
       );
     } catch (_) {}
@@ -433,7 +577,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       debugPrint('========== FOREGROUND TIMER EVENT ==========');
       final bool isBgOwner =
           await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
-      debugPrint('Foreground Timer - isTracking: ${isTracking.value}, isBgOwner: $isBgOwner');
+      debugPrint(
+        'Foreground Timer - isTracking: ${isTracking.value}, isBgOwner: $isBgOwner',
+      );
       if (isTracking.value && !isBgOwner) {
         final pos = await _locationService.getCurrentPosition();
         debugPrint('Foreground Timer resolved position: $pos');
@@ -501,7 +647,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   }
 
   Future<void> _processUploadQueue() async {
-    debugPrint('Foreground processing upload queue. Current size: ${_uploadQueue.length}');
+    debugPrint(
+      'Foreground processing upload queue. Current size: ${_uploadQueue.length}',
+    );
     try {
       while (_uploadQueue.isNotEmpty) {
         final pos = _uploadQueue.removeFirst();
@@ -536,7 +684,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   Future<void> _executeUpload(Position pos) async {
     debugPrint('Foreground executing upload for pos: $pos');
     if (sessionId.value == null || sessionId.value! <= 0) {
-      debugPrint('Foreground Upload failed: missing sessionId (${sessionId.value}).');
+      debugPrint(
+        'Foreground Upload failed: missing sessionId (${sessionId.value}).',
+      );
       return;
     }
 
@@ -582,15 +732,21 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           success = true;
           break;
         } on DioException catch (e) {
-          debugPrint('Foreground Upload attempt $i failed with DioException: $e');
+          debugPrint(
+            'Foreground Upload attempt $i failed with DioException: $e',
+          );
           if (e.response?.statusCode == 401) {
-            debugPrint('Foreground Upload 401 Unauthorized. Stopping tracking.');
+            debugPrint(
+              'Foreground Upload 401 Unauthorized. Stopping tracking.',
+            );
             await _flushQueueAndStop();
             return;
           }
           await Future.delayed(TrackingConstants.calculateRetryDelay(i));
         } catch (e) {
-          debugPrint('Foreground Upload attempt $i failed with generic exception: $e');
+          debugPrint(
+            'Foreground Upload attempt $i failed with generic exception: $e',
+          );
           await Future.delayed(TrackingConstants.calculateRetryDelay(i));
         }
       }
@@ -602,7 +758,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         await _updatePersistentStorage(pos);
         unawaited(_updateNotificationSafely());
       } else {
-        debugPrint('Foreground Upload FAILED after all retries. Caching locally.');
+        debugPrint(
+          'Foreground Upload FAILED after all retries. Caching locally.',
+        );
         await _cacheLocationSafely(locationData);
         await _updatePersistentStorage(pos);
       }
@@ -754,7 +912,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         }
         return FlutterForegroundTask.startService(
           notificationTitle: 'Duty Active',
-          notificationText: 'Shift is being actively recorded.',
+          notificationText: 'You are on duty',
           callback: startCallback,
         );
       }
@@ -843,26 +1001,36 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
           : 'Never';
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Shift Active',
-        notificationText: 'Shift Active | Last Synced: $syncedText',
+        notificationTitle: 'Duty Active',
+        notificationText: 'Duty Active | Last Synced: $syncedText',
       );
     }
 
     if (isTracking.value) {
-      final lastTimeStr = await FlutterForegroundTask.getData<String>(key: 'last_time');
-      final lastLocTime = lastTimeStr != null ? DateTime.tryParse(lastTimeStr) : null;
-      
+      final lastTimeStr = await FlutterForegroundTask.getData<String>(
+        key: 'last_time',
+      );
+      final lastLocTime = lastTimeStr != null
+          ? DateTime.tryParse(lastTimeStr)
+          : null;
+
       // Fallback to local in-memory timestamp if persistent time is null
       final actualLastLocTime = lastLocTime ?? _lastProcessedLocationTime;
 
       if (actualLastLocTime != null &&
-          DateTime.now().difference(actualLastLocTime) > const Duration(minutes: 5)) {
-        try {
-          Get.find<PushNotificationService>().showNotification(
-            title: 'Duty Not Recording',
-            body: 'Your duty status is not being recorded. Please open the app.',
-          );
-        } catch (_) {}
+          DateTime.now().difference(actualLastLocTime) >
+              const Duration(hours: 1)) {
+        final lastShown = _lastNotificationShownTime;
+        if (lastShown == null ||
+            DateTime.now().difference(lastShown) > const Duration(hours: 1)) {
+          _lastNotificationShownTime = DateTime.now();
+          try {
+            Get.find<PushNotificationService>().showNotification(
+              title: 'Off Duty',
+              body: 'You are now Off Duty. Click to change the duty status.',
+            );
+          } catch (_) {}
+        }
       }
     }
   }

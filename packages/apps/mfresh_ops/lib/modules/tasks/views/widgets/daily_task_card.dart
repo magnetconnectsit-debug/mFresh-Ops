@@ -5,10 +5,8 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
-import 'package:mfresh_ops/modules/tasks/views/widgets/task_submission_dialog.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/delete_task_dialog.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
 
 class DailyTaskCard extends StatefulWidget {
   final TaskItem task;
@@ -221,7 +219,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
         });
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(8.r),
@@ -257,11 +255,11 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                     task.title,
                     maxLines: _isExpanded ? null : 1,
                     overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                    style: AppTextStyle.style_12_700(
+                    style: AppTextStyle.style_14_700(
                       color: AppColors.black,
                     ),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 4.h),
                   // Metadata Row 1: Time and Date
                   Wrap(
                     spacing: 8.w,
@@ -278,7 +276,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 4.h),
                   Row(
                     children: [
                       Flexible(
@@ -289,10 +287,10 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                               (task.groupNames != null && task.groupNames!.isNotEmpty)
                                   ? Icons.people_outline
                                   : Icons.person_outline,
-                              size: 10.r,
+                              size: 12.r,
                               color: const Color(0xFF6C757D),
                             ),
-                            SizedBox(width: 3.w),
+                            SizedBox(width: 4.w),
                             Flexible(
                               child: Text(
                                 (task.groupNames != null && task.groupNames!.isNotEmpty)
@@ -301,8 +299,8 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                                         ? task.assigneeName!
                                         : 'Unassigned',
                                 style: TextStyle(
-                                  fontSize: 8.5.sp,
-                                  fontWeight: FontWeight.w400,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w500,
                                   color: const Color(0xFF6C757D),
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -373,7 +371,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                   children: [
                     Container(
                       width: 75.w,
-                      height: 24.h,
+                      height: 22.h,
                       decoration: BoxDecoration(
                         color: statusBg,
                         borderRadius: BorderRadius.circular(4.r),
@@ -381,7 +379,11 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                       child: Center(
                         child: Text(
                           statusText,
-                          style: AppTextStyle.style_10_700(color: statusTextColor),
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w700,
+                            color: statusTextColor,
+                          ),
                         ),
                       ),
                     ),
@@ -430,16 +432,16 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 10.r, color: const Color(0xFF6C757D)),
-        SizedBox(width: 3.w),
+        Icon(icon, size: 12.r, color: const Color(0xFF6C757D)),
+        SizedBox(width: 4.w),
         Flexible(
           child: Text(
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 8.5.sp,
-              fontWeight: FontWeight.w400,
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w500,
               color: const Color(0xFF6C757D),
             ),
           ),

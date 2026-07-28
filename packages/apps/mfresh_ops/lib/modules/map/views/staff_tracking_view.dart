@@ -8,7 +8,7 @@ class StaffTrackingView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Staff Tracking'),
+        title: const Text('Attendance'),
       ),
       body: const GoogleMap(
         initialCameraPosition: CameraPosition(

@@ -24,12 +24,33 @@ class HistoryController extends GetxController {
   final RxMap<String, dynamic> routeSummary = <String, dynamic>{}.obs;
   final RxMap<String, dynamic> liveStatus = <String, dynamic>{}.obs;
   final RxList<Map<String, dynamic>> routeSegments = <Map<String, dynamic>>[].obs;
+  
+  Polyline? _cachedRoutePolyline;
+  
+  Set<Polyline> get routePolylines {
+    if (drawnRoutePoints.isEmpty) return {};
+    if (_cachedRoutePolyline == null || _cachedRoutePolyline!.points.length != drawnRoutePoints.length) {
+      _cachedRoutePolyline = Polyline(
+        polylineId: const PolylineId('route'),
+        points: drawnRoutePoints.toList(),
+        color: AppColors.blue500,
+        width: 5,
+        jointType: JointType.round,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        geodesic: true,
+      );
+    }
+    return {_cachedRoutePolyline!};
+  }
   final Rx<Marker?> startMarker = Rx<Marker?>(null);
   final Rx<Marker?> endMarker = Rx<Marker?>(null);
   final Rx<Marker?> staffCurrentLocationMarker = Rx<Marker?>(null);
+  final RxSet<Circle> employeeCircles = <Circle>{}.obs;
   final RxBool isLoading = true.obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final Rx<MapType> currentMapType = MapType.normal.obs;
+  final RxDouble currentZoom = 14.5.obs;
   
   final RxMap<String, String> addressCache = <String, String>{}.obs;
   
@@ -53,10 +74,14 @@ class HistoryController extends GetxController {
   String? adminEmployeeName;
 
   Timer? _historyPollingTimer;
+  Timer? _rippleTimer;
+  Timer? _zoomPollingTimer;
+  double _rippleFactor = 0.0;
 
   @override
   void onInit() {
     super.onInit();
+    _startRippleAnimation();
     final args = Get.arguments;
     if (args != null && args is Map) {
       adminEmployeeId = args['employee_id'];
@@ -129,6 +154,7 @@ class HistoryController extends GetxController {
       final customIcon = await MapMarkerUtils.createCustomMarker(
         color: Colors.blue,
         text: initials,
+        fullName: initials,
       );
       staffCurrentLocationMarker.value = staffCurrentLocationMarker.value!.copyWith(
         iconParam: customIcon,
@@ -155,6 +181,8 @@ class HistoryController extends GetxController {
       routeSegments.clear();
       startMarker.value = null;
       endMarker.value = null;
+      employeeCircles.clear();
+      _cachedRoutePolyline = null;
     }
 
     try {
@@ -284,6 +312,7 @@ class HistoryController extends GetxController {
               final lat = emp['latitude'];
               final lng = emp['longitude'];
               if (lat != null && lng != null && lat.toString().isNotEmpty && lng.toString().isNotEmpty) {
+                final LatLng newPos = LatLng(double.parse(lat.toString()), double.parse(lng.toString()));
                 final status = emp['current_status']?.toString().toLowerCase();
                 final isOffDuty = status == null || status.isEmpty || status == 'off-duty' || status == 'offline';
 
@@ -307,48 +336,81 @@ class HistoryController extends GetxController {
                     }
                   }
 
-                  final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
-                  final Color borderColor = isOnDuty ? AppColors.green : AppColors.red;
+                final bool isOnDuty = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+                final Color borderColor = isOnDuty ? AppColors.green : AppColors.red;
 
-                  final imageUrl = emp['image_url']?.toString();
-                  if (imageUrl != null && !imageUrl.endsWith('/NA') && imageUrl.isNotEmpty) {
-                    customIcon = await MapMarkerUtils.createNetworkImageMarker(
-                      imageUrl: imageUrl,
-                      color: markerColor,
-                      fallbackText: initials,
-                      borderColor: borderColor,
-                    );
-                  } else {
-                    customIcon = await MapMarkerUtils.createCustomMarker(
-                      color: markerColor,
-                      text: initials,
-                      borderColor: borderColor,
-                    );
-                  }
+                employeeCircles.clear();
+                if (isOnDuty) {
+                  final String empId = (emp['id'] ?? emp['user_id'] ?? 'current').toString();
+                  final double scaleFactor = math.pow(2.0, math.max(0.0, currentZoom.value - 13.5)).toDouble();
+                  final double innerRadius = (200.0 + (300.0 * _rippleFactor)) / scaleFactor;
+                  final double outerRadius = (450.0 + (550.0 * _rippleFactor)) / scaleFactor;
+                  final double innerOpacity = 0.25 * (1.0 - _rippleFactor);
+                  final double outerOpacity = 0.12 * (1.0 - _rippleFactor);
+
+                  employeeCircles.add(
+                    Circle(
+                      circleId: CircleId('ripple_inner_$empId'),
+                      center: newPos,
+                      radius: innerRadius,
+                      fillColor: AppColors.green.withValues(alpha: innerOpacity),
+                      strokeColor: AppColors.green.withValues(alpha: innerOpacity * 1.5),
+                      strokeWidth: 2,
+                    ),
+                  );
+                  employeeCircles.add(
+                    Circle(
+                      circleId: CircleId('ripple_outer_$empId'),
+                      center: newPos,
+                      radius: outerRadius,
+                      fillColor: AppColors.green.withValues(alpha: outerOpacity),
+                      strokeColor: AppColors.green.withValues(alpha: outerOpacity * 1.5),
+                      strokeWidth: 1,
+                    ),
+                  );
                 }
 
-                final LatLng newPos = LatLng(double.parse(lat.toString()), double.parse(lng.toString()));
-                staffCurrentLocationMarker.value = Marker(
-                  markerId: const MarkerId('staff_current_location'),
-                  position: newPos,
-                  infoWindow: InfoWindow(
-                    title: adminEmployeeName != null ? '$adminEmployeeName\'s Location' : 'Current Location',
-                    snippet: emp['last_seen'] != null ? 'Last seen: ${emp['last_seen']}' : null,
-                  ),
-                  icon: customIcon,
-                  zIndexInt: 10,
-                );
-
-                mapController?.animateCamera(
-                  CameraUpdate.newLatLng(newPos),
-                );
+                final imageUrl = emp['image_url']?.toString();
+                if (imageUrl != null && !imageUrl.endsWith('/NA') && imageUrl.isNotEmpty) {
+                  customIcon = await MapMarkerUtils.createNetworkImageMarker(
+                    imageUrl: imageUrl,
+                    color: markerColor,
+                    fallbackText: initials,
+                    borderColor: borderColor,
+                  );
+                } else {
+                  customIcon = await MapMarkerUtils.createCustomMarker(
+                    color: markerColor,
+                    text: initials,
+                    fullName: initials,
+                    borderColor: borderColor,
+                  );
+                }
               }
+
+              staffCurrentLocationMarker.value = Marker(
+                markerId: const MarkerId('staff_current_location'),
+                position: newPos,
+                infoWindow: InfoWindow(
+                  title: adminEmployeeName != null ? '$adminEmployeeName\'s Location' : 'Current Location',
+                  snippet: emp['last_seen'] != null ? 'Last seen: ${emp['last_seen']}' : null,
+                ),
+                icon: customIcon,
+                zIndexInt: 10,
+              );
+
+              mapController?.animateCamera(
+                CameraUpdate.newLatLng(newPos),
+              );
             }
           }
-        } catch (e) {
-          debugPrint('Error fetching current status for employee: $e');
         }
+      } catch (e) {
+        debugPrint('Error fetching current status for employee: $e');
       }
+    } else {
+      employeeCircles.clear();
+    }
 
 
 
@@ -659,10 +721,62 @@ class HistoryController extends GetxController {
     return (bearing * (180.0 / math.pi) + 360.0) % 360.0;
   }
 
+  void _startRippleAnimation() {
+    _rippleTimer?.cancel();
+    _rippleTimer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
+      _rippleFactor += 0.03;
+      if (_rippleFactor > 1.0) {
+        _rippleFactor = 0.0;
+      }
+      _animateCircles();
+    });
+
+    _zoomPollingTimer?.cancel();
+    _zoomPollingTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+      if (mapController != null) {
+        try {
+          final zoom = await mapController!.getZoomLevel();
+          currentZoom.value = zoom;
+        } catch (e) {}
+      }
+    });
+  }
+
+  void _animateCircles() {
+    if (employeeCircles.isEmpty) return;
+
+    final List<Circle> updated = [];
+    for (var circle in employeeCircles) {
+      if (circle.circleId.value.startsWith('ripple_')) {
+        final isInner = circle.circleId.value.startsWith('ripple_inner_');
+        final double scaleFactor = math.pow(2.0, math.max(0.0, currentZoom.value - 13.5)).toDouble();
+        final double radius = isInner
+            ? (200.0 + (300.0 * _rippleFactor)) / scaleFactor
+            : (450.0 + (550.0 * _rippleFactor)) / scaleFactor;
+        final double opacity = isInner
+            ? 0.25 * (1.0 - _rippleFactor)
+            : 0.12 * (1.0 - _rippleFactor);
+
+        updated.add(
+          circle.copyWith(
+            radiusParam: radius,
+            fillColorParam: AppColors.green.withValues(alpha: opacity),
+            strokeColorParam: AppColors.green.withValues(alpha: opacity * 1.5),
+          ),
+        );
+      } else {
+        updated.add(circle);
+      }
+    }
+    employeeCircles.assignAll(updated);
+  }
+
   @override
   void onClose() {
     _replayTimer?.cancel();
     _historyPollingTimer?.cancel();
+    _rippleTimer?.cancel();
+    _zoomPollingTimer?.cancel();
     super.onClose();
   }
 }

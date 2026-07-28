@@ -237,7 +237,6 @@ class PrintUtil {
         debugPrint("Connection failed, clearing printer states...");
         _connectedPrinter = null;
         lastFailedAddress = printer.address;
-        Get.find<StorageService>().clearDefaultPrinter();
         AppCommonToastMessage.show(message: "Printer connection failed. Please select again.", type: ToastType.error);
         return false;
       }
@@ -247,7 +246,6 @@ class PrintUtil {
       if (errorStr.contains("deviceNotFound") || errorStr.contains("DEVICE_NOT_FOUND") || errorStr.contains("133")) {
         debugPrint("Explicitly caught DEVICE_NOT_FOUND or GATT error");
         lastFailedAddress = printer.address;
-        Get.find<StorageService>().clearDefaultPrinter();
         AppCommonToastMessage.show(message: "Printer connection lost. Please select again.", type: ToastType.warning);
       } else {
         AppCommonToastMessage.show(message: "Printer error: $e", type: ToastType.error);

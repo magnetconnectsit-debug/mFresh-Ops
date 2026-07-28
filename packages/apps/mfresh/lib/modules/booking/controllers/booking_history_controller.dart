@@ -33,7 +33,7 @@ class BookingHistoryController extends GetxController {
       final yesterday = today.subtract(const Duration(days: 1));
       
       try {
-        final bDate = DateTime.parse(booking.createdAt);
+        final bDate = DateTime.parse(booking.createdAt).toLocal();
         final bDay = DateTime(bDate.year, bDate.month, bDate.day);
         
         if (selectedDateFilter.value == 'Today') {

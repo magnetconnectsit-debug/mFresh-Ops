@@ -37,7 +37,6 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppCommonAppBar(
@@ -47,6 +46,43 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           'Daily Task',
           style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
+        actions: [
+          Obx(() {
+            if (Get.find<AuthRepository>().rxUserPermissions.contains(
+              'create_new_task',
+            )) {
+              return Padding(
+                padding: EdgeInsets.only(right: 16.w),
+                child: Center(
+                  child: SizedBox(
+                    height: 24.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.find<TasksController>().formInitialized.value =
+                            false;
+                        Get.toNamed(AppRoutes.createTask);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF16A3B8),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        elevation: 1,
+                      ),
+                      child: Text(
+                        'Create Task',
+                        style: AppTextStyle.style_12_500(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+        ],
         showAppDrawer: true,
         hasBackButton: false,
         iconColor: AppColors.black,
@@ -56,7 +92,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       body: RefreshIndicator(
         onRefresh: () => controller.pullToRefresh(),
         child: Obx(() {
-          final bool isInitialLoading = controller.isLoading.value && controller.tasks.isEmpty;
+          final bool isInitialLoading =
+              controller.isLoading.value && controller.tasks.isEmpty;
 
           final displayTasks = isInitialLoading
               ? List.generate(
@@ -98,20 +135,24 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     completedByName: 'Loading Completer',
                   ),
                 )
-              : (controller.isFiltered ? controller.tasks : controller.allDailyTasks).where((task) {
-                  final status = task.status.toLowerCase();
-                  if (controller.activeTab.value == 0) {
-                    return status != 'completed' &&
-                        status != 'approved' &&
-                        status != 'review' &&
-                        status != 'under_review';
-                  } else {
-                    return status == 'completed' ||
-                        status == 'approved' ||
-                        status == 'review' ||
-                        status == 'under_review';
-                  }
-                }).toList();
+              : (controller.isFiltered
+                        ? controller.tasks
+                        : controller.allDailyTasks)
+                    .where((task) {
+                      final status = task.status.toLowerCase();
+                      if (controller.activeTab.value == 0) {
+                        return status != 'completed' &&
+                            status != 'approved' &&
+                            status != 'review' &&
+                            status != 'under_review';
+                      } else {
+                        return status == 'completed' ||
+                            status == 'approved' ||
+                            status == 'review' ||
+                            status == 'under_review';
+                      }
+                    })
+                    .toList();
 
           final List<TaskItem> todayTasks = [];
           final List<TaskItem> tomorrowTasks = [];
@@ -125,7 +166,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           } else {
             for (final task in displayTasks) {
               final dt = _parseDateTime(task.scheduleDateTime);
-              if (dt != null && (dt.isAfter(tomorrowStart) || dt.isAtSameMomentAs(tomorrowStart))) {
+              if (dt != null &&
+                  (dt.isAfter(tomorrowStart) ||
+                      dt.isAtSameMomentAs(tomorrowStart))) {
                 tomorrowTasks.add(task);
               } else {
                 todayTasks.add(task);
@@ -140,7 +183,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       Wrap(
@@ -166,36 +212,14 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       ),
                       SizedBox(height: 12.h),
                       TaskFilterCard(controller: controller),
-                      SizedBox(height: 12.h),
-                      if (Get.find<AuthRepository>().rxUserPermissions.contains('create_new_task')) ...[
-                        Row(
-                          children: [
-                            SizedBox(
-                              height: 24.h,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Get.find<TasksController>().formInitialized.value = false;
-                                  Get.toNamed(AppRoutes.createTask);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF16A3B8),
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                  elevation: 1,
-                                ),
-                                child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16.h),
-                      ],
+                      SizedBox(height: 6.h),
                       Text(
                         'My Tasks',
-                        style: AppTextStyle.style_16_700(color: AppColors.black),
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.black,
+                        ),
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 6.h),
                       TaskTabs(controller: controller),
                       SizedBox(height: 12.h),
                     ]),
@@ -220,21 +244,21 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     SliverPadding(
                       padding: EdgeInsets.symmetric(horizontal: 16.w),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: 10.h),
-                              child: DailyTaskCard(task: todayTasks[index]),
-                            );
-                          },
-                          childCount: todayTasks.length,
-                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 6.h),
+                            child: DailyTaskCard(task: todayTasks[index]),
+                          );
+                        }, childCount: todayTasks.length),
                       ),
                     ),
                   if (tomorrowTasks.isNotEmpty) ...[
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -255,7 +279,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                                 SizedBox(width: 8.w),
                                 Text(
                                   'Tomorrow – Upcoming Tasks',
-                                  style: AppTextStyle.style_14_700(color: const Color(0xFF0D6EFD)),
+                                  style: AppTextStyle.style_14_700(
+                                    color: const Color(0xFF0D6EFD),
+                                  ),
                                 ),
                               ],
                             ),
@@ -267,15 +293,12 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     SliverPadding(
                       padding: EdgeInsets.symmetric(horizontal: 16.w),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: 10.h),
-                              child: DailyTaskCard(task: tomorrowTasks[index]),
-                            );
-                          },
-                          childCount: tomorrowTasks.length,
-                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 6.h),
+                            child: DailyTaskCard(task: tomorrowTasks[index]),
+                          );
+                        }, childCount: tomorrowTasks.length),
                       ),
                     ),
                   ],
@@ -285,14 +308,18 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                         padding: EdgeInsets.symmetric(vertical: 16.h),
                         child: const Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
                     ),
                 ],
                 SliverToBoxAdapter(
-                  child: SizedBox(height: MediaQuery.of(context).padding.bottom + 24.h),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.bottom + 24.h,
+                  ),
                 ),
               ],
             ),
@@ -321,7 +348,20 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
         int? year = int.tryParse(parts[2]);
         final monthStr = parts[1].toLowerCase();
         int? month;
-        final monthsList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        final monthsList = [
+          'jan',
+          'feb',
+          'mar',
+          'apr',
+          'may',
+          'jun',
+          'jul',
+          'aug',
+          'sep',
+          'oct',
+          'nov',
+          'dec',
+        ];
         for (int i = 0; i < monthsList.length; i++) {
           if (monthStr.startsWith(monthsList[i])) {
             month = i + 1;
@@ -383,9 +423,7 @@ class DashedDivider extends StatelessWidget {
             return SizedBox(
               width: dashWidth,
               height: height,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: color),
-              ),
+              child: DecoratedBox(decoration: BoxDecoration(color: color)),
             );
           }),
         );

@@ -146,7 +146,7 @@ class _BookingCard extends StatelessWidget {
 
   String _formatDate(String dateStr) {
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTime.parse(dateStr).toLocal();
       return DateFormat('d MMM yyyy').format(date);
     } catch (e) {
       return dateStr;
@@ -155,7 +155,7 @@ class _BookingCard extends StatelessWidget {
 
   String _formatTime(String dateStr) {
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTime.parse(dateStr).toLocal();
       return DateFormat('hh:mm a').format(date);
     } catch (e) {
       return '';

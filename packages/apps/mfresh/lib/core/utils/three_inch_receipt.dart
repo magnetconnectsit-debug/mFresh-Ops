@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter_thermal_printer/flutter_thermal_printer.dart';
 import 'package:pdf/pdf.dart';
@@ -7,11 +6,17 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:mfresh/data/models/booking_details_model.dart';
 import 'package:intl/intl.dart';
 import 'package:core/constants/app_images.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:image/image.dart' as img;
-import 'package:flutter/material.dart';
 
 class ThreeInchReceipt {
+  static String _formatReceiptDate(String dateString) {
+    try {
+      DateTime date = DateTime.parse(dateString).toLocal();
+      return DateFormat('yyyy-MM-dd hh:mm a').format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   static Future<List<int>> generateEscPosBytes(
     BookingDetailsModel booking,
     ServiceItem service,
@@ -43,7 +48,7 @@ class ThreeInchReceipt {
     bytes += generator.text(separator, styles: PosStyles(align: centerAlign));
 
     bytes += generator.text("BOOKING ID: ${booking.bookingId}", styles: PosStyles(align: align, bold: true, height: normalHeight));
-    final printDate = booking.bookingTimeDate.isNotEmpty ? booking.bookingTimeDate : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final printDate = booking.bookingTimeDate.isNotEmpty ? _formatReceiptDate(booking.bookingTimeDate) : DateFormat('yyyy-MM-dd hh:mm a').format(DateTime.now());
     bytes += generator.text("Date & Time: $printDate", styles: PosStyles(align: align, height: normalHeight));
     
     String paymentModeStr = booking.paymentMode == 1 ? "CASH" : booking.paymentMode == 2 ? "UPI" : "QR";
@@ -121,7 +126,7 @@ class ThreeInchReceipt {
                     pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 9 * scale)),
                     
                     pw.Text("BOOKING ID: ${booking.bookingId}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11 * scale)),
-                    pw.Text("Date & Time: ${booking.bookingTimeDate.isNotEmpty ? booking.bookingTimeDate : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10 * scale)),
+                    pw.Text("Date & Time: ${booking.bookingTimeDate.isNotEmpty ? _formatReceiptDate(booking.bookingTimeDate) : DateFormat('yyyy-MM-dd hh:mm a').format(DateTime.now())}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10 * scale)),
                     
                     pw.Text("Payment: ${booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'QR'}", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10 * scale)),
                     pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 9 * scale)),

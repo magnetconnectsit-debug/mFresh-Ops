@@ -23,7 +23,7 @@ class PrintReceiptScreen extends StatelessWidget {
 
   String _formatDate(String dateString) {
     try {
-      DateTime date = DateTime.parse(dateString);
+      DateTime date = DateTime.parse(dateString).toLocal();
       return DateFormat('MMM dd, yyyy hh:mm a').format(date);
     } catch (e) {
       return dateString;

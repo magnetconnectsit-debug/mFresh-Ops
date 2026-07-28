@@ -165,33 +165,32 @@ class PrinterDialogUtil {
               const Text("Available Devices", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
 
-              Obx(() {
-                if (discoveredPrinters.isEmpty && !isScanning.value) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30),
-                    child: Center(child: Text("No printers found", style: TextStyle(color: Colors.grey))),
-                  );
-                }
-
-                // Categorize based on connection type name for maximum compatibility
-                final blePrinters = <Printer>[];
-                final wifiPrinters = <Printer>[];
-                final usbPrinters = <Printer>[];
-
-                for (var p in discoveredPrinters) {
-                  final String type = (p.connectionType?.name ?? "").toUpperCase();
-                  if (type.contains("USB")) {
-                    usbPrinters.add(p);
-                  } else if (type.contains("WIFI") || type.contains("NETWORK") || type.contains("IP") || type.contains("TCP")) {
-                    wifiPrinters.add(p);
-                  } else {
-                    blePrinters.add(p);
+              Flexible(
+                child: Obx(() {
+                  if (discoveredPrinters.isEmpty && !isScanning.value) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 30),
+                      child: Center(child: Text("No printers found", style: TextStyle(color: Colors.grey))),
+                    );
                   }
-                }
 
-                return ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
-                  child: ListView(
+                  // Categorize based on connection type name for maximum compatibility
+                  final blePrinters = <Printer>[];
+                  final wifiPrinters = <Printer>[];
+                  final usbPrinters = <Printer>[];
+
+                  for (var p in discoveredPrinters) {
+                    final String type = (p.connectionType?.name ?? "").toUpperCase();
+                    if (type.contains("USB")) {
+                      usbPrinters.add(p);
+                    } else if (type.contains("WIFI") || type.contains("NETWORK") || type.contains("IP") || type.contains("TCP")) {
+                      wifiPrinters.add(p);
+                    } else {
+                      blePrinters.add(p);
+                    }
+                  }
+
+                  return ListView(
                     shrinkWrap: true,
                     children: [
                       // Bluetooth Section
@@ -212,9 +211,9 @@ class PrinterDialogUtil {
                         ...usbPrinters.map((p) => _buildPrinterTile(context, p, Icons.usb, booking, isScanning, subscription, rollSize, encryptedBookingId)),
                       ],
                     ],
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

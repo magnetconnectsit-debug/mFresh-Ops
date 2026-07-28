@@ -204,11 +204,7 @@ class EmployeeTrackingCard extends StatelessWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        (employee['is_on_duty'] == 1 ||
-                                            employee['is_on_duty'] == true)
-                                        ? AppColors.green.withValues(alpha: 0.1)
-                                        : AppColors.red.withValues(alpha: 0.1),
+                                    color: Colors.transparent,
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
                                       color:
@@ -233,6 +229,12 @@ class EmployeeTrackingCard extends StatelessWidget {
                                               employee['is_on_duty'] == true)
                                           ? AppColors.green
                                           : AppColors.red,
+                                    ).copyWith(
+                                      decoration: (employee['is_on_duty'] == 1 || employee['is_on_duty'] == true) && isStale10Min 
+                                          ? TextDecoration.lineThrough 
+                                          : null,
+                                      decorationColor: AppColors.red,
+                                      decorationThickness: 4.0,
                                     ),
                                   ),
                                 ),

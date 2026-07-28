@@ -20,12 +20,14 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
       backgroundColor: AppColors.white,
       drawer: const CommonSidebar(),
       appBar: PreferredSize(
-        preferredSize: const AppCommonAppBar(topHeader: CommonShortcutHeader()).preferredSize,
+        preferredSize: const AppCommonAppBar(
+          topHeader: CommonShortcutHeader(),
+        ).preferredSize,
         child: Obx(() {
           return AppCommonAppBar(
             title: controller.isSearching.value
                 ? _buildSearchAutocomplete(context)
-                : const Text('Staff Tracking'),
+                : const Text('Attendance'),
             hasBackButton: false,
             showAppDrawer: true,
             topHeader: const CommonShortcutHeader(),
@@ -40,7 +42,8 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                         Icons.filter_alt_rounded,
                         color: AppColors.black,
                       ),
-                      onPressed: () => controller.showMultiSelectStaffBottomSheet(),
+                      onPressed: () =>
+                          controller.showMultiSelectStaffBottomSheet(),
                     ),
                     if (count > 0)
                       Positioned(
@@ -156,8 +159,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                     const SizedBox(height: 6),
                     Expanded(
                       child: Obx(() {
-                        if (controller.isLoading.value &&
-                            controller.allEmployees.isEmpty) {
+                        if (!controller.hasFetchedOnce.value) {
                           return const Center(child: CustomAppLoader());
                         }
 
@@ -211,6 +213,9 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                       top: Radius.circular(24),
                     ),
                     child: Obx(() {
+                      if (!controller.hasFetchedOnce.value) {
+                        return const Center(child: CustomAppLoader());
+                      }
                       return Stack(
                         children: [
                           GoogleMap(
@@ -223,16 +228,61 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                               zoom: 4,
                             ),
                             markers: controller.employeeMarkers.toSet(),
+                            circles: controller.employeeCircles.toSet(),
+                            polylines: controller.employeePolylines.toSet(),
                             myLocationButtonEnabled: true,
                             myLocationEnabled: true,
                             mapToolbarEnabled: false,
                             zoomControlsEnabled: false,
                             onMapCreated: (mapController) {
                               controller.mapController = mapController;
+                              if (controller.employeeMarkers.isNotEmpty) {
+                                Future.delayed(const Duration(milliseconds: 500), () {
+                                  controller.fitBounds();
+                                });
+                              }
                             },
                             onCameraMove: (CameraPosition position) {
                               controller.onCameraMove(position);
                             },
+                          ),
+                          Positioned(
+                            bottom: 180,
+                            right: 16,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FloatingActionButton(
+                                  mini: true,
+                                  heroTag: 'zoom_in_fab',
+                                  backgroundColor: AppColors.white,
+                                  onPressed: () {
+                                    controller.mapController?.animateCamera(
+                                      CameraUpdate.zoomIn(),
+                                    );
+                                  },
+                                  child: const Icon(
+                                    Icons.add_rounded,
+                                    color: AppColors.blue500,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                FloatingActionButton(
+                                  mini: true,
+                                  heroTag: 'zoom_out_fab',
+                                  backgroundColor: AppColors.white,
+                                  onPressed: () {
+                                    controller.mapController?.animateCamera(
+                                      CameraUpdate.zoomOut(),
+                                    );
+                                  },
+                                  child: const Icon(
+                                    Icons.remove_rounded,
+                                    color: AppColors.blue500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           Positioned(
                             bottom: 120,
@@ -431,296 +481,439 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
 
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFF2563EB), width: 1.5),
         ),
-        child: Column(
-          children: [
-            // Row 1: Total Staff
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  controller.selectedFilter.value = 'Total';
-                  controller.filterEmployees();
-                },
-                borderRadius: BorderRadius.circular(6),
-                child: Obx(() {
-                  final isSelected = controller.selectedFilter.value == 'Total';
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFFD4E4FF)
-                          : const Color(0xFFEBF3FF),
-                      border: Border.all(
-                        color: const Color(0xFFB3D4FF),
-                        width: isSelected ? 1.5 : 1.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6.5),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left block (Total Staff + Grid)
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Row 1: Header
+                      InkWell(
+                        onTap: () {
+                          controller.selectedFilter.value = 'Total';
+                          controller.filterEmployees();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: controller.selectedFilter.value == 'Total'
+                                ? const Color(0xFFD4E4FF)
+                                : const Color(0xFFF0F6FF),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(6.5),
+                            ),
+                          ),
+                          child: RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '$total ',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: 'Total Staff',
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFFB3D4FF,
-                                ).withValues(alpha: 0.4),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
+                      Container(height: 1, color: Colors.grey.shade300),
+                      // Row 2: Columns
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Column 1 (On Duty, Live, Not Live)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      controller.selectedFilter.value =
+                                          'On Duty';
+                                      controller.filterEmployees();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                      ),
+                                      color:
+                                          controller.selectedFilter.value ==
+                                              'On Duty'
+                                          ? const Color(0xFFD1FAE5)
+                                          : const Color(0xFFECFDF5),
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFF10B981),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '$onDuty',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF10B981),
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'On Duty',
+                                            style: TextStyle(
+                                              color: Colors.black87,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 1,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () {
+                                            controller.selectedFilter.value =
+                                                'Live';
+                                            controller.filterEmployees();
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            color:
+                                                controller
+                                                        .selectedFilter
+                                                        .value ==
+                                                    'Live'
+                                                ? const Color(0xFFD1FAE5)
+                                                : const Color(0xFFECFDF5),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  '$live',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF10B981),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                const Text(
+                                                  'Live',
+                                                  style: TextStyle(
+                                                    color: Colors.black54,
+                                                    fontSize: 9,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 1,
+                                        height: 26,
+                                        color: Colors.grey.shade300,
+                                      ),
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () {
+                                            controller.selectedFilter.value =
+                                                'Not Live';
+                                            controller.filterEmployees();
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            color:
+                                                controller
+                                                        .selectedFilter
+                                                        .value ==
+                                                    'Not Live'
+                                                ? const Color(0xFFFED7AA)
+                                                : const Color(0xFFECFDF5),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  '$notLive',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFFD97706),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                const Text(
+                                                  'Not Live',
+                                                  style: TextStyle(
+                                                    color: Colors.black54,
+                                                    fontSize: 9,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ]
-                          : [],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.people_alt_outlined,
-                          size: 16,
-                          color: AppColors.black,
+                            ),
+                            Container(width: 1, color: Colors.grey.shade300),
+                            // Column 2 (Off Duty)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      controller.selectedFilter.value =
+                                          'Off Duty';
+                                      controller.filterEmployees();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                      ),
+                                      color:
+                                          controller.selectedFilter.value ==
+                                              'Off Duty'
+                                          ? const Color(0xFFFEE2E2)
+                                          : const Color(0xFFFEF2F2),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            '$offDuty',
+                                            style: const TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'Off Duty',
+                                            style: TextStyle(
+                                              color: Colors.black87,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 1,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      color: const Color(0xFFFEF2F2),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(width: 1, color: Colors.grey.shade300),
+                            // Column 3 (Not Installed)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      controller.selectedFilter.value =
+                                          'Not Installed';
+                                      controller.filterEmployees();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                      ),
+                                      color:
+                                          controller.selectedFilter.value ==
+                                              'Not Installed'
+                                          ? const Color(0xFFE5E7EB)
+                                          : const Color(0xFFF9FAFB),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            '$notInstalled',
+                                            style: const TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'Not Installed',
+                                            style: TextStyle(
+                                              color: Colors.black87,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 1,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      color: const Color(0xFFF9FAFB),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$total',
-                          style: AppTextStyle.style_12_600(
-                            color: AppColors.black,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, color: Colors.grey.shade300),
+                // Right block (Moving + Stopped)
+                SizedBox(
+                  width: 85,
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              controller.selectedFilter.value = 'Moving';
+                              controller.filterEmployees();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              decoration: BoxDecoration(
+                                color:
+                                    controller.selectedFilter.value == 'Moving'
+                                    ? const Color(0xFFC7D2FE)
+                                    : const Color(0xFFEEF2FF),
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(6.5),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '$moving',
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    'Moving',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Total Staff',
-                          style: AppTextStyle.style_10_500(
-                            color: AppColors.grey700,
+                        Container(height: 1, color: Colors.grey.shade300),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              controller.selectedFilter.value = 'Stopped';
+                              controller.filterEmployees();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              decoration: BoxDecoration(
+                                color:
+                                    controller.selectedFilter.value == 'Stopped'
+                                    ? const Color(0xFFFED7AA)
+                                    : const Color(0xFFFFF7ED),
+                                borderRadius: const BorderRadius.only(
+                                  bottomRight: Radius.circular(6.5),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '$stopped',
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    'Stopped',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  );
-                }),
-              ),
-            ),
-            const SizedBox(height: 6),
-
-            // Row 2: On Duty, Off Duty, Not Installed
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatBox(
-                    controller,
-                    'On Duty',
-                    onDuty,
-                    Colors.green,
-                    Icons.work_outline,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _buildStatBox(
-                    controller,
-                    'Off Duty',
-                    offDuty,
-                    Colors.red,
-                    Icons.home_work_outlined,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _buildStatBox(
-                    controller,
-                    'Not Installed',
-                    notInstalled,
-                    Colors.grey,
-                    Icons.mobile_off_outlined,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-
-            // Row 3: Live/Not Live & Moving/Stopped
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildRowStatItem(
-                          controller,
-                          'Live',
-                          live,
-                          Colors.green,
-                          Icons.wifi,
-                        ),
-                        Divider(height: 1, color: Colors.grey.shade200),
-                        _buildRowStatItem(
-                          controller,
-                          'Not Live',
-                          notLive,
-                          Colors.orange,
-                          Icons.wifi_off,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildRowStatItem(
-                          controller,
-                          'Moving',
-                          moving,
-                          Colors.blue,
-                          Icons.directions_run,
-                        ),
-                        Divider(height: 1, color: Colors.grey.shade200),
-                        _buildRowStatItem(
-                          controller,
-                          'Stopped',
-                          stopped,
-                          Colors.deepOrangeAccent,
-                          Icons.front_hand,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       );
     });
-  }
-
-  Widget _buildStatBox(
-    StaffTrackingController controller,
-    String label,
-    int count,
-    Color color,
-    IconData icon,
-  ) {
-    final isSelected = controller.selectedFilter.value == label;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          controller.selectedFilter.value = label;
-          controller.filterEmployees();
-        },
-        borderRadius: BorderRadius.circular(6),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.15) : Colors.white,
-            border: Border.all(
-              color: isSelected ? color : Colors.grey.shade300,
-              width: isSelected ? 1.5 : 1.0,
-            ),
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 14,
-                color: isSelected ? color : Colors.grey.shade600,
-              ),
-              const SizedBox(width: 4),
-              Text('$count', style: AppTextStyle.style_12_600(color: color)),
-              const SizedBox(width: 2),
-              Expanded(
-                child: Text(
-                  label,
-                  style: AppTextStyle.style_9_400(
-                    color: isSelected ? AppColors.black : Colors.grey.shade700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRowStatItem(
-    StaffTrackingController controller,
-    String label,
-    int count,
-    Color dotColor,
-    IconData icon,
-  ) {
-    final isSelected = controller.selectedFilter.value == label;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          controller.selectedFilter.value = label;
-          controller.filterEmployees();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          color: isSelected
-              ? dotColor.withValues(alpha: 0.15)
-              : Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          child: Row(
-            children: [
-              Icon(icon, size: 14, color: dotColor),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: AppTextStyle.style_10_500(
-                  color: isSelected ? AppColors.black : Colors.grey.shade700,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$count',
-                style: AppTextStyle.style_12_600(color: AppColors.black),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

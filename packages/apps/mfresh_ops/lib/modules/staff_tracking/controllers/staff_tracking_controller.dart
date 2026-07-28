@@ -12,6 +12,8 @@ import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class StaffTrackingController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -25,38 +27,81 @@ class StaffTrackingController extends GetxController
   final RxList<Map<String, dynamic>> filteredEmployees =
       <Map<String, dynamic>>[].obs;
   final RxBool isLoading = true.obs;
+  final RxBool hasFetchedOnce = false.obs;
   final TextEditingController searchController = TextEditingController();
   final RxString selectedFilter = 'Total'.obs;
   final RxSet<dynamic> selectedEmployeeIds = <dynamic>{}.obs;
 
   final RxSet<Marker> employeeMarkers = <Marker>{}.obs;
+  final RxSet<Circle> employeeCircles = <Circle>{}.obs;
+  final RxSet<Polyline> employeePolylines = <Polyline>{}.obs;
   GoogleMapController? mapController;
 
   final RxDouble currentZoom = 14.0.obs;
   Timer? _debounceTimer;
   Timer? _pollingTimer;
+  Timer? _rippleTimer;
+  double _rippleFactor = 0.0;
 
   // Cache for marker icons to avoid recreating bitmaps continuously
   final Map<String, BitmapDescriptor> _markerCache = {};
+  int _updateMarkerGeneration = 0;
+  bool _pendingFitBounds = false;
 
   final RxMap<String, dynamic> selectedEmployeeLiveStats =
       <String, dynamic>{}.obs;
   final RxBool isLoadingLiveStats = false.obs;
 
   final Rx<MapType> currentMapType = MapType.normal.obs;
+  bool _hasInitialFit = false;
 
   void toggleMapType() {
-    currentMapType.value =
-    currentMapType.value == MapType.normal ? MapType.satellite : MapType.normal;
+    currentMapType.value = currentMapType.value == MapType.normal
+        ? MapType.satellite
+        : MapType.normal;
   }
 
   @override
   void onInit() {
     super.onInit();
     tabController = TabController(length: 2, vsync: this);
+    tabController.addListener(() {
+      if (tabController.index == 1 && _pendingFitBounds) {
+        _pendingFitBounds = false;
+        Future.delayed(const Duration(milliseconds: 300), () {
+          fitBounds();
+        });
+      }
+    });
     searchController.addListener(filterEmployees);
+    _checkLocationPermissions();
     fetchEmployees();
     _startPolling();
+    _startRippleAnimation();
+  }
+
+  Future<void> _checkLocationPermissions() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Get.snackbar(
+          'Location Disabled',
+          'Please turn on your location.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+        await Geolocator.openLocationSettings();
+      }
+
+      var permission = await Permission.locationWhenInUse.status;
+      if (permission.isDenied) {
+        await Permission.locationWhenInUse.request();
+      }
+    } catch (e) {
+      debugPrint('Error checking location permissions: $e');
+    }
   }
 
   @override
@@ -65,7 +110,51 @@ class StaffTrackingController extends GetxController
     searchController.dispose();
     _debounceTimer?.cancel();
     _pollingTimer?.cancel();
+    _rippleTimer?.cancel();
     super.onClose();
+  }
+
+  void _startRippleAnimation() {
+    _rippleTimer?.cancel();
+    _rippleTimer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
+      _rippleFactor += 0.03;
+      if (_rippleFactor > 1.0) {
+        _rippleFactor = 0.0;
+      }
+      _animateCircles();
+    });
+  }
+
+  void _animateCircles() {
+    if (employeeCircles.isEmpty) return;
+
+    final List<Circle> updated = [];
+    for (var circle in employeeCircles) {
+      if (circle.circleId.value.startsWith('ripple_')) {
+        final isInner = circle.circleId.value.startsWith('ripple_inner_');
+        final double scaleFactor = pow(
+          2.0,
+          max(0.0, currentZoom.value - 12.0),
+        ).toDouble();
+        final double radius = isInner
+            ? (120.0 + (180.0 * _rippleFactor)) / scaleFactor
+            : (250.0 + (350.0 * _rippleFactor)) / scaleFactor;
+        final double opacity = isInner
+            ? 0.25 * (1.0 - _rippleFactor)
+            : 0.12 * (1.0 - _rippleFactor);
+
+        updated.add(
+          circle.copyWith(
+            radiusParam: radius,
+            fillColorParam: AppColors.green.withValues(alpha: opacity),
+            strokeColorParam: AppColors.green.withValues(alpha: opacity * 1.5),
+          ),
+        );
+      } else {
+        updated.add(circle);
+      }
+    }
+    employeeCircles.assignAll(updated);
   }
 
   void _startPolling() {
@@ -113,7 +202,7 @@ class StaffTrackingController extends GetxController
         allEmployees.value = emps
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
-        await filterEmployees();
+        await filterEmployees(shouldFitBounds: !isSilent);
       } else {
         if (!isSilent) {
           AppCommonToastMessage.show(
@@ -134,21 +223,20 @@ class StaffTrackingController extends GetxController
       if (!isSilent) {
         isLoading.value = false;
       }
+      hasFetchedOnce.value = true;
     }
   }
 
   void onCameraMove(CameraPosition position) {
-    if ((currentZoom.value - position.zoom).abs() > 0.5) {
-      currentZoom.value = position.zoom;
+    currentZoom.value = position.zoom;
 
-      if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-        _updateMarkers(shouldFitBounds: false);
-      });
-    }
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 100), () {
+      _updateMarkers(shouldFitBounds: false);
+    });
   }
 
-  Future<void> filterEmployees() async {
+  Future<void> filterEmployees({bool shouldFitBounds = true}) async {
     final query = searchController.text.toLowerCase();
     final filter = selectedFilter.value;
 
@@ -166,8 +254,10 @@ class StaffTrackingController extends GetxController
     if (filter != 'Total') {
       temp = temp.where((emp) {
         final status = emp['current_status']?.toString().toLowerCase() ?? '';
-        final bool isOnDuty = emp['is_on_duty'] == 1 ||
-            emp['is_on_duty'] == true || emp['is_on_duty'] == '1';
+        final bool isOnDuty =
+            emp['is_on_duty'] == 1 ||
+            emp['is_on_duty'] == true ||
+            emp['is_on_duty'] == '1';
         final lastSeen = emp['last_seen'];
 
         bool isNotInstalled = lastSeen == null && emp['live_status'] == null;
@@ -208,46 +298,46 @@ class StaffTrackingController extends GetxController
     }
 
     filteredEmployees.value = temp;
-    await _updateMarkers(shouldFitBounds: false);
+    _updateMarkers(shouldFitBounds: shouldFitBounds);
   }
 
   List<Map<String, dynamic>> _clusterEmployees(
-      List<Map<String, dynamic>> employees,
-      double zoom,) {
-    if (zoom >= 11.5) {
-      // High zoom: detect overlapping markers and spiderify
-      double minDistance = 0.0001; // roughly 11 meters
+    List<Map<String, dynamic>> employees,
+    double zoom,
+  ) {
+    // Group markers into a visual grid based on zoom level
+    double cellSize = 360.0 / (1 << zoom.floor()) * 0.4;
 
-      Map<String, List<Map<String, dynamic>>> preciseGrid = {};
-      for (var emp in employees) {
-        final latStr = emp['latitude']?.toString();
-        final lngStr = emp['longitude']?.toString();
-        if (latStr != null &&
-            lngStr != null &&
-            latStr != 'null' &&
-            lngStr != 'null') {
-          double? lat = double.tryParse(latStr);
-          double? lng = double.tryParse(lngStr);
-          if (lat != null && lng != null) {
-            int gridX = (lng / minDistance).floor();
-            int gridY = (lat / minDistance).floor();
-            String key = '${gridX}_$gridY';
-            preciseGrid.putIfAbsent(key, () => []).add(emp);
-          }
+    Map<String, List<Map<String, dynamic>>> grid = {};
+    for (var emp in employees) {
+      final latStr = emp['latitude']?.toString();
+      final lngStr = emp['longitude']?.toString();
+      if (latStr != null &&
+          lngStr != null &&
+          latStr != 'null' &&
+          lngStr != 'null') {
+        double? lat = double.tryParse(latStr);
+        double? lng = double.tryParse(lngStr);
+        if (lat != null && lng != null) {
+          int gridX = (lng / cellSize).floor();
+          int gridY = (lat / cellSize).floor();
+          grid.putIfAbsent('${gridX}_$gridY', () => []).add(emp);
         }
       }
+    }
 
-      List<Map<String, dynamic>> result = [];
-      for (var group in preciseGrid.values) {
-        if (group.length == 1) {
-          result.add({
-            'isCluster': false,
-            'employees': group,
-            'latitude': group[0]['latitude'],
-            'longitude': group[0]['longitude'],
-          });
-        } else {
-          // Spiderify!
+    List<Map<String, dynamic>> result = [];
+    for (var group in grid.values) {
+      if (group.length == 1) {
+        result.add({
+          'isCluster': false,
+          'employees': group,
+          'latitude': group[0]['latitude'],
+          'longitude': group[0]['longitude'],
+        });
+      } else {
+        if (zoom >= 15.5) {
+          // High zoom: Spiderify overlapping markers in a circle
           double centerLat = 0;
           double centerLng = 0;
           for (var emp in group) {
@@ -259,12 +349,13 @@ class StaffTrackingController extends GetxController
           centerLat /= group.length;
           centerLng /= group.length;
 
-          // Expand radius slightly if there are many users
-          double radius = 0.0002 + (group.length * 0.00002);
+          // Scale spiderify radius based on zoom cell size so they don't overlap visually
+          // Adjusted for a moderate spread so they are distinguishable but not across blocks
+          double radius = cellSize * 0.35 + (group.length * cellSize * 0.04);
           for (int i = 0; i < group.length; i++) {
             double angle = (i * 2 * pi) / group.length;
             double offsetX = radius * cos(angle);
-            // Adjust latitude offset to account for aspect ratio, roughly
+            // Adjust latitude offset to account for aspect ratio roughly
             double offsetY = radius * sin(angle) * 0.8;
 
             result.add({
@@ -272,69 +363,44 @@ class StaffTrackingController extends GetxController
               'employees': [group[i]],
               'latitude': centerLat + offsetY,
               'longitude': centerLng + offsetX,
+              'originalLat': centerLat,
+              'originalLng': centerLng,
             });
           }
-        }
-      }
-      return result;
-    }
-
-    // Grid clustering for low zoom
-    double cellSize = 360.0 / (1 << zoom.floor()) * 0.4;
-
-    Map<String, List<Map<String, dynamic>>> grid = {};
-    for (var emp in employees) {
-      final latStr = emp['latitude']?.toString();
-      final lngStr = emp['longitude']?.toString();
-      if (latStr != null &&
-          lngStr != null &&
-          latStr.isNotEmpty &&
-          lngStr.isNotEmpty &&
-          latStr != 'null' &&
-          lngStr != 'null') {
-        double? lat = double.tryParse(latStr);
-        double? lng = double.tryParse(lngStr);
-
-        if (lat != null && lng != null) {
-          int gridX = (lng / cellSize).floor();
-          int gridY = (lat / cellSize).floor();
-          String key = '${gridX}_$gridY';
-
-          grid.putIfAbsent(key, () => []).add(emp);
+        } else {
+          // Low zoom: Show a normal cluster marker
+          double sumLat = 0;
+          double sumLng = 0;
+          for (var emp in group) {
+            sumLat +=
+                double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
+            sumLng +=
+                double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
+          }
+          result.add({
+            'isCluster': true,
+            'employees': group,
+            'count': group.length,
+            'latitude': sumLat / group.length,
+            'longitude': sumLng / group.length,
+          });
         }
       }
     }
-
-    List<Map<String, dynamic>> clusters = [];
-    for (var group in grid.values) {
-      if (group.length == 1) {
-        clusters.add({
-          'isCluster': false,
-          'employees': group,
-          'latitude': group[0]['latitude'],
-          'longitude': group[0]['longitude'],
-        });
-      } else {
-        double sumLat = 0;
-        double sumLng = 0;
-        for (var emp in group) {
-          sumLat += double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
-          sumLng += double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
-        }
-        clusters.add({
-          'isCluster': true,
-          'employees': group,
-          'count': group.length,
-          'latitude': sumLat / group.length,
-          'longitude': sumLng / group.length,
-        });
-      }
-    }
-    return clusters;
+    return result;
   }
 
   Future<void> _updateMarkers({bool shouldFitBounds = false}) async {
+    if (shouldFitBounds) {
+      _pendingFitBounds = true;
+    }
+
+    _updateMarkerGeneration++;
+    final int currentGeneration = _updateMarkerGeneration;
+
     final Set<Marker> newMarkers = {};
+    final Set<Circle> newCircles = {};
+    final Set<Polyline> newPolylines = {};
     final clusters = _clusterEmployees(filteredEmployees, currentZoom.value);
 
     for (var cluster in clusters) {
@@ -365,10 +431,14 @@ class StaffTrackingController extends GetxController
               icon: _markerCache[cacheKey]!,
               onTap: () {
                 // Zoom in to see the cluster spread out
+                double targetZoom = currentZoom.value + 2.5;
+                if (targetZoom < 16.0) {
+                  targetZoom = 16.0; // Ensure it reaches the spiderify threshold immediately
+                }
                 mapController?.animateCamera(
                   CameraUpdate.newLatLngZoom(
                     LatLng(lat, lng),
-                    currentZoom.value + 2.5,
+                    targetZoom,
                   ),
                 );
               },
@@ -378,6 +448,26 @@ class StaffTrackingController extends GetxController
           // Individual employee
           final emp = cluster['employees'][0];
           final status = emp['current_status']?.toString().toLowerCase();
+
+          final double? originalLat = cluster['originalLat'] != null
+              ? double.tryParse(cluster['originalLat'].toString())
+              : null;
+          final double? originalLng = cluster['originalLng'] != null
+              ? double.tryParse(cluster['originalLng'].toString())
+              : null;
+
+          if (originalLat != null && originalLng != null) {
+            newPolylines.add(
+              Polyline(
+                polylineId: PolylineId('spider_${emp['id'] ?? emp['user_id']}'),
+                points: [LatLng(originalLat, originalLng), LatLng(lat, lng)],
+                color: Colors.grey.withValues(alpha: 0.6),
+                width: 2,
+                patterns: [PatternItem.dash(15), PatternItem.gap(10)],
+              ),
+            );
+          }
+
           Color markerColor = Colors.red;
           if (status == 'moving') {
             markerColor = Colors.green;
@@ -394,34 +484,87 @@ class StaffTrackingController extends GetxController
             }
           }
 
-          final bool isOnDuty = emp['is_on_duty'] == 1 ||
-              emp['is_on_duty'] == true;
+          final bool isOnDuty =
+              emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+
+          if (isOnDuty && lat != 0.0 && lng != 0.0) {
+            final String empId = (emp['id'] ?? emp['user_id'] ?? '').toString();
+            final double scaleFactor = pow(
+              2.0,
+              max(0.0, currentZoom.value - 12.0),
+            ).toDouble();
+            final double innerRadius =
+                (120.0 + (180.0 * _rippleFactor)) / scaleFactor;
+            final double outerRadius =
+                (250.0 + (350.0 * _rippleFactor)) / scaleFactor;
+            final double innerOpacity = 0.25 * (1.0 - _rippleFactor);
+            final double outerOpacity = 0.12 * (1.0 - _rippleFactor);
+
+            newCircles.add(
+              Circle(
+                circleId: CircleId('ripple_inner_$empId'),
+                center: LatLng(lat, lng),
+                radius: innerRadius,
+                fillColor: AppColors.green.withValues(alpha: innerOpacity),
+                strokeColor: AppColors.green.withValues(
+                  alpha: innerOpacity * 1.5,
+                ),
+                strokeWidth: 2,
+              ),
+            );
+            newCircles.add(
+              Circle(
+                circleId: CircleId('ripple_outer_$empId'),
+                center: LatLng(lat, lng),
+                radius: outerRadius,
+                fillColor: AppColors.green.withValues(alpha: outerOpacity),
+                strokeColor: AppColors.green.withValues(
+                  alpha: outerOpacity * 1.5,
+                ),
+                strokeWidth: 1,
+              ),
+            );
+          }
+
           final Color borderColor = isOnDuty ? AppColors.green : AppColors.red;
 
+          final lastSeen = emp['last_seen'];
+          final bool isStale = AppDateUtils.isOlderThanMinutes(
+            lastSeen?.toString(),
+            60,
+          );
+          final bool showLiveWifi = isOnDuty && !isStale;
+          final bool showStaleWifi = isOnDuty && isStale;
+
           final String imageUrl = emp['image_url']?.toString() ?? '';
-          final bool hasImage = imageUrl.isNotEmpty &&
-              !imageUrl.endsWith('/NA');
+          final bool hasImage =
+              imageUrl.isNotEmpty && !imageUrl.endsWith('/NA');
 
           final String cacheKey = hasImage
-              ? 'emp_img_${emp['id']}_${markerColor.hashCode}_${borderColor
-              .hashCode}'
-              : 'emp_${initials}_${markerColor.hashCode}_${borderColor
-              .hashCode}';
+              ? 'emp_img_${emp['id']}_${markerColor.hashCode}_${borderColor.hashCode}_${showLiveWifi}_$showStaleWifi'
+              : 'emp_${emp['id']}_${markerColor.hashCode}_${borderColor.hashCode}_${showLiveWifi}_$showStaleWifi';
 
           if (!_markerCache.containsKey(cacheKey)) {
+            // Instantly create a text-based marker
+            _markerCache[cacheKey] = await MapMarkerUtils.createCustomMarker(
+              color: markerColor,
+              text: initials,
+              fullName: initials,
+              borderColor: borderColor,
+              showLiveWifi: showLiveWifi,
+              showStaleWifi: showStaleWifi,
+            );
+
+            // Fetch network image asynchronously in the background
             if (hasImage) {
-              _markerCache[cacheKey] =
-              await MapMarkerUtils.createNetworkImageMarker(
+              _fetchImageMarkerInBackground(
+                cacheKey: cacheKey,
                 imageUrl: imageUrl,
-                color: markerColor,
-                fallbackText: initials,
+                markerColor: markerColor,
+                initials: initials,
                 borderColor: borderColor,
-              );
-            } else {
-              _markerCache[cacheKey] = await MapMarkerUtils.createCustomMarker(
-                color: markerColor,
-                text: initials,
-                borderColor: borderColor,
+                showLiveWifi: showLiveWifi,
+                showStaleWifi: showStaleWifi,
               );
             }
           }
@@ -445,44 +588,158 @@ class StaffTrackingController extends GetxController
         );
       }
     }
-    employeeMarkers.assignAll(newMarkers);
 
-    if (shouldFitBounds) {
+    if (currentGeneration != _updateMarkerGeneration) return;
+
+    employeeMarkers.assignAll(newMarkers);
+    employeeCircles.assignAll(newCircles);
+    employeePolylines.assignAll(newPolylines);
+
+    bool shouldDoFit =
+        _pendingFitBounds ||
+        (!_hasInitialFit && newMarkers.isNotEmpty && mapController != null);
+
+    if (shouldDoFit) {
+      _hasInitialFit = true;
+      _pendingFitBounds = false;
       // Slight delay to allow map to update before fitting bounds
-      Future.delayed(const Duration(milliseconds: 300), () {
+      Future.delayed(const Duration(milliseconds: 600), () {
         fitBounds();
       });
     }
   }
 
-  void fitBounds() {
-    if (mapController == null || employeeMarkers.isEmpty) return;
+  void fitBounds([int retries = 3]) {
+    if (mapController == null || filteredEmployees.isEmpty) return;
+
+    if (tabController.index != 1) {
+      _pendingFitBounds = true;
+      return;
+    }
+
+    List<double> lats = [];
+    List<double> lngs = [];
+    for (final emp in filteredEmployees) {
+      final latStr = emp['latitude']?.toString();
+      final lngStr = emp['longitude']?.toString();
+      if (latStr != null &&
+          lngStr != null &&
+          latStr != 'null' &&
+          lngStr != 'null') {
+        double? lat = double.tryParse(latStr);
+        double? lng = double.tryParse(lngStr);
+        if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
+          lats.add(lat);
+          lngs.add(lng);
+        }
+      }
+    }
+
+    if (lats.isEmpty) return;
+
+    lats.sort();
+    lngs.sort();
+    double medianLat = lats[lats.length ~/ 2];
+    double medianLng = lngs[lngs.length ~/ 2];
 
     double? minLat, maxLat, minLng, maxLng;
-    for (final marker in employeeMarkers) {
-      final p = marker.position;
-      if (minLat == null || p.latitude < minLat) minLat = p.latitude;
-      if (maxLat == null || p.latitude > maxLat) maxLat = p.latitude;
-      if (minLng == null || p.longitude < minLng) minLng = p.longitude;
-      if (maxLng == null || p.longitude > maxLng) maxLng = p.longitude;
+    int validCount = 0;
+
+    for (int i = 0; i < lats.length; i++) {
+      double lat = lats[i];
+      double lng = lngs[i];
+
+      // Ignore severe outliers (e.g. wrong GPS across the country)
+      // 10 degrees is roughly 1100km. Anything further from the median group is ignored.
+      if ((lat - medianLat).abs() > 10.0 || (lng - medianLng).abs() > 10.0) {
+        continue;
+      }
+
+      validCount++;
+      if (minLat == null || lat < minLat) minLat = lat;
+      if (maxLat == null || lat > maxLat) maxLat = lat;
+      if (minLng == null || lng < minLng) minLng = lng;
+      if (maxLng == null || lng > maxLng) maxLng = lng;
     }
 
     if (minLat != null && maxLat != null && minLng != null && maxLng != null) {
-      if (minLat == maxLat && minLng == maxLng) {
+      if (validCount == 1) {
         mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(LatLng(minLat, minLng), 14),
         );
       } else {
-        mapController!.animateCamera(
-          CameraUpdate.newLatLngBounds(
-            LatLngBounds(
-              southwest: LatLng(minLat, minLng),
-              northeast: LatLng(maxLat, maxLng),
-            ),
-            50.0,
-          ),
-        );
+        // Enforce a minimum bounding box size to prevent excessive zooming
+        // 0.02 degrees is roughly 2km
+        double latDiff = maxLat - minLat;
+        if (latDiff < 0.02) {
+          double centerLat = (minLat + maxLat) / 2;
+          minLat = centerLat - 0.01;
+          maxLat = centerLat + 0.01;
+        }
+        double lngDiff = maxLng - minLng;
+        if (lngDiff < 0.02) {
+          double centerLng = (minLng + maxLng) / 2;
+          minLng = centerLng - 0.01;
+          maxLng = centerLng + 0.01;
+        }
+
+        mapController!
+            .animateCamera(
+              CameraUpdate.newLatLngBounds(
+                LatLngBounds(
+                  southwest: LatLng(minLat!, minLng!),
+                  northeast: LatLng(maxLat!, maxLng!),
+                ),
+                50.0,
+              ),
+            )
+            .catchError((e) {
+              debugPrint('fitBounds error: $e');
+              if (retries > 0) {
+                // Map layout might not be ready yet. Retry after a delay.
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  fitBounds(retries - 1);
+                });
+              } else {
+                // Ultimate fallback to center zoom if bounds repeatedly fail
+                double centerLat = (minLat! + maxLat!) / 2;
+                double centerLng = (minLng! + maxLng!) / 2;
+                mapController!.animateCamera(
+                  CameraUpdate.newLatLngZoom(LatLng(centerLat, centerLng), 10),
+                );
+              }
+            });
       }
+    }
+  }
+
+  void _fetchImageMarkerInBackground({
+    required String cacheKey,
+    required String imageUrl,
+    required Color markerColor,
+    required String initials,
+    required Color borderColor,
+    required bool showLiveWifi,
+    required bool showStaleWifi,
+  }) async {
+    try {
+      final marker = await MapMarkerUtils.createNetworkImageMarker(
+        imageUrl: imageUrl,
+        color: markerColor,
+        fallbackText: initials,
+        borderColor: borderColor,
+        showLiveWifi: showLiveWifi,
+        showStaleWifi: showStaleWifi,
+      );
+
+      _markerCache[cacheKey] = marker;
+
+      if (_debounceTimer?.isActive ?? false) return;
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _updateMarkers(shouldFitBounds: false);
+      });
+    } catch (e) {
+      debugPrint('Failed background image fetch: $e');
     }
   }
 
@@ -493,19 +750,19 @@ class StaffTrackingController extends GetxController
     final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _repository
         .getEmployeeSummary(
-      employeeId: emp['id'] ?? emp['user_id'],
-      date: dateStr,
-    )
+          employeeId: emp['id'] ?? emp['user_id'],
+          date: dateStr,
+        )
         .then((res) {
-      if (res != null && res['status'] == true) {
-        selectedEmployeeLiveStats.value = Map<String, dynamic>.from(
-          res['live_status'] ?? {},
-        );
-      }
-    })
+          if (res != null && res['status'] == true) {
+            selectedEmployeeLiveStats.value = Map<String, dynamic>.from(
+              res['live_status'] ?? {},
+            );
+          }
+        })
         .whenComplete(() {
-      isLoadingLiveStats.value = false;
-    });
+          isLoadingLiveStats.value = false;
+        });
 
     Get.bottomSheet(
       Container(
@@ -521,7 +778,7 @@ class StaffTrackingController extends GetxController
 
           final status =
               liveStats['current_status']?.toString().toLowerCase() ??
-                  emp['current_status']?.toString().toLowerCase();
+              emp['current_status']?.toString().toLowerCase();
           Color statusColor = Colors.red;
           if (status == 'moving') {
             statusColor = Colors.green;
@@ -632,10 +889,12 @@ class StaffTrackingController extends GetxController
     );
   }
 
-  Widget _buildDetailRow(IconData icon,
-      String label,
-      String value,
-      Color valueColor,) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value,
+    Color valueColor,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 20, color: Colors.grey[600]),
@@ -673,7 +932,9 @@ class StaffTrackingController extends GetxController
   }
 
   void showMultiSelectStaffBottomSheet() {
-    final RxSet<dynamic> tempSelectedIds = RxSet<dynamic>({...selectedEmployeeIds});
+    final RxSet<dynamic> tempSelectedIds = RxSet<dynamic>({
+      ...selectedEmployeeIds,
+    });
     final RxString searchSelectionQuery = ''.obs;
 
     Get.bottomSheet(
@@ -683,9 +944,7 @@ class StaffTrackingController extends GetxController
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        constraints: BoxConstraints(
-          maxHeight: Get.height * 0.75,
-        ),
+        constraints: BoxConstraints(maxHeight: Get.height * 0.75),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,15 +964,20 @@ class StaffTrackingController extends GetxController
                           tempSelectedIds.clear();
                         } else {
                           tempSelectedIds.assignAll(
-                            allEmployees.map((e) => e['id'] ?? e['user_id']).toList(),
+                            allEmployees
+                                .map((e) => e['id'] ?? e['user_id'])
+                                .toList(),
                           );
                         }
                       },
                       child: Obx(() {
-                        final isAll = tempSelectedIds.length == allEmployees.length;
+                        final isAll =
+                            tempSelectedIds.length == allEmployees.length;
                         return Text(
                           isAll ? 'Clear All' : 'Select All',
-                          style: AppTextStyle.style_14_600(color: AppColors.blue500),
+                          style: AppTextStyle.style_14_600(
+                            color: AppColors.blue500,
+                          ),
                         );
                       }),
                     ),
@@ -761,14 +1025,17 @@ class StaffTrackingController extends GetxController
                   return Center(
                     child: Text(
                       'No matching staff found',
-                      style: AppTextStyle.style_14_500(color: AppColors.grey500),
+                      style: AppTextStyle.style_14_500(
+                        color: AppColors.grey500,
+                      ),
                     ),
                   );
                 }
 
                 return ListView.separated(
                   itemCount: list.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.grey100),
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, color: AppColors.grey100),
                   itemBuilder: (context, index) {
                     final emp = list[index];
                     final id = emp['id'] ?? emp['user_id'];
@@ -778,11 +1045,15 @@ class StaffTrackingController extends GetxController
                         value: isChecked,
                         title: Text(
                           emp['name'] ?? 'Unknown',
-                          style: AppTextStyle.style_14_600(color: AppColors.black),
+                          style: AppTextStyle.style_14_600(
+                            color: AppColors.black,
+                          ),
                         ),
                         subtitle: Text(
                           emp['mobile'] ?? 'No Mobile',
-                          style: AppTextStyle.style_12_500(color: AppColors.grey500),
+                          style: AppTextStyle.style_12_500(
+                            color: AppColors.grey500,
+                          ),
                         ),
                         activeColor: AppColors.blue500,
                         checkboxShape: RoundedRectangleBorder(

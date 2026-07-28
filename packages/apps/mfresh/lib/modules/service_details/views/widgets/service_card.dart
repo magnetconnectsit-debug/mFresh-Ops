@@ -75,21 +75,23 @@ class ServiceCard extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => controller.decrement(index),
-                          child: Container(
-                            width: 32.w,
-                            alignment: Alignment.center,
-                            child: Text(
-                              '-',
-                              style: TextStyle(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w900,
-                                color: isAdded
-                                    ? AppColors.white
-                                    : AppColors.black,
-                                height: 1,
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => controller.decrement(index),
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: double.infinity,
+                              child: Text(
+                                '-',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: isAdded
+                                      ? AppColors.white
+                                      : AppColors.black,
+                                  height: 1,
+                                ),
                               ),
                             ),
                           ),
@@ -100,21 +102,23 @@ class ServiceCard extends StatelessWidget {
                             color: isAdded ? AppColors.white : AppColors.black,
                           ),
                         ),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => controller.increment(index),
-                          child: Container(
-                            width: 32.w,
-                            alignment: Alignment.center,
-                            child: Text(
-                              '+',
-                              style: TextStyle(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w900,
-                                color: isAdded
-                                    ? AppColors.white
-                                    : AppColors.black,
-                                height: 1,
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => controller.increment(index),
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: double.infinity,
+                              child: Text(
+                                '+',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: isAdded
+                                      ? AppColors.white
+                                      : AppColors.black,
+                                  height: 1,
+                                ),
                               ),
                             ),
                           ),

@@ -1,6 +1,6 @@
 name: mfresh
 description: "Magnet Connects Customer App (mfresh)."
-version: 1.0.1+5
+version: 1.0.4+8
 publish_to: 'none'
 
 environment:

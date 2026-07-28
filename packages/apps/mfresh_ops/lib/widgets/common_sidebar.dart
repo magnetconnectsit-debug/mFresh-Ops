@@ -197,7 +197,7 @@ class CommonSidebar extends StatelessWidget {
                     _buildMenuItem(
                       icon: Icons.location_on_outlined,
                       activeIcon: Icons.location_on,
-                      title: 'Staff Tracking',
+                      title: 'Attendance',
                       route: AppRoutes.staffTracking,
                       currentRoute: currentRoute,
                     ),
@@ -347,7 +347,7 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.dailyTasks);
                   } else if (item == 'My Routes') {
                     Get.toNamed(AppRoutes.liveTracking);
-                  } else if (item == 'Staff Tracking') {
+                  } else if (item == 'Attendance') {
                     Get.toNamed(AppRoutes.staffTracking);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);

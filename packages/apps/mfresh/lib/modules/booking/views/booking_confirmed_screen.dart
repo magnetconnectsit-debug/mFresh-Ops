@@ -62,7 +62,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
 
   String formatBookingDate(String dateString) {
     try {
-      DateTime date = DateTime.parse(dateString);
+      DateTime date = DateTime.parse(dateString).toLocal();
       return DateFormat('MMM dd, yyyy hh:mm a').format(date);
     } catch (e) {
       return dateString;
@@ -304,18 +304,19 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                     SizedBox(height: 16.h),
                                     
                                     // Footer links
-                                    Row(
+                                    Wrap(
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 8.w,
+                                      runSpacing: 4.h,
                                       children: [
                                         Text(
                                           'Payment details',
                                           style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22), isUnderline: true),
                                         ),
-                                        SizedBox(width: 12.w),
                                         Text(
                                           'T&C',
                                           style: AppTextStyle.style_10_600(color: AppColors.grey300, isUnderline: true),
                                         ),
-                                        SizedBox(width: 8.w),
                                         GestureDetector(
                                           onTap: () {
                                             final encryptId = booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId']);
@@ -324,7 +325,6 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                           },
                                           child: Icon(Icons.share, color: const Color(0xFFF15A22), size: 18.sp),
                                         ),
-                                        SizedBox(width: 12.w),
                                         GestureDetector(
                                           onTap: () {
                                             final smsPhoneController = TextEditingController();
@@ -449,43 +449,63 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: 4.h),
-                                  Obx(() {
-                                    final canPrint = profileController.user.value?.appPermissions?.receiptPrint ?? false;
-                                    final canReset = profileController.user.value?.appPermissions?.resetPrint ?? false;
-                                    
-                                    return Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        if (canPrint)
-                                          GestureDetector(
-                                            onTap: () => _handlePrint(booking),
-                                            child: Text(
-                                              'Print',
-                                              style: AppTextStyle.style_10_600(color: const Color(0xFF1A9FD9), isUnderline: true),
-                                            ),
-                                          ),
-                                        if (canReset) ...[
-                                          SizedBox(height: 6.h),
-                                          GestureDetector(
-                                            onTap: () {
-                                              Get.find<StorageService>().clearDefaultPrinter();
-                                              AppCommonToastMessage.show(message: "Default printer cleared", type: ToastType.success);
-                                            },
-                                            child: Text(
-                                              'Reset Print',
-                                              style: AppTextStyle.style_10_600(color: Colors.red.shade400, isUnderline: true),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    );
-                                  }),
-
                                 ],
                               ),
                             ],
                           ),
+                          Obx(() {
+                            final canPrint = profileController.user.value?.appPermissions?.receiptPrint ?? false;
+                            final canReset = profileController.user.value?.appPermissions?.resetPrint ?? false;
+                            return Padding(
+                              padding: EdgeInsets.only(top: 16.h),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  if (canReset)
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red.shade400,
+                                        foregroundColor: AppColors.white,
+                                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                                        minimumSize: Size(120.w, 36.h),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8.r),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () {
+                                        Get.find<StorageService>().clearDefaultPrinter();
+                                        AppCommonToastMessage.show(message: "Default printer cleared", type: ToastType.success);
+                                      },
+                                      child: Text(
+                                        'Reset Print',
+                                        style: AppTextStyle.style_12_600(color: AppColors.white),
+                                      ),
+                                    )
+                                  else
+                                    const SizedBox.shrink(),
+                                  if (canPrint)
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF1A9FD9),
+                                        foregroundColor: AppColors.white,
+                                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                                        minimumSize: Size(120.w, 36.h),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8.r),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () => _handlePrint(booking),
+                                      child: Text(
+                                        'Print',
+                                        style: AppTextStyle.style_12_600(color: AppColors.white),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
