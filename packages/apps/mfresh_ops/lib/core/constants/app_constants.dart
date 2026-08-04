@@ -11,6 +11,8 @@ class AppConstants {
   // endregion
 
   // region API Endpoints
+
+  // Authentication
   static const String login = 'login';
   static const String profile = 'profile';
   static const String logout = 'logout';
@@ -165,6 +167,13 @@ class AppConstants {
   static const String brandCreate = 'brand/create';
   static const String brandUpdate = 'brand/update';
   static const String brandDelete = 'brand/delete';
+
+  // Assets & Products
+  static const String assetProductList = 'asset-product/list';
+  static const String assetProductStore = 'asset-product/store';
+  static const String assetProductUpdate = 'asset-product/update';
+  static const String assetProductDelete = 'asset-product/delete';
+  static const String assetProductProjects = 'asset-product/projects';
   // endregion
 
   // region Hive Keys

@@ -6,25 +6,25 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
 import 'package:mfresh_ops/data/models/asset_product_model.dart';
+import 'package:mfresh_ops/routes/app_pages.dart';
+import 'package:core/widgets/app_image_view.dart';
 
 const List<(String, double)> _kAssetColumns = [
-  ('Action',          65),
-  ('Item',           130),
-  ('Item Type',      100),
-  ('Brand',          100),
-  ('Model',          100),
-  ('Serial No',      120),
-  ('Specification',  150),
-  ('Qty',             55),
-  ('Location',       100),
-  ('Unit',           100),
-  ('Installed At',   120),
-  ('Warranty Expiry',130),
-  ('Warranty',       100),
-  ('Warranty Status',130),
-  ('Vendor',         120),
-  ('Attachments',    100),
-  ('Project',        100),
+  ('Action', 65),
+  ('Item', 130),
+  ('Item Type', 100),
+  ('Brand', 100),
+  ('Model', 100),
+  ('Serial No', 120),
+  ('Specification', 150),
+  ('Qty', 55),
+  ('Location', 100),
+  ('Unit', 100),
+  ('Warranty Expiry', 130),
+  ('Warranty Status', 130),
+  ('Vendor', 120),
+  ('Attachments', 100),
+  ('Project', 100),
 ];
 
 class _HeaderCell extends StatelessWidget {
@@ -138,8 +138,10 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
         for (int i = 0; i < _kAssetColumns.length; i++)
           i: FixedColumnWidth(_kAssetColumns[i].$2.w),
       };
-      final double totalTableWidth =
-          _kAssetColumns.fold(0.0, (sum, col) => sum + col.$2.w);
+      final double totalTableWidth = _kAssetColumns.fold(
+        0.0,
+        (sum, col) => sum + col.$2.w,
+      );
 
       final isLoadingInitial =
           widget.controller.isLoading.value && widget.controller.assets.isEmpty;
@@ -221,10 +223,12 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                     ),
                   ),
                   child: Obx(() {
-                    final loading = widget.controller.isLoading.value &&
+                    final loading =
+                        widget.controller.isLoading.value &&
                         widget.controller.assets.isEmpty;
-                    final count =
-                        loading ? 20 : widget.controller.assets.length;
+                    final count = loading
+                        ? 20
+                        : widget.controller.assets.length;
 
                     return Skeletonizer(
                       enabled: loading,
@@ -301,7 +305,15 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     InkWell(
-                      onTap: () {},
+                      onTap: () async {
+                        final result = await Get.toNamed(
+                          '/create-asset',
+                          arguments: asset,
+                        );
+                        if (result == true) {
+                          widget.controller.fetchAssets();
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
@@ -314,50 +326,71 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                     SizedBox(width: 4.w),
                     InkWell(
                       onTap: () {
-                        Get.dialog(AlertDialog(
-                          backgroundColor: Colors.white,
-                          surfaceTintColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          title: Row(
-                            children: [
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: Colors.red, size: 28),
-                              SizedBox(width: 8.w),
-                              Text('Delete Asset',
+                        Get.dialog(
+                          AlertDialog(
+                            backgroundColor: Colors.white,
+                            surfaceTintColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            title: Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.red,
+                                  size: 28,
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'Delete Asset',
                                   style: AppTextStyle.style_16_700(
-                                      color: AppColors.black)),
+                                    color: AppColors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            content: Text(
+                              'Are you sure you want to delete this asset? This action cannot be undone.',
+                              style: AppTextStyle.style_14_400(
+                                color: AppColors.grey900,
+                              ),
+                            ),
+                            actionsPadding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 12.h,
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Get.back(),
+                                child: Text(
+                                  'Cancel',
+                                  style: AppTextStyle.style_14_600(
+                                    color: AppColors.black,
+                                  ),
+                                ),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Get.back();
+                                  widget.controller.deleteAsset(asset.id);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6.r),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  'Delete',
+                                  style: AppTextStyle.style_14_600(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                          content: Text(
-                            'Are you sure you want to delete this asset? This action cannot be undone.',
-                            style: AppTextStyle.style_14_400(
-                                color: AppColors.grey900),
-                          ),
-                          actionsPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w, vertical: 12.h),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Get.back(),
-                              child: Text('Cancel',
-                                  style: AppTextStyle.style_14_600(
-                                      color: AppColors.black)),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Get.back(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6.r)),
-                                elevation: 0,
-                              ),
-                              child: Text('Delete',
-                                  style: AppTextStyle.style_14_600(
-                                      color: Colors.white)),
-                            ),
-                          ],
-                        ));
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),
@@ -374,49 +407,83 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
             ),
             _kAssetColumns[0].$2.w,
           ),
-          buildCell(_DataCell(text: asset.item),           _kAssetColumns[1].$2.w),
-          buildCell(_DataCell(text: asset.itemType),        _kAssetColumns[2].$2.w),
-          buildCell(_DataCell(text: asset.brand),           _kAssetColumns[3].$2.w),
-          buildCell(_DataCell(text: asset.model),           _kAssetColumns[4].$2.w),
-          buildCell(_DataCell(text: asset.serialNo),        _kAssetColumns[5].$2.w),
-          buildCell(_DataCell(text: asset.specification),   _kAssetColumns[6].$2.w),
-          buildCell(_DataCell(text: asset.qty),             _kAssetColumns[7].$2.w),
-          buildCell(_DataCell(text: asset.location),        _kAssetColumns[8].$2.w),
-          buildCell(_DataCell(text: asset.unit),            _kAssetColumns[9].$2.w),
-          buildCell(_DataCell(text: asset.installedAt),     _kAssetColumns[10].$2.w),
-          buildCell(_DataCell(text: asset.warrantyExpiry),  _kAssetColumns[11].$2.w),
-          buildCell(_DataCell(text: asset.warranty),        _kAssetColumns[12].$2.w),
-          buildCell(_DataCell(text: asset.warrantyStatus),  _kAssetColumns[13].$2.w),
-          buildCell(_DataCell(text: asset.vendor),          _kAssetColumns[14].$2.w),
+          buildCell(_DataCell(text: asset.item), _kAssetColumns[1].$2.w),
+          buildCell(
+            _DataCell(text: asset.itemTypeLabel),
+            _kAssetColumns[2].$2.w,
+          ),
+          buildCell(_DataCell(text: asset.brand), _kAssetColumns[3].$2.w),
+          buildCell(_DataCell(text: asset.model), _kAssetColumns[4].$2.w),
+          buildCell(_DataCell(text: asset.serialNo), _kAssetColumns[5].$2.w),
+          buildCell(
+            _DataCell(text: asset.specification),
+            _kAssetColumns[6].$2.w,
+          ),
+          buildCell(_DataCell(text: asset.qty), _kAssetColumns[7].$2.w),
+          buildCell(_DataCell(text: asset.location), _kAssetColumns[8].$2.w),
+          buildCell(_DataCell(text: asset.unit), _kAssetColumns[9].$2.w),
+          buildCell(
+            _DataCell(text: asset.warrantyDate),
+            _kAssetColumns[10].$2.w,
+          ),
+          buildCell(
+            _DataCell(text: asset.warrantyType),
+            _kAssetColumns[11].$2.w,
+          ),
+          buildCell(_DataCell(text: asset.vendor), _kAssetColumns[12].$2.w),
           buildCell(
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: asset.attachments.take(3).map((type) {
-                  if (type == 'pdf') {
-                    return Padding(
-                      padding: EdgeInsets.only(right: 4.w),
-                      child: const Icon(Icons.picture_as_pdf,
-                          size: 16, color: Colors.red),
-                    );
-                  } else if (type == 'image') {
-                    return Padding(
-                      padding: EdgeInsets.only(right: 4.w),
-                      child: const Icon(Icons.image,
-                          size: 16, color: Colors.blue),
+              child: Builder(
+                builder: (context) {
+                  final allImages = [
+                    ...asset.invoice,
+                    ...asset.warrantyImg,
+                    ...asset.othersImg,
+                  ];
+                  if (allImages.isEmpty) {
+                    return Text(
+                      'No Files',
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey500,
+                      ),
                     );
                   }
-                  return Padding(
-                    padding: EdgeInsets.only(right: 4.w),
-                    child: const Icon(Icons.insert_drive_file, size: 16),
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: allImages
+                        .take(3)
+                        .map(
+                          (url) => Padding(
+                            padding: EdgeInsets.only(right: 4.w),
+                            child: GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => Dialog(
+                                    child: InteractiveViewer(
+                                      child: AppImageView(imageUrl: url),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: AppImageView(
+                                imageUrl: url,
+                                width: 20,
+                                height: 20,
+                                borderRadius: 4,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   );
-                }).toList(),
+                },
               ),
             ),
-            _kAssetColumns[15].$2.w,
+            _kAssetColumns[13].$2.w,
           ),
-          buildCell(_DataCell(text: asset.project), _kAssetColumns[16].$2.w),
+          buildCell(_DataCell(text: asset.project), _kAssetColumns[14].$2.w),
         ],
       ),
     );

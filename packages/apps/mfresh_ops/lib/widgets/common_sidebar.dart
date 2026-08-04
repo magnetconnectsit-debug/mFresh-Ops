@@ -156,7 +156,7 @@ class CommonSidebar extends StatelessWidget {
               ];
 
               final infoDirectorySubItems = [
-                if (userPermissions.contains('assets_product_details')) 'Assets & Products',
+                // if (userPermissions.contains('assets_product_details')) 'Assets & Products',
                 // if (userPermissions.contains('account_details')) 'Account Details',
                 if (userPermissions.contains('c_directory_panel')) 'Contact Directory',
                 if (userPermissions.contains('brand_details')) 'MContact_Brands',

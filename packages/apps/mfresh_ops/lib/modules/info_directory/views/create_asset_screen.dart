@@ -64,18 +64,18 @@ class CreateAssetScreen extends StatelessWidget {
                                   ? {}
                                   : {controller.selectedItemType.value!},
                               items: controller.availableItemTypes
-                                  .map(
-                                    (e) => DropdownMenuItem<String>(
-                                      value: e,
-                                      child: Text(
-                                        e,
-                                        style: AppTextStyle.style_12_400(
-                                          color: AppColors.grey900,
+                                    .map(
+                                      (e) => DropdownMenuItem<String>(
+                                        value: e['value']!,
+                                        child: Text(
+                                          e['label']!,
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.grey900,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                  .toList(),
+                                    )
+                                    .toList(),
                               onChanged: (v) =>
                                   controller.selectedItemType.value = v.isEmpty
                                   ? null
@@ -135,9 +135,9 @@ class CreateAssetScreen extends StatelessWidget {
                               items: controller.availableProjects
                                   .map(
                                     (e) => DropdownMenuItem<String>(
-                                      value: e,
+                                      value: e['id'].toString(),
                                       child: Text(
-                                        e,
+                                        e['project']?.toString() ?? '',
                                         style: AppTextStyle.style_12_400(
                                           color: AppColors.grey900,
                                         ),

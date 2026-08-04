@@ -1,26 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/models/asset_product_model.dart';
+import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 
 class AssetsProductsController extends GetxController {
+  late final AssetProductRepository _repo;
+
   final isLoading = false.obs;
   final RxList<AssetProductModel> assets = <AssetProductModel>[].obs;
+
+  // Pagination
   final perPage = 10.obs;
+  final currentPage = 1.obs;
+  final lastPage = 1.obs;
+  final totalRecords = 0.obs;
 
   // Filter state
-  final selectedItemType = ''.obs;
+  final selectedItemType = ''.obs; // '' = all, '0' = product, '1' = asset
   final searchGlobalController = TextEditingController();
+  TextEditingController get searchController => searchGlobalController;
+  final isSearching = false.obs;
+  final searchQuery = ''.obs;
 
   // Available filter options
-  final RxList<String> availableItemTypes = <String>[
-    'All',
-    'Asset',
-    'Products',
-  ].obs;
+  final RxList<String> availableItemTypes = <String>['All', 'Asset', 'Products'].obs;
 
   @override
   void onInit() {
     super.onInit();
+    _repo = Get.find<AssetProductRepository>();
     fetchAssets();
   }
 
@@ -30,32 +38,82 @@ class AssetsProductsController extends GetxController {
     super.onClose();
   }
 
-  final searchQuery = ''.obs;
-
-  final searchController = TextEditingController();
-  final isSearching = false.obs;
+  // Maps display label → API value
+  String get _itemTypeApiValue {
+    switch (selectedItemType.value) {
+      case 'Asset':
+        return '1';
+      case 'Products':
+        return '0';
+      default:
+        return ''; // All
+    }
+  }
 
   void toggleSearch() {
     isSearching.value = !isSearching.value;
+    if (!isSearching.value) {
+      searchGlobalController.clear();
+      searchQuery.value = '';
+      applyFilters();
+    }
   }
 
-  Future<void> fetchAssets() async {
+  Future<void> fetchAssets({bool resetPage = false}) async {
+    if (resetPage) currentPage.value = 1;
     isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 1));
-    assets.value = List.generate(
-      20,
-      (i) => AssetProductModel.dummy((i + 1).toString()),
-    );
-    isLoading.value = false;
+    try {
+      final response = await _repo.fetchList(
+        itemType: _itemTypeApiValue,
+        globalSearch: searchGlobalController.text.trim(),
+        perPage: perPage.value,
+        page: currentPage.value,
+      );
+
+      if (response != null && response['status'] == true) {
+        final data = response['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          final list = (data['data'] as List? ?? [])
+              .map((e) => AssetProductModel.fromJson(e as Map<String, dynamic>))
+              .toList();
+          assets.value = list;
+          currentPage.value = (data['current_page'] as num?)?.toInt() ?? 1;
+          lastPage.value = (data['last_page'] as num?)?.toInt() ?? 1;
+          totalRecords.value = (data['total'] as num?)?.toInt() ?? 0;
+        }
+      }
+    } catch (e) {
+      debugPrint('[AssetsProductsController] fetchAssets error: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  void applyFilters() {
-    // Filtering logic will go here when connected to real API
-  }
+  void applyFilters() => fetchAssets(resetPage: true);
 
   Future<void> resetFiltersAndRefresh() async {
     selectedItemType.value = '';
     searchGlobalController.clear();
-    await fetchAssets();
+    await fetchAssets(resetPage: true);
+  }
+
+  Future<void> deleteAsset(int assetId) async {
+    isLoading.value = true;
+    try {
+      final response = await _repo.deleteAsset(assetId);
+      if (response != null && response['status'] == true) {
+        await fetchAssets();
+      }
+    } catch (e) {
+      debugPrint('[AssetsProductsController] deleteAsset error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void goToPage(int page) {
+    if (page < 1 || page > lastPage.value) return;
+    currentPage.value = page;
+    fetchAssets();
   }
 }

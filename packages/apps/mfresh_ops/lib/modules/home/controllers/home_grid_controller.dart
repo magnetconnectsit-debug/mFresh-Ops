@@ -186,18 +186,18 @@ class HomeGridController extends GetxController {
       route: AppRoutes.infoDirectory,
       permissionKey: 'c_directory_panel',
       subActions: [
-        GridSubAction(
-          title: 'Assets',
-          icon: Icons.inventory,
-          route: AppRoutes.assetsProducts,
-          permissionKey: 'assets_product_details',
-        ),
-        GridSubAction(
-          title: 'Accounts',
-          icon: Icons.account_box,
-          route: null,
-          permissionKey: 'account_details',
-        ),
+        // GridSubAction(
+        //   title: 'Assets',
+        //   icon: Icons.inventory,
+        //   route: AppRoutes.assetsProducts,
+        //   permissionKey: 'assets_product_details',
+        // ),
+        // GridSubAction(
+        //   title: 'Accounts',
+        //   icon: Icons.account_box,
+        //   route: null,
+        //   permissionKey: 'account_details',
+        // ),
       ],
     ),
   ];
@@ -213,89 +213,138 @@ class HomeGridController extends GetxController {
 
   void _initGridItems() {
     final userPermissions = _authRepo.rxUserPermissions;
-    
+
     // Filter items based on permissions
     final availableItems = <GridItemData>[];
-    
+
     for (final item in _allItems) {
       if (item.title == 'Support Ticket') {
         if (userPermissions.contains('maintenance_panel')) {
-          final sub = item.subActions.where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey)).toList();
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Daily Task') {
-        if (userPermissions.contains('Task_Sheduler_Pannel') && userPermissions.contains('Daily_Task')) {
-          final sub = item.subActions.where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey)).toList();
+        if (userPermissions.contains('Task_Sheduler_Pannel') &&
+            userPermissions.contains('Daily_Task')) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Unit Inventory') {
-        if (userPermissions.contains('inventory_panel') && userPermissions.contains('unit_inventory_stock')) {
-          final sub = item.subActions.where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey)).toList();
+        if (userPermissions.contains('inventory_panel') &&
+            userPermissions.contains('unit_inventory_stock')) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
           availableItems.add(item.copyWith(subActions: sub));
         } else if (userPermissions.contains('store_inventory_stock')) {
-          availableItems.add(GridItemData(
-            title: 'Store Inventory',
-            subtitle: 'Manage Store',
-            icon: Icons.store,
-            gradient: item.gradient,
-            route: AppRoutes.storeInventory,
-            subActions: [],
-          ));
+          availableItems.add(
+            GridItemData(
+              title: 'Store Inventory',
+              subtitle: 'Manage Store',
+              icon: Icons.store,
+              gradient: item.gradient,
+              route: AppRoutes.storeInventory,
+              subActions: [],
+            ),
+          );
         }
       } else if (item.title == 'Attendance') {
         if (userPermissions.contains('tracking_panel')) {
-           availableItems.add(item);
+          availableItems.add(item);
         }
       } else if (item.title == 'Admin') {
         if (userPermissions.contains('collection_panel')) {
-          final sub = item.subActions.where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey)).toList();
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
           availableItems.add(item.copyWith(subActions: sub));
         } else if (userPermissions.contains('normal_admin_collection')) {
-          availableItems.add(GridItemData(
-            title: 'Collections',
-            subtitle: 'Admin Collections',
-            icon: Icons.payments,
-            gradient: item.gradient,
-            route: AppRoutes.collections,
-            subActions: [],
-          ));
+          availableItems.add(
+            GridItemData(
+              title: 'Collections',
+              subtitle: 'Admin Collections',
+              icon: Icons.payments,
+              gradient: item.gradient,
+              route: AppRoutes.collections,
+              subActions: [],
+            ),
+          );
         } else if (userPermissions.contains('deposit_panel')) {
-          availableItems.add(GridItemData(
-            title: 'Deposits',
-            subtitle: 'Admin Deposits',
-            icon: Icons.account_balance,
-            gradient: item.gradient,
-            route: AppRoutes.deposits,
-            subActions: [],
-          ));
+          availableItems.add(
+            GridItemData(
+              title: 'Deposits',
+              subtitle: 'Admin Deposits',
+              icon: Icons.account_balance,
+              gradient: item.gradient,
+              route: AppRoutes.deposits,
+              subActions: [],
+            ),
+          );
         }
       } else if (item.title == 'Info Directory') {
         if (userPermissions.contains('c_directory_panel')) {
-          final sub = item.subActions.where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey)).toList();
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
           availableItems.add(item.copyWith(subActions: sub));
         } else if (userPermissions.contains('assets_product_details')) {
-          availableItems.add(GridItemData(
-            title: 'Assets',
-            subtitle: 'Manage Assets',
-            icon: Icons.inventory,
-            gradient: item.gradient,
-            route: AppRoutes.infoDirectory,
-            subActions: [],
-          ));
+          availableItems.add(
+            GridItemData(
+              title: 'Assets',
+              subtitle: 'Manage Assets',
+              icon: Icons.inventory,
+              gradient: item.gradient,
+              route: AppRoutes.infoDirectory,
+              subActions: [],
+            ),
+          );
         } else if (userPermissions.contains('account_details')) {
-          availableItems.add(GridItemData(
-            title: 'Accounts',
-            subtitle: 'Manage Accounts',
-            icon: Icons.account_box,
-            gradient: item.gradient,
-            route: null,
-            subActions: [],
-          ));
+          availableItems.add(
+            GridItemData(
+              title: 'Accounts',
+              subtitle: 'Manage Accounts',
+              icon: Icons.account_box,
+              gradient: item.gradient,
+              route: null,
+              subActions: [],
+            ),
+          );
         }
       } else {
         // Fallback for any unknown items
-        if (item.permissionKey == null || userPermissions.contains(item.permissionKey)) {
-          final sub = item.subActions.where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey)).toList();
+        if (item.permissionKey == null ||
+            userPermissions.contains(item.permissionKey)) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       }
@@ -303,11 +352,11 @@ class HomeGridController extends GetxController {
 
     // Load saved order
     final savedOrder = _storage.getHomeGridOrder();
-    
+
     if (savedOrder != null && savedOrder.isNotEmpty) {
       // Reorder available items based on saved string titles
       final orderedItems = <GridItemData>[];
-      
+
       for (final title in savedOrder) {
         final index = availableItems.indexWhere((item) => item.title == title);
         if (index != -1) {
@@ -315,7 +364,7 @@ class HomeGridController extends GetxController {
           availableItems.removeAt(index);
         }
       }
-      
+
       // Add any new items that weren't in the saved order to the end
       orderedItems.addAll(availableItems);
       gridItems.value = orderedItems;
@@ -333,7 +382,7 @@ class HomeGridController extends GetxController {
     }
     final item = gridItems.removeAt(oldIndex);
     gridItems.insert(newIndex, item);
-    
+
     // Save new order to storage
     final newOrder = gridItems.map((e) => e.title).toList();
     _storage.saveHomeGridOrder(newOrder);
