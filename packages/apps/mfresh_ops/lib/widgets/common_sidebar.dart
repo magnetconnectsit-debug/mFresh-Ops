@@ -332,9 +332,26 @@ class CommonSidebar extends StatelessWidget {
     // Determine if any sub-item is active (not applicable yet)
     final bool isExpanded = false;
 
+    final GlobalKey expansionTileKey = GlobalKey();
+
     return Theme(
       data: Theme.of(Get.context!).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
+        key: expansionTileKey,
+        onExpansionChanged: (expanded) {
+          if (expanded) {
+            Future.delayed(const Duration(milliseconds: 250), () {
+              if (expansionTileKey.currentContext != null) {
+                Scrollable.ensureVisible(
+                  expansionTileKey.currentContext!,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: 0.1,
+                );
+              }
+            });
+          }
+        },
         leading: Icon(icon, color: AppColors.grey300, size: 24.r),
         title: Text(
           title,
