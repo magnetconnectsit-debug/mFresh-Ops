@@ -34,23 +34,40 @@ class SupportTicketsScreen extends StatelessWidget {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
+        toolbarHeight: 45.h,
         title: Obx(
           () => controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  focusNode: controller.searchFocusNode,
-                  hintText: 'Search tickets locally...',
-                  onChanged: (v) => controller.searchQuery.value = v,
-                  autofocus: true,
-                  onClose: () {
-                    controller.searchController.clear();
-                    controller.searchQuery.value = '';
-                    controller.toggleSearch();
-                  },
+              ? Padding(
+                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
+                  child: AppCommonSearchBar(
+                    controller: controller.searchController,
+                    focusNode: controller.searchFocusNode,
+                    hintText: 'Search tickets locally...',
+                    onChanged: (v) => controller.searchQuery.value = v,
+                    autofocus: true,
+                    onClose: () {
+                      controller.searchController.clear();
+                      controller.searchQuery.value = '';
+                      controller.toggleSearch();
+                    },
+                  ),
                 )
-              : Text(
-                  "All Support Tickets",
-                  style: AppTextStyle.style_18_700(color: Colors.black),
+              : Row(
+                  children: [
+                    Text(
+                      "All Support Tickets",
+                      style: AppTextStyle.style_18_700(color: Colors.black),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.search, color: Colors.black, size: 26.sp),
+                      onPressed: () {
+                        if (!controller.isSearching.value) {
+                          controller.toggleSearch();
+                        }
+                      },
+                    ),
+                  ],
                 ),
         ),
       ),

@@ -102,6 +102,15 @@ class SupportTicketsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments;
+    if (args != null && args is Map<String, dynamic>) {
+      if (args['focusSearch'] == true) {
+        isSearching.value = true;
+        Future.delayed(const Duration(milliseconds: 300), () {
+          searchFocusNode.requestFocus();
+        });
+      }
+    }
     _initialLoad();
   }
   // endregion

@@ -32,4 +32,21 @@ abstract class AppRoutes {
   static const collections = '/collections';
   static const deposits = '/deposits';
   static const createDeposit = '/create-deposit';
+  
+  // Booking Module
+  static const bookingConfirmed = '/booking-confirmed';
+  static const bookingHistory = '/booking-history';
+  static const String bookingUnitSelection = '/booking-unit-selection';
+  static const String serviceDetails = '/service-details';
+  static const printReceipt = '/print-receipt';
+
+  // Info Directory Module
+  static const infoDirectory = '/info-directory';
+  static const createContact = '/create-contact';
+  static const contactBrands = '/contact-brands';
+  static const contactCompanies = '/contact-companies';
+
+  // Assets & Products Module
+  static const assetsProducts = '/assets-products';
+  static const createAsset = '/create-asset';
 }

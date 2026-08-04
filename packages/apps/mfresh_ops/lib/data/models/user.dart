@@ -91,18 +91,18 @@ class User extends HiveObject {
       id: userData['id'] is int
           ? userData['id']
           : int.parse(userData['id'].toString()),
-      name: userData['name'],
-      email: userData['email'],
+      name: userData['name']?.toString(),
+      email: userData['email']?.toString(),
       role: userData['role']?.toString(),
       mob: userData['Mob']?.toString(),
-      uimage: userData['uimage'],
+      uimage: userData['uimage']?.toString(),
       permissions: permissions,
       securityGroupIds: userData['security_group_ids']?.toString(),
       activeStatus: userData['Active_status'] is int
           ? userData['Active_status']
           : int.tryParse(userData['Active_status']?.toString() ?? ''),
-      createdAt: userData['created_at'],
-      updatedAt: userData['updated_at'],
+      createdAt: userData['created_at']?.toString(),
+      updatedAt: userData['updated_at']?.toString(),
       roleName: userData['role_name']?.toString(),
       isOnDuty: userData['is_on_duty'] is int
           ? userData['is_on_duty']
@@ -112,9 +112,6 @@ class User extends HiveObject {
           ? Map<dynamic, dynamic>.from(json['tracking_config'] ?? userData['tracking_config'])
           : null,
       imageUrl: userData['image_url']?.toString(),
-      // trackingSessionId: userData['tracking_session_id'] is int
-      //     ? userData['tracking_session_id']
-      //     : int.tryParse(userData['tracking_session_id']?.toString() ?? ''),
       trackingSessionId: null, // Ignore from API since it provides stale data, use current-status instead
     );
   }
@@ -228,4 +225,26 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.imageUrl);
     writer.write(obj.trackingSessionId);
   }
+}
+
+class UserPermissions {
+  final List<String> _permissions;
+  UserPermissions(this._permissions);
+
+  bool get customerMemberRadio => _permissions.contains('customerMemberRadio');
+  bool get scannerAccess => _permissions.contains('scannerAccess');
+  bool get userProfileFilter => _permissions.contains('userProfileFilter');
+  bool get resendReceiptCustomer => _permissions.contains('resendReceiptCustomer');
+  bool get onlineOfflineToggle => _permissions.contains('onlineOfflineToggle');
+  bool get externalQr => _permissions.contains('externalQr');
+  bool get additionalPhoneNo => _permissions.contains('additionalPhoneNo');
+  bool get receiptPrint => _permissions.contains('receiptPrint');
+  bool get paymentGateway => _permissions.contains('paymentGateway');
+  bool get cashCollectionAccess => _permissions.contains('cashCollectionAccess');
+  bool get resetPrint => _permissions.contains('resetPrint');
+}
+
+extension UserPermissionsExtension on User {
+  UserPermissions get appPermissions => UserPermissions(permissions ?? []);
+  String get customeUserID => id.toString(); // Map customUserID to id.toString()
 }

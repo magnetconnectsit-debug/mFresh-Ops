@@ -20,6 +20,19 @@ class AppConstants {
   static const String sendOtp = 'adminsend-otp';
   static const String verifyOtp = 'adminverify-otp';
 
+  // Booking Module
+  static const String customerBookingDetails = 'customer/customerbookingdetails';
+  static const String resendBookingSms = 'customer/resend-booking-sms';
+  static const String allUnitServices = 'customer/Api-get-Unit-services';
+  static const String bookingHistory = 'customer/bookinghistory';
+  static const String allUnits = 'customer/All-Units';
+  static const String initiateBooking = 'customer/Api-initiateBooking';
+  static const String successBooking = 'customer/Api-SuccessBooking';
+  static const String validateMemPhone = 'customer/validate-mem-phone';
+  static const String sendOtpMember = 'customer/send-otp-member';
+  static const String verifyOtpMember = 'customer/verify-otp-member';
+  static const String kioskScan = 'customer/kiosk-scan';
+
   // Support Tickets
   static const String supportUnits = 'support-units';
   static const String supportCategory = 'support-category';
@@ -137,6 +150,21 @@ class AppConstants {
       'cash-deposit/update'; // Update cash deposit api
   static const String cashDepositDelete =
       'deposit/delete'; // Delete cash deposit api
+
+  // Info Directory / Contacts
+  static const String contactStore = 'contact/store';
+  static const String contactUpdate = 'contact/update';
+  static const String contactList = 'contact/list';
+  static const String contactDelete = 'contact/delete';
+  static const String companyList = 'company/list';
+  static const String companyCreate = 'company/create';
+  static const String companyUpdate = 'company/update';
+  static const String companyDelete = 'company/delete';
+  
+  static const String brandList = 'brand/list';
+  static const String brandCreate = 'brand/create';
+  static const String brandUpdate = 'brand/update';
+  static const String brandDelete = 'brand/delete';
   // endregion
 
   // region Hive Keys

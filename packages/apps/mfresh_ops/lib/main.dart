@@ -11,6 +11,9 @@ import 'package:dev/views/widgets/floating_logger_button.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:services/plutus_service.dart';
+import 'package:services/phonepe_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -27,8 +30,10 @@ import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/data/repositories/booking_repository.dart';
 import 'package:mfresh_ops/data/repositories/collection_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:mfresh_ops/data/repositories/contact_repository.dart';
 import 'package:mfresh_ops/data/repositories/deposit_repository.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
@@ -723,6 +728,10 @@ Future<void> initServices() async {
   Get.put(AuthRepository());
   Get.put(UserRepository());
   Get.put(CommonRepository());
+  Get.put(BookingRepository());
+  Get.put(PlutusService());
+  PhonePeService.init(isProduction: true);
+  Get.put(PhonePeService());
   Get.put(SupportRepository());
   Get.put(TaskRepository());
   Get.put(InventoryRepository());
@@ -730,6 +739,7 @@ Future<void> initServices() async {
   Get.put(TrackingService());
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
+  Get.put(ContactRepository());
 }
 // endregion
 

@@ -471,50 +471,6 @@ class SupportFilterSection extends StatelessWidget {
                     ],
                     // endregion
 
-                    // region GLOBAL SEARCH
-                    if (canFilterGlobal) ...[
-                      TextField(
-                        controller: controller.searchController,
-                        readOnly: true,
-                        onTap: () {
-                          if (!controller.isSearching.value) {
-                            controller.toggleSearch();
-                          }
-                        },
-                        style: AppTextStyle.style_12_400(
-                          color: AppColors.grey900,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: "Global",
-                          hintText: "Search...",
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          labelStyle: AppTextStyle.style_12_400(
-                            color: AppColors.grey200,
-                          ),
-                          hintStyle: AppTextStyle.style_12_400(
-                            color: AppColors.grey900,
-                          ),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4.r),
-                            borderSide: const BorderSide(
-                              color: AppColors.borderColor,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4.r),
-                            borderSide: const BorderSide(
-                              color: AppColors.borderColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                    // endregion
                   ],
                 ),
                 // endregion

@@ -26,6 +26,7 @@ class StorageService extends GetxService {
   static const String _lastPrinterNameKey = 'last_printer_name';
   static const String _defaultPrinterAddressKey = 'default_printer_address';
   static const String _defaultPrinterNameKey = 'default_printer_name';
+  static const String _homeGridOrderKey = 'home_grid_order';
 
   late final Box<dynamic> _authBox;
   late final Box<dynamic> _userBox;
@@ -150,6 +151,18 @@ class StorageService extends GetxService {
   // endregion
 
   // region Settings Methods
+  Future<void> saveHomeGridOrder(List<String> order) async {
+    await _settingsBox.put(_homeGridOrderKey, order);
+  }
+
+  List<String>? getHomeGridOrder() {
+    final order = _settingsBox.get(_homeGridOrderKey);
+    if (order != null) {
+      return List<String>.from(order);
+    }
+    return null;
+  }
+
   Future<void> saveBaseUrl(String url) async {
     await _settingsBox.put(_baseUrlKey, url);
   }

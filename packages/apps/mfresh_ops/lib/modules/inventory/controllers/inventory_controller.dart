@@ -7,6 +7,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
+import '../views/widgets/store_inventory_dialogs.dart';
 
 class InventoryController extends GetxController {
   final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
@@ -41,6 +42,16 @@ class InventoryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments;
+    if (args != null && args is Map<String, dynamic>) {
+      if (args['openAddDialog'] == true) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (Get.context != null) {
+            StoreInventoryDialogs.showAddInventorySheet(Get.context!);
+          }
+        });
+      }
+    }
     _fetchInitialData();
   }
 

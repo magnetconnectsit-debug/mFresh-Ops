@@ -18,7 +18,11 @@ class AuthRepository extends GetxService {
         },
       );
 
-      if (response != null && response['data'] != null && response['data']['access_token'] != null) {
+      if (response != null && response['status'] == 'error' && response['message'] != null) {
+        throw response['message'].toString();
+      }
+
+      if (response != null && response['data'] is Map<String, dynamic> && response['data']['access_token'] != null) {
         final String token = response['data']['access_token'];
         await _storageService.saveToken(token);
         
@@ -55,6 +59,9 @@ class AuthRepository extends GetxService {
         AppConstants.sendOtp,
         data: {'phone_no': mobile},
       );
+      if (response != null && response['status'] == 'error' && response['message'] != null) {
+        throw response['message'].toString();
+      }
       return response != null;
     } catch (e) {
       rethrow;
@@ -71,7 +78,11 @@ class AuthRepository extends GetxService {
         },
       );
 
-      if (response != null && response['data'] != null) {
+      if (response != null && response['status'] == 'error' && response['message'] != null) {
+        throw response['message'].toString();
+      }
+
+      if (response != null && response['data'] is Map<String, dynamic>) {
         final user = User.fromJson(response['data']);
         final String token = response['data']['access_token'] ?? '';
         

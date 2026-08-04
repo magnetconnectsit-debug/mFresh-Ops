@@ -75,7 +75,7 @@ class AllTasksActionButtons extends StatelessWidget {
                   size: 16.r,
                   color: Colors.grey.shade600,
                 ),
-                items: [10, 20, 50, 100].map((int val) {
+                items: [10, 20, 50, 100, 500, 1000].map((int val) {
                   return DropdownMenuItem<int>(
                     value: val,
                     child: Text('$val per page'),

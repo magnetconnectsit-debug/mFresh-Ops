@@ -99,7 +99,9 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                                 return 'Selected';
                               })()
                             : '${selectedValues.length} selected',
-                    style: selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp),
+                    style: selectedValues.isEmpty 
+                        ? AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp)
+                        : (selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -113,9 +115,23 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
           )
         : InputDecorator(
             decoration: InputDecoration(
-              labelText: label,
+              label: label != null
+                  ? RichText(
+                      text: TextSpan(
+                        text: label!.replaceAll('*', ''),
+                        style: AppTextStyle.style_12_400(color: AppColors.grey200),
+                        children: label!.contains('*')
+                            ? [
+                                const TextSpan(
+                                  text: '*',
+                                  style: TextStyle(color: Colors.red),
+                                )
+                              ]
+                            : [],
+                      ),
+                    )
+                  : null,
               floatingLabelBehavior: label != null ? FloatingLabelBehavior.always : FloatingLabelBehavior.never,
-              labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
               isDense: true,
               contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: label != null ? 4.h : 8.h),
               border: OutlineInputBorder(
@@ -157,7 +173,9 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                           return 'Selected';
                         })()
                       : '${selectedValues.length} selected',
-              style: selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900),
+              style: selectedValues.isEmpty 
+                  ? AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp)
+                  : (selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900)),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
@@ -247,7 +265,7 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       constraints: BoxConstraints(
         minWidth: widget.width,
-        maxWidth: MediaQuery.of(context).size.width * 0.9,
+        maxWidth: widget.width,
         maxHeight: 300.h + MediaQuery.of(context).viewInsets.bottom,
       ),
       color: AppColors.white,
@@ -287,9 +305,7 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
                   children: displayedItems.map((item) {
                     final value = item.value;
                     if (widget.isSingleSelect) {
-                      return ListTile(
-                        title: item.child,
-                        selected: _tempSelected.contains(value),
+                      return InkWell(
                         onTap: () {
                           if (_tempSelected.contains(value)) {
                             _tempSelected.remove(value);
@@ -300,24 +316,68 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
                           widget.onChanged(Set<T>.from(_tempSelected));
                           Navigator.pop(context);
                         },
-                        dense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          color: _tempSelected.contains(value)
+                              ? Colors.grey.withOpacity(0.1)
+                              : Colors.transparent,
+                          child: item.child is Text
+                              ? Text(
+                                  (item.child as Text).data ?? '',
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.grey900,
+                                  ).copyWith(fontSize: 13.sp),
+                                )
+                              : item.child,
+                        ),
                       );
                     }
-                    return CheckboxListTile(
-                      title: item.child,
-                      value: _tempSelected.contains(value),
-                      onChanged: (checked) {
+                    return InkWell(
+                      onTap: () {
                         setState(() {
-                          if (checked == true) {
-                            _tempSelected.add(value as T);
-                          } else {
+                          if (_tempSelected.contains(value)) {
                             _tempSelected.remove(value);
+                          } else {
+                            _tempSelected.add(value as T);
                           }
                         });
                       },
-                      dense: true,
-                      controlAffinity: ListTileControlAffinity.leading,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: Checkbox(
+                                value: _tempSelected.contains(value),
+                                onChanged: (checked) {
+                                  setState(() {
+                                    if (checked == true) {
+                                      _tempSelected.add(value as T);
+                                    } else {
+                                      _tempSelected.remove(value);
+                                    }
+                                  });
+                                },
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: item.child is Text
+                                  ? Text(
+                                      (item.child as Text).data ?? '',
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.grey900,
+                                      ).copyWith(fontSize: 13.sp),
+                                    )
+                                  : item.child,
+                            ),
+                          ],
+                        ),
+                      ),
                     );
                   }).toList(),
                 ),
@@ -326,7 +386,7 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
           ),
           if (!widget.isSingleSelect)
             Padding(
-              padding: EdgeInsets.all(8.r),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xffF15A24),

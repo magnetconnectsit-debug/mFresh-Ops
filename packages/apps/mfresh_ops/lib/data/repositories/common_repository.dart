@@ -22,4 +22,4 @@ class CommonRepository extends GetxService {
       rethrow;
     }
   }
-}
+} // endregion

@@ -1,4 +1,8 @@
 import 'package:get/get.dart';
+import 'package:mfresh_ops/modules/info_directory/views/info_directory_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/views/create_contact_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/views/mcontact_brands_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/views/mcontact_companies_screen.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
 import 'package:dev/views/dev_settings_screen.dart';
@@ -27,6 +31,7 @@ import 'package:mfresh_ops/modules/profile/views/profile_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/create_ticket_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/ticket_details_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/edit_ticket_screen.dart';
+import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_inventory_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/unit_inventory_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/all_consumption_screen.dart';
@@ -52,6 +57,15 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_projects_
 import 'package:mfresh_ops/modules/support_tickets/views/support_template_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_template_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_dashboard_controller.dart';
+import 'package:mfresh_ops/modules/booking/views/booking_confirmed_screen.dart';
+import 'package:mfresh_ops/modules/booking/views/booking_history_screen.dart';
+import 'package:mfresh_ops/modules/booking/views/print_receipt_screen.dart';
+import 'package:mfresh_ops/modules/booking/views/booking_unit_selection_screen.dart';
+import 'package:mfresh_ops/modules/service_details/views/service_details_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/views/assets_products_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
+import 'package:mfresh_ops/modules/info_directory/views/create_asset_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/controllers/create_asset_controller.dart';
 
 class AppPages {
   static final pages = [
@@ -81,8 +95,16 @@ class AppPages {
       name: AppRoutes.notifications,
       page: () => const NotificationScreen(),
     ),
-    GetPage(name: AppRoutes.allTasks, page: () => const AllTasksScreen()),
-    GetPage(name: AppRoutes.dailyTasks, page: () => const DailyTasksScreen()),
+    GetPage(
+      name: AppRoutes.allTasks,
+      page: () => const AllTasksScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
+    GetPage(
+      name: AppRoutes.dailyTasks,
+      page: () => const DailyTasksScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
     GetPage(
       name: AppRoutes.supportTickets,
       page: () => const SupportTicketsScreen(),
@@ -90,8 +112,16 @@ class AppPages {
         () => Get.lazyPut(() => SupportTicketsController()),
       ),
     ),
-    GetPage(name: AppRoutes.createTask, page: () => const CreateTaskScreen()),
-    GetPage(name: AppRoutes.taskReview, page: () => const TaskReviewScreen()),
+    GetPage(
+      name: AppRoutes.createTask,
+      page: () => const CreateTaskScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
+    GetPage(
+      name: AppRoutes.taskReview,
+      page: () => const TaskReviewScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
     GetPage(
       name: AppRoutes.createSupportTicket,
       page: () => const CreateTicketScreen(),
@@ -206,6 +236,56 @@ class AppPages {
     GetPage(
       name: AppRoutes.createDeposit,
       page: () => const CreateDepositScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.bookingConfirmed,
+      page: () => const BookingConfirmedScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.bookingHistory,
+      page: () => const BookingHistoryScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.printReceipt,
+      page: () => PrintReceiptScreen(booking: Get.arguments),
+    ),
+    GetPage(
+      name: AppRoutes.bookingUnitSelection,
+      page: () => const BookingUnitSelectionScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.serviceDetails,
+      page: () => const ServiceDetailsScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.infoDirectory,
+      page: () => const InfoDirectoryScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.createContact,
+      page: () => const CreateContactScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.contactBrands,
+      page: () => const MContactBrandsScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.contactCompanies,
+      page: () => const MContactCompaniesScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.assetsProducts,
+      page: () => const AssetsProductsScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => AssetsProductsController()),
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.createAsset,
+      page: () => const CreateAssetScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => CreateAssetController()),
+      ),
     ),
   ];
 }

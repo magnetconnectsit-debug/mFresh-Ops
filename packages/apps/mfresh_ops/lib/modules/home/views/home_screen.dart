@@ -11,7 +11,6 @@ import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-
 import 'widgets/home_grid.dart';
 import 'widgets/duty_status_card.dart';
 
@@ -48,9 +47,18 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppCommonAppBar(
-          title: Text(
-            'mFresh Ops',
-            style: AppTextStyle.style_14_700(color: AppColors.black),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(AppImages.logo, height: 24.h, fit: BoxFit.contain),
+              SizedBox(width: 8.w),
+              Text(
+                'mFresh Ops',
+                style: AppTextStyle.style_14_700(
+                  color: AppColors.primaryOrange,
+                ),
+              ),
+            ],
           ),
           backgroundColor: Colors.white,
           actions: [
@@ -82,13 +90,20 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: EdgeInsets.only(left: 20.w, right: 20.w, top: 10.h, bottom: 8.h),
+                  padding: EdgeInsets.only(
+                    left: 20.w,
+                    right: 20.w,
+                    top: 10.h,
+                    bottom: 8.h,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Mark Your Attendance',
-                        style: AppTextStyle.style_14_700(color: AppColors.black),
+                        style: AppTextStyle.style_14_700(
+                          color: AppColors.black,
+                        ),
                       ),
                       SizedBox(height: 12.h),
                       Obx(() {

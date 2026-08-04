@@ -4,170 +4,205 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:reorderable_grid_view/reorderable_grid_view.dart';
+import 'package:mfresh_ops/modules/home/controllers/home_grid_controller.dart';
 
 class HomeGrid extends StatelessWidget {
   const HomeGrid({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(HomeGridController());
+
     return Obx(() {
-      final authRepo = Get.find<AuthRepository>();
-      final userPermissions = authRepo.rxUserPermissions;
+      final items = controller.gridItems;
 
-    final List<GridItemData> allItems = [
-      GridItemData(
-        title: 'Support Ticket',
-        subtitle: 'Manage helpdesk',
-        icon: Icons.support_agent_rounded,
-        gradient: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
-        route: AppRoutes.supportTickets,
-        permissionKey: 'maintenance_panel',
-      ),
-      GridItemData(
-        title: 'Task Scheduler',
-        subtitle: 'Daily operations',
-        icon: Icons.assignment_rounded,
-        gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-        route: AppRoutes.dailyTasks,
-        permissionKey: 'Task_Sheduler_Pannel',
-      ),
-      GridItemData(
-        title: 'Inventory',
-        subtitle: 'Stock & Items',
-        icon: Icons.inventory_2_rounded,
-        gradient: const [Color(0xFF10B981), Color(0xFF059669)],
-        route: AppRoutes.storeInventory,
-        permissionKey: 'inventory_panel',
-      ),
-      GridItemData(
-        title: 'Attendance',
-        subtitle: 'Team attendance',
-        icon: Icons.people_alt_rounded,
-        gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
-        route: AppRoutes.staffTracking,
-        permissionKey: 'tracking_panel',
-      ),
-    ];
-
-    final items = allItems.where((item) {
-      if (item.permissionKey == null) return true;
-      return userPermissions.contains(item.permissionKey);
-    }).toList();
-
-    return GridView.builder(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16.r,
-        mainAxisSpacing: 16.r,
-        childAspectRatio: 1.15,
-      ),
-      itemBuilder: (context, index) {
-        return _buildGridCard(items[index]);
-      },
-    );
+      return ReorderableGridView.builder(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        onReorder: controller.onReorder,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 14.r,
+          mainAxisSpacing: 8.r,
+          childAspectRatio: 1.15,
+        ),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return Container(
+            key: ValueKey(item.title),
+            child: _buildGridCard(item, controller),
+          );
+        },
+      );
     });
   }
 
-  Widget _buildGridCard(GridItemData item) {
+  Widget _buildGridCard(GridItemData item, HomeGridController controller) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
-          color: Colors.black.withValues(alpha: 0.05),
-          width: 1.r,
-        ),
+        color: const Color(0xFFff895b),
+        borderRadius: BorderRadius.circular(25.r),
         boxShadow: [
           BoxShadow(
-            color: item.gradient.first.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24.r),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24.r),
-          onTap: () {
-            if (item.route != null) {
-              Get.toNamed(item.route!);
-            } else {
-              AppCommonToastMessage.show(
-                message: '${item.title} is comming soon....',
-                type: ToastType.info,
-              );
-            }
-          },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24.r),
-            child: Stack(
+        borderRadius: BorderRadius.circular(20.r),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20.r),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Positioned(
-                  right: -20,
-                  top: -20,
-                  child: Container(
-                    width: 80.r,
-                    height: 80.r,
-                    decoration: BoxDecoration(
-                      color: item.gradient.first.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
+                // Top Title Pill
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12.r),
+                    onTap: () {
+                      if (item.route != null) {
+                        Get.toNamed(item.route!);
+                      } else {
+                        AppCommonToastMessage.show(
+                          message: '${item.title} is coming soon....',
+                          type: ToastType.info,
+                        );
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 12.h,
+                        horizontal: 10.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEBEBEB),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      alignment: Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          item.title,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          style: AppTextStyle.style_14_600(
+                            color: AppColors.black,
+                          ).copyWith(fontSize: 13.5.sp),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(8.r),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: item.gradient,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+
+                // Bottom Icon Pills
+                if (item.subActions.isNotEmpty)
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (int i = 0; i < item.subActions.length; i++) ...[
+                          if (i > 0) SizedBox(width: 8.w),
+                          Builder(
+                            builder: (context) {
+                              final action = item.subActions[i];
+                              return Expanded(
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    onTap: () {
+                                      if (action.route != null) {
+                                        Get.toNamed(
+                                          action.route!,
+                                          arguments: action.arguments,
+                                        );
+                                      } else if (item.route != null) {
+                                        Get.toNamed(item.route!);
+                                      } else {
+                                        AppCommonToastMessage.show(
+                                          message:
+                                              '${action.title} is coming soon....',
+                                          type: ToastType.info,
+                                        );
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 6.h,
+                                        horizontal: 4.w,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEBEBEB),
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          action.isSolidIcon
+                                              ? Container(
+                                                  padding: EdgeInsets.all(2.r),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFF4A4A4A,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                  child: Icon(
+                                                    action.icon,
+                                                    color: Colors.white,
+                                                    size: 16.r,
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  action.icon,
+                                                  color: AppColors.black,
+                                                  size: 20.r,
+                                                ),
+                                          SizedBox(height: 2.h),
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(
+                                              action.title,
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTextStyle.style_10_500(
+                                                color: AppColors.grey700,
+                                              ).copyWith(fontSize: 9.sp),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: Icon(item.icon, color: Colors.white, size: 22.r),
-                      ),
-                      SizedBox(height: 6.h),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyle.style_12_700(
-                                color: AppColors.black,
-                              ),
-                            ),
-                            SizedBox(height: 1.h),
-                            Text(
-                              item.subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyle.style_10_400(
-                                color: AppColors.grey300,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                        ],
+                        if (item.subActions.length == 1) ...[
+                          SizedBox(width: 8.w),
+                          const Expanded(child: SizedBox()),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -175,22 +210,4 @@ class HomeGrid extends StatelessWidget {
       ),
     );
   }
-}
-
-class GridItemData {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final List<Color> gradient;
-  final String? route;
-  final String? permissionKey;
-
-  GridItemData({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.gradient,
-    this.route,
-    this.permissionKey,
-  });
 }

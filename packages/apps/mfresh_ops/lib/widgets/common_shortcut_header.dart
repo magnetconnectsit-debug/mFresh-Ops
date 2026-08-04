@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -38,16 +39,39 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              'mFresh Ops',
-              style: AppTextStyle.style_16_700(color: AppColors.primaryOrange),
-              overflow: TextOverflow.ellipsis,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: InkWell(
+                onTap: () {
+                  if (Get.currentRoute != AppRoutes.home) {
+                    Get.offAllNamed(AppRoutes.home);
+                  }
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      AppImages.logo,
+                      height: 24.h,
+                      fit: BoxFit.contain,
+                    ),
+                    SizedBox(width: 4.w),
+                    Flexible(
+                      child: Text(
+                        'mFresh Ops',
+                        style: AppTextStyle.style_14_700(color: AppColors.primaryOrange),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           Obx(() {
             final authRepo = Get.find<AuthRepository>();
             final userPermissions = authRepo.rxUserPermissions;
-            if (!userPermissions.contains('maintenance_panel')) {
+            if (!userPermissions.contains('header_ticket_btn')) {
               return const SizedBox.shrink();
             }
             return Padding(
@@ -67,8 +91,7 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
           Obx(() {
             final authRepo = Get.find<AuthRepository>();
             final userPermissions = authRepo.rxUserPermissions;
-            if (!userPermissions.contains('Task_Sheduler_Pannel') ||
-                !userPermissions.contains('Daily_Task')) {
+            if (!userPermissions.contains('header_task_btn')) {
               return const SizedBox.shrink();
             }
             return Padding(

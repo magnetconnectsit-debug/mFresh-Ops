@@ -43,30 +43,31 @@ class AdminCollectionsScreen extends StatelessWidget {
           return Column(
             children: [
               const AdminCollectionsFilters(),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 24.h,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          controller.exportToExcel();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF389D6A), // Greenish
-                          foregroundColor: AppColors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                          elevation: 1,
+              if (permissions.contains('export_collection'))
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 24.h,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            controller.exportToExcel();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF389D6A), // Greenish
+                            foregroundColor: AppColors.white,
+                            padding: EdgeInsets.symmetric(horizontal: 12.w),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                            elevation: 1,
+                          ),
+                          child: Text('Export Excel', style: AppTextStyle.style_12_500(color: AppColors.white)),
                         ),
-                        child: Text('Export Excel', style: AppTextStyle.style_12_500(color: AppColors.white)),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               SizedBox(height: 8.h),
               const Expanded(child: AdminCollectionsTable()),
               SizedBox(height: 16.h), // Bottom padding

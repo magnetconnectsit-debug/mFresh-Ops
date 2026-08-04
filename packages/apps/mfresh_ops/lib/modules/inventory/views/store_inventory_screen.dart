@@ -56,11 +56,15 @@ class StoreInventoryScreen extends StatelessWidget {
           showAppDrawer: true,
           hasBackButton: false,
           topHeader: const CommonShortcutHeader(),
+          toolbarHeight: 45.h,
           title: controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search items...',
-                  onChanged: (v) => controller.applyFilters(),
+              ? Padding(
+                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
+                  child: AppCommonSearchBar(
+                    controller: controller.searchController,
+                    hintText: 'Search items...',
+                    onChanged: (v) => controller.applyFilters(),
+                  ),
                 )
               : Text(
                   'Store Inventory',
@@ -72,7 +76,7 @@ class StoreInventoryScreen extends StatelessWidget {
               icon: Icon(
                 controller.isSearching.value ? Icons.close : Icons.search,
                 color: AppColors.black,
-                size: 24.r,
+                size: 26.sp,
               ),
             ),
           ],

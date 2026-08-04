@@ -36,6 +36,17 @@ class LoginController extends GetxController {
     _loadSavedCredentials();
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+    if (kDebugMode &&
+        usernameController.text.isNotEmpty &&
+        passwordController.text.isNotEmpty) {
+      debugPrint("🚀 [DEBUG AUTO-LOGIN] Attempting auto-login with mobile: ${usernameController.text}");
+      handleLoginAction();
+    }
+  }
+
   void _loadSavedCredentials() {
     if (kDebugMode) {
       usernameController.text = '7873168884';

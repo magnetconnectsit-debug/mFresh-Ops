@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
@@ -15,7 +16,7 @@ class LoginController extends GetxController {
   final mobileController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  
+
   final rememberMe = false.obs;
   final obscurePassword = true.obs;
   final isLoading = false.obs;
@@ -31,9 +32,11 @@ class LoginController extends GetxController {
   void onInit() {
     super.onInit();
     _loadSavedCredentials();
-    
+
     // Set default credentials in debug mode for easier testing
-    if (kDebugMode && mobileController.text.isEmpty && passwordController.text.isEmpty) {
+    if (kDebugMode &&
+        mobileController.text.isEmpty &&
+        passwordController.text.isEmpty) {
       mobileController.text = "6370658717";
       passwordController.text = "12345";
     }
@@ -53,7 +56,8 @@ class LoginController extends GetxController {
 
   void handleDevTap() {
     final now = DateTime.now();
-    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+    if (_lastTapTime == null ||
+        now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
       _tapCount = 1;
     } else {
       _tapCount++;
@@ -128,10 +132,24 @@ class LoginController extends GetxController {
         );
       }
     } catch (e) {
-      AppCommonToastMessage.show(
-        message: e.toString(),
-        type: ToastType.error,
-      );
+      if (e is DioException) {
+        String message = 'An error occurred';
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          message = data['message']?.toString() ?? message;
+        } else if (data is String) {
+          message = data;
+        }
+        AppCommonToastMessage.show(
+          message: message,
+          type: ToastType.error,
+        );
+      } else {
+        AppCommonToastMessage.show(
+          message: e.toString(),
+          type: ToastType.error,
+        );
+      }
     } finally {
       isLoading.value = false;
     }
@@ -148,15 +166,40 @@ class LoginController extends GetxController {
 
     isLoading.value = true;
     try {
-      final success = await Get.find<AuthRepository>().sendOtp(mobile: mobileController.text);
+      final success = await Get.find<AuthRepository>().sendOtp(
+        mobile: mobileController.text,
+      );
       if (success) {
-        AppCommonToastMessage.show(message: "OTP sent successfully", type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: "OTP sent successfully",
+          type: ToastType.success,
+        );
         _showOtpBottomSheet();
       } else {
-        AppCommonToastMessage.show(message: "Failed to send OTP", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: "Failed to send OTP",
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: e.toString(), type: ToastType.error);
+      if (e is DioException) {
+        String message = 'An error occurred';
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          message = data['message']?.toString() ?? message;
+        } else if (data is String) {
+          message = data;
+        }
+        AppCommonToastMessage.show(
+          message: message,
+          type: ToastType.error,
+        );
+      } else {
+        AppCommonToastMessage.show(
+          message: e.toString(),
+          type: ToastType.error,
+        );
+      }
     } finally {
       isLoading.value = false;
     }
@@ -194,41 +237,45 @@ class LoginController extends GetxController {
               style: AppTextStyle.style_14_400(color: AppColors.grey400),
             ),
             const SizedBox(height: 32),
-            Obx(() => Pinput(
-              length: 6,
-              autofillHints: const [AutofillHints.oneTimeCode],
-              controller: otpController,
-              readOnly: isLoading.value,
-              onCompleted: (pin) {
-                if (!isLoading.value) verifyOtp(pin);
-              },
-              defaultPinTheme: PinTheme(
-                width: 45,
-                height: 50,
-                textStyle: AppTextStyle.style_20_700(color: AppColors.black),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
+            Obx(
+              () => Pinput(
+                length: 6,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                controller: otpController,
+                readOnly: isLoading.value,
+                onCompleted: (pin) {
+                  if (!isLoading.value) verifyOtp(pin);
+                },
+                defaultPinTheme: PinTheme(
+                  width: 45,
+                  height: 50,
+                  textStyle: AppTextStyle.style_20_700(color: AppColors.black),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                focusedPinTheme: PinTheme(
+                  width: 45,
+                  height: 50,
+                  textStyle: AppTextStyle.style_20_700(color: AppColors.black),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.primary, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
-              focusedPinTheme: PinTheme(
-                width: 45,
-                height: 50,
-                textStyle: AppTextStyle.style_20_700(color: AppColors.black),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primary, width: 2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            )),
+            ),
             const SizedBox(height: 32),
-            Obx(() => AppCommonButton(
-              text: "VERIFY & LOGIN",
-              isLoading: isLoading.value,
-              onPressed: () {
-                if (!isLoading.value) verifyOtp(otpController.text);
-              },
-            )),
+            Obx(
+              () => AppCommonButton(
+                text: "VERIFY & LOGIN",
+                isLoading: isLoading.value,
+                onPressed: () {
+                  if (!isLoading.value) verifyOtp(otpController.text);
+                },
+              ),
+            ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -260,7 +307,10 @@ class LoginController extends GetxController {
 
   Future<void> verifyOtp(String otp) async {
     if (otp.length != 6) {
-      AppCommonToastMessage.show(message: "Please enter 6-digit OTP", type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: "Please enter 6-digit OTP",
+        type: ToastType.warning,
+      );
       return;
     }
 
@@ -275,10 +325,30 @@ class LoginController extends GetxController {
       if (user != null) {
         Get.offAllNamed(AppRoutes.dashboard);
       } else {
-        AppCommonToastMessage.show(message: "Invalid OTP", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: "Invalid OTP",
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: e.toString(), type: ToastType.error);
+      if (e is DioException) {
+        String message = 'An error occurred';
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          message = data['message']?.toString() ?? message;
+        } else if (data is String) {
+          message = data;
+        }
+        AppCommonToastMessage.show(
+          message: message,
+          type: ToastType.error,
+        );
+      } else {
+        AppCommonToastMessage.show(
+          message: e.toString(),
+          type: ToastType.error,
+        );
+      }
     } finally {
       isLoading.value = false;
     }

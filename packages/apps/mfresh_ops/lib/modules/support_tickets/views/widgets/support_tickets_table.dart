@@ -14,20 +14,20 @@ const List<(String, double)> _kColumns = [
   ('', 32),        // 0 Checkbox
   ('Ticket', 60),
   ('Unit No.', 80),
-  ('Subject', 140),
-  ('Project', 110),
-  ('Category', 110),
+  ('Subject', 200),
+  ('Project', 80),
+  ('Category', 80),
   ('Sub-Category', 115),
   ('Status', 80),
   ('Priority', 90),
-  ('Assignee', 100),
+  ('Assignee', 140),
   ('Latest Comment', 160),
   ('Follow-up-on', 110),
   ('Tkt Age', 70),
   ('Date/Time Open', 130),
   ('Date/Time Close', 130),
   ('District', 90),
-  ('Created By', 100),  // 16 last col
+  ('Created By', 140),  // 16 last col
 ];
 
 class SupportTicketsTable extends StatelessWidget {

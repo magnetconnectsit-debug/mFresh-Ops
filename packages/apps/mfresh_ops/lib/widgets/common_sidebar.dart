@@ -155,6 +155,14 @@ class CommonSidebar extends StatelessWidget {
                 if (userPermissions.contains('store_room')) 'M_Store',
               ];
 
+              final infoDirectorySubItems = [
+                if (userPermissions.contains('assets_product_details')) 'Assets & Products',
+                // if (userPermissions.contains('account_details')) 'Account Details',
+                if (userPermissions.contains('c_directory_panel')) 'Contact Directory',
+                if (userPermissions.contains('brand_details')) 'MContact_Brands',
+                if (userPermissions.contains('company_details')) 'MContact_Companies',
+              ];
+
               return ListView(
                 padding: EdgeInsets.zero,
                 children: [
@@ -212,6 +220,24 @@ class CommonSidebar extends StatelessWidget {
                         if (userPermissions.contains('normal_admin_collection')) 'Collections',
                         if (userPermissions.contains('deposit_panel')) 'Deposits',
                       ],
+                      currentRoute: currentRoute,
+                    ),
+
+                  // Booking Module
+                  // _buildMenuItem(
+                  //   icon: Icons.book_online_outlined,
+                  //   activeIcon: Icons.book_online,
+                  //   title: 'Booking',
+                  //   route: AppRoutes.bookingUnitSelection,
+                  //   currentRoute: currentRoute,
+                  // ),
+
+                  // Info Directory Module
+                  if (userPermissions.contains('c_directory_panel'))
+                    _buildExpandableMenuItem(
+                      icon: Icons.contact_phone_outlined,
+                      title: 'Info Directory',
+                      subItems: infoDirectorySubItems,
                       currentRoute: currentRoute,
                     ),
 
@@ -369,6 +395,14 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.adminCollections);
                   } else if (item == 'Deposits') {
                     Get.toNamed(AppRoutes.deposits);
+                  } else if (item == 'Assets & Products') {
+                    Get.toNamed(AppRoutes.assetsProducts);
+                  } else if (item == 'Contact Directory') {
+                    Get.toNamed(AppRoutes.infoDirectory);
+                  } else if (item == 'MContact_Brands') {
+                    Get.toNamed(AppRoutes.contactBrands);
+                  } else if (item == 'MContact_Companies') {
+                    Get.toNamed(AppRoutes.contactCompanies);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',
