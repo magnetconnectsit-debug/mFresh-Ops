@@ -84,6 +84,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to connect to a thermal printer for printing receipts and reports.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>This app uses Bluetooth to connect to a thermal printer for printing receipts and reports.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
