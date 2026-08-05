@@ -3,6 +3,11 @@ import 'package:mfresh_ops/modules/info_directory/views/info_directory_screen.da
 import 'package:mfresh_ops/modules/info_directory/views/create_contact_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/mcontact_brands_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/mcontact_companies_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/views/account_subscription_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/views/create_account_subscription_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
+import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
+import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
 import 'package:dev/views/dev_settings_screen.dart';
@@ -64,6 +69,7 @@ import 'package:mfresh_ops/modules/booking/views/booking_unit_selection_screen.d
 import 'package:mfresh_ops/modules/service_details/views/service_details_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/assets_products_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
+import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 import 'package:mfresh_ops/modules/info_directory/views/create_asset_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_asset_controller.dart';
 
@@ -276,16 +282,34 @@ class AppPages {
     GetPage(
       name: AppRoutes.assetsProducts,
       page: () => const AssetsProductsScreen(),
-      binding: BindingsBuilder(
-        () => Get.lazyPut(() => AssetsProductsController()),
-      ),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AssetProductRepository());
+        Get.lazyPut(() => AssetsProductsController());
+      }),
     ),
     GetPage(
       name: AppRoutes.createAsset,
       page: () => const CreateAssetScreen(),
-      binding: BindingsBuilder(
-        () => Get.lazyPut(() => CreateAssetController()),
-      ),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AssetProductRepository());
+        Get.lazyPut(() => CreateAssetController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.accountSubscription,
+      page: () => const AccountSubscriptionScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AccountSubscriptionRepository());
+        Get.lazyPut(() => AccountSubscriptionController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.createAccountSubscription,
+      page: () => const CreateAccountSubscriptionScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AccountSubscriptionRepository());
+        Get.lazyPut(() => CreateAccountSubscriptionController());
+      }),
     ),
   ];
 }

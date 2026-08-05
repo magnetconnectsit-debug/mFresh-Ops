@@ -87,8 +87,9 @@ class SupportTicketsScreen extends StatelessWidget {
           return RefreshIndicator(
             onRefresh: () => controller.refreshAll(),
             displacement: 40,
-            // Required for NestedScrollView: trigger from any scroll depth
-            notificationPredicate: (notification) => notification.depth >= 0,
+            // Listen to any vertical inner scroll view (depth > 0) so the ListView inside the horizontal scroller can trigger it
+            notificationPredicate: (notification) => 
+                notification.depth >= 1 && notification.metrics.axis == Axis.vertical,
             child: Stack(
               children: [
                 NestedScrollView(

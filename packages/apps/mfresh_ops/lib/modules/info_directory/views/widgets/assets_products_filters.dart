@@ -30,14 +30,6 @@ class AssetsProductsFilters extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _buildSearchField(
-              'Global Search',
-              controller.searchGlobalController,
-              (v) => controller.applyFilters(),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          Expanded(
             child: Obx(
               () => MultiSelectDropdownWidget<String>(
                 label: 'Item Type',
@@ -57,6 +49,7 @@ class AssetsProductsFilters extends StatelessWidget {
               ),
             ),
           ),
+          const Spacer(),
         ],
       ),
     );

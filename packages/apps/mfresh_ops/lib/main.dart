@@ -42,6 +42,7 @@ import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:mfresh_ops/core/controllers/duty_monitor_controller.dart';
 import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/services.dart';
@@ -740,6 +741,7 @@ Future<void> initServices() async {
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
   Get.put(ContactRepository());
+  Get.put(DutyMonitorController(), permanent: true);
 }
 // endregion
 

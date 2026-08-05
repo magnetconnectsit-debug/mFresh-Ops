@@ -186,18 +186,18 @@ class HomeGridController extends GetxController {
       route: AppRoutes.infoDirectory,
       permissionKey: 'c_directory_panel',
       subActions: [
-        // GridSubAction(
-        //   title: 'Assets',
-        //   icon: Icons.inventory,
-        //   route: AppRoutes.assetsProducts,
-        //   permissionKey: 'assets_product_details',
-        // ),
-        // GridSubAction(
-        //   title: 'Accounts',
-        //   icon: Icons.account_box,
-        //   route: null,
-        //   permissionKey: 'account_details',
-        // ),
+        GridSubAction(
+          title: 'Assets',
+          icon: Icons.inventory,
+          route: AppRoutes.assetsProducts,
+          permissionKey: 'Asset_Panel',
+        ),
+        GridSubAction(
+          title: 'Accounts',
+          icon: Icons.account_box,
+          route: AppRoutes.accountSubscription,
+          permissionKey: 'Account_subscription_panel',
+        ),
       ],
     ),
   ];
@@ -311,7 +311,7 @@ class HomeGridController extends GetxController {
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('assets_product_details')) {
+        } else if (userPermissions.contains('Asset_Panel')) {
           availableItems.add(
             GridItemData(
               title: 'Assets',

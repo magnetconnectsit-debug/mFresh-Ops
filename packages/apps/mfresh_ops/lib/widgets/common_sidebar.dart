@@ -156,8 +156,8 @@ class CommonSidebar extends StatelessWidget {
               ];
 
               final infoDirectorySubItems = [
-                // if (userPermissions.contains('assets_product_details')) 'Assets & Products',
-                // if (userPermissions.contains('account_details')) 'Account Details',
+                if (userPermissions.contains('Asset_Panel')) 'Assets & Products',
+                if (userPermissions.contains('Account_subscription_panel')) 'Account Details',
                 if (userPermissions.contains('c_directory_panel')) 'Contact Directory',
                 if (userPermissions.contains('brand_details')) 'MContact_Brands',
                 if (userPermissions.contains('company_details')) 'MContact_Companies',
@@ -414,6 +414,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.deposits);
                   } else if (item == 'Assets & Products') {
                     Get.toNamed(AppRoutes.assetsProducts);
+                  } else if (item == 'Account Details') {
+                    Get.toNamed(AppRoutes.accountSubscription);
                   } else if (item == 'Contact Directory') {
                     Get.toNamed(AppRoutes.infoDirectory);
                   } else if (item == 'MContact_Brands') {

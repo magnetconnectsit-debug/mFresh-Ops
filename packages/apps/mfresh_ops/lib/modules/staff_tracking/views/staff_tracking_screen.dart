@@ -10,6 +10,7 @@ import 'package:mfresh_ops/modules/staff_tracking/controllers/staff_tracking_con
 import 'package:mfresh_ops/modules/staff_tracking/views/widgets/employee_tracking_card.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class StaffTrackingScreen extends GetView<StaffTrackingController> {
   const StaffTrackingScreen({super.key});
@@ -91,12 +92,17 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
           );
         }),
       ),
-      body: Column(
-        children: [
-          // Stats Row
-          _buildStatsRow(controller),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      body: Obx(() {
+        final authRepo = Get.find<AuthRepository>();
+        final canViewMap = authRepo.rxUserPermissions.contains('attendance_map_view');
+
+        return Column(
+          children: [
+            // Stats Row
+            _buildStatsRow(controller),
+            if (canViewMap)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             height: 40,
             decoration: BoxDecoration(
               color: Colors.grey[100],
@@ -306,12 +312,13 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                     }),
                   ),
                 ), // Close Container
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+              ], // End TabBarView children
+            ), // End TabBarView
+          ), // End Expanded
+        ], // End Column children
+      ); // End Column
+    }), // End Obx
+    ); // End Scaffold
   }
 
   Widget _buildSearchAutocomplete(BuildContext context) {

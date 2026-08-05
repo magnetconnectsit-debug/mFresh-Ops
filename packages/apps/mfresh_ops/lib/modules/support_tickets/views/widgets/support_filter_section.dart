@@ -278,10 +278,7 @@ class SupportFilterSection extends StatelessWidget {
                     if (canFilterCategory) ...[
                       MultiSelectDropdownWidget<SupportCategory>(
                         label: "Category",
-                        isSingleSelect: true,
-                        selectedValues: controller.selectedCategories.isNotEmpty
-                            ? {controller.selectedCategories.first}
-                            : {},
+                        selectedValues: controller.selectedCategories.toSet(),
                         items: controller.categoryOptions
                             .map(
                               (opt) => DropdownMenuItem(
@@ -297,15 +294,14 @@ class SupportFilterSection extends StatelessWidget {
                             )
                             .toList(),
                         onChanged: (values) {
+                          controller.selectedCategories.assignAll(values.toList());
                           if (values.isNotEmpty) {
-                            controller.selectedCategories.assignAll([
-                              values.first,
-                            ]);
                             controller.fetchSubCategories(
                               values.first.categoryId,
                             );
                           } else {
-                            controller.selectedCategories.clear();
+                            controller.subCategories.clear();
+                            controller.selectedSubCategory.value = null;
                           }
                           controller.applyFilters();
                         },

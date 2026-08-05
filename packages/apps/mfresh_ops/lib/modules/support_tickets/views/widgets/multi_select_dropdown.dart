@@ -44,6 +44,10 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
         await showMenu(
           context: context,
           color: AppColors.white,
+          constraints: BoxConstraints(
+            minWidth: size.width < 240.w ? 240.w : size.width,
+            maxWidth: size.width < 240.w ? 240.w : size.width,
+          ),
           position: RelativeRect.fromRect(
             buttonRect,
             Offset.zero & MediaQuery.of(context).size,
@@ -264,8 +268,6 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
     return Container(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       constraints: BoxConstraints(
-        minWidth: widget.width,
-        maxWidth: widget.width,
         maxHeight: 300.h + MediaQuery.of(context).viewInsets.bottom,
       ),
       color: AppColors.white,

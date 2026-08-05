@@ -49,4 +49,8 @@ abstract class AppRoutes {
   // Assets & Products Module
   static const assetsProducts = '/assets-products';
   static const createAsset = '/create-asset';
+
+  // Account Details Module
+  static const accountSubscription = '/account-subscription';
+  static const createAccountSubscription = '/create-account-subscription';
 }

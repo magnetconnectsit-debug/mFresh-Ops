@@ -6,8 +6,10 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
 import 'package:mfresh_ops/data/models/asset_product_model.dart';
-import 'package:mfresh_ops/routes/app_pages.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/widgets/app_image_view.dart';
+import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 const List<(String, double)> _kAssetColumns = [
   ('Action', 65),
@@ -134,11 +136,20 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      final userPermissions = Get.find<AuthRepository>().rxUserPermissions;
+      bool canEdit = userPermissions.contains('Product&Asset_Edit');
+      bool canDelete = userPermissions.contains('Product&Asset_Delete');
+      final showAction = canEdit || canDelete;
+
+      final activeColumns = showAction 
+          ? _kAssetColumns 
+          : _kAssetColumns.where((c) => c.$1 != 'Action').toList();
+
       final columnWidths = <int, TableColumnWidth>{
-        for (int i = 0; i < _kAssetColumns.length; i++)
-          i: FixedColumnWidth(_kAssetColumns[i].$2.w),
+        for (int i = 0; i < activeColumns.length; i++)
+          i: FixedColumnWidth(activeColumns[i].$2.w),
       };
-      final double totalTableWidth = _kAssetColumns.fold(
+      final double totalTableWidth = activeColumns.fold(
         0.0,
         (sum, col) => sum + col.$2.w,
       );
@@ -195,7 +206,7 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                 children: [
                   TableRow(
                     decoration: const BoxDecoration(color: Color(0xFFC5D5F0)),
-                    children: _kAssetColumns
+                    children: activeColumns
                         .map((c) => _HeaderCell(text: c.$1))
                         .toList(),
                   ),
@@ -246,7 +257,7 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                             final asset = loading
                                 ? AssetProductModel.dummy('loading')
                                 : widget.controller.assets[index];
-                            return _buildRow(asset);
+                            return _buildRow(asset, canEdit, canDelete, showAction, activeColumns);
                           },
                         ),
                       ),
@@ -275,7 +286,7 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
     });
   }
 
-  Widget _buildRow(AssetProductModel asset) {
+  Widget _buildRow(AssetProductModel asset, bool canEdit, bool canDelete, bool showAction, List<(String, double)> activeColumns) {
     Widget buildCell(Widget child, double width) {
       return Container(
         width: width,
@@ -295,25 +306,27 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          buildCell(
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+          if (showAction)
+            buildCell(
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    InkWell(
-                      onTap: () async {
-                        final result = await Get.toNamed(
-                          '/create-asset',
-                          arguments: asset,
-                        );
-                        if (result == true) {
-                          widget.controller.fetchAssets();
-                        }
-                      },
+                    if (canEdit)
+                      InkWell(
+                        onTap: () async {
+                          final result = await Get.toNamed(
+                            '/create-asset',
+                            arguments: asset,
+                          );
+                          if (result == true) {
+                            widget.controller.fetchAssets();
+                          }
+                        },
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
@@ -322,10 +335,11 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                         ),
                         child: const Icon(Icons.edit, size: 16),
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    InkWell(
-                      onTap: () {
+                      ),
+                    if (canEdit && canDelete) SizedBox(width: 4.w),
+                    if (canDelete)
+                      InkWell(
+                        onTap: () {
                         Get.dialog(
                           AlertDialog(
                             backgroundColor: Colors.white,
@@ -361,7 +375,7 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () => Get.back(),
+                                onPressed: () => Navigator.of(context).pop(),
                                 child: Text(
                                   'Cancel',
                                   style: AppTextStyle.style_14_600(
@@ -371,7 +385,7 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
                               ),
                               ElevatedButton(
                                 onPressed: () {
-                                  Get.back();
+                                  Navigator.of(context).pop();
                                   widget.controller.deleteAsset(asset.id);
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -423,11 +437,11 @@ class _AssetsProductsTableState extends State<AssetsProductsTable> {
           buildCell(_DataCell(text: asset.location), _kAssetColumns[8].$2.w),
           buildCell(_DataCell(text: asset.unit), _kAssetColumns[9].$2.w),
           buildCell(
-            _DataCell(text: asset.warrantyDate),
+            _DataCell(text: AppDateUtils.formatToOrdinalDate(asset.warrantyDate)),
             _kAssetColumns[10].$2.w,
           ),
           buildCell(
-            _DataCell(text: asset.warrantyType),
+            _DataCell(text: asset.formattedWarrantyType),
             _kAssetColumns[11].$2.w,
           ),
           buildCell(_DataCell(text: asset.vendor), _kAssetColumns[12].$2.w),

@@ -19,12 +19,13 @@ class ApiService extends GetxService {
   }
   // endregion
 
-  // region HTTP_Methods
-  Future<dynamic> get(String path, {Map<String, dynamic>? query, Options? options}) async {
+  // region HTTP Methods
+  Future<dynamic> get(String path, {dynamic data, Map<String, dynamic>? query, Options? options}) async {
     // region get
     try {
       final response = await _dio.get(
         _normalizePath(path),
+        data: data,
         queryParameters: query,
         options: options,
       );

@@ -174,6 +174,13 @@ class AppConstants {
   static const String assetProductUpdate = 'asset-product/update';
   static const String assetProductDelete = 'asset-product/delete';
   static const String assetProductProjects = 'asset-product/projects';
+
+  // Account & Subscription
+  static const String accountSubscriptionList = 'account-subscription/list';
+  static const String accountList = 'account-list';
+  static const String accountSubscriptionStore = 'account-subscription/store';
+  static const String accountSubscriptionUpdate = 'account-subscription/update';
+  static const String accountSubscriptionDelete = 'account-subscription/delete';
   // endregion
 
   // region Hive Keys

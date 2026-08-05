@@ -27,26 +27,125 @@ class SupportTicketsController extends GetxController {
   final searchFocusNode = FocusNode();
   final searchQuery = "".obs;
 
-  List<SupportTicketListItem> get filteredTickets {
-    final query = searchQuery.value.trim().toLowerCase();
-    if (query.isEmpty) {
-      return tickets;
+  final sortColumn = ''.obs;
+  final sortAscending = true.obs;
+
+  void toggleSort(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
     }
-    return tickets.where((ticket) {
-      return (ticket.id.toString().contains(query)) ||
-          (ticket.caseId?.toLowerCase().contains(query) ?? false) ||
-          (ticket.subject?.toLowerCase().contains(query) ?? false) ||
-          (ticket.description?.toLowerCase().contains(query) ?? false) ||
-          (ticket.project?.toLowerCase().contains(query) ?? false) ||
-          (ticket.mCategory?.toLowerCase().contains(query) ?? false) ||
-          (ticket.subCat?.toLowerCase().contains(query) ?? false) ||
-          (ticket.statusLabel?.toLowerCase().contains(query) ?? false) ||
-          (ticket.priorityLabel?.toLowerCase().contains(query) ?? false) ||
-          (ticket.assignedTo?.toLowerCase().contains(query) ?? false) ||
-          (ticket.createdBy?.toLowerCase().contains(query) ?? false) ||
-          (ticket.unitNo?.toLowerCase().contains(query) ?? false) ||
-          (ticket.district?.toLowerCase().contains(query) ?? false);
-    }).toList();
+  }
+
+  int _compareStrings(String? a, String? b) {
+    return (a ?? '').toLowerCase().compareTo((b ?? '').toLowerCase());
+  }
+
+  int _compareDates(String? a, String? b) {
+    if (a == null || a.isEmpty) return 1;
+    if (b == null || b.isEmpty) return -1;
+    // ISO 8601 string dates sort correctly alphabetically. 
+    // This avoids heavy DateTime.parse and exceptions inside the sort loop!
+    return a.compareTo(b);
+  }
+
+  static const _statusOrderMap = {
+    'new': 1, 'wip': 2, 'hold': 3, 'awaited': 4, 'resolved': 5, 'closed': 6
+  };
+  
+  static const _priorityOrderMap = {
+    'top priority': 1, 'high': 2, 'medium': 3, 'low': 4
+  };
+
+  List<SupportTicketListItem> get filteredTickets {
+    List<SupportTicketListItem> result = tickets;
+
+    final query = searchQuery.value.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      result = result.where((ticket) {
+        return (ticket.id.toString().contains(query)) ||
+            (ticket.caseId?.toLowerCase().contains(query) ?? false) ||
+            (ticket.subject?.toLowerCase().contains(query) ?? false) ||
+            (ticket.description?.toLowerCase().contains(query) ?? false) ||
+            (ticket.project?.toLowerCase().contains(query) ?? false) ||
+            (ticket.mCategory?.toLowerCase().contains(query) ?? false) ||
+            (ticket.subCat?.toLowerCase().contains(query) ?? false) ||
+            (ticket.statusLabel?.toLowerCase().contains(query) ?? false) ||
+            (ticket.priorityLabel?.toLowerCase().contains(query) ?? false) ||
+            (ticket.assignedTo?.toLowerCase().contains(query) ?? false) ||
+            (ticket.createdBy?.toLowerCase().contains(query) ?? false) ||
+            (ticket.unitNo?.toLowerCase().contains(query) ?? false) ||
+            (ticket.district?.toLowerCase().contains(query) ?? false);
+      }).toList();
+    }
+
+    if (sortColumn.value.isNotEmpty) {
+      result = List.from(result)..sort((a, b) {
+        int cmp = 0;
+        switch (sortColumn.value) {
+          case 'Ticket':
+            cmp = _compareStrings(a.caseId, b.caseId);
+            break;
+          case 'Unit No.':
+            cmp = _compareStrings(a.unitNo, b.unitNo);
+            break;
+          case 'Subject':
+            cmp = _compareStrings(a.subject, b.subject);
+            break;
+          case 'Project':
+            cmp = _compareStrings(a.project, b.project);
+            break;
+          case 'Category':
+            cmp = _compareStrings(a.mCategory, b.mCategory);
+            break;
+          case 'Sub-Category':
+            cmp = _compareStrings(a.subCat, b.subCat);
+            break;
+          case 'Status':
+            final aIndex = _statusOrderMap[(a.statusLabel ?? '').toLowerCase()] ?? 99;
+            final bIndex = _statusOrderMap[(b.statusLabel ?? '').toLowerCase()] ?? 99;
+            cmp = aIndex.compareTo(bIndex);
+            break;
+          case 'Priority':
+            final aIndex = _priorityOrderMap[(a.priorityLabel ?? '').toLowerCase()] ?? 99;
+            final bIndex = _priorityOrderMap[(b.priorityLabel ?? '').toLowerCase()] ?? 99;
+            cmp = aIndex.compareTo(bIndex);
+            break;
+          case 'Assignee':
+            cmp = _compareStrings(getAssigneeName(a.assignedTo), getAssigneeName(b.assignedTo));
+            break;
+          case 'Latest Comment':
+            cmp = _compareStrings(a.latestComment, b.latestComment);
+            break;
+          case 'Follow-up-on':
+            cmp = _compareDates(a.followUp, b.followUp);
+            break;
+          case 'Tkt Age':
+          case 'Date/Time Open':
+            cmp = _compareDates(a.postedDate, b.postedDate);
+            break;
+          case 'Date/Time Close':
+            cmp = _compareDates(a.resolvedOn, b.resolvedOn);
+            break;
+          case 'District':
+            cmp = _compareStrings(a.district, b.district);
+            break;
+          case 'Created By':
+            cmp = _compareStrings(a.createdBy, b.createdBy);
+            break;
+        }
+        return sortAscending.value ? cmp : -cmp;
+      });
+    }
+
+    return result;
   }
 
   // Filters

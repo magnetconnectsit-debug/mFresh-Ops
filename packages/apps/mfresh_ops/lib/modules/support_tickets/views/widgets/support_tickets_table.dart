@@ -18,7 +18,7 @@ const List<(String, double)> _kColumns = [
   ('Project', 80),
   ('Category', 80),
   ('Sub-Category', 115),
-  ('Status', 80),
+  ('Status', 65),
   ('Priority', 90),
   ('Assignee', 140),
   ('Latest Comment', 160),
@@ -40,13 +40,32 @@ class SupportTicketsTable extends StatelessWidget {
     return _buildTicketsTable(controller);
   }
 
+  double _getColumnWidth(SupportTicketsController controller, int index) {
+    if (index == 0) return _kColumns[0].$2;
+    final baseWidth = _kColumns[index].$2;
+    if (controller.sortColumn.value == _kColumns[index].$1) {
+      return baseWidth + 18.0;
+    }
+    return baseWidth;
+  }
+
+  double _getTableWidth(SupportTicketsController controller) {
+    double width = 0;
+    for (int i = 0; i < _kColumns.length; i++) {
+      width += _getColumnWidth(controller, i);
+    }
+    return width + 4.0; // Account for the 2.0 left and 2.0 right border on the rows
+  }
+
   Widget _buildTicketsTable(SupportTicketsController controller) {
     return Obx(() {
+      final filteredList = controller.filteredTickets;
+      
       if (controller.isLoading.value && controller.tickets.isEmpty) {
         return _buildSkeletonTable();
       }
 
-      if (controller.filteredTickets.isEmpty) {
+      if (filteredList.isEmpty) {
         return Center(
           child: Padding(
             padding: EdgeInsets.all(20.r),
@@ -63,23 +82,25 @@ class SupportTicketsTable extends StatelessWidget {
       controller.expandedSubjectTickets.length;
 
       return SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        scrollDirection: Axis.vertical,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: Get.width - 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ──────────────────────────────────────────────
-                _buildHeaderRow(controller),
-                // ── Data rows ───────────────────────────────────────────
-                ...controller.filteredTickets.map(
-                  (ticket) => _buildDataRow(controller, ticket),
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: _getTableWidth(controller),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header ──────────────────────────────────────────────
+              _buildHeaderRow(controller, filteredList),
+              // ── Data rows ───────────────────────────────────────────
+              Expanded(
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: filteredList.length,
+                  itemBuilder: (context, index) {
+                    return _buildDataRow(controller, filteredList[index]);
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
@@ -87,7 +108,7 @@ class SupportTicketsTable extends StatelessWidget {
   }
 
   // ── Header row ──────────────────────────────────────────────────────────
-  Widget _buildHeaderRow(SupportTicketsController controller) {
+  Widget _buildHeaderRow(SupportTicketsController controller, List<SupportTicketListItem> filteredList) {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFC5D5F0),
@@ -115,8 +136,8 @@ class SupportTicketsTable extends StatelessWidget {
                   height: 20,
                   width: 20,
                   child: Checkbox(
-                    value: controller.filteredTickets.isNotEmpty &&
-                        controller.filteredTickets.every(
+                    value: filteredList.isNotEmpty &&
+                        filteredList.every(
                           (t) => controller.selectedTickets.contains(t.id),
                         ),
                     onChanged: controller.selectAllTickets,
@@ -132,21 +153,41 @@ class SupportTicketsTable extends StatelessWidget {
           // Text header cells
           for (int i = 1; i < _kColumns.length; i++)
             SizedBox(
-              width: _kColumns[i].$2,
+              width: _getColumnWidth(controller, i),
               height: 28,
-              child: Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: i < _kColumns.length - 1
-                        ? BorderSide(color: Colors.grey.shade300)
-                        : BorderSide.none,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => controller.toggleSort(_kColumns[i].$1),
+                child: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      right: i < _kColumns.length - 1
+                          ? BorderSide(color: Colors.grey.shade300)
+                          : BorderSide.none,
+                    ),
                   ),
-                ),
-                child: Text(
-                  _kColumns[i].$1,
-                  style: AppTextStyle.style_12_700(color: AppColors.grey900),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _kColumns[i].$1,
+                          style: AppTextStyle.style_12_700(color: AppColors.grey900),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (controller.sortColumn.value == _kColumns[i].$1)
+                        Icon(
+                          controller.sortAscending.value
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          size: 14.sp,
+                          color: AppColors.grey900,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -198,7 +239,7 @@ class SupportTicketsTable extends StatelessWidget {
 
             // 1 Ticket ID — navigates, no expand
             _buildCell(
-              width: _kColumns[1].$2,
+              width: _getColumnWidth(controller, 1),
               isLast: false,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded,
@@ -222,49 +263,49 @@ class SupportTicketsTable extends StatelessWidget {
 
             // 2 Unit No.
             _buildTextCell(
-              width: _kColumns[2].$2, text: ticket.unitNo ?? '',
+              width: _getColumnWidth(controller, 2), text: ticket.unitNo ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
             // 3 Subject
             _buildTextCell(
-              width: _kColumns[3].$2, text: ticket.subject ?? '',
+              width: _getColumnWidth(controller, 3), text: ticket.subject ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
             // 4 Project
             _buildTextCell(
-              width: _kColumns[4].$2, text: ticket.project ?? '',
+              width: _getColumnWidth(controller, 4), text: ticket.project ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
             // 5 Category
             _buildTextCell(
-              width: _kColumns[5].$2, text: ticket.mCategory ?? '',
+              width: _getColumnWidth(controller, 5), text: ticket.mCategory ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
             // 6 Sub-Category
             _buildTextCell(
-              width: _kColumns[6].$2, text: ticket.subCat ?? '',
+              width: _getColumnWidth(controller, 6), text: ticket.subCat ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
 
             // 7 Status
-            _buildStatusCell(ticket, isTopPriority, isExpanded, toggleRow),
+            _buildStatusCell(controller, ticket, isTopPriority, isExpanded, toggleRow),
 
             // 8 Priority
-            _buildPriorityCell(ticket, isTopPriority, isExpanded, toggleRow),
+            _buildPriorityCell(controller, ticket, isTopPriority, isExpanded, toggleRow),
 
             // 9 Assignee
             _buildTextCell(
-              width: _kColumns[9].$2,
+              width: _getColumnWidth(controller, 9),
               text: controller.getAssigneeName(ticket.assignedTo),
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
@@ -272,14 +313,14 @@ class SupportTicketsTable extends StatelessWidget {
             ),
             // 10 Latest Comment
             _buildTextCell(
-              width: _kColumns[10].$2, text: ticket.latestComment ?? '',
+              width: _getColumnWidth(controller, 10), text: ticket.latestComment ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
             // 11 Follow-up
             _buildTextCell(
-              width: _kColumns[11].$2,
+              width: _getColumnWidth(controller, 11),
               text: _formatDateTime(ticket.followUp),
               isLast: false,
               isTopPriority: isTopPriority,
@@ -292,7 +333,7 @@ class SupportTicketsTable extends StatelessWidget {
             ),
             // 12 Tkt Age
             _buildTextCell(
-              width: _kColumns[12].$2,
+              width: _getColumnWidth(controller, 12),
               text: _calculateTicketAge(ticket.postedDate, ticket.resolvedOn),
               isLast: false,
               isTopPriority: isTopPriority,
@@ -300,7 +341,7 @@ class SupportTicketsTable extends StatelessWidget {
             ),
             // 13 Date/Time Open
             _buildTextCell(
-              width: _kColumns[13].$2,
+              width: _getColumnWidth(controller, 13),
               text: _formatDateTime(ticket.postedDate),
               isLast: false,
               isTopPriority: isTopPriority,
@@ -308,7 +349,7 @@ class SupportTicketsTable extends StatelessWidget {
             ),
             // 14 Date/Time Close
             _buildTextCell(
-              width: _kColumns[14].$2,
+              width: _getColumnWidth(controller, 14),
               text: _formatDateTime(ticket.resolvedOn),
               isLast: false,
               isTopPriority: isTopPriority,
@@ -316,14 +357,14 @@ class SupportTicketsTable extends StatelessWidget {
             ),
             // 15 District
             _buildTextCell(
-              width: _kColumns[15].$2, text: ticket.district ?? '',
+              width: _getColumnWidth(controller, 15), text: ticket.district ?? '',
               isLast: false, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
             ),
-            // 16 Created By (last col — no right border)
+            // 16 Created By
             _buildTextCell(
-              width: _kColumns[16].$2, text: ticket.createdBy ?? '',
+              width: _getColumnWidth(controller, 16), text: ticket.createdBy ?? '',
               isLast: true, isLeft: true,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded, onTap: toggleRow,
@@ -438,6 +479,7 @@ class SupportTicketsTable extends StatelessWidget {
   }
 
   Widget _buildStatusCell(
+    SupportTicketsController controller,
     SupportTicketListItem ticket,
     bool isTopPriority,
     bool isExpanded,
@@ -449,7 +491,7 @@ class SupportTicketsTable extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: _kColumns[7].$2,
+        width: _getColumnWidth(controller, 7),
         constraints: const BoxConstraints(minHeight: 28),
         decoration: BoxDecoration(
           color: bgColor,
@@ -457,7 +499,8 @@ class SupportTicketsTable extends StatelessWidget {
             right: BorderSide(color: Colors.grey.shade300),
           ),
         ),
-        alignment: Alignment.center,
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.symmetric(horizontal: 4.w),
         child: Text(
           ticket.statusLabel ?? '',
           style: TextStyle(
@@ -471,6 +514,7 @@ class SupportTicketsTable extends StatelessWidget {
   }
 
   Widget _buildPriorityCell(
+    SupportTicketsController controller,
     SupportTicketListItem ticket,
     bool isTopPriority,
     bool isExpanded,
@@ -482,7 +526,7 @@ class SupportTicketsTable extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: _kColumns[8].$2,
+        width: _getColumnWidth(controller, 8),
         constraints: const BoxConstraints(minHeight: 28),
         decoration: BoxDecoration(
           color: bgColor,
@@ -490,7 +534,8 @@ class SupportTicketsTable extends StatelessWidget {
             right: BorderSide(color: Colors.grey.shade300),
           ),
         ),
-        alignment: Alignment.center,
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.symmetric(horizontal: 4.w),
         child: Text(
           ticket.priorityLabel ?? '',
           style: TextStyle(

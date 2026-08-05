@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:core/utils/app_common_toast_message.dart';
@@ -47,6 +48,8 @@ class StaffTrackingController extends GetxController
   final Map<String, BitmapDescriptor> _markerCache = {};
   int _updateMarkerGeneration = 0;
   bool _pendingFitBounds = false;
+  int _lastZoomFloor = -1;
+  bool _lastSpiderifyState = false;
 
   final RxMap<String, dynamic> selectedEmployeeLiveStats =
       <String, dynamic>{}.obs;
@@ -196,6 +199,11 @@ class StaffTrackingController extends GetxController
       isSearching.value = false;
     }
     try {
+      if (!isSilent) {
+        // Fetch profile to keep user permissions and settings up-to-date on manual refresh
+        Get.find<AuthRepository>().fetchProfile();
+      }
+      
       final response = await _repository.getCurrentStatus();
       if (response != null && response['status'] == true) {
         final List emps = response['employees'] ?? [];
@@ -230,10 +238,19 @@ class StaffTrackingController extends GetxController
   void onCameraMove(CameraPosition position) {
     currentZoom.value = position.zoom;
 
-    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 100), () {
-      _updateMarkers(shouldFitBounds: false);
-    });
+    final int newZoomFloor = position.zoom.floor();
+    final bool newSpiderifyState = position.zoom >= 15.5;
+
+    // Only rebuild markers if the zoom change actually affects cluster groupings or spiderification
+    if (_lastZoomFloor != newZoomFloor || _lastSpiderifyState != newSpiderifyState) {
+      _lastZoomFloor = newZoomFloor;
+      _lastSpiderifyState = newSpiderifyState;
+
+      if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 100), () {
+        _updateMarkers(shouldFitBounds: false);
+      });
+    }
   }
 
   Future<void> filterEmployees({bool shouldFitBounds = true}) async {
@@ -430,17 +447,44 @@ class StaffTrackingController extends GetxController
               position: LatLng(lat, lng),
               icon: _markerCache[cacheKey]!,
               onTap: () {
-                // Zoom in to see the cluster spread out
-                double targetZoom = currentZoom.value + 2.5;
-                if (targetZoom < 16.0) {
-                  targetZoom = 16.0; // Ensure it reaches the spiderify threshold immediately
+                final List employeesInCluster = cluster['employees'];
+                double? minLat, maxLat, minLng, maxLng;
+                for (var emp in employeesInCluster) {
+                  double empLat = double.tryParse(emp['latitude']?.toString() ?? '0') ?? 0.0;
+                  double empLng = double.tryParse(emp['longitude']?.toString() ?? '0') ?? 0.0;
+                  if (empLat != 0.0 && empLng != 0.0) {
+                    if (minLat == null || empLat < minLat) minLat = empLat;
+                    if (maxLat == null || empLat > maxLat) maxLat = empLat;
+                    if (minLng == null || empLng < minLng) minLng = empLng;
+                    if (maxLng == null || empLng > maxLng) maxLng = empLng;
+                  }
                 }
-                mapController?.animateCamera(
-                  CameraUpdate.newLatLngZoom(
-                    LatLng(lat, lng),
-                    targetZoom,
-                  ),
-                );
+
+                if (minLat != null && maxLat != null && minLng != null && maxLng != null) {
+                  double latDiff = maxLat - minLat;
+                  double lngDiff = maxLng - minLng;
+                  
+                  if (latDiff < 0.0005 && lngDiff < 0.0005) {
+                    // Points are identical or extremely close, force zoom past spiderify threshold
+                    mapController?.animateCamera(
+                      CameraUpdate.newLatLngZoom(
+                        LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2),
+                        16.5,
+                      ),
+                    );
+                  } else {
+                    // Zoom exactly to fit all points in this cluster
+                    mapController?.animateCamera(
+                      CameraUpdate.newLatLngBounds(
+                        LatLngBounds(
+                          southwest: LatLng(minLat, minLng),
+                          northeast: LatLng(maxLat, maxLng),
+                        ),
+                        80.0, // padding
+                      ),
+                    );
+                  }
+                }
               },
             ),
           );

@@ -4,6 +4,8 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:core/widgets/app_image_view.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class EmployeeTrackingCard extends StatelessWidget {
   final Map<String, dynamic> employee;
@@ -17,6 +19,9 @@ class EmployeeTrackingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authRepo = Get.find<AuthRepository>();
+    final canViewMap = authRepo.rxUserPermissions.contains('attendance_map_view');
+
     final name = employee['name'] ?? 'Unknown';
     final mobile = employee['mobile'] ?? '';
     final status = employee['current_status']?.toString().toLowerCase();
@@ -271,113 +276,115 @@ class EmployeeTrackingCard extends StatelessWidget {
                       ),
                   ],
                 ),
+                
+                if (canViewMap) ...[
+                  const SizedBox(height: 6),
+                  Divider(color: AppColors.grey50, height: 1, thickness: 1),
+                  const SizedBox(height: 6),
 
-                const SizedBox(height: 6),
-                Divider(color: AppColors.grey50, height: 1, thickness: 1),
-                const SizedBox(height: 6),
-
-                // Bottom Section (Stats)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Status
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: statusColor.withValues(alpha: 0.4),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                  // Bottom Section (Stats)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Status
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: statusColor.withValues(alpha: 0.4),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusText,
-                          style: AppTextStyle.style_10_600(color: statusColor),
-                        ),
-                      ],
-                    ),
-
-                    Container(width: 1, height: 12, color: AppColors.grey300),
-
-                    // Speed
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.speed_rounded,
-                          size: 12,
-                          color: AppColors.blue500,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          speed != null
-                              ? '${double.tryParse(speed.toString())?.toStringAsFixed(0) ?? 0} km/h'
-                              : 'N/A',
-                          style: AppTextStyle.style_10_500(
-                            color: AppColors.grey600,
+                          const SizedBox(width: 4),
+                          Text(
+                            statusText,
+                            style: AppTextStyle.style_10_600(color: statusColor),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
 
-                    Container(width: 1, height: 12, color: AppColors.grey300),
+                      Container(width: 1, height: 12, color: AppColors.grey300),
 
-                    // Battery
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.battery_std_rounded,
-                          size: 12,
-                          color:
-                              (battery != null &&
-                                  int.tryParse(battery.toString()) != null &&
-                                  int.parse(battery.toString()) <= 20)
-                              ? AppColors.red
-                              : AppColors.green,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          battery != null ? '$battery%' : 'N/A',
-                          style: AppTextStyle.style_10_500(
-                            color: AppColors.grey600,
+                      // Speed
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.speed_rounded,
+                            size: 12,
+                            color: AppColors.blue500,
                           ),
-                        ),
-                      ],
-                    ),
-
-                    Container(width: 1, height: 12, color: AppColors.grey300),
-
-                    // Last Seen
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 12,
-                          color: AppColors.grey500,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          formattedLastSeen,
-                          style: AppTextStyle.style_10_500(
-                            color: AppColors.grey600,
+                          const SizedBox(width: 4),
+                          Text(
+                            speed != null
+                                ? '${double.tryParse(speed.toString())?.toStringAsFixed(0) ?? 0} km/h'
+                                : 'N/A',
+                            style: AppTextStyle.style_10_500(
+                              color: AppColors.grey600,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                        ],
+                      ),
+
+                      Container(width: 1, height: 12, color: AppColors.grey300),
+
+                      // Battery
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.battery_std_rounded,
+                            size: 12,
+                            color:
+                                (battery != null &&
+                                    int.tryParse(battery.toString()) != null &&
+                                    int.parse(battery.toString()) <= 20)
+                                ? AppColors.red
+                                : AppColors.green,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            battery != null ? '$battery%' : 'N/A',
+                            style: AppTextStyle.style_10_500(
+                              color: AppColors.grey600,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      Container(width: 1, height: 12, color: AppColors.grey300),
+
+                      // Last Seen
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: AppColors.grey500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            formattedLastSeen,
+                            style: AppTextStyle.style_10_500(
+                              color: AppColors.grey600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

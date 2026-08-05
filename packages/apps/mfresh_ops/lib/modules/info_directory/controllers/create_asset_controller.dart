@@ -41,7 +41,7 @@ class CreateAssetController extends GetxController {
   ].obs;
 
   final availableProjects = <Map<String, dynamic>>[].obs; // from API
-  final availableWarrantyStatuses = <String>['NA', '0', '1'].obs;
+  final availableWarrantyStatuses = <String>['Expired', 'Available'].obs;
 
   // File pickers for 3 attachment types
   final invoiceFiles = <File>[].obs;
@@ -112,7 +112,7 @@ class CreateAssetController extends GetxController {
     descriptionCtrl.text = asset.description;
     specificationCtrl.text = asset.specification;
     selectedItemType.value = asset.assetType;
-    selectedWarrantyStatus.value = asset.warrantyType;
+    selectedWarrantyStatus.value = asset.formattedWarrantyType;
     selectedWarrantyExpiry.value =
         asset.warrantyDate == 'NA' ? null : asset.warrantyDate;
     selectedProject.value = asset.project;
@@ -187,6 +187,11 @@ class CreateAssetController extends GetxController {
           '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
     }
   }
+  String get _warrantyTypeApiValue {
+    if (selectedWarrantyStatus.value == 'Available') return '1';
+    if (selectedWarrantyStatus.value == 'Expired') return '0';
+    return 'NA';
+  }
 
   Future<void> submit() async {
     if (!formKey.currentState!.validate()) return;
@@ -205,7 +210,7 @@ class CreateAssetController extends GetxController {
           serialNo: serialNoCtrl.text.trim(),
           description: descriptionCtrl.text.trim(),
           warrantyDate: selectedWarrantyExpiry.value ?? 'NA',
-          warrantyType: selectedWarrantyStatus.value ?? 'NA',
+          warrantyType: _warrantyTypeApiValue,
           location: locationCtrl.text.trim(),
           unit: unitCtrl.text.trim(),
           position: positionCtrl.text.trim(),
@@ -226,7 +231,7 @@ class CreateAssetController extends GetxController {
           serialNo: serialNoCtrl.text.trim(),
           description: descriptionCtrl.text.trim(),
           warrantyDate: selectedWarrantyExpiry.value ?? 'NA',
-          warrantyType: selectedWarrantyStatus.value ?? 'NA',
+          warrantyType: _warrantyTypeApiValue,
           location: locationCtrl.text.trim(),
           unit: unitCtrl.text.trim(),
           position: positionCtrl.text.trim(),
@@ -241,13 +246,13 @@ class CreateAssetController extends GetxController {
       }
 
       if (response != null && response['status'] == true) {
+        Get.back(result: true);
         AppCommonToastMessage.show(
           message: isEdit.value
               ? 'Asset updated successfully'
               : 'Asset created successfully',
           type: ToastType.success,
         );
-        Get.back(result: true);
       } else {
         AppCommonToastMessage.show(
           message: response?['message']?.toString() ?? 'Something went wrong',

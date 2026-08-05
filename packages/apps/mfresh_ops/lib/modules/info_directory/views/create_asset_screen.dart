@@ -6,6 +6,7 @@ import 'package:core/core.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_asset_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
+import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 class CreateAssetScreen extends StatelessWidget {
   const CreateAssetScreen({super.key});
@@ -19,9 +20,11 @@ class CreateAssetScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const AppCommonAppBar().preferredSize,
         child: AppCommonAppBar(
-          title: Text(
-            'Create Asset',
-            style: AppTextStyle.style_18_700(color: AppColors.black),
+          title: Obx(
+            () => Text(
+              controller.isEdit.value ? 'Update Asset' : 'Create Asset',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
           ),
           hasBackButton: true,
           showAppDrawer: false,
@@ -44,6 +47,7 @@ class CreateAssetScreen extends StatelessWidget {
                 children: [
                   // Item | Item Type
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildTextField(
@@ -90,6 +94,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Brand | Model
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildTextField(
@@ -110,6 +115,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Serial No | Project
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: SizedBox(
@@ -135,7 +141,7 @@ class CreateAssetScreen extends StatelessWidget {
                               items: controller.availableProjects
                                   .map(
                                     (e) => DropdownMenuItem<String>(
-                                      value: e['id'].toString(),
+                                      value: e['project']?.toString() ?? '',
                                       child: Text(
                                         e['project']?.toString() ?? '',
                                         style: AppTextStyle.style_12_400(
@@ -159,80 +165,59 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Warranty Expiry Date | Warranty Status
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              height: 32.h,
-                              child: Obx(
-                                () => GestureDetector(
-                                  onTap: () => controller
-                                      .selectWarrantyExpiryDate(context),
-                                  child: InputDecorator(
-                                    decoration: InputDecoration(
-                                      labelText: 'Warranty Expiry Date',
-                                      labelStyle: AppTextStyle.style_12_400(
-                                        color: AppColors.grey200,
-                                      ),
-                                      floatingLabelBehavior:
-                                          FloatingLabelBehavior.always,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10.w,
-                                        vertical: 4.h,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          4.r,
-                                        ),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.borderColor,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          4.r,
-                                        ),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.borderColor,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            controller
-                                                    .selectedWarrantyExpiry
-                                                    .value ??
-                                                'Select Date',
-                                            style:
-                                                controller
-                                                        .selectedWarrantyExpiry
-                                                        .value !=
-                                                    null
-                                                ? AppTextStyle.style_12_400(
-                                                    color: AppColors.grey900,
-                                                  )
-                                                : AppTextStyle.style_12_400(
-                                                    color: AppColors.grey300,
-                                                  ).copyWith(fontSize: 11.sp),
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.calendar_today,
-                                          size: 14.sp,
-                                          color: AppColors.grey200,
-                                        ),
-                                      ],
-                                    ),
+                        child: SizedBox(
+                          height: 32.h,
+                          child: Obx(
+                            () => GestureDetector(
+                              onTap: () => controller.selectWarrantyExpiryDate(context),
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: 'Warranty Expiry Date',
+                                  labelStyle: AppTextStyle.style_12_400(
+                                    color: AppColors.grey200,
                                   ),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 4.h,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4.r),
+                                    borderSide: const BorderSide(color: AppColors.borderColor),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4.r),
+                                    borderSide: const BorderSide(color: AppColors.borderColor),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        controller.selectedWarrantyExpiry.value == null
+                                            ? 'Select Date'
+                                            : AppDateUtils.formatToOrdinalDate(controller.selectedWarrantyExpiry.value!),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: controller.selectedWarrantyExpiry.value != null
+                                            ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
+                                            : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 14.sp,
+                                      color: AppColors.grey200,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                       SizedBox(width: 16.w),
@@ -274,6 +259,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Location | Unit
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildTextField(
@@ -294,6 +280,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Position | Vendor
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildTextField(
@@ -314,6 +301,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Qty | Invoice Attachments
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _buildTextField(
@@ -350,6 +338,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Warranty Attachments | Others Attachments
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Column(
@@ -416,6 +405,7 @@ class CreateAssetScreen extends StatelessWidget {
 
                   // Cancel | Submit buttons
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       SizedBox(
@@ -495,6 +485,10 @@ class CreateAssetScreen extends StatelessWidget {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+    TextStyle? style,
   }) {
     return SizedBox(
       height: maxLines == 1 ? 32.h : null,
@@ -503,9 +497,15 @@ class CreateAssetScreen extends StatelessWidget {
         maxLines: maxLines,
         keyboardType: keyboardType,
         validator: validator,
+        readOnly: readOnly,
+        onTap: onTap,
         textAlignVertical: TextAlignVertical.center,
-        style: AppTextStyle.style_12_400(color: AppColors.grey900),
+        style: style ?? AppTextStyle.style_12_400(color: AppColors.grey900),
         decoration: InputDecoration(
+          suffixIcon: suffixIcon,
+          suffixIconConstraints: suffixIcon != null
+              ? BoxConstraints(maxHeight: 32.h, minWidth: 32.w)
+              : null,
           label: RichText(
             text: TextSpan(
               text: label.replaceAll('*', ''),
@@ -590,7 +590,7 @@ class CreateAssetScreen extends StatelessWidget {
   ) {
     if (names.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: EdgeInsets.only(top: 6.h),
+      padding: EdgeInsets.only(top: 1.h),
       child: Wrap(
         spacing: 6.w,
         runSpacing: 6.h,
@@ -611,13 +611,15 @@ class CreateAssetScreen extends StatelessWidget {
                   color: AppColors.grey900,
                 ),
                 SizedBox(width: 4.w),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 80.w),
-                  child: Text(
-                    names[i],
-                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: 80.w),
+                    child: Text(
+                      names[i],
+                      style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 SizedBox(width: 4.w),

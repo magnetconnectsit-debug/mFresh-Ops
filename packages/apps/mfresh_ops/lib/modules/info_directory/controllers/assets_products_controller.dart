@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/asset_product_model.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 
@@ -17,8 +18,7 @@ class AssetsProductsController extends GetxController {
 
   // Filter state
   final selectedItemType = ''.obs; // '' = all, '0' = product, '1' = asset
-  final searchGlobalController = TextEditingController();
-  TextEditingController get searchController => searchGlobalController;
+  final searchController = TextEditingController(); // For appbar global search
   final isSearching = false.obs;
   final searchQuery = ''.obs;
 
@@ -34,7 +34,7 @@ class AssetsProductsController extends GetxController {
 
   @override
   void onClose() {
-    searchGlobalController.dispose();
+    searchController.dispose();
     super.onClose();
   }
 
@@ -53,8 +53,8 @@ class AssetsProductsController extends GetxController {
   void toggleSearch() {
     isSearching.value = !isSearching.value;
     if (!isSearching.value) {
-      searchGlobalController.clear();
       searchQuery.value = '';
+      searchController.clear();
       applyFilters();
     }
   }
@@ -65,7 +65,7 @@ class AssetsProductsController extends GetxController {
     try {
       final response = await _repo.fetchList(
         itemType: _itemTypeApiValue,
-        globalSearch: searchGlobalController.text.trim(),
+        globalSearch: searchController.text.trim(),
         perPage: perPage.value,
         page: currentPage.value,
       );
@@ -93,7 +93,6 @@ class AssetsProductsController extends GetxController {
 
   Future<void> resetFiltersAndRefresh() async {
     selectedItemType.value = '';
-    searchGlobalController.clear();
     await fetchAssets(resetPage: true);
   }
 
@@ -102,6 +101,10 @@ class AssetsProductsController extends GetxController {
     try {
       final response = await _repo.deleteAsset(assetId);
       if (response != null && response['status'] == true) {
+        AppCommonToastMessage.show(
+          message: 'Asset deleted successfully',
+          type: ToastType.success,
+        );
         await fetchAssets();
       }
     } catch (e) {

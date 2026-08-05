@@ -78,6 +78,13 @@ class AssetProductModel {
   /// Convenience: display item type label
   String get itemTypeLabel => assetType == '0' ? 'Product' : 'Asset';
 
+  /// Convenience: format warranty status
+  String get formattedWarrantyType {
+    if (warrantyType == '1') return 'Available';
+    if (warrantyType == '0') return 'Expired';
+    return '';
+  }
+
   static AssetProductModel dummy(String idStr) {
     final i = int.tryParse(idStr) ?? 0;
     return AssetProductModel(
