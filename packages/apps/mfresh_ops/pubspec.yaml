@@ -58,7 +58,7 @@ dependencies:
   flutter_thermal_printer: ^2.0.1
   esc_pos_utils_plus: ^2.0.4
   image: ^4.5.2
-  mobile_scanner: ^6.0.4
+  mobile_scanner: ^7.4.0
   reorderable_grid_view: ^2.2.8
   cached_network_image: ^3.3.1
   share_plus: ^10.1.0
