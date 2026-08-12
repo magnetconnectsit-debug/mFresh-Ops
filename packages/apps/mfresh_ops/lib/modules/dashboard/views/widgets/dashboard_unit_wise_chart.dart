@@ -86,7 +86,7 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
         return DateFormat('dd MMM').format(parsed);
       } else {
         final parsed = DateFormat('yyyy-MM').parse(dateStr);
-        return '01 ${DateFormat('MMM').format(parsed)}';
+        return DateFormat('MMM yyyy').format(parsed);
       }
     } catch (e) {
       return dateStr;
@@ -97,24 +97,8 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
   Widget build(BuildContext context) {
     if (widget.data.isEmpty) return const SizedBox.shrink();
 
-    // Pre-process: Aggregate daily data into monthly data to match Web UI
-    Map<String, Map<String, num>> monthlyAggregated = {};
-    for (var d in widget.data) {
-      String monthKey = d.date; // default
-      if (d.date.length >= 10) {
-        monthKey = d.date.substring(0, 7); // extract yyyy-MM
-      }
-      monthlyAggregated.putIfAbsent(d.unitNo, () => {});
-      monthlyAggregated[d.unitNo]![monthKey] = (monthlyAggregated[d.unitNo]![monthKey] ?? 0) + d.revenue;
-    }
-
-    // Convert back to UnitWiseRevenueData list
-    List<UnitWiseRevenueData> aggregatedData = [];
-    monthlyAggregated.forEach((unitNo, monthlyData) {
-      monthlyData.forEach((month, revenue) {
-        aggregatedData.add(UnitWiseRevenueData(date: month, unitNo: unitNo, revenue: revenue));
-      });
-    });
+    // We now use the raw data directly to support both daily and monthly views based on API response
+    List<UnitWiseRevenueData> aggregatedData = widget.data;
 
     // 1. Extract distinct dates and units
     final distinctDatesSet = aggregatedData.map((e) => e.date).toSet().toList();

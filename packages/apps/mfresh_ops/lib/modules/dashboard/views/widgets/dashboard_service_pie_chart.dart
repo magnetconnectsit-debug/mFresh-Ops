@@ -143,18 +143,18 @@ class _DashboardServicePieChartState extends State<DashboardServicePieChart> {
                           pieTouchData: PieTouchData(
                             touchCallback:
                                 (FlTouchEvent event, pieTouchResponse) {
-                                  setState(() {
-                                    if (!event.isInterestedForInteractions ||
-                                        pieTouchResponse == null ||
-                                        pieTouchResponse.touchedSection ==
-                                            null) {
-                                      touchedIndex = -1;
-                                      return;
+                                  if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
+                                    setState(() {
+                                      touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                    });
+                                  } else {
+                                    final eventType = event.runtimeType.toString();
+                                    if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
+                                      setState(() {
+                                        touchedIndex = -1;
+                                      });
                                     }
-                                    touchedIndex = pieTouchResponse
-                                        .touchedSection!
-                                        .touchedSectionIndex;
-                                  });
+                                  }
                                 },
                           ),
                           borderData: FlBorderData(show: false),
