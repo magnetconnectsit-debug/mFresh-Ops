@@ -172,9 +172,21 @@ class _DashboardDailyCountChartState extends State<DashboardDailyCountChart> {
                     ? []
                     : [ShowingTooltipIndicators([LineBarSpot(line, 0, spots[touchedSpotIndex!])])],
                 lineTouchData: LineTouchData(
-                  touchCallback: (_, response) => setState(() {
-                    touchedSpotIndex = response?.lineBarSpots?.isNotEmpty == true ? response!.lineBarSpots!.first.spotIndex : null;
-                  }),
+                  handleBuiltInTouches: false,
+                  touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+                    if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
+                      setState(() {
+                        touchedSpotIndex = response.lineBarSpots!.first.spotIndex;
+                      });
+                    } else {
+                      final eventType = event.runtimeType.toString();
+                      if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
+                        setState(() {
+                          touchedSpotIndex = null;
+                        });
+                      }
+                    }
+                  },
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (_) => const Color(0xFF1F2937),
                     getTooltipItems: (spots) => spots.map((spot) => LineTooltipItem(
