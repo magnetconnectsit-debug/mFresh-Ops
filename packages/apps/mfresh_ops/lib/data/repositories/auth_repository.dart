@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:android_id/android_id.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -57,9 +58,11 @@ class AuthRepository extends GetxService {
       final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfoPlugin.androidInfo;
-        deviceId = androidInfo.id;
+        const _androidIdPlugin = AndroidId();
+        final String? realAndroidId = await _androidIdPlugin.getId();
+        deviceId = realAndroidId ?? androidInfo.id;
         deviceInfo = {
-          "imei_no": androidInfo.id,
+          "imei_no": deviceId,
           "brand": androidInfo.brand,
           "model": androidInfo.model,
           "manufacturer": androidInfo.manufacturer,
@@ -96,6 +99,16 @@ class AuthRepository extends GetxService {
         badge: true,
         sound: true,
       );
+      
+      // On iOS, the FCM token requires the APNs token to be generated first.
+      if (Platform.isIOS) {
+        String? apnsToken = await messaging.getAPNSToken();
+        if (apnsToken == null) {
+          await Future.delayed(const Duration(seconds: 1));
+          apnsToken = await messaging.getAPNSToken();
+        }
+      }
+      
       final token = await messaging.getToken();
       if (token != null && token.isNotEmpty) {
         fcmToken = token;

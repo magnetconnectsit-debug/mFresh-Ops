@@ -91,6 +91,7 @@ class AppConstants {
   static const String editTask = 'edit-task';
   static const String updateTask = 'update-task';
   static const String deleteTask = 'delete-Task';
+  static const String userTaskFilter = 'User_task_filter';
 
   // Inventory
   static const String invGetStates = 'inv-get-states';

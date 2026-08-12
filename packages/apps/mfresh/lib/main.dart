@@ -1,4 +1,3 @@
-import 'package:google_fonts/google_fonts.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:dev/views/widgets/floating_logger_button.dart';
@@ -9,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:mfresh/core/config/app_config.dart';
 import 'package:mfresh/core/constants/app_constants.dart';

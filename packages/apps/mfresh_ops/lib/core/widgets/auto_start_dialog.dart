@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:auto_start_flutter/auto_start_flutter.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:auto_start_flutter/auto_start_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class AutoStartDialog extends StatelessWidget {
   const AutoStartDialog({super.key});
@@ -49,7 +49,9 @@ class AutoStartDialog extends StatelessWidget {
                     onPressed: () => Get.back(result: false),
                     child: Text(
                       'Cancel',
-                      style: AppTextStyle.style_14_600(color: AppColors.grey600),
+                      style: AppTextStyle.style_14_600(
+                        color: AppColors.grey600,
+                      ),
                     ),
                   ),
                 ),

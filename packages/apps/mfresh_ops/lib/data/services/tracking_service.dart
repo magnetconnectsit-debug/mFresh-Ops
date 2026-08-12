@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
+import 'package:android_id/android_id.dart';
 
 import 'package:auto_start_flutter/auto_start_flutter.dart';
 import 'package:battery_plus/battery_plus.dart';
@@ -448,6 +449,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
     _lastQueuedPosition = null;
     await FlutterForegroundTask.removeData(key: 'bg_owner');
+    await FlutterForegroundTask.removeData(key: 'last_lat');
+    await FlutterForegroundTask.removeData(key: 'last_lng');
+    await FlutterForegroundTask.removeData(key: 'last_time');
     await FlutterForegroundTask.stopService();
 
     try {
@@ -527,6 +531,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         } else {
           _stopForegroundUpdateTimer();
           await FlutterForegroundTask.removeData(key: 'bg_owner');
+          await FlutterForegroundTask.removeData(key: 'last_lat');
+          await FlutterForegroundTask.removeData(key: 'last_lng');
+          await FlutterForegroundTask.removeData(key: 'last_time');
           await FlutterForegroundTask.stopService();
         }
       }
@@ -1044,7 +1051,11 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     if (isDev) return 'BP2A.250605.031.A3';
 
     final deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) return (await deviceInfo.androidInfo).id;
+    if (Platform.isAndroid) {
+      const androidIdPlugin = AndroidId();
+      final androidId = await androidIdPlugin.getId();
+      return androidId ?? (await deviceInfo.androidInfo).id;
+    }
     if (Platform.isIOS)
       return (await deviceInfo.iosInfo).identifierForVendor ?? 'ios_device';
     return 'unknown_device';

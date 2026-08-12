@@ -27,7 +27,7 @@ class InfoDirectoryController extends GetxController {
   // Pagination
   final currentPage = 1.obs;
   final totalPages = 1.obs;
-  final perPage = 20.obs;
+  final perPage = 100.obs;
   final totalRecords = 0.obs;
   
   // Filter Options
@@ -151,7 +151,7 @@ class InfoDirectoryController extends GetxController {
           }
           totalPages.value = int.tryParse(dataObj['last_page']?.toString() ?? '1') ?? 1;
           totalRecords.value = int.tryParse(dataObj['total']?.toString() ?? '0') ?? 0;
-          perPage.value = int.tryParse(dataObj['per_page']?.toString() ?? '20') ?? 20;
+          perPage.value = int.tryParse(dataObj['per_page']?.toString() ?? '100') ?? 100;
         }
 
         final newContacts = <ContactModel>[];

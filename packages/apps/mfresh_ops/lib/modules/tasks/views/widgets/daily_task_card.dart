@@ -7,6 +7,7 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/delete_task_dialog.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class DailyTaskCard extends StatefulWidget {
   final TaskItem task;
@@ -293,11 +294,11 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                             SizedBox(width: 4.w),
                             Flexible(
                               child: Text(
-                                (task.groupNames != null && task.groupNames!.isNotEmpty)
-                                    ? task.groupNames!
-                                    : (task.assigneeName != null && task.assigneeName!.isNotEmpty)
-                                        ? task.assigneeName!
-                                        : 'Unassigned',
+                                ((task.groupNames != null && task.groupNames!.isNotEmpty)
+                                        ? task.groupNames!
+                                        : (task.assigneeName != null && task.assigneeName!.isNotEmpty)
+                                            ? task.assigneeName!
+                                            : 'Unassigned').replaceAll('_', ' '),
                                 style: TextStyle(
                                   fontSize: 10.sp,
                                   fontWeight: FontWeight.w500,
@@ -345,12 +346,17 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
               alignment: Alignment.center,
               child: GestureDetector(
                 onTap: () {
+                  if (task.canStatusBtnClicked != true) {
+                    AppCommonToastMessage.show(
+                      message: 'You do not have permission to perform this action.',
+                      type: ToastType.warning,
+                    );
+                    return;
+                  }
                   final status = task.status.toLowerCase();
                   final controller = Get.find<TasksController>();
                   if (status == 'review' || status == 'under_review') {
-                    if (task.canStatusBtnClicked == true) {
-                      controller.fetchTaskSubmissionDetails(task, isReview: true);
-                    }
+                    controller.fetchTaskSubmissionDetails(task, isReview: true);
                   } else if (status == 'due' ||
                       status == 'overdue' ||
                       status == 'pending' ||

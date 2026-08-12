@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 
 class GridSubAction {
   final String title;
@@ -71,8 +73,23 @@ class HomeGridController extends GetxController {
   final AuthRepository _authRepo = Get.find<AuthRepository>();
 
   final RxList<GridItemData> gridItems = <GridItemData>[].obs;
+  final RxBool isEditMode = false.obs;
+
+  void toggleEditMode() {
+    if (_authRepo.rxUserPermissions.contains('Dashboard_Customisation')) {
+      isEditMode.value = !isEditMode.value;
+    }
+  }
 
   final List<GridItemData> _allItems = [
+    GridItemData(
+      title: 'Dashboard',
+      subtitle: 'View analytics',
+      icon: Icons.dashboard_rounded,
+      gradient: const [Color(0xFFE85D04), Color(0xFFDC2F02)],
+      route: AppRoutes.dashboard,
+      permissionKey: 'Dashboard_Panel',
+    ),
     GridItemData(
       title: 'Support Ticket',
       subtitle: 'Manage helpdesk',
@@ -129,20 +146,12 @@ class HomeGridController extends GetxController {
       permissionKey: 'unit_inventory_stock',
       actionPermissionKey: 'unit_inventory_stock',
       subActions: [
-        GridSubAction(
-          title: 'Add',
-          icon: Icons.add,
-          isSolidIcon: true,
-          route: AppRoutes.storeInventory,
-          arguments: const {'openAddDialog': true},
-          permissionKey: 'add_inventory_stock',
-        ),
-        GridSubAction(
-          title: 'Store',
-          icon: Icons.store,
-          route: AppRoutes.storeInventory,
-          permissionKey: 'store_inventory_stock',
-        ),
+        GridSubAction(title: 'Store Inventory', icon: Icons.store, route: AppRoutes.storeInventory, permissionKey: 'store_inventory_stock'),
+        GridSubAction(title: 'Consumption', icon: Icons.restaurant, route: AppRoutes.allConsumption, permissionKey: 'consumption_report'),
+        GridSubAction(title: 'Allotments', icon: Icons.receipt_long, route: AppRoutes.allotments, permissionKey: 'allotments_report'),
+        GridSubAction(title: 'Measurements', icon: Icons.straighten, route: AppRoutes.measurements, permissionKey: 'measurements_panel'),
+        GridSubAction(title: 'Items', icon: Icons.category, route: AppRoutes.items, permissionKey: 'inventory_item'),
+        GridSubAction(title: 'Store', icon: Icons.storefront, route: AppRoutes.storeRooms, permissionKey: 'store_room'),
       ],
     ),
     GridItemData(
@@ -157,47 +166,29 @@ class HomeGridController extends GetxController {
       ],
     ),
     GridItemData(
-      title: 'Admin',
+      title: 'Collection',
       subtitle: 'Manage collections',
       icon: Icons.account_balance_wallet_rounded,
       gradient: const [Color(0xFF14B8A6), Color(0xFF0F766E)],
       route: AppRoutes.adminCollections,
       permissionKey: 'collection_panel',
       subActions: [
-        GridSubAction(
-          title: 'Collections',
-          icon: Icons.payments,
-          route: AppRoutes.collections,
-          permissionKey: 'normal_admin_collection',
-        ),
-        GridSubAction(
-          title: 'Deposits',
-          icon: Icons.account_balance,
-          route: AppRoutes.deposits,
-          permissionKey: 'deposit_panel',
-        ),
+        GridSubAction(title: 'Collections', icon: Icons.payments, route: AppRoutes.collections, permissionKey: 'normal_admin_collection'),
+        GridSubAction(title: 'Deposits', icon: Icons.account_balance, route: AppRoutes.deposits, permissionKey: 'deposit_panel'),
       ],
     ),
     GridItemData(
-      title: 'Info Directory',
+      title: 'Contacts',
       subtitle: 'Contacts & brands',
       icon: Icons.contact_phone_rounded,
       gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
       route: AppRoutes.infoDirectory,
       permissionKey: 'c_directory_panel',
       subActions: [
-        GridSubAction(
-          title: 'Assets',
-          icon: Icons.inventory,
-          route: AppRoutes.assetsProducts,
-          permissionKey: 'Asset_Panel',
-        ),
-        GridSubAction(
-          title: 'Accounts',
-          icon: Icons.account_box,
-          route: AppRoutes.accountSubscription,
-          permissionKey: 'Account_subscription_panel',
-        ),
+        GridSubAction(title: 'Assets & Products', icon: Icons.inventory, route: AppRoutes.assetsProducts, permissionKey: 'Asset_Panel'),
+        GridSubAction(title: 'Account Details', icon: Icons.account_box, route: AppRoutes.accountSubscription, permissionKey: 'Account_subscription_panel'),
+        GridSubAction(title: 'Brands', icon: Icons.branding_watermark, route: AppRoutes.contactBrands, permissionKey: 'brand_details'),
+        GridSubAction(title: 'Companies', icon: Icons.business, route: AppRoutes.contactCompanies, permissionKey: 'company_details'),
       ],
     ),
   ];
@@ -268,7 +259,7 @@ class HomeGridController extends GetxController {
         if (userPermissions.contains('tracking_panel')) {
           availableItems.add(item);
         }
-      } else if (item.title == 'Admin') {
+      } else if (item.title == 'Collection') {
         if (userPermissions.contains('collection_panel')) {
           final sub = item.subActions
               .where(
@@ -301,7 +292,7 @@ class HomeGridController extends GetxController {
             ),
           );
         }
-      } else if (item.title == 'Info Directory') {
+      } else if (item.title == 'Contacts') {
         if (userPermissions.contains('c_directory_panel')) {
           final sub = item.subActions
               .where(
@@ -350,13 +341,18 @@ class HomeGridController extends GetxController {
       }
     }
 
-    // Load saved order
-    final savedOrder = _storage.getHomeGridOrder();
+    // Load advanced config
+    final config = _storage.getHomeGridConfig();
+    
+    // Fallback to legacy order if config doesn't exist
+    final legacyOrder = _storage.getHomeGridOrder();
+    
+    final savedOrder = config?['order'] as List<dynamic>? ?? legacyOrder;
+    final savedSubActions = config?['subActions'] as Map<dynamic, dynamic>?;
+
+    final orderedItems = <GridItemData>[];
 
     if (savedOrder != null && savedOrder.isNotEmpty) {
-      // Reorder available items based on saved string titles
-      final orderedItems = <GridItemData>[];
-
       for (final title in savedOrder) {
         final index = availableItems.indexWhere((item) => item.title == title);
         if (index != -1) {
@@ -364,28 +360,64 @@ class HomeGridController extends GetxController {
           availableItems.removeAt(index);
         }
       }
-
-      // Add any new items that weren't in the saved order to the end
-      orderedItems.addAll(availableItems);
-      gridItems.value = orderedItems;
-    } else {
-      // No saved order, use default
-      gridItems.value = availableItems;
     }
+
+    // Add any new items that weren't in the saved order to the end
+    orderedItems.addAll(availableItems);
+
+    // Apply sub-action filtering based on saved config
+    for (int i = 0; i < orderedItems.length; i++) {
+      final item = orderedItems[i];
+      if (savedSubActions != null && savedSubActions.containsKey(item.title)) {
+        final savedSubs = (savedSubActions[item.title] as List<dynamic>).cast<String>();
+        final originalSubs = item.subActions;
+        final filteredSubs = <GridSubAction>[];
+        for (final savedTitle in savedSubs) {
+          final found = originalSubs.firstWhereOrNull((s) => s.title == savedTitle);
+          if (found != null) {
+            filteredSubs.add(found);
+          }
+        }
+        orderedItems[i] = item.copyWith(subActions: filteredSubs);
+      }
+    }
+
+    gridItems.value = orderedItems;
   }
 
   void onReorder(int oldIndex, int newIndex) {
-    // ReorderableGridView already handles newIndex > oldIndex internally properly usually,
-    // but standard Flutter ReorderableListView needs this:
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
+    if (newIndex > oldIndex) newIndex -= 1;
     final item = gridItems.removeAt(oldIndex);
     gridItems.insert(newIndex, item);
+    saveCurrentConfig();
+  }
 
-    // Save new order to storage
-    final newOrder = gridItems.map((e) => e.title).toList();
-    _storage.saveHomeGridOrder(newOrder);
+  void saveCurrentConfig() {
+    final order = gridItems.map((e) => e.title).toList();
+    final subActions = <String, List<String>>{};
+    for (final item in gridItems) {
+      subActions[item.title] = item.subActions.map((s) => s.title).toList();
+    }
+    _storage.saveHomeGridConfig({'order': order, 'subActions': subActions});
+  }
+  List<GridSubAction> getAvailableSubActionsFor(String cardTitle) {
+    final userPermissions = _authRepo.rxUserPermissions;
+    final originalItem = _allItems.firstWhereOrNull((e) => e.title == cardTitle);
+    if (originalItem == null) return [];
+    
+    return originalItem.subActions
+        .where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey))
+        .toList();
+  }
+
+
+
+  void updateSubActionsFor(String cardTitle, List<GridSubAction> newSubs) {
+    final index = gridItems.indexWhere((e) => e.title == cardTitle);
+    if (index != -1) {
+      gridItems[index] = gridItems[index].copyWith(subActions: newSubs);
+      saveCurrentConfig();
+    }
   }
 
   bool hasPermission(String permissionKey) {

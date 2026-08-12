@@ -54,8 +54,18 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
     try {
       DateTime dt = DateTime.parse(dateStr).toLocal();
       List<String> months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       String day = dt.day.toString().padLeft(2, '0');
       String month = months[dt.month - 1];
@@ -75,6 +85,20 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
       return dateStr;
     }
   }
+
+  static const _kColumns = [
+    'Task ID',
+    'Project',
+    'Task',
+    'Created On',
+    'Created By',
+    'Task Type',
+    'Assignee',
+    'Started From',
+    'Completed By',
+    'Status',
+    'Approver Name',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +129,10 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
           final tasksList = controller.tasks;
           final bool isInitialLoading =
               controller.isLoading.value && tasksList.isEmpty;
+
+          // Touch sort observables so Obx re-renders on sort change
+          final currentSortCol = controller.sortColumn.value;
+          final currentSortAsc = controller.sortAscending.value;
 
           final itemsToRender = isInitialLoading
               ? List.generate(
@@ -146,7 +174,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                     completedByName: 'Loading Completer',
                   ),
                 )
-              : tasksList;
+              : controller.sortedTasks;
 
           return ListView(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -158,7 +186,10 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
               SizedBox(height: 16.h),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 0.w),
-                child: tasksList.isEmpty && !controller.isLoading.value && !isInitialLoading
+                child:
+                    tasksList.isEmpty &&
+                        !controller.isLoading.value &&
+                        !isInitialLoading
                     ? Center(
                         child: Padding(
                           padding: EdgeInsets.only(top: 50.h),
@@ -186,9 +217,12 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                 child: SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Table(
-                                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                    defaultVerticalAlignment:
+                                        TableCellVerticalAlignment.middle,
                                     border: TableBorder.symmetric(
-                                      inside: BorderSide(color: Colors.grey.shade300),
+                                      inside: BorderSide(
+                                        color: Colors.grey.shade300,
+                                      ),
                                     ),
                                     columnWidths: {
                                       0: FixedColumnWidth(100.w),
@@ -196,7 +230,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                       2: FixedColumnWidth(200.w),
                                       3: FixedColumnWidth(140.w),
                                       4: FixedColumnWidth(120.w),
-                                      5: FixedColumnWidth(80.w),
+                                      5: FixedColumnWidth(85.w),
                                       6: FixedColumnWidth(120.w),
                                       7: FixedColumnWidth(140.w),
                                       8: FixedColumnWidth(120.w),
@@ -204,62 +238,138 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                       10: FixedColumnWidth(120.w),
                                     },
                                     children: [
+                                      // ── Header row ───────────────────────
                                       TableRow(
-                                        decoration: BoxDecoration(color: Colors.grey.shade100),
-                                        children: const [
-                                          AllTasksHeaderCell(text: 'Task ID'),
-                                          AllTasksHeaderCell(text: 'Project'),
-                                          AllTasksHeaderCell(text: 'Task'),
-                                          AllTasksHeaderCell(text: 'Created On'),
-                                          AllTasksHeaderCell(text: 'Created By'),
-                                          AllTasksHeaderCell(text: 'Task Type'),
-                                          AllTasksHeaderCell(text: 'Assignee'),
-                                          AllTasksHeaderCell(text: 'Started From'),
-                                          AllTasksHeaderCell(text: 'Completed By'),
-                                          AllTasksHeaderCell(text: 'Status'),
-                                          AllTasksHeaderCell(text: 'Approver Name'),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFC5D5F0),
+                                        ),
+                                        children: [
+                                          for (final col in _kColumns)
+                                            AllTasksHeaderCell(
+                                              text: col,
+                                              onTap: () =>
+                                                  controller.toggleSort(col),
+                                              isSorted: currentSortCol == col,
+                                              sortAscending: currentSortAsc,
+                                            ),
                                         ],
                                       ),
+                                      // ── Data rows ────────────────────────
                                       ...itemsToRender.map((task) {
-                                        final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-                                        final isExpanded = _expandedRows.contains(rowKey);
+                                        final rowKey =
+                                            "${task.taskCode}_${task.taskInstanceId}";
+                                        final isExpanded = _expandedRows
+                                            .contains(rowKey);
                                         void toggleRow() => _toggleRow(rowKey);
 
                                         return TableRow(
                                           children: [
                                             AllTasksDataCell(
-                                              text: "${task.taskCode}_${task.taskInstanceId}",
+                                              text:
+                                                  "${task.taskCode}_${task.taskInstanceId}",
                                               isExpanded: isExpanded,
                                               onTap: () {
-                                                final status = task.status.toLowerCase();
-                                                if (status == 'completed' || status == 'approved') {
-                                                  controller.fetchTaskSubmissionDetails(task, isReview: true, readOnly: true);
+                                                final status = task.status
+                                                    .toLowerCase();
+                                                if (status == 'completed' ||
+                                                    status == 'approved') {
+                                                  controller
+                                                      .fetchTaskSubmissionDetails(
+                                                        task,
+                                                        isReview: true,
+                                                        readOnly: true,
+                                                      );
                                                 } else {
-                                                  if (Get.find<AuthRepository>().rxUserPermissions.contains('Task_Edit')) {
-                                                    controller.editTaskDetails(task);
+                                                  if (Get.find<AuthRepository>()
+                                                      .rxUserPermissions
+                                                      .contains('Task_Edit')) {
+                                                    controller.editTaskDetails(
+                                                      task,
+                                                    );
                                                   }
                                                 }
                                               },
                                               textColor: AppColors.blue500,
                                               fontWeight: FontWeight.bold,
                                             ),
-                                            AllTasksDataCell(text: _sanitize(task.project ?? 'mFresh'), isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: task.title, isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: _formatDateTime(task.createdAt), isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: _sanitize(task.createdByName ?? task.approverName ?? 'NA'), isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: _sanitize(task.taskType.capitalizeFirst ?? 'NA'), isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: _sanitize(task.assigneeName ?? ''), isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: _formatDateTime(task.scheduleDateTime), isExpanded: isExpanded, onTap: toggleRow),
-                                            AllTasksDataCell(text: _sanitize(task.completedByName ?? ''), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(
+                                              text: _sanitize(
+                                                task.project ?? 'mFresh',
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: task.title,
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: _formatDateTime(
+                                                task.createdAt,
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: _sanitize(
+                                                task.createdByName ??
+                                                    task.approverName ??
+                                                    'NA',
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: _sanitize(
+                                                task.taskType.capitalizeFirst ??
+                                                    'NA',
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: _sanitize(
+                                                (task.assigneeName ?? '').replaceAll('_', ' '),
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: _formatDateTime(
+                                                task.scheduleDateTime,
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
+                                            AllTasksDataCell(
+                                              text: _sanitize(
+                                                task.completedByName ?? '',
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
                                             GestureDetector(
                                               onTap: toggleRow,
                                               behavior: HitTestBehavior.opaque,
                                               child: Padding(
-                                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                                                child: AllTasksStatusBadge(status: task.status, isExpanded: isExpanded),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 8.w,
+                                                  vertical: 2.h,
+                                                ),
+                                                child: AllTasksStatusBadge(
+                                                  status: task.status,
+                                                  isExpanded: isExpanded,
+                                                ),
                                               ),
                                             ),
-                                            AllTasksDataCell(text: _sanitize(task.approverName ?? ''), isExpanded: isExpanded, onTap: toggleRow),
+                                            AllTasksDataCell(
+                                              text: _sanitize(
+                                                task.approverName ?? '',
+                                              ),
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
                                           ],
                                         );
                                       }),
@@ -268,7 +378,8 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                 ),
                               ),
                             ),
-                            if (!isInitialLoading && controller.totalRecords.value > 0) ...[
+                            if (!isInitialLoading &&
+                                controller.totalRecords.value > 0) ...[
                               SizedBox(height: 12.h),
                               Padding(
                                 padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -277,21 +388,30 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                     SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           AllTasksPaginationButton(
                                             text: '←',
                                             isActive: false,
                                             onTap: controller.previousPage,
                                           ),
-                                          ...List.generate(controller.totalPages.value, (index) {
-                                            final pageNumber = index + 1;
-                                            return AllTasksPaginationButton(
-                                              text: pageNumber.toString(),
-                                              isActive: controller.currentPage.value == pageNumber,
-                                              onTap: () => controller.goToPage(pageNumber),
-                                            );
-                                          }),
+                                          ...List.generate(
+                                            controller.totalPages.value,
+                                            (index) {
+                                              final pageNumber = index + 1;
+                                              return AllTasksPaginationButton(
+                                                text: pageNumber.toString(),
+                                                isActive:
+                                                    controller
+                                                        .currentPage
+                                                        .value ==
+                                                    pageNumber,
+                                                onTap: () => controller
+                                                    .goToPage(pageNumber),
+                                              );
+                                            },
+                                          ),
                                           AllTasksPaginationButton(
                                             text: '→',
                                             isActive: false,
@@ -303,7 +423,9 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
                                     SizedBox(height: 10.h),
                                     Text(
                                       'Showing ${controller.totalRecords.value == 0 ? 0 : (controller.currentPage.value - 1) * controller.perPage.value + 1} to ${(controller.currentPage.value * controller.perPage.value).clamp(0, controller.totalRecords.value)} of ${controller.totalRecords.value} entries',
-                                      style: AppTextStyle.style_12_400(color: AppColors.black),
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.black,
+                                      ),
                                     ),
                                   ],
                                 ),

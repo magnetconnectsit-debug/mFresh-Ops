@@ -76,11 +76,21 @@ class TaskRepository extends GetxService {
     }
   }
 
-  Future<DailyTaskResponse?> getDailyTasks() async {
+  Future<DailyTaskResponse?> getDailyTasks({
+    List<int> projects = const [],
+    List<int> units = const [],
+    List<int> assignees = const [],
+    List<int> groups = const [],
+  }) async {
     try {
       final response = await _apiService.post(
         AppConstants.dailyTasks,
-        data: {},
+        data: {
+          'project_id': projects,
+          'unit_id': units.isEmpty ? '' : units,
+          'assignee_id': assignees,
+          's_groupID': groups,
+        },
       );
       if (response != null && response['status'] == true) {
         return DailyTaskResponse.fromJson(response);
@@ -88,6 +98,18 @@ class TaskRepository extends GetxService {
       return null;
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserTaskFilter() async {
+    try {
+      final response = await _apiService.get(AppConstants.userTaskFilter);
+      if (response != null && response['status'] == true) {
+        return response['data'] as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

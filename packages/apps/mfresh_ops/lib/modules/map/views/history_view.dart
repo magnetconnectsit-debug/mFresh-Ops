@@ -55,7 +55,7 @@ class HistoryView extends GetView<HistoryController> {
               Positioned.fill(
                 child: GoogleMap(
                   padding: EdgeInsets.only(
-                    bottom: (controller.routeSegments.isNotEmpty || controller.routeSummary.isNotEmpty)
+                    bottom: (controller.routePoints.isNotEmpty || controller.routeSegments.isNotEmpty || controller.routeSummary.isNotEmpty || controller.liveStatus.isNotEmpty)
                         ? MediaQuery.of(context).size.height * 0.35
                         : 0,
                   ),
@@ -314,7 +314,8 @@ class HistoryView extends GetView<HistoryController> {
                 ],
               ),
             ),
-            if (controller.routeSegments.isNotEmpty ||
+            if (controller.routePoints.isNotEmpty ||
+                controller.routeSegments.isNotEmpty ||
                 controller.routeSummary.isNotEmpty ||
                 controller.liveStatus.isNotEmpty)
               DraggableScrollableSheet(
@@ -438,270 +439,217 @@ class HistoryView extends GetView<HistoryController> {
                             horizontal: 20,
                             vertical: 8,
                           ),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final reversedIndex = controller.routeSegments.length - 1 - index;
-                              final segment = controller.routeSegments[reversedIndex];
-
-                              String formatT(dynamic t) {
-                                if (t == null) return '';
-                                try {
-                                  return DateFormat('hh:mm a').format(
-                                    DateTime.parse(t.toString()).toLocal(),
-                                  );
-                                } catch (_) {
-                                  return t.toString();
-                                }
-                              }
-
-                              final startTime = formatT(segment['start_time']);
-                              final endTime = formatT(segment['end_time']);
-                              final timeText = endTime.isEmpty ? startTime : '$startTime - $endTime';
-                              
-                              final distanceRaw = double.tryParse(segment['distance_km']?.toString() ?? '0') ?? 0.0;
-                              final distance = distanceRaw.toStringAsFixed(2);
-                              
-                              final duration = segment['duration_minutes']?.toString() ?? '0';
-                              final status = segment['status']?.toString() ?? 'Unknown';
-                              
-                              final fromLat = double.tryParse(segment['from_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0') ?? 0.0;
-                              final fromLng = double.tryParse(segment['from_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0') ?? 0.0;
-                              final fromAddressKey = '$fromLat,$fromLng';
-
-                              final toLat = double.tryParse(segment['to_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0') ?? 0.0;
-                              final toLng = double.tryParse(segment['to_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0') ?? 0.0;
-                              final toAddressKey = '$toLat,$toLng';
-                              
-                              if (!controller.addressCache.containsKey(fromAddressKey)) {
-                                controller.getAddressFor(fromLat, fromLng);
-                              }
-                              if (!controller.addressCache.containsKey(toAddressKey) && toLat != 0.0 && toLng != 0.0) {
-                                controller.getAddressFor(toLat, toLng);
-                              }
-
-                              final isMoving = status.toLowerCase() == 'moving';
-                              final statusColor = isMoving ? Colors.green : Colors.orange;
-
-                              Widget buildInfoChip(IconData icon, String text, Color color) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: color.withValues(alpha: 0.2)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(icon, size: 12, color: color),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        text,
-                                        style: AppTextStyle.style_10_600(color: color),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-
-                              return InkWell(
-                                onTap: () => controller.onSegmentTapped(reversedIndex),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  child: IntrinsicHeight(
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
+                          sliver: controller.routeSegments.isEmpty
+                              ? SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Column(
-                                          children: [
-                                            Container(
-                                              width: 12,
-                                              height: 12,
-                                              margin: const EdgeInsets.only(
-                                                top: 4,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: statusColor,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 2,
-                                                ),
-                                              ),
-                                            ),
-                                            if (index <
-                                                controller.routeSegments.length - 1)
-                                              Expanded(
-                                                child: Container(
-                                                  width: 2,
-                                                  color: Colors.grey[300],
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    'Trip ${reversedIndex + 1}',
-                                                    style:
-                                                        AppTextStyle.style_14_600(
-                                                          color:
-                                                              AppColors.black,
-                                                        ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  if (timeText.isNotEmpty)
-                                                    Text(
-                                                      timeText,
-                                                      style:
-                                                          AppTextStyle.style_12_600(
-                                                            color: AppColors
-                                                                .blue500,
-                                                          ),
-                                                    ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Wrap(
-                                                spacing: 6,
-                                                runSpacing: 6,
-                                                crossAxisAlignment: WrapCrossAlignment.center,
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                                    decoration: BoxDecoration(
-                                                      color: statusColor.withValues(alpha: 0.1),
-                                                      borderRadius: BorderRadius.circular(6),
-                                                      border: Border.all(color: statusColor.withValues(alpha: 0.2)),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Icon(isMoving ? Icons.directions_car_rounded : Icons.pause_circle_filled_rounded, size: 12, color: statusColor),
-                                                        const SizedBox(width: 4),
-                                                        Text(
-                                                          status.toUpperCase(),
-                                                          style: AppTextStyle.style_10_600(color: statusColor),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  if (isMoving)
-                                                    buildInfoChip(
-                                                      Icons.route_rounded,
-                                                      '$distance km',
-                                                      AppColors.blue500,
-                                                    ),
-                                                  buildInfoChip(
-                                                    Icons.timer_rounded,
-                                                    '$duration mins',
-                                                    AppColors.blue500,
-                                                  ),
-                                                  if (segment['avg_speed_kmph'] != null)
-                                                    buildInfoChip(
-                                                      Icons.speed_rounded,
-                                                      'Avg: ${double.tryParse(segment['avg_speed_kmph'].toString())?.toStringAsFixed(1) ?? '0'} km/h',
-                                                      Colors.purple,
-                                                    ),
-                                                  if (segment['max_speed_kmph'] != null)
-                                                    buildInfoChip(
-                                                      Icons.speed_rounded,
-                                                      'Max: ${double.tryParse(segment['max_speed_kmph'].toString())?.toStringAsFixed(1) ?? '0'} km/h',
-                                                      Colors.red,
-                                                    ),
-                                                  if (segment['battery'] != null)
-                                                    buildInfoChip(
-                                                      Icons.battery_std_rounded,
-                                                      '${segment['battery']}%',
-                                                      Colors.teal,
-                                                    ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Obx(() {
-                                                final fromAddr = controller.addressCache[fromAddressKey] ?? 'Loading address...';
-                                                final toAddr = controller.addressCache[toAddressKey] ?? 'Loading address...';
-                                                final isMoving = status.toLowerCase() == 'moving';
-                                                
-                                                if (isMoving) {
-                                                  return Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text('From: $fromAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                                      const SizedBox(height: 2),
-                                                      Text('To: $toAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                                    ],
-                                                  );
-                                                } else {
-                                                  return Text('At: $fromAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 2, overflow: TextOverflow.ellipsis);
-                                                }
-                                              }),
-                                              const SizedBox(height: 12),
-                                              Row(
-                                                children: [
-                                                  InkWell(
-                                                    onTap: () {
-                                                      controller
-                                                          .openInGoogleMaps(
-                                                            fromLat,
-                                                            fromLng,
-                                                          );
-                                                    },
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        const Icon(
-                                                          Icons
-                                                              .directions_rounded,
-                                                          size: 18,
-                                                          color:
-                                                              AppColors.blue500,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                        Text(
-                                                          'Directions',
-                                                          style:
-                                                              AppTextStyle.style_12_600(
-                                                                color: AppColors
-                                                                    .blue500,
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
+                                        Icon(Icons.timeline_outlined, size: 40, color: Colors.grey[400]),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'No detailed trip timeline available for this day.',
+                                          textAlign: TextAlign.center,
+                                          style: AppTextStyle.style_14_400(color: AppColors.grey500),
                                         ),
                                       ],
                                     ),
                                   ),
+                                )
+                              : SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final reversedIndex = controller.routeSegments.length - 1 - index;
+                                      final segment = controller.routeSegments[reversedIndex];
+
+                                      String formatT(dynamic t) {
+                                        if (t == null) return '';
+                                        try {
+                                          return DateFormat('hh:mm a').format(
+                                            DateTime.parse(t.toString()).toLocal(),
+                                          );
+                                        } catch (_) {
+                                          return t.toString();
+                                        }
+                                      }
+
+                                      final startTime = formatT(segment['start_time']);
+                                      final endTime = formatT(segment['end_time']);
+                                      final timeText = endTime.isEmpty ? startTime : '$startTime - $endTime';
+
+                                      final distanceRaw = double.tryParse(segment['distance_km']?.toString() ?? '0') ?? 0.0;
+                                      final distance = distanceRaw.toStringAsFixed(2);
+
+                                      final duration = segment['duration_minutes']?.toString() ?? '0';
+                                      final status = segment['status']?.toString() ?? 'Unknown';
+
+                                      final fromLat = double.tryParse(segment['from_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0') ?? 0.0;
+                                      final fromLng = double.tryParse(segment['from_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0') ?? 0.0;
+                                      final fromAddressKey = '$fromLat,$fromLng';
+
+                                      final toLat = double.tryParse(segment['to_latitude']?.toString() ?? segment['latitude']?.toString() ?? '0') ?? 0.0;
+                                      final toLng = double.tryParse(segment['to_longitude']?.toString() ?? segment['longitude']?.toString() ?? '0') ?? 0.0;
+                                      final toAddressKey = '$toLat,$toLng';
+
+                                      if (!controller.addressCache.containsKey(fromAddressKey)) {
+                                        controller.getAddressFor(fromLat, fromLng);
+                                      }
+                                      if (!controller.addressCache.containsKey(toAddressKey) && toLat != 0.0 && toLng != 0.0) {
+                                        controller.getAddressFor(toLat, toLng);
+                                      }
+
+                                      final isMoving = status.toLowerCase() == 'moving';
+                                      final statusColor = isMoving ? Colors.green : Colors.orange;
+
+                                      Widget buildInfoChip(IconData icon, String text, Color color) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: color.withValues(alpha: 0.2)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(icon, size: 12, color: color),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                text,
+                                                style: AppTextStyle.style_10_600(color: color),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+
+                                      return InkWell(
+                                        onTap: () => controller.onSegmentTapped(reversedIndex),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          margin: const EdgeInsets.only(bottom: 8),
+                                          child: IntrinsicHeight(
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                                              children: [
+                                                Column(
+                                                  children: [
+                                                    Container(
+                                                      width: 12,
+                                                      height: 12,
+                                                      margin: const EdgeInsets.only(top: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: statusColor,
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(color: Colors.white, width: 2),
+                                                      ),
+                                                    ),
+                                                    if (index < controller.routeSegments.length - 1)
+                                                      Expanded(
+                                                        child: Container(width: 2, color: Colors.grey[300]),
+                                                      ),
+                                                  ],
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            'Trip ${reversedIndex + 1}',
+                                                            style: AppTextStyle.style_14_600(color: AppColors.black),
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          if (timeText.isNotEmpty)
+                                                            Text(
+                                                              timeText,
+                                                              style: AppTextStyle.style_12_600(color: AppColors.blue500),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Wrap(
+                                                        spacing: 6,
+                                                        runSpacing: 6,
+                                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                                        children: [
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                            decoration: BoxDecoration(
+                                                              color: statusColor.withValues(alpha: 0.1),
+                                                              borderRadius: BorderRadius.circular(6),
+                                                              border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                Icon(isMoving ? Icons.directions_car_rounded : Icons.pause_circle_filled_rounded, size: 12, color: statusColor),
+                                                                const SizedBox(width: 4),
+                                                                Text(status.toUpperCase(), style: AppTextStyle.style_10_600(color: statusColor)),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          if (isMoving)
+                                                            buildInfoChip(Icons.route_rounded, '$distance km', AppColors.blue500),
+                                                          buildInfoChip(Icons.timer_rounded, '$duration mins', AppColors.blue500),
+                                                          if (segment['avg_speed_kmph'] != null)
+                                                            buildInfoChip(Icons.speed_rounded, 'Avg: ${double.tryParse(segment['avg_speed_kmph'].toString())?.toStringAsFixed(1) ?? '0'} km/h', Colors.purple),
+                                                          if (segment['max_speed_kmph'] != null)
+                                                            buildInfoChip(Icons.speed_rounded, 'Max: ${double.tryParse(segment['max_speed_kmph'].toString())?.toStringAsFixed(1) ?? '0'} km/h', Colors.red),
+                                                          if (segment['battery'] != null)
+                                                            buildInfoChip(Icons.battery_std_rounded, '${segment['battery']}%', Colors.teal),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Obx(() {
+                                                        final fromAddr = controller.addressCache[fromAddressKey] ?? 'Loading address...';
+                                                        final toAddr = controller.addressCache[toAddressKey] ?? 'Loading address...';
+                                                        final isMovingLocal = status.toLowerCase() == 'moving';
+                                                        if (isMovingLocal) {
+                                                          return Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text('From: $fromAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                              const SizedBox(height: 2),
+                                                              Text('To: $toAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                            ],
+                                                          );
+                                                        } else {
+                                                          return Text('At: $fromAddr', style: AppTextStyle.style_12_400(color: AppColors.grey600), maxLines: 2, overflow: TextOverflow.ellipsis);
+                                                        }
+                                                      }),
+                                                      const SizedBox(height: 12),
+                                                      Row(
+                                                        children: [
+                                                          InkWell(
+                                                            onTap: () => controller.openInGoogleMaps(fromLat, fromLng),
+                                                            child: Row(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                const Icon(Icons.directions_rounded, size: 18, color: AppColors.blue500),
+                                                                const SizedBox(width: 4),
+                                                                Text('Directions', style: AppTextStyle.style_12_600(color: AppColors.blue500)),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    childCount: controller.routeSegments.length,
+                                  ),
                                 ),
-                              );
-                            },
-                            childCount: controller.routeSegments.length,
-                          ),
-                        ),
                         ),
                       ],
                     ),

@@ -11,9 +11,6 @@ import 'package:dev/views/widgets/floating_logger_button.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:services/plutus_service.dart';
-import 'package:services/phonepe_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -27,6 +24,7 @@ import 'package:intl/intl.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:mfresh_ops/core/constants/tracking_constants.dart';
+import 'package:mfresh_ops/core/controllers/duty_monitor_controller.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
@@ -42,9 +40,9 @@ import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
-import 'package:mfresh_ops/core/controllers/duty_monitor_controller.dart';
 import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:services/phonepe_service.dart';
 import 'package:services/services.dart';
 // endregion
 
@@ -146,7 +144,9 @@ class MyTaskHandler extends TaskHandler {
               requestAlertPermission: false,
             ),
           );
-      await _localNotificationsPlugin.initialize(settings: initializationSettings);
+      await _localNotificationsPlugin.initialize(
+        settings: initializationSettings,
+      );
     } catch (_) {}
 
     _notificationUpdateTimer = Timer.periodic(
@@ -309,7 +309,9 @@ class MyTaskHandler extends TaskHandler {
       battery: _cachedBatteryLevel,
       isCharging: _cachedIsCharging,
       networkType: 'background_isolate',
-      locationTime: DateFormat('yyyy-MM-dd HH:mm:ss').format(pos.timestamp.toLocal()),
+      locationTime: DateFormat(
+        'yyyy-MM-dd HH:mm:ss',
+      ).format(pos.timestamp.toLocal()),
     );
   }
 

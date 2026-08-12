@@ -101,6 +101,22 @@ class AppDateUtils {
     }
   }
 
+  static String formatToDateDayMonth(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return 'Never';
+    try {
+      final parsed = DateTime.tryParse(rawDate);
+      if (parsed == null) return rawDate;
+
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final monthName = _getShortMonthName(local.month);
+      
+      return '$day $monthName';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
   static String formatToTimeAmPm(String? rawDate) {
     if (rawDate == null || rawDate.isEmpty) return 'Never';
     try {

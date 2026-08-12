@@ -152,13 +152,22 @@ class StorageService extends GetxService {
 
   // region Settings Methods
   Future<void> saveHomeGridOrder(List<String> order) async {
-    await _settingsBox.put(_homeGridOrderKey, order);
+    await _settingsBox.put('home_grid_order', order);
   }
 
   List<String>? getHomeGridOrder() {
-    final order = _settingsBox.get(_homeGridOrderKey);
-    if (order != null) {
-      return List<String>.from(order);
+    final list = _settingsBox.get('home_grid_order') as List?;
+    return list?.cast<String>();
+  }
+
+  Future<void> saveHomeGridConfig(Map<String, dynamic> config) async {
+    await _settingsBox.put('home_grid_config', config);
+  }
+
+  Map<String, dynamic>? getHomeGridConfig() {
+    final map = _settingsBox.get('home_grid_config');
+    if (map != null && map is Map) {
+      return Map<String, dynamic>.from(map);
     }
     return null;
   }

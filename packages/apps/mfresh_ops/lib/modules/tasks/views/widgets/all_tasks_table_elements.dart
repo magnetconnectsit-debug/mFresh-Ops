@@ -5,16 +5,42 @@ import 'package:core/utils/app_text_style.dart';
 
 class AllTasksHeaderCell extends StatelessWidget {
   final String text;
+  final VoidCallback? onTap;
+  final bool isSorted;
+  final bool sortAscending;
 
-  const AllTasksHeaderCell({super.key, required this.text});
+  const AllTasksHeaderCell({
+    super.key,
+    required this.text,
+    this.onTap,
+    this.isSorted = false,
+    this.sortAscending = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_700(color: AppColors.black),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+        child: Row(
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: AppTextStyle.style_12_700(color: AppColors.black),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (isSorted)
+              Icon(
+                sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 14.sp,
+                color: AppColors.black,
+              ),
+          ],
+        ),
       ),
     );
   }

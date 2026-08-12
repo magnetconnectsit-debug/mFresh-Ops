@@ -13,6 +13,7 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
@@ -57,6 +58,88 @@ class TasksController extends GetxController {
   final totalPages = 1.obs;
   // endregion
 
+  // region Sorting
+  final sortColumn = ''.obs;
+  final sortAscending = true.obs;
+
+  void toggleSort(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+  }
+
+  int _compareStrings(String? a, String? b) =>
+      (a ?? '').toLowerCase().compareTo((b ?? '').toLowerCase());
+
+  int _compareDates(String? a, String? b) {
+    if (a == null || a.isEmpty) return 1;
+    if (b == null || b.isEmpty) return -1;
+    return a.compareTo(b);
+  }
+
+  static const _statusSortOrder = {
+    'pending': 1, 'in_progress': 2, 'review': 3, 'under_review': 3,
+    'completed': 4, 'approved': 5, 'rejected': 6,
+  };
+
+  List<TaskItem> get sortedTasks {
+    if (sortColumn.value.isEmpty) return tasks;
+    final result = List<TaskItem>.from(tasks)..sort((a, b) {
+      int cmp = 0;
+      switch (sortColumn.value) {
+        case 'Task ID':
+          cmp = _compareStrings(
+            '${a.taskCode}_${a.taskInstanceId}',
+            '${b.taskCode}_${b.taskInstanceId}',
+          );
+          break;
+        case 'Project':
+          cmp = _compareStrings(a.project, b.project);
+          break;
+        case 'Task':
+          cmp = _compareStrings(a.title, b.title);
+          break;
+        case 'Created On':
+          cmp = _compareDates(a.createdAt, b.createdAt);
+          break;
+        case 'Created By':
+          cmp = _compareStrings(a.createdByName, b.createdByName);
+          break;
+        case 'Task Type':
+          cmp = _compareStrings(a.taskType, b.taskType);
+          break;
+        case 'Assignee':
+          cmp = _compareStrings(a.assigneeName, b.assigneeName);
+          break;
+        case 'Started From':
+          cmp = _compareDates(a.scheduleDateTime, b.scheduleDateTime);
+          break;
+        case 'Completed By':
+          cmp = _compareStrings(a.completedByName, b.completedByName);
+          break;
+        case 'Status':
+          final aIdx = _statusSortOrder[a.status.toLowerCase()] ?? 99;
+          final bIdx = _statusSortOrder[b.status.toLowerCase()] ?? 99;
+          cmp = aIdx.compareTo(bIdx);
+          break;
+        case 'Approver Name':
+          cmp = _compareStrings(a.approverName, b.approverName);
+          break;
+      }
+      return sortAscending.value ? cmp : -cmp;
+    });
+    return result;
+  }
+  // endregion
+
   final currentTime = DateTime.now().obs;
   final isReadOnly = false.obs;
   Timer? _timeTimer;
@@ -65,19 +148,19 @@ class TasksController extends GetxController {
   void onInit() {
     super.onInit();
     refreshData();
-    
+
     // Global ticking timer to update all overdue live countdowns efficiently
     _timeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       currentTime.value = DateTime.now();
     });
-    
+
     // Add scroll listener for daily tasks lazy loading
     scrollController.addListener(() {
       if (!scrollController.hasClients) return;
-      
+
       // Use positions.last to avoid crash if multiple DailyTasks screens are in the navigation stack
       final pos = scrollController.positions.last;
-      
+
       if (pos.pixels >= pos.maxScrollExtent - 100) {
         final currentRoute = Get.currentRoute;
         if (!currentRoute.contains(AppRoutes.allTasks) && !isFiltered) {
@@ -141,6 +224,16 @@ class TasksController extends GetxController {
     tasks.clear();
     dailyTasks.clear();
     allDailyTasks.clear();
+    
+    // Refresh the user profile to sync permissions
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (e) {
+      debugPrint('TasksController: Failed to refresh profile on pull to refresh: $e');
+    }
+
     await fetchAllData();
   }
 
@@ -153,20 +246,46 @@ class TasksController extends GetxController {
         fetchUnits(),
         fetchAssignees(),
       ]);
-      await fetchInitialList();
+      await fetchInitialList(fetchSavedFilters: true);
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> fetchInitialList() async {
+  Future<void> fetchInitialList({bool fetchSavedFilters = false}) async {
     final currentRoute = Get.currentRoute;
     debugPrint('TasksController: fetchInitialList for route: $currentRoute');
 
-    if (currentRoute.contains(AppRoutes.allTasks) || isFiltered) {
+    if (currentRoute.contains(AppRoutes.allTasks)) {
+      // All Tasks screen: always uses the index/paginated API
       await fetchTasks();
     } else {
+      // Daily Tasks screen: fetch saved filters before fetching tasks
+      if (fetchSavedFilters) {
+        await fetchAndApplySavedFilters();
+      }
       await fetchDailyTasks();
+    }
+  }
+
+  Future<void> fetchAndApplySavedFilters() async {
+    final filterData = await _taskRepository.getUserTaskFilter();
+    if (filterData != null) {
+      List<int> parseIds(String key) {
+        final val = filterData[key];
+        if (val == null || val.toString().trim().isEmpty || val.toString().trim().toUpperCase() == 'NA') return [];
+        return val.toString().split(',').map((e) => int.tryParse(e.trim())).whereType<int>().toList();
+      }
+
+      final savedProjectIds = parseIds('project_id');
+      final savedUnitIds = parseIds('unit_id');
+      final savedAssigneeIds = parseIds('assignee_id');
+      final savedGroupIds = parseIds('s_groupID');
+
+      selectedProjects.assignAll(projects.where((p) => savedProjectIds.contains(p.projectId)));
+      selectedUnits.assignAll(units.where((u) => savedUnitIds.contains(u.unitId)));
+      selectedAssignees.assignAll(assignees.where((a) => savedAssigneeIds.contains(a.id)));
+      selectedGroups.assignAll(groups.where((g) => savedGroupIds.contains(g.id)));
     }
   }
 
@@ -218,9 +337,32 @@ class TasksController extends GetxController {
   Future<void> fetchDailyTasks() async {
     try {
       isLoading.value = true;
-      final response = await _taskRepository.getDailyTasks();
+      final response = await _taskRepository.getDailyTasks(
+        projects: selectedProjects.map((project) => project.projectId).toList(),
+        units: selectedUnits.map((unit) => unit.unitId).toList(),
+        assignees: selectedAssignees.map((assignee) => assignee.id).toList(),
+        groups: selectedGroups.map((group) => group.id).toList(),
+      );
       if (response != null) {
-        final filteredTasks = response.tasks.where((task) => task.title.trim().toUpperCase() != 'NA').toList();
+        var filteredTasks = response.tasks.where((task) => task.title.trim().toUpperCase() != 'NA').toList();
+
+        // Apply client-side filters (project, group, unit, assignee)
+        if (selectedProjects.isNotEmpty) {
+          final projectIds = selectedProjects.map((p) => p.projectId.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => projectIds.contains(task.projectId.toString())).toList();
+        }
+        if (selectedGroups.isNotEmpty) {
+          final groupIds = selectedGroups.map((g) => g.id.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => groupIds.contains(task.groupId.toString())).toList();
+        }
+        if (selectedUnits.isNotEmpty) {
+          final unitIds = selectedUnits.map((u) => u.unitId.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => unitIds.contains(task.unitId.toString())).toList();
+        }
+        if (selectedAssignees.isNotEmpty) {
+          final assigneeIds = selectedAssignees.map((a) => a.id.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => assigneeIds.contains(task.assignTo.toString())).toList();
+        }
         
         // Sort in order of Active -> Overdue -> Upcoming
         filteredTasks.sort((a, b) {

@@ -166,9 +166,17 @@ class CommonSidebar extends StatelessWidget {
               return ListView(
                 padding: EdgeInsets.zero,
                 children: [
+                  if (userPermissions.contains('Dashboard_Panel'))
+                    _buildMenuItem(
+                      icon: Icons.dashboard_outlined,
+                      activeIcon: Icons.dashboard,
+                      title: 'Dashboard',
+                      route: AppRoutes.dashboard,
+                      currentRoute: currentRoute,
+                    ),
                   _buildMenuItem(
-                    icon: Icons.dashboard_outlined,
-                    activeIcon: Icons.dashboard,
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home,
                     title: 'Home',
                     route: AppRoutes.home,
                     currentRoute: currentRoute,

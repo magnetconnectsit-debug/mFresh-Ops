@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "10.0.1"
+  android_id:
+    dependency: "direct main"
+    description:
+      name: android_id
+      sha256: f6489be4c4380cdb55a99db5b03764d936e84e9d5258a26571aa500bd1159fe0
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.1"
   archive:
     dependency: "direct overridden"
     description:
@@ -1494,7 +1502,7 @@ packages:
     source: path
     version: "1.0.0"
   share_plus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: share_plus
       sha256: fce43200aa03ea87b91ce4c3ac79f0cecd52e2a7a56c7a4185023c271fbfa6da

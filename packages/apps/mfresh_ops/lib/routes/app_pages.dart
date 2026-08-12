@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:mfresh_ops/modules/dashboard/views/dashboard_view.dart';
+import 'package:mfresh_ops/modules/dashboard/bindings/dashboard_binding.dart';
 import 'package:mfresh_ops/modules/info_directory/views/info_directory_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/create_contact_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/mcontact_brands_screen.dart';
@@ -208,6 +210,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.locationPermission,
       page: () => const LocationPermissionScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.dashboard,
+      page: () => const DashboardView(),
+      binding: DashboardBinding(),
     ),
     GetPage(
       name: AppRoutes.liveTracking,

@@ -15,6 +15,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
   final double? height;
   final bool hasError;
   final TextStyle? selectedTextStyle;
+  final Widget? customChild;
 
   const MultiSelectDropdownWidget({
     super.key,
@@ -29,6 +30,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
     this.height,
     this.hasError = false,
     this.selectedTextStyle,
+    this.customChild,
   });
 
   @override
@@ -70,7 +72,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
           ],
         );
       },
-      child: height != null
+      child: customChild ?? (height != null
         ? Container(
             height: height,
             padding: EdgeInsets.symmetric(horizontal: 8.w),
@@ -183,7 +185,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
-          ),
+          )),
     );
 
     if (title != null) {

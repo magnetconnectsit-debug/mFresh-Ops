@@ -21,6 +21,7 @@ dependencies:
   # External Dependencies
   get: ^4.7.3
   device_info_plus: ^11.5.0
+  android_id: ^0.4.0
   firebase_core: ^4.7.0
   firebase_messaging: ^16.2.0
   flutter_local_notifications: ^20.1.0
@@ -60,6 +61,7 @@ dependencies:
   mobile_scanner: ^6.0.4
   reorderable_grid_view: ^2.2.8
   cached_network_image: ^3.3.1
+  share_plus: ^10.1.0
 dependency_overrides:
   archive: ^4.0.0
 

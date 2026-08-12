@@ -1,25 +1,38 @@
 import 'dart:async';
+
+import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:services/storage_service.dart';
-import 'package:core/constants/app_colors.dart';
 
 class DutyMonitorController extends GetxController with WidgetsBindingObserver {
   Timer? _timer;
+  Timer? _gracePeriodTimer;
   bool _isDialogShowing = false;
   bool _isAppInForeground = true;
+
+  /// Prevents the "off duty" dialog from firing during:
+  /// 1. First 60 seconds after app launch (let user turn on duty themselves)
+  /// 2. 30 seconds after "Turn On Duty" is tapped (wait for API call to complete)
+  /// 3. 30 seconds after the app resumes from background
+  bool _isInGracePeriod = true;
 
   @override
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    // On first launch, give user 60 seconds to turn on duty themselves
+    _gracePeriodTimer = Timer(const Duration(seconds: 60), () {
+      _isInGracePeriod = false;
+    });
     _startTimer();
   }
 
   @override
   void onClose() {
     _timer?.cancel();
+    _gracePeriodTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.onClose();
   }
@@ -28,7 +41,14 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _isAppInForeground = true;
-      _checkDutyState();
+      // When resuming from background, give a 30-second grace period
+      // so the user can turn on duty themselves without being interrupted
+      _isInGracePeriod = true;
+      _gracePeriodTimer?.cancel();
+      _gracePeriodTimer = Timer(const Duration(seconds: 30), () {
+        _isInGracePeriod = false;
+        _checkDutyState();
+      });
       _startTimer();
     } else {
       _isAppInForeground = false;
@@ -39,7 +59,7 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (_isAppInForeground) {
+      if (_isAppInForeground && !_isInGracePeriod) {
         _checkDutyState();
       }
     });
@@ -47,11 +67,13 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
 
   void _checkDutyState() {
     if (_isDialogShowing) return;
+    if (_isInGracePeriod) return;
 
     final user = Get.find<StorageService>().getUser();
     if (user == null) return; // Not logged in
 
-    final bool isOffDuty = user.isOnDuty == 0 || user.isOnDuty == null || user.isOnDuty == false;
+    final bool isOffDuty =
+        user.isOnDuty == 0 || user.isOnDuty == null || user.isOnDuty == false;
     if (isOffDuty) {
       _showDutyDialog();
     }
@@ -125,8 +147,18 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
                     onPressed: () async {
                       Get.back();
                       _isDialogShowing = false;
+                      // Enter grace period while the duty toggle API call is in progress
+                      // so the periodic timer doesn't immediately re-show the dialog
+                      _isInGracePeriod = true;
+                      _gracePeriodTimer?.cancel();
+                      _gracePeriodTimer = Timer(
+                        const Duration(seconds: 30),
+                        () {
+                          _isInGracePeriod = false;
+                        },
+                      );
                       if (!TrackingService.to.isTracking.value) {
-                         await TrackingService.to.toggleTracking();
+                        await TrackingService.to.toggleTracking();
                       }
                     },
                     style: ElevatedButton.styleFrom(

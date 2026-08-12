@@ -18,9 +18,11 @@ class AppCommonToastMessage {
 
   try {
     if (Get.isSnackbarOpen) {
-      Get.closeAllSnackbars();
+      Get.closeCurrentSnackbar();
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Error closing snackbar: $e');
+  }
 
   Get.showSnackbar(
     GetSnackBar(

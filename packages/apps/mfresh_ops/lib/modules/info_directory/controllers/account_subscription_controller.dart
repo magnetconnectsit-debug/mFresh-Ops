@@ -13,7 +13,7 @@ class AccountSubscriptionController extends GetxController {
   final RxList<AccountDropdownModel> accountList = <AccountDropdownModel>[].obs;
 
   // Pagination
-  final perPage = 10.obs;
+  final perPage = 100.obs;
   final currentPage = 1.obs;
   final lastPage = 1.obs;
   final totalRecords = 0.obs;
