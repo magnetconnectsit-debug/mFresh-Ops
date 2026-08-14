@@ -10,6 +10,3 @@ void main() {
     expect(find.text('mFresh Ops - Operations App'), findsOneWidget);
   });
 }
-
-
-
