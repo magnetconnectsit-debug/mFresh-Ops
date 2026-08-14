@@ -37,7 +37,7 @@ class DashboardView extends GetView<DashboardController> {
         title: Row(
           children: [
             Text(
-              'Dashboard',
+              'Revenue Report',
               style: AppTextStyle.style_18_600(color: AppColors.black),
             ),
             SizedBox(width: 8.w),

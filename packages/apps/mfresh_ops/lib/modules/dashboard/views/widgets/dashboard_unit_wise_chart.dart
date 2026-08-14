@@ -310,20 +310,33 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
                 maxX: distinctDatesSet.length - 0.5,
                 minY: 0,
                 maxY: maxRevenue,
-                showingTooltipIndicators: touchedSpotIndex != null
-                    ? [
-                        ShowingTooltipIndicators(
-                          List.generate(
-                            lineBarsData.length,
-                            (index) => LineBarSpot(
-                              lineBarsData[index],
-                              index,
-                              lineBarsData[index].spots[touchedSpotIndex!],
-                            ),
-                          ),
-                        )
-                      ]
-                    : [],
+                showingTooltipIndicators: () {
+                  List<ShowingTooltipIndicators> indicators = [];
+                  for (int xIndex = 0; xIndex < distinctDatesSet.length; xIndex++) {
+                    if (touchedSpotIndex == xIndex) {
+                      // Group all lines together into a single tooltip indicator for the touched index
+                      List<LineBarSpot> spotsForThisX = [];
+                      for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
+                        if (lineBarsData[barIndex].spots[xIndex].y != 0) {
+                          spotsForThisX.add(LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex]));
+                        }
+                      }
+                      if (spotsForThisX.isNotEmpty) {
+                        indicators.add(ShowingTooltipIndicators(spotsForThisX));
+                      }
+                    } else if (touchedSpotIndex == null) {
+                      // Separate them for permanent labels (only when nothing is touched)
+                      for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
+                        if (lineBarsData[barIndex].spots[xIndex].y != 0) {
+                          indicators.add(ShowingTooltipIndicators([
+                            LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex])
+                          ]));
+                        }
+                      }
+                    }
+                  }
+                  return indicators;
+                }(),
                 lineTouchData: LineTouchData(
                   enabled: true,
                   handleBuiltInTouches: false,
@@ -342,36 +355,46 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
                     }
                   },
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (touchedSpot) => const Color(0xFF1F2937),
-                    tooltipPadding: EdgeInsets.all(8.w),
+                    getTooltipColor: (touchedSpot) => touchedSpotIndex == touchedSpot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
+                    tooltipPadding: EdgeInsets.all(4.w),
                     tooltipMargin: 8.h,
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
                     getTooltipItems: (List<LineBarSpot> touchedSpots) {
                       bool isFirst = true;
                       return touchedSpots.map((spot) {
-                        if (spot.y == 0) return null; // Hide 0 values to save vertical space
+                        if (spot.y == 0) return null; // Hide 0 values
                         
-                        String dateStr = "";
-                        if (isFirst) {
-                          int xIndex = spot.x.toInt();
-                          if (xIndex >= 0 && xIndex < distinctDatesSet.length) {
-                            dateStr = '${_formatDate(distinctDatesSet[xIndex])}\n';
-                          }
-                          isFirst = false;
-                        }
-
                         String unitNo = distinctUnitsSet[spot.barIndex];
-                        return LineTooltipItem(
-                          '$dateStr$unitNo: ',
-                          AppTextStyle.style_10_600(color: Colors.white),
-                          children: [
-                            TextSpan(
-                              text: '₹${NumberFormat('#,##,###').format(spot.y)}',
-                              style: AppTextStyle.style_12_600(color: _getColorForUnit(unitNo, spot.barIndex)),
-                            ),
-                          ],
-                        );
+                        Color unitColor = _getColorForUnit(unitNo, spot.barIndex);
+                        
+                        // Check if this is the hovered spot
+                        if (touchedSpotIndex == spot.spotIndex) {
+                          String dateStr = "";
+                          if (isFirst) {
+                            int xIndex = spot.x.toInt();
+                            if (xIndex >= 0 && xIndex < distinctDatesSet.length) {
+                              dateStr = '${_formatDate(distinctDatesSet[xIndex])}\n';
+                            }
+                            isFirst = false;
+                          }
+                          return LineTooltipItem(
+                            '$dateStr$unitNo: ',
+                            AppTextStyle.style_10_600(color: Colors.white),
+                            children: [
+                              TextSpan(
+                                text: '₹${NumberFormat('#,##,###').format(spot.y)}',
+                                style: AppTextStyle.style_12_600(color: unitColor),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Permanent label
+                          return LineTooltipItem(
+                            '₹${NumberFormat.compact().format(spot.y)}',
+                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                          );
+                        }
                       }).toList();
                     },
                   ),

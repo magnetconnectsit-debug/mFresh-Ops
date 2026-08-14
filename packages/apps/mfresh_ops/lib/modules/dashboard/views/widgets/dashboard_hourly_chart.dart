@@ -140,11 +140,9 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
           ),
           SizedBox(height: 24.h),
           
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: SizedBox(
-              height: 250.h,
-                child: BarChart(
+          Builder(
+            builder: (context) {
+              Widget chart = BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
                     minY: 0,
@@ -231,23 +229,39 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
                         }
                       },
                       touchTooltipData: BarTouchTooltipData(
-                        getTooltipColor: (_) => const Color(0xFF1F2937),
-                        tooltipPadding: EdgeInsets.all(8.w),
-                        tooltipMargin: 8.h,
+                        getTooltipColor: (group) => touchedGroupIndex == group.x ? const Color(0xFF1F2937) : Colors.transparent,
+                        tooltipPadding: EdgeInsets.all(4.w),
+                        tooltipMargin: 4.h,
                         fitInsideHorizontally: true,
                         fitInsideVertically: true,
                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          String prefix = widget.isRevenue ? 'Revenue: ₹' : 'Bookings: ';
-                          return BarTooltipItem(
-                            '${widget.data[groupIndex].timeRange}\n',
-                            AppTextStyle.style_12_700(color: Colors.white),
-                            children: [
-                              TextSpan(
-                                text: '$prefix${NumberFormat('#,##,###').format(rod.toY)}',
-                                style: AppTextStyle.style_12_400(color: widget.barColor.withOpacity(0.9)),
-                              ),
-                            ],
-                          );
+                          if (rod.toY == 0) return null;
+                          
+                          String prefix = widget.isRevenue ? '₹' : '';
+                          String formattedValue = NumberFormat('#,##,###').format(rod.toY);
+                          
+                          if (touchedGroupIndex != null) {
+                            if (touchedGroupIndex == groupIndex) {
+                              String fullPrefix = widget.isRevenue ? 'Revenue: ₹' : 'Bookings: ';
+                              return BarTooltipItem(
+                                '${widget.data[groupIndex].timeRange}\n',
+                                AppTextStyle.style_12_700(color: Colors.white),
+                                children: [
+                                  TextSpan(
+                                    text: '$fullPrefix$formattedValue',
+                                    style: AppTextStyle.style_12_400(color: widget.barColor.withOpacity(0.9)),
+                                  ),
+                                ],
+                              );
+                            }
+                            return null;
+                          } else {
+                            // Permanent label
+                            return BarTooltipItem(
+                              '$prefix$formattedValue',
+                              AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -259,19 +273,41 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
                           BarChartRodData(
                             toY: widget.data[index].value.toDouble(),
                             color: widget.barColor,
-                            width: 6.w, // Thin bars to fit all 24 on mobile screen without scrolling
+                            width: 6.w,
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(2.r),
                               topRight: Radius.circular(2.r),
                             ),
                           ),
                         ],
-                        showingTooltipIndicators: touchedGroupIndex == index ? [0] : [],
+                        showingTooltipIndicators: [0], // Always show for rod 0
                       ),
                     ),
+                    ),
+                  );
+
+              if (widget.isFullScreen) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    child: SizedBox(
+                      height: 250.h,
+                      width: widget.data.length * 40.w, // Dynamic width for horizontal scrolling
+                      child: chart,
+                    ),
                   ),
-                ),
-              ),
+                );
+              } else {
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  child: SizedBox(
+                    height: 250.h,
+                    child: chart,
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),

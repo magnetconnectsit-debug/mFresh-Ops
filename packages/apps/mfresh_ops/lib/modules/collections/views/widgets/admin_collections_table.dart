@@ -107,7 +107,7 @@ class AdminCollectionsTable extends StatelessWidget {
         Row(
           children: [
             _buildHeaderCell('Actual', width: subWidth, height: 24.h),
-            _buildHeaderCell('Dashboard', width: subWidth, height: 24.h),
+            _buildHeaderCell('Revenue Report', width: subWidth, height: 24.h),
             _buildHeaderCell('Difference', width: subWidth, height: 24.h),
           ],
         ),

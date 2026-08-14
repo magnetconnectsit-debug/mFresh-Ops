@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:mfresh_ops/data/models/contact_model.dart';
 import 'package:mfresh_ops/data/repositories/contact_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class InfoDirectoryController extends GetxController {
   final contacts = <ContactModel>[].obs;
@@ -82,6 +83,9 @@ class InfoDirectoryController extends GetxController {
 
   Future<void> resetFiltersAndRefresh() async {
     isRefreshing.value = true;
+    try {
+      await Get.find<AuthRepository>().fetchProfile();
+    } catch (_) {}
     searchQuery.value = '';
     searchController.clear();
     selectedBrands.value = {};

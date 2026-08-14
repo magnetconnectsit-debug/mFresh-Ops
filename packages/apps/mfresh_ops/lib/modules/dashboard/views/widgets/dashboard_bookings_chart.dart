@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -363,7 +364,31 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
                 extraLinesData: ExtraLinesData(
                   horizontalLines: extraLines,
                 ),
-                showingTooltipIndicators: tooltips,
+                showingTooltipIndicators: () {
+                  List<ShowingTooltipIndicators> indicators = [];
+                  for (int index = 0; index < math.max(widget.bookingsData.length, widget.serviceBookingsData.length); index++) {
+                    if (touchedSpotIndex == index) {
+                      List<LineBarSpot> spotsForThisX = [];
+                      if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
+                        spotsForThisX.add(LineBarSpot(bookingsBar, 0, bookingsBar.spots[index]));
+                      }
+                      if (index < servicesBar.spots.length && servicesBar.spots[index].y > 0) {
+                        spotsForThisX.add(LineBarSpot(servicesBar, 1, servicesBar.spots[index]));
+                      }
+                      if (spotsForThisX.isNotEmpty) {
+                        indicators.add(ShowingTooltipIndicators(spotsForThisX));
+                      }
+                    } else if (touchedSpotIndex == null) {
+                      if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
+                        indicators.add(ShowingTooltipIndicators([LineBarSpot(bookingsBar, 0, bookingsBar.spots[index])]));
+                      }
+                      if (index < servicesBar.spots.length && servicesBar.spots[index].y > 0) {
+                        indicators.add(ShowingTooltipIndicators([LineBarSpot(servicesBar, 1, servicesBar.spots[index])]));
+                      }
+                    }
+                  }
+                  return indicators;
+                }(),
                 lineTouchData: LineTouchData(
                   enabled: true,
                   handleBuiltInTouches: false,
@@ -382,47 +407,57 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
                     }
                   },
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => const Color(0xFF1F2937),
-                    tooltipPadding: EdgeInsets.all(8.w),
+                    getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
+                    tooltipPadding: EdgeInsets.all(4.w),
                     tooltipMargin: 8.h,
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
                     getTooltipItems: (touchedSpots) {
-                      // Custom multi-line tooltip
                       if (touchedSpots.isEmpty) return [];
                       
                       int index = touchedSpots.first.spotIndex;
-                      String monthStr = "";
-                      if (widget.bookingsData.isNotEmpty && index < widget.bookingsData.length) {
-                        monthStr = widget.bookingsData[index].month;
-                      } else if (widget.serviceBookingsData.isNotEmpty && index < widget.serviceBookingsData.length) {
-                        monthStr = widget.serviceBookingsData[index].month;
-                      }
-
-                      List<LineTooltipItem> items = [];
-                      for (int i = 0; i < touchedSpots.length; i++) {
-                        final spot = touchedSpots[i];
-                        
-                        // First item holds the header
-                        if (i == 0) {
-                          items.add(LineTooltipItem(
-                            '${_formatDate(monthStr)}\n',
-                            AppTextStyle.style_12_700(color: Colors.white),
-                            children: [
-                              TextSpan(
-                                text: '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
-                                style: AppTextStyle.style_12_400(color: spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent),
-                              ),
-                            ],
-                          ));
-                        } else {
-                          items.add(LineTooltipItem(
-                            '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
-                            AppTextStyle.style_12_400(color: spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent),
-                          ));
+                      
+                      if (touchedSpotIndex == index) {
+                        // Detailed sticky tooltip
+                        String monthStr = "";
+                        if (widget.bookingsData.isNotEmpty && index < widget.bookingsData.length) {
+                          monthStr = widget.bookingsData[index].month;
+                        } else if (widget.serviceBookingsData.isNotEmpty && index < widget.serviceBookingsData.length) {
+                          monthStr = widget.serviceBookingsData[index].month;
                         }
+
+                        List<LineTooltipItem> items = [];
+                        for (int i = 0; i < touchedSpots.length; i++) {
+                          final spot = touchedSpots[i];
+                          if (i == 0) {
+                            items.add(LineTooltipItem(
+                              '${_formatDate(monthStr)}\n',
+                              AppTextStyle.style_12_700(color: Colors.white),
+                              children: [
+                                TextSpan(
+                                  text: '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
+                                  style: AppTextStyle.style_12_400(color: spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent),
+                                ),
+                              ],
+                            ));
+                          } else {
+                            items.add(LineTooltipItem(
+                              '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
+                              AppTextStyle.style_12_400(color: spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent),
+                            ));
+                          }
+                        }
+                        return items;
+                      } else {
+                        // Permanent floating labels
+                        return touchedSpots.map((spot) {
+                          if (spot.y == 0) return null;
+                          return LineTooltipItem(
+                            NumberFormat.compact().format(spot.y),
+                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                          );
+                        }).toList();
                       }
-                      return items;
                     },
                   ),
                 ),

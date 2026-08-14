@@ -83,7 +83,7 @@ class HomeGridController extends GetxController {
 
   final List<GridItemData> _allItems = [
     GridItemData(
-      title: 'Dashboard',
+      title: 'Revenue Report',
       subtitle: 'View analytics',
       icon: Icons.dashboard_rounded,
       gradient: const [Color(0xFFE85D04), Color(0xFFDC2F02)],
