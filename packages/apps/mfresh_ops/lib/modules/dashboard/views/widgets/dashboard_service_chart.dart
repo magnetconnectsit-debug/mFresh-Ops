@@ -251,23 +251,35 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
                       }
                     },
                     touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => const Color(0xFF1F2937),
-                      tooltipPadding: EdgeInsets.all(8.w),
-                      tooltipMargin: 8.h,
+                      getTooltipColor: (group) => touchedGroupIndex == group.x ? const Color(0xFF1F2937) : Colors.transparent,
+                      tooltipPadding: EdgeInsets.all(4.w),
+                      tooltipMargin: 4.h,
                       fitInsideHorizontally: true,
                       fitInsideVertically: true,
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        String prefix = widget.isRevenue ? 'Revenue: ₹' : 'Count: ';
-                        return BarTooltipItem(
-                          '${sortedData[groupIndex].serviceName}\n',
-                          AppTextStyle.style_12_700(color: Colors.white),
-                          children: [
-                            TextSpan(
-                              text: '$prefix${NumberFormat('#,##,###').format(rod.toY)}',
-                              style: AppTextStyle.style_12_400(color: Colors.white70),
-                            ),
-                          ],
-                        );
+                        if (rod.toY == 0) return null;
+
+                        String prefix = widget.isRevenue ? '₹' : '';
+                        String formattedValue = NumberFormat('#,##,###').format(rod.toY);
+
+                        if (touchedGroupIndex == groupIndex) {
+                          String fullPrefix = widget.isRevenue ? 'Revenue: ₹' : 'Count: ';
+                          return BarTooltipItem(
+                            '${sortedData[groupIndex].serviceName}\n',
+                            AppTextStyle.style_12_700(color: Colors.white),
+                            children: [
+                              TextSpan(
+                                text: '$fullPrefix$formattedValue',
+                                style: AppTextStyle.style_12_400(color: Colors.white.withValues(alpha: 0.9)),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return BarTooltipItem(
+                            '$prefix$formattedValue',
+                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                          );
+                        }
                       },
                     ),
                   ),
@@ -277,7 +289,7 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
                       double val = widget.isRevenue ? sortedData[index].totalRevenue.toDouble() : sortedData[index].bookingCount.toDouble();
                       return BarChartGroupData(
                         x: index,
-                        showingTooltipIndicators: touchedGroupIndex == index ? [0] : [],
+                        showingTooltipIndicators: [0],
                         barRods: [
                           BarChartRodData(
                             toY: val,

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/asset_product_model.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart' as mfresh_auth;
 
 class AssetsProductsController extends GetxController {
   late final AssetProductRepository _repo;
@@ -92,7 +93,11 @@ class AssetsProductsController extends GetxController {
   void applyFilters() => fetchAssets(resetPage: true);
 
   Future<void> resetFiltersAndRefresh() async {
+    try {
+      await Get.find<mfresh_auth.AuthRepository>().fetchProfile();
+    } catch (_) {}
     selectedItemType.value = '';
+    searchQuery.value = '';
     await fetchAssets(resetPage: true);
   }
 

@@ -253,13 +253,15 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
                     ),
                   ],
                 ),
-                showingTooltipIndicators: touchedSpotIndex != null
-                    ? [
-                        ShowingTooltipIndicators([
-                          LineBarSpot(barData, 0, spots[touchedSpotIndex!]),
-                        ])
-                      ]
-                    : [],
+                showingTooltipIndicators: List.generate(
+                  spots.length,
+                  (index) {
+                    if (spots[index].y == 0) return const ShowingTooltipIndicators([]);
+                    return ShowingTooltipIndicators([
+                      LineBarSpot(barData, 0, spots[index]),
+                    ]);
+                  },
+                ),
                 lineTouchData: LineTouchData(
                   enabled: true,
                   handleBuiltInTouches: false,
@@ -278,23 +280,32 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
                     }
                   },
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => const Color(0xFF1F2937),
-                    tooltipPadding: EdgeInsets.all(8.w),
+                    getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
+                    tooltipPadding: EdgeInsets.all(4.w),
                     tooltipMargin: 8.h,
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
-                        return LineTooltipItem(
-                          '${_formatDate(widget.data[spot.spotIndex].date)}\n',
-                          AppTextStyle.style_12_700(color: Colors.white),
-                          children: [
-                            TextSpan(
-                              text: 'Revenue: ₹${NumberFormat('#,##,###').format(spot.y)}',
-                              style: AppTextStyle.style_12_400(color: Colors.white70),
-                            ),
-                          ],
-                        );
+                        if (spot.y == 0) return null;
+                        
+                        if (touchedSpotIndex == spot.spotIndex) {
+                          return LineTooltipItem(
+                            '${_formatDate(widget.data[spot.spotIndex].date)}\n',
+                            AppTextStyle.style_12_700(color: Colors.white),
+                            children: [
+                              TextSpan(
+                                text: 'Revenue: ₹${NumberFormat('#,##,###').format(spot.y)}',
+                                style: AppTextStyle.style_12_400(color: Colors.white70),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return LineTooltipItem(
+                            '₹${NumberFormat.compact().format(spot.y)}',
+                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                          );
+                        }
                       }).toList();
                     },
                   ),

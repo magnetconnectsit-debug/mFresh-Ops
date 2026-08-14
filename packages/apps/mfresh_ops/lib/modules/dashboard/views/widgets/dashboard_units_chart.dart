@@ -279,21 +279,23 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                         enabled: false,
                         touchTooltipData: BarTouchTooltipData(
                           getTooltipColor: (_) => Colors.transparent,
-                          tooltipPadding: EdgeInsets.all(8.w),
-                          tooltipMargin: -24.h,
+                          tooltipPadding: EdgeInsets.all(2.w),
+                          tooltipMargin: 2.h,
+                          fitInsideHorizontally: true,
+                          fitInsideVertically: true,
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            final servicesText = groupIndex < visibleData.length
-                                ? '${visibleData[groupIndex].servicesCount}'
-                                : '';
+                            if (rod.toY == 0) return null;
+                            
+                            // Get the unit color
+                            String unitNo = visibleData[groupIndex].unitNo;
+                            Color unitColor = _getColorForUnit(
+                              unitNo,
+                              widget.data.indexWhere((e) => e.unitNo == unitNo),
+                            );
+
                             return BarTooltipItem(
-                              '${formatCurrency.format(rod.toY)}\n\n',
-                              AppTextStyle.style_10_700(color: Colors.black87),
-                              children: [
-                                TextSpan(
-                                  text: servicesText,
-                                  style: AppTextStyle.style_12_700(color: Colors.black87),
-                                ),
-                              ],
+                              '₹${NumberFormat.compact().format(rod.toY)}',
+                              AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
                             );
                           },
                         ),
@@ -412,6 +414,7 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                           );
                         },
                       ),
+
                       barGroups: visibleData.asMap().entries.map((entry) {
                         return BarChartGroupData(
                           x: entry.key,
@@ -454,8 +457,37 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                       maxX: visibleData.length - 0.5,
                       minY: 0,
                       maxY: maxServices,
-                      lineTouchData: const LineTouchData(
+                      showingTooltipIndicators: List.generate(
+                        visibleData.length,
+                        (index) {
+                          if (visibleData[index].servicesCount == 0) return const ShowingTooltipIndicators([]);
+                          return ShowingTooltipIndicators([
+                            LineBarSpot(
+                              LineChartBarData(spots: [FlSpot(index.toDouble(), visibleData[index].servicesCount.toDouble())]),
+                              0,
+                              FlSpot(index.toDouble(), visibleData[index].servicesCount.toDouble()),
+                            ),
+                          ]);
+                        },
+                      ),
+                      lineTouchData: LineTouchData(
                         enabled: false,
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => Colors.transparent,
+                          tooltipPadding: EdgeInsets.all(2.w),
+                          tooltipMargin: 4.h,
+                          fitInsideHorizontally: true,
+                          fitInsideVertically: true,
+                          getTooltipItems: (spotsList) {
+                            return spotsList.map((spot) {
+                              if (spot.y == 0) return null;
+                              return LineTooltipItem(
+                                spot.y.toInt().toString(),
+                                AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                              );
+                            }).toList();
+                          },
+                        ),
                       ),
                       titlesData: FlTitlesData(
                         show: true,

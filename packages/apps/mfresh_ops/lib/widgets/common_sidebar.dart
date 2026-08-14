@@ -170,7 +170,7 @@ class CommonSidebar extends StatelessWidget {
                     _buildMenuItem(
                       icon: Icons.dashboard_outlined,
                       activeIcon: Icons.dashboard,
-                      title: 'Dashboard',
+                      title: 'Revenue Report',
                       route: AppRoutes.dashboard,
                       currentRoute: currentRoute,
                     ),

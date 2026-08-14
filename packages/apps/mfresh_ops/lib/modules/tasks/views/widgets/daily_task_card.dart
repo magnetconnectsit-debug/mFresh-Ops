@@ -95,21 +95,21 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
   }
 
   DateTime? _parseEndDateTime(TaskItem task) {
-    if (task.endDate.isEmpty) return null;
-    try {
-      return DateTime.parse(task.endDate).toLocal();
-    } catch (_) {}
-    
-    final date = _parseDateTime(task.endDate);
+    // The instance's actual date is determined by scheduleDateTime.
+    // task.endDate might represent the end of a recurring series (e.g. far in the future).
+    final date = _parseDateTime(task.scheduleDateTime);
     if (date == null) return null;
     
     if (task.endTime.isNotEmpty) {
       final time = _parseTimeOfDay(task.endTime);
       if (time != null) {
+        // Combine the instance's scheduled date with the specific end time
         return DateTime(date.year, date.month, date.day, time.hour, time.minute).toLocal();
       }
     }
-    return date.toLocal();
+    
+    // Fallback: If there's no end time, we use the end of the scheduled day (23:59:59)
+    return DateTime(date.year, date.month, date.day, 23, 59, 59).toLocal();
   }
 
   TimeOfDay? _parseTimeOfDay(String timeStr) {

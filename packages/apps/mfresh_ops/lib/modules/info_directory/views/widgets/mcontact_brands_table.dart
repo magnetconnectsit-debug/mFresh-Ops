@@ -6,7 +6,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/mcontact_brands_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/views/widgets/mcontact_brand_dialog.dart';
-
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 class MContactBrandsTable extends StatefulWidget {
   final MContactBrandsController controller;
 
@@ -68,7 +68,12 @@ class _MContactBrandsTableState extends State<MContactBrandsTable> {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async => widget.controller.fetchBrands(),
+            onRefresh: () async {
+              try {
+                await Get.find<AuthRepository>().fetchProfile();
+              } catch (_) {}
+              await widget.controller.fetchBrands();
+            },
             child: Obx(() {
               final isLoadingInitial =
                   widget.controller.isLoading.value &&

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/account_subscription_model.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart' as mfresh_auth;
 
 class AccountSubscriptionController extends GetxController {
   late final AccountSubscriptionRepository _repo;
@@ -120,6 +121,9 @@ class AccountSubscriptionController extends GetxController {
   }
 
   Future<void> resetFiltersAndRefresh() async {
+    try {
+      await Get.find<mfresh_auth.AuthRepository>().fetchProfile();
+    } catch (_) {}
     unitLocationCtrl.clear();
     companyBrandCtrl.clear();
     searchCtrl.clear();

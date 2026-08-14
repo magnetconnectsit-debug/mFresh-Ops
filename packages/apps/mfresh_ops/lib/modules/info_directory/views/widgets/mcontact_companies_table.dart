@@ -6,6 +6,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/mcontact_companies_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/views/widgets/mcontact_company_dialog.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class MContactCompaniesTable extends StatefulWidget {
   final MContactCompaniesController controller;
@@ -28,32 +29,32 @@ class _MContactCompaniesTableState extends State<MContactCompaniesTable> {
 
   @override
   Widget build(BuildContext context) {
-    final columnWidths = <int, TableColumnWidth>{
-      0: FixedColumnWidth(60.w),
-      1: const FlexColumnWidth(),
-      2: FixedColumnWidth(65.w),
+    // Determine responsive column widths based on screen width
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isSmallScreen = screenWidth < 360;
+
+    final columnWidths = {
+      0: FixedColumnWidth(isSmallScreen ? 50.w : 45.w), // Sl No
+      1: const FlexColumnWidth(2), // Name
+      2: FixedColumnWidth(isSmallScreen ? 70.w : 60.w), // Action
     };
 
     return Column(
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: AppColors.borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade200,
-                blurRadius: 2,
-                offset: const Offset(0, 1),
-              ),
-            ],
+            border: Border(
+              top: BorderSide(color: Colors.grey.shade300),
+              left: BorderSide(color: Colors.grey.shade300),
+              right: BorderSide(color: Colors.grey.shade300),
+            ),
           ),
           child: Table(
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             border: TableBorder.symmetric(
               inside: BorderSide(color: Colors.grey.shade300),
             ),
-            columnWidths: columnWidths,
+            columnWidths: columnWidths as Map<int, TableColumnWidth>,
             children: [
               TableRow(
                 decoration: const BoxDecoration(color: Color(0xFFC5D5F0)),
@@ -68,7 +69,12 @@ class _MContactCompaniesTableState extends State<MContactCompaniesTable> {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async => widget.controller.fetchCompanies(),
+            onRefresh: () async {
+              try {
+                await Get.find<AuthRepository>().fetchProfile();
+              } catch (_) {}
+              await widget.controller.fetchCompanies();
+            },
             child: Obx(() {
               final isLoadingInitial = widget.controller.isLoading.value && widget.controller.companies.isEmpty;
               final showEmpty = !isLoadingInitial && widget.controller.companies.isEmpty;
