@@ -8,6 +8,7 @@ import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/delete_task_dialog.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:services/services.dart';
 
 class DailyTaskCard extends StatefulWidget {
   final TaskItem task;
@@ -205,7 +206,12 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
         case 'review':
         case 'under_review':
           statusBg = AppColors.orange900;
-          statusText = 'Review';
+          final user = Get.find<StorageService>().getUser();
+          if (task.approverId == user?.id?.toString()) {
+            statusText = 'Review';
+          } else {
+            statusText = 'Under Review';
+          }
           break;
         case 'completed':
         case 'approved':
@@ -295,19 +301,21 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              (task.groupNames != null && task.groupNames!.isNotEmpty)
-                                  ? Icons.people_outline
-                                  : Icons.person_outline,
+                              (task.assigneeName != null && task.assigneeName!.isNotEmpty)
+                                  ? Icons.person_outline
+                                  : (task.groupNames != null && task.groupNames!.isNotEmpty)
+                                      ? Icons.people_outline
+                                      : Icons.person_outline,
                               size: 12.r,
                               color: const Color(0xFF6C757D),
                             ),
                             SizedBox(width: 4.w),
                             Flexible(
                               child: Text(
-                                ((task.groupNames != null && task.groupNames!.isNotEmpty)
-                                        ? task.groupNames!
-                                        : (task.assigneeName != null && task.assigneeName!.isNotEmpty)
-                                            ? task.assigneeName!
+                                ((task.assigneeName != null && task.assigneeName!.isNotEmpty)
+                                        ? task.assigneeName!
+                                        : (task.groupNames != null && task.groupNames!.isNotEmpty)
+                                            ? task.groupNames!
                                             : 'Unassigned').replaceAll('_', ' '),
                                 style: TextStyle(
                                   fontSize: 10.sp,
@@ -366,7 +374,13 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                   final status = task.status.toLowerCase();
                   final controller = Get.find<TasksController>();
                   if (status == 'review' || status == 'under_review') {
-                    controller.fetchTaskSubmissionDetails(task, isReview: true);
+                    final user = Get.find<StorageService>().getUser();
+                    final isApprover = task.approverId == user?.id?.toString();
+                    if (isApprover) {
+                      controller.fetchTaskSubmissionDetails(task, isReview: true);
+                    } else {
+                      controller.fetchTaskSubmissionDetails(task, isReview: true, readOnly: true);
+                    }
                   } else if (status == 'due' ||
                       status == 'overdue' ||
                       status == 'pending' ||

@@ -15,6 +15,7 @@ import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_stat_item.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_tabs.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:services/services.dart';
 
 class DailyTasksScreen extends StatefulWidget {
   const DailyTasksScreen({super.key});
@@ -140,16 +141,18 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                         : controller.allDailyTasks)
                     .where((task) {
                       final status = task.status.toLowerCase();
+                      final user = Get.find<StorageService>().getUser();
+                      final isApprover = task.approverId == user?.id?.toString();
+                      final isReviewStatus = status == 'review' || status == 'under_review';
+                      
                       if (controller.activeTab.value == 0) {
-                        return status != 'completed' &&
-                            status != 'approved' &&
-                            status != 'review' &&
-                            status != 'under_review';
+                        if (status == 'completed' || status == 'approved') return false;
+                        if (isReviewStatus) return isApprover;
+                        return true;
                       } else {
-                        return status == 'completed' ||
-                            status == 'approved' ||
-                            status == 'review' ||
-                            status == 'under_review';
+                        if (status == 'completed' || status == 'approved') return true;
+                        if (isReviewStatus) return !isApprover;
+                        return false;
                       }
                     })
                     .toList();

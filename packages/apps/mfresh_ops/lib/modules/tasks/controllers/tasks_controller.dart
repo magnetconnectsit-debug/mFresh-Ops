@@ -41,6 +41,7 @@ class TasksController extends GetxController {
   final groups = <TaskGroup>[].obs;
   final units = <SupportUnit>[].obs;
   final assignees = <AssigneeModel>[].obs;
+  final allAssignees = <AssigneeModel>[].obs;
   // endregion
 
   // region Filter States
@@ -210,6 +211,7 @@ class TasksController extends GetxController {
   Future<void> applyFilters() async {
     Get.dialog(const CustomAppLoader(), barrierDismissible: false);
     try {
+      await fetchAssignees();
       await fetchInitialList();
     } finally {
       Get.back();
@@ -320,17 +322,38 @@ class TasksController extends GetxController {
     }
   }
 
-  Future<void> fetchAssignees() async {
+  Future<void> fetchAssignees({String? specificGroupId}) async {
     try {
       final user = _storageService.getUser();
       if (user != null) {
+        String? groupId = specificGroupId;
+        if (groupId == null && selectedGroups.isNotEmpty) {
+          groupId = selectedGroups.map((e) => e.id).join(',');
+        }
         final data = await _commonRepository.getAllAssignees(
-          mainId: user.id.toString(),
+          groupId: groupId,
         );
         assignees.assignAll(data);
+        
+        if (groupId == null) {
+          allAssignees.assignAll(data);
+        } else if (allAssignees.isEmpty) {
+          final allData = await _commonRepository.getAllAssignees();
+          allAssignees.assignAll(allData);
+        }
       }
     } catch (e) {
       debugPrint('Error fetching assignees: $e');
+    }
+  }
+
+  Future<void> onGroupForCreateChanged(TaskGroup? group) async {
+    selectedGroupForCreate.value = group;
+    selectedAssigneeForCreate.value = null;
+    if (group != null) {
+      await fetchAssignees(specificGroupId: group.id.toString());
+    } else {
+      await fetchAssignees();
     }
   }
 
@@ -671,6 +694,10 @@ class TasksController extends GetxController {
   }
 
   Future<void> submitTask(TaskItem task, {bool isUpdate = false}) async {
+    if (commentController.text.trim().isEmpty) {
+      AppCommonToastMessage.show(message: 'Please enter a comment.', type: ToastType.warning);
+      return;
+    }
     try {
       isLoading.value = true;
       final formData = dio.FormData.fromMap({
@@ -713,6 +740,10 @@ class TasksController extends GetxController {
   }
 
   Future<void> approveTask(int instanceId) async {
+    if (approverCommentController.text.trim().isEmpty) {
+      AppCommonToastMessage.show(message: 'Please enter a comment before approving.', type: ToastType.warning);
+      return;
+    }
     try {
       isLoading.value = true;
       final formData = dio.FormData.fromMap({
@@ -746,6 +777,10 @@ class TasksController extends GetxController {
   }
 
   Future<void> rejectTask(int instanceId) async {
+    if (approverCommentController.text.trim().isEmpty) {
+      AppCommonToastMessage.show(message: 'Please enter a comment before rejecting.', type: ToastType.warning);
+      return;
+    }
     try {
       isLoading.value = true;
       final formData = dio.FormData.fromMap({

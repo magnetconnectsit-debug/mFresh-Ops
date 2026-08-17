@@ -171,8 +171,8 @@ class CreateTaskScreen extends GetView<TasksController> {
                                     )
                                     .toList(),
                                 onChanged: (values) =>
-                                    controller.selectedGroupForCreate.value =
-                                        values.isEmpty ? null : values.first,
+                                    controller.onGroupForCreateChanged(
+                                        values.isEmpty ? null : values.first),
                               ),
                             ),
                           ),
@@ -415,7 +415,7 @@ class CreateTaskScreen extends GetView<TasksController> {
                                           .selectedApproverForCreate
                                           .value!,
                                     },
-                              items: controller.assignees
+                              items: controller.allAssignees
                                   .map<DropdownMenuItem<AssigneeModel>>(
                                     (e) => DropdownMenuItem<AssigneeModel>(
                                       value: e,
