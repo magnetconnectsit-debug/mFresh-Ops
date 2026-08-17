@@ -154,6 +154,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     })
                     .toList();
 
+          final List<TaskItem> overdueTasks = [];
           final List<TaskItem> todayTasks = [];
           final List<TaskItem> tomorrowTasks = [];
 
@@ -166,10 +167,15 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           } else {
             for (final task in displayTasks) {
               final dt = _parseDateTime(task.scheduleDateTime);
-              if (dt != null &&
-                  (dt.isAfter(tomorrowStart) ||
-                      dt.isAtSameMomentAs(tomorrowStart))) {
-                tomorrowTasks.add(task);
+              if (dt != null) {
+                final taskDate = DateTime(dt.year, dt.month, dt.day);
+                if (taskDate.isBefore(today)) {
+                  overdueTasks.add(task);
+                } else if (taskDate.isAtSameMomentAs(today)) {
+                  todayTasks.add(task);
+                } else {
+                  tomorrowTasks.add(task);
+                }
               } else {
                 todayTasks.add(task);
               }
@@ -197,6 +203,11 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                             count: '${controller.taskCounts['active'] ?? 0}',
                             label: 'Active',
                             color: AppColors.orange1,
+                          ),
+                          TaskStatItem(
+                            count: '${controller.taskCounts['upcoming'] ?? 0}',
+                            label: 'Upcoming',
+                            color: const Color(0xFFFFB822),
                           ),
                           TaskStatItem(
                             count: '${controller.taskCounts['completed'] ?? 0}',
@@ -240,7 +251,71 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     ),
                   )
                 else ...[
-                  if (todayTasks.isNotEmpty)
+                  if (overdueTasks.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 2.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, size: 18.r, color: const Color(0xFFE25C5C)),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'Overdue Tasks',
+                                  style: AppTextStyle.style_14_700(color: const Color(0xFFE25C5C)),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 6.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 6.h),
+                            child: DailyTaskCard(task: overdueTasks[index]),
+                          );
+                        }, childCount: overdueTasks.length),
+                      ),
+                    ),
+                  ],
+                  if (todayTasks.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (overdueTasks.isNotEmpty) ...[
+                              const DashedDivider(
+                                height: 1.5,
+                                color: Color(0xFF90CAF9),
+                                dashWidth: 4,
+                                dashSpace: 3,
+                              ),
+                              SizedBox(height: 8.h),
+                            ],
+                            Row(
+                              children: [
+                                Icon(Icons.today, size: 18.r, color: AppColors.primary),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'Today\'s Tasks',
+                                  style: AppTextStyle.style_14_700(color: AppColors.primary),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 6.h),
+                          ],
+                        ),
+                      ),
+                    ),
                     SliverPadding(
                       padding: EdgeInsets.symmetric(horizontal: 16.w),
                       sliver: SliverList(
@@ -252,12 +327,13 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                         }, childCount: todayTasks.length),
                       ),
                     ),
+                  ],
                   if (tomorrowTasks.isNotEmpty) ...[
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 16.w,
-                          vertical: 12.h,
+                          vertical: 6.h,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,7 +344,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                               dashWidth: 4,
                               dashSpace: 3,
                             ),
-                            SizedBox(height: 16.h),
+                            SizedBox(height: 8.h),
                             Row(
                               children: [
                                 Icon(
@@ -285,7 +361,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 12.h),
+                            SizedBox(height: 6.h),
                           ],
                         ),
                       ),

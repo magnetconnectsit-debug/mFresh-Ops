@@ -106,6 +106,7 @@ class TaskItem {
   final dynamic picture;
   final String? ucomment;
   final String? approverComment;
+  final String? taskDayStatus;
 
   TaskItem({
     required this.id,
@@ -148,6 +149,7 @@ class TaskItem {
     this.picture,
     this.ucomment,
     this.approverComment,
+    this.taskDayStatus,
   });
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
@@ -193,6 +195,7 @@ class TaskItem {
       picture: json['picture'],
       ucomment: json['ucomment'],
       approverComment: json['approver_comment'],
+      taskDayStatus: json['task_day_status'],
     );
   }
 
@@ -237,6 +240,7 @@ class TaskItem {
     dynamic picture,
     String? ucomment,
     String? approverComment,
+    String? taskDayStatus,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -279,6 +283,7 @@ class TaskItem {
       picture: picture ?? this.picture,
       ucomment: ucomment ?? this.ucomment,
       approverComment: approverComment ?? this.approverComment,
+      taskDayStatus: taskDayStatus ?? this.taskDayStatus,
     );
   }
 }

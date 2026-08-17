@@ -85,7 +85,9 @@ class ProfileScreen extends StatelessWidget {
                             fit: BoxFit.cover,
                           )
                         : AppImageView(
-                            imageUrl: controller.user.value?.imageUrl ?? controller.user.value?.uimage,
+                            imageUrl:
+                                controller.user.value?.imageUrl ??
+                                controller.user.value?.uimage,
                             width: 110.r,
                             height: 110.r,
                             borderRadius: 55.r,
@@ -125,7 +127,9 @@ class ProfileScreen extends StatelessWidget {
             () => controller.isLoading.value && controller.user.value == null
                 ? const SizedBox.shrink()
                 : Text(
-                    controller.user.value?.roleName ?? controller.user.value?.role ?? 'User',
+                    controller.user.value?.roleName ??
+                        controller.user.value?.role ??
+                        'User',
                     style: AppTextStyle.style_14_500(color: AppColors.grey300),
                   ),
           ),
@@ -205,7 +209,9 @@ class ProfileScreen extends StatelessWidget {
 
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
         insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
         child: Container(
           padding: EdgeInsets.all(24.r),
@@ -234,7 +240,10 @@ class ProfileScreen extends StatelessWidget {
                           height: 80.r,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary, width: 2),
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(40.r),
@@ -244,7 +253,8 @@ class ProfileScreen extends StatelessWidget {
                                     fit: BoxFit.cover,
                                   )
                                 : AppImageView(
-                                    imageUrl: controller.user.value?.imageUrl ??
+                                    imageUrl:
+                                        controller.user.value?.imageUrl ??
                                         controller.user.value?.uimage,
                                     width: 80.r,
                                     height: 80.r,
@@ -301,7 +311,9 @@ class ProfileScreen extends StatelessWidget {
                         },
                         child: Text(
                           'Cancel',
-                          style: AppTextStyle.style_14_600(color: AppColors.grey600),
+                          style: AppTextStyle.style_14_600(
+                            color: AppColors.grey600,
+                          ),
                         ),
                       ),
                     ),
@@ -321,7 +333,9 @@ class ProfileScreen extends StatelessWidget {
                         },
                         child: Text(
                           'OK',
-                          style: AppTextStyle.style_14_600(color: AppColors.white),
+                          style: AppTextStyle.style_14_600(
+                            color: AppColors.white,
+                          ),
                         ),
                       ),
                     ),

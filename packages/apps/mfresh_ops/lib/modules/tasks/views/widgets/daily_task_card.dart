@@ -134,29 +134,36 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
   Widget build(BuildContext context) {
     final task = widget.task;
     final statusLower = task.status.toLowerCase();
-
-    // Check if the scheduled date time is in the past
-    final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
+    final dayStatusLower = task.taskDayStatus?.toLowerCase() ?? '';
 
     final isCompletedOrApproved = statusLower == 'completed' || statusLower == 'approved';
     final isReviewOrUnderReview = statusLower == 'review' || statusLower == 'under_review';
     final isRejected = statusLower == 'rejected';
 
-    final isUpcoming = !isCompletedOrApproved &&
-        !isReviewOrUnderReview &&
-        scheduleDateTime != null &&
-        DateTime.now().isBefore(scheduleDateTime);
-
+    bool isUpcoming = false;
     bool isOverdue = false;
-    if (!isCompletedOrApproved && !isReviewOrUnderReview) {
-      if (statusLower == 'overdue') {
-        isOverdue = true;
+    bool isActive = false;
+
+    if (!isCompletedOrApproved && !isReviewOrUnderReview && !isRejected) {
+      if (dayStatusLower.isNotEmpty) {
+        isUpcoming = dayStatusLower == 'upcoming';
+        isOverdue = dayStatusLower == 'overdue';
+        isActive = dayStatusLower == 'active';
       } else {
-        final endDt = _parseEndDateTime(task);
-        if (endDt != null) {
-          isOverdue = DateTime.now().isAfter(endDt);
-        } else if (scheduleDateTime != null) {
-          isOverdue = DateTime.now().isAfter(scheduleDateTime);
+        // Fallback local logic
+        final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
+        isUpcoming = scheduleDateTime != null && DateTime.now().isBefore(scheduleDateTime);
+        if (!isUpcoming) {
+          if (statusLower == 'overdue') {
+            isOverdue = true;
+          } else {
+            final endDt = _parseEndDateTime(task);
+            if (endDt != null) {
+              isOverdue = DateTime.now().isAfter(endDt);
+            } else if (scheduleDateTime != null) {
+              isOverdue = DateTime.now().isAfter(scheduleDateTime);
+            }
+          }
         }
       }
     }
@@ -175,6 +182,9 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     } else if (isOverdue) {
       statusBg = const Color(0xFFE25C5C);
       statusText = 'Overdue';
+    } else if (isActive) {
+      statusBg = const Color(0xFF28A745); // Green color matching screenshot
+      statusText = 'Active';
     } else {
       statusText = task.status;
       switch (statusLower) {

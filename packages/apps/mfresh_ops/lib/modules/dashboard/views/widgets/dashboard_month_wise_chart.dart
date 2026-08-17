@@ -220,12 +220,19 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
                         if (index < 0 || index >= widget.data.length || value != index.toDouble()) {
                           return const SizedBox.shrink();
                         }
+                        
+                        bool isWeekend = false;
+                        if (widget.showDays) {
+                          final dt = DateTime.tryParse(widget.data[index].date);
+                          isWeekend = dt != null && (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday);
+                        }
+                        
                         return SideTitleWidget(
                           meta: meta,
                           angle: -0.8,
                           child: Text(
                             _formatDate(widget.data[index].date),
-                            style: AppTextStyle.style_8_400(color: AppColors.grey500),
+                            style: AppTextStyle.style_8_400(color: isWeekend ? Colors.red : AppColors.grey500),
                           ),
                         );
                       },

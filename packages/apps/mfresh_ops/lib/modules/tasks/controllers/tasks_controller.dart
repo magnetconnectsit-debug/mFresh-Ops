@@ -380,8 +380,8 @@ class TasksController extends GetxController {
         });
 
         allDailyTasks.assignAll(filteredTasks);
-        displayedDailyTasksCount.value = 10;
-        _updateDisplayedDailyTasks();
+        tasks.assignAll(filteredTasks);
+        hasMore.value = false;
         taskCounts.assignAll(response.counts);
       }
     } catch (e) {
@@ -411,57 +411,51 @@ class TasksController extends GetxController {
 
   int _getTaskSortOrder(TaskItem task) {
     final statusLower = task.status.toLowerCase();
-    final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
+    final dayStatusLower = task.taskDayStatus?.toLowerCase() ?? '';
     
     final isCompletedOrApproved = statusLower == 'completed' || statusLower == 'approved';
     final isReviewOrUnderReview = statusLower == 'review' || statusLower == 'under_review';
     
-    final isUpcoming = !isCompletedOrApproved &&
-        !isReviewOrUnderReview &&
-        scheduleDateTime != null &&
-        DateTime.now().isBefore(scheduleDateTime);
-
+    bool isUpcoming = false;
     bool isOverdue = false;
+    bool isActive = false;
+
     if (!isCompletedOrApproved && !isReviewOrUnderReview) {
-      if (statusLower == 'overdue') {
-        isOverdue = true;
+      if (dayStatusLower.isNotEmpty) {
+        isUpcoming = dayStatusLower == 'upcoming';
+        isOverdue = dayStatusLower == 'overdue';
+        isActive = dayStatusLower == 'active';
       } else {
-        final endDt = _parseEndDateTime(task);
-        if (endDt != null) {
-          isOverdue = DateTime.now().isAfter(endDt);
-        } else if (scheduleDateTime != null) {
-          isOverdue = DateTime.now().isAfter(scheduleDateTime);
+        final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
+        isUpcoming = scheduleDateTime != null && DateTime.now().isBefore(scheduleDateTime);
+        if (!isUpcoming) {
+          if (statusLower == 'overdue') {
+            isOverdue = true;
+          } else {
+            final endDt = _parseEndDateTime(task);
+            if (endDt != null) {
+              isOverdue = DateTime.now().isAfter(endDt);
+            } else if (scheduleDateTime != null) {
+              isOverdue = DateTime.now().isAfter(scheduleDateTime);
+            }
+          }
         }
+        isActive = !isUpcoming && !isOverdue;
       }
     }
 
-    final isActive = !isCompletedOrApproved &&
-        !isReviewOrUnderReview &&
-        !isUpcoming &&
-        !isOverdue;
-
-    if (isActive) return 0;
-    if (isOverdue) return 1;
+    if (isOverdue) return 0;
+    if (isActive) return 1;
     if (isUpcoming) return 2;
     return 3;
   }
 
   void _updateDisplayedDailyTasks() {
-    final chunk = allDailyTasks.take(displayedDailyTasksCount.value).toList();
-    tasks.assignAll(chunk);
-    hasMore.value = displayedDailyTasksCount.value < allDailyTasks.length;
+    // Pagination removed
   }
 
   void loadMoreDailyTasks() {
-    if (isLoading.value) return;
-    if (displayedDailyTasksCount.value >= allDailyTasks.length) return;
-    
-    isLoading.value = true;
-    Future.delayed(const Duration(milliseconds: 350), () {
-      displayedDailyTasksCount.value = (displayedDailyTasksCount.value + 10).clamp(0, allDailyTasks.length);
-      _updateDisplayedDailyTasks();
-      isLoading.value = false;
-    });
+    // Pagination removed
   }
 
   Future<void> fetchTasks() async {
