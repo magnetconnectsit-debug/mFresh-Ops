@@ -243,9 +243,7 @@ class TicketDetailsController extends GetxController {
       final storage = Get.find<StorageService>();
       final user = storage.getUser();
       if (user == null) return;
-      final result = await Get.find<CommonRepository>().getAllAssignees(
-        mainId: user.id.toString(),
-      );
+      final result = await Get.find<CommonRepository>().getAllAssignees();
       assignees.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching assignees: $e');

@@ -78,7 +78,10 @@ class TaskSubmissionDialog extends StatelessWidget {
                     SizedBox(width: 8.w),
                     GestureDetector(
                       onTap: () => Get.back(),
-                      child: Icon(Icons.close, size: 18.r, color: Colors.grey.shade600),
+                      child: Padding(
+                        padding: EdgeInsets.all(4.r),
+                        child: Icon(Icons.close, size: 24.r, color: Colors.grey.shade700),
+                      ),
                     ),
                   ],
                 ),

@@ -72,17 +72,27 @@ class AppointmentRecurrenceDialog extends StatefulWidget {
   });
 
   @override
-  State<AppointmentRecurrenceDialog> createState() => _AppointmentRecurrenceDialogState();
+  State<AppointmentRecurrenceDialog> createState() =>
+      _AppointmentRecurrenceDialogState();
 }
 
-class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialog> {
+class _AppointmentRecurrenceDialogState
+    extends State<AppointmentRecurrenceDialog> {
   late String _frequency;
   late int _repeatInterval;
   late TimeOfDay _startTime;
   late TimeOfDay _endTime;
-  
+
   // Weekly selection
-  final List<String> _daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final List<String> _daysOfWeek = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
   final Set<String> _selectedDays = {};
 
   // Daily selection
@@ -92,9 +102,14 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   bool _monthlyByDay = true; // true = Day mode, false = The mode
   String _monthOrdinal = 'First';
   String _monthWeekday = 'Monday';
-  final TextEditingController _monthDayController = TextEditingController(text: '1');
-  final TextEditingController _monthIntervalController = TextEditingController(text: '1');
-  final TextEditingController _monthTheDayIntervalController = TextEditingController(text: '1');
+  final TextEditingController _monthDayController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _monthIntervalController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _monthTheDayIntervalController =
+      TextEditingController(text: '1');
 
   // Yearly selection
   bool _yearlyByDate = true; // true = On mode, false = The mode
@@ -102,14 +117,36 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   String _yearlyOrdinal = 'First';
   String _yearlyWeekday = 'Monday';
   String _yearlyTheMonth = 'January';
-  final TextEditingController _yearlyDayController = TextEditingController(text: '1');
-  final TextEditingController _yearlyIntervalController = TextEditingController(text: '1');
+  final TextEditingController _yearlyDayController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _yearlyIntervalController = TextEditingController(
+    text: '1',
+  );
 
   static const _ordinals = ['First', 'Second', 'Third', 'Fourth', 'Last'];
-  static const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  static const _weekdays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
   static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   // Range of Recurrence
@@ -125,8 +162,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   void initState() {
     super.initState();
 
-    _startDate = widget.defaultStartDate ?? widget.initialData?.startDate ?? DateTime.now();
-    _endByDate = widget.defaultEndDate ?? widget.initialData?.endByDate ?? DateTime.now().add(const Duration(days: 30));
+    _startDate =
+        widget.defaultStartDate ??
+        widget.initialData?.startDate ??
+        DateTime.now();
+    _endByDate = widget.defaultEndDate ?? widget.initialData?.endByDate;
 
     if (widget.defaultStartTime != null) {
       _startTime = widget.defaultStartTime!;
@@ -145,7 +185,10 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
     } else {
       final roundedMin = _startTime.minute;
       final endMin = roundedMin + 30;
-      _endTime = TimeOfDay(hour: endMin >= 60 ? (_startTime.hour + 1) % 24 : _startTime.hour, minute: endMin % 60);
+      _endTime = TimeOfDay(
+        hour: endMin >= 60 ? (_startTime.hour + 1) % 24 : _startTime.hour,
+        minute: endMin % 60,
+      );
     }
 
     if (widget.initialData != null) {
@@ -155,14 +198,18 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
       _selectedDays.addAll(data.selectedDays?.split(',') ?? []);
       _occurrences = data.occurrences;
       _endByMode = data.endByDate != null || data.occurrences == null;
-      _everyWeekday = data.frequency == 'day' && data.repeatInterval == 1 && data.selectedDays == 'Mon,Tue,Wed,Thu,Fri';
-      
+      _everyWeekday =
+          data.frequency == 'day' &&
+          data.repeatInterval == 1 &&
+          data.selectedDays == 'Mon,Tue,Wed,Thu,Fri';
+
       // Monthly restore
       if (data.monthlyMode != null) {
         _monthlyByDay = data.monthlyMode == 'day';
         _monthDayController.text = (data.monthDay ?? 1).toString();
         _monthIntervalController.text = (data.monthInterval ?? 1).toString();
-        _monthTheDayIntervalController.text = (data.monthInterval ?? 1).toString();
+        _monthTheDayIntervalController.text = (data.monthInterval ?? 1)
+            .toString();
         _monthOrdinal = data.monthOrdinal ?? 'First';
         _monthWeekday = data.monthWeekday ?? 'Monday';
       }
@@ -189,7 +236,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
     try {
       final clean = timeStr.trim().toUpperCase();
       final isPm = clean.endsWith('PM');
-      final parts = clean.replaceAll('AM', '').replaceAll('PM', '').trim().split(':');
+      final parts = clean
+          .replaceAll('AM', '')
+          .replaceAll('PM', '')
+          .trim()
+          .split(':');
       int hour = int.parse(parts[0]);
       int minute = int.parse(parts[1]);
       if (isPm && hour < 12) hour += 12;
@@ -244,7 +295,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                   ),
                   GestureDetector(
                     onTap: () => Get.back(),
-                    child: Icon(Icons.close, color: AppColors.black, size: 18.r),
+                    child: Icon(
+                      Icons.close,
+                      color: AppColors.black,
+                      size: 18.r,
+                    ),
                   ),
                 ],
               ),
@@ -270,7 +325,10 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                     SizedBox(height: 8.h),
 
                     // Recurrence pattern label
-                    Text('Recurrence pattern', style: AppTextStyle.style_12_600(color: AppColors.black)),
+                    Text(
+                      'Recurrence pattern',
+                      style: AppTextStyle.style_12_600(color: AppColors.black),
+                    ),
                     SizedBox(height: 4.h),
 
                     // Frequency options grouped in a bordered box
@@ -302,23 +360,30 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                     SizedBox(height: 10.h),
 
                     // ── Range of recurrence ──
-                    Text('Range of recurrence', style: AppTextStyle.style_12_600(color: AppColors.black)),
+                    Text(
+                      'Range of recurrence',
+                      style: AppTextStyle.style_12_600(color: AppColors.black),
+                    ),
                     SizedBox(height: 4.h),
 
-                    Text('Start', style: AppTextStyle.style_11_500(color: AppColors.black)),
+                    Text(
+                      'Start',
+                      style: AppTextStyle.style_11_500(color: AppColors.black),
+                    ),
                     SizedBox(height: 4.h),
-                    _buildDateField(_startDate, (d) => setState(() => _startDate = d)),
+                    _buildDateField(
+                      _startDate,
+                      (d) => setState(() => _startDate = d),
+                    ),
                     SizedBox(height: 8.h),
 
                     _buildRadioRow('End by', true),
                     SizedBox(height: 2.h),
                     Padding(
                       padding: EdgeInsets.only(left: 4.w),
-                      child: _buildDateField(
-                        _endByDate ?? DateTime.now(),
-                        (d) { if (_endByMode) setState(() => _endByDate = d); },
-                        enabled: _endByMode,
-                      ),
+                      child: _buildDateField(_endByDate, (d) {
+                        if (_endByMode) setState(() => _endByDate = d);
+                      }, enabled: _endByMode),
                     ),
                     SizedBox(height: 6.h),
 
@@ -334,14 +399,23 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                           enabled: !_endByMode,
                           decoration: InputDecoration(
                             hintText: 'occurrence',
-                            hintStyle: AppTextStyle.style_11_400(color: AppColors.grey200),
+                            hintStyle: AppTextStyle.style_11_400(
+                              color: AppColors.grey200,
+                            ),
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10.w,
+                              vertical: 6.h,
+                            ),
                             border: _fieldBorder(),
                             enabledBorder: _fieldBorder(),
-                            disabledBorder: _fieldBorder(color: const Color(0xffEEEEEE)),
+                            disabledBorder: _fieldBorder(
+                              color: const Color(0xffEEEEEE),
+                            ),
                           ),
-                          style: AppTextStyle.style_11_400(color: AppColors.grey900),
+                          style: AppTextStyle.style_11_400(
+                            color: AppColors.grey900,
+                          ),
                         ),
                       ),
                     ),
@@ -354,26 +428,46 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xff5D3FD3),
-                            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 18.w,
+                              vertical: 8.h,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
                             elevation: 0,
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           onPressed: _onSave,
-                          child: Text('save', style: AppTextStyle.style_11_700(color: Colors.white)),
+                          child: Text(
+                            'Save',
+                            style: AppTextStyle.style_11_700(
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                         SizedBox(width: 8.w),
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Color(0xffDEE2E6)),
-                            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 18.w,
+                              vertical: 8.h,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           onPressed: () => Get.back(),
-                          child: Text('Cancel', style: AppTextStyle.style_11_500(color: AppColors.black)),
+                          child: Text(
+                            'Cancel',
+                            style: AppTextStyle.style_11_500(
+                              color: AppColors.black,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -391,8 +485,20 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   // ─────────────────────── helpers ───────────────────────
 
   void _onSave() {
+    // Guard: End by mode requires a date to be selected
+    if (_endByMode && _endByDate == null) {
+      Get.snackbar(
+        'Required',
+        'Please select an end date',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
     final interval = int.tryParse(_intervalController.text) ?? 1;
-    final occurrences = _endByMode ? null : (int.tryParse(_occurrencesController.text) ?? 5);
+    final occurrences = _endByMode
+        ? null
+        : (int.tryParse(_occurrencesController.text) ?? 5);
     final selectedDaysStr = _frequency == 'week'
         ? (_selectedDays.isEmpty ? null : _selectedDays.join(','))
         : (_everyWeekday ? 'Mon,Tue,Wed,Thu,Fri' : null);
@@ -407,26 +513,50 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
       startDate: _startDate,
       endByDate: _endByMode ? _endByDate : null,
       // Monthly
-      monthlyMode: _frequency == 'month' ? (_monthlyByDay ? 'day' : 'the') : null,
-      monthDay: _frequency == 'month' ? (int.tryParse(_monthDayController.text) ?? 1) : null,
-      monthInterval: _frequency == 'month'
-          ? (int.tryParse(_monthlyByDay ? _monthIntervalController.text : _monthTheDayIntervalController.text) ?? 1)
+      monthlyMode: _frequency == 'month'
+          ? (_monthlyByDay ? 'day' : 'the')
           : null,
-      monthOrdinal: _frequency == 'month' && !_monthlyByDay ? _monthOrdinal : null,
-      monthWeekday: _frequency == 'month' && !_monthlyByDay ? _monthWeekday : null,
+      monthDay: _frequency == 'month'
+          ? (int.tryParse(_monthDayController.text) ?? 1)
+          : null,
+      monthInterval: _frequency == 'month'
+          ? (int.tryParse(
+                  _monthlyByDay
+                      ? _monthIntervalController.text
+                      : _monthTheDayIntervalController.text,
+                ) ??
+                1)
+          : null,
+      monthOrdinal: _frequency == 'month' && !_monthlyByDay
+          ? _monthOrdinal
+          : null,
+      monthWeekday: _frequency == 'month' && !_monthlyByDay
+          ? _monthWeekday
+          : null,
       // Yearly
       yearlyMode: _frequency == 'year' ? (_yearlyByDate ? 'on' : 'the') : null,
       yearlyMonth: _frequency == 'year' && _yearlyByDate ? _yearlyMonth : null,
-      yearlyDay: _frequency == 'year' && _yearlyByDate ? (int.tryParse(_yearlyDayController.text) ?? 1) : null,
-      yearlyInterval: _frequency == 'year' ? (int.tryParse(_yearlyIntervalController.text) ?? 1) : null,
-      yearlyOrdinal: _frequency == 'year' && !_yearlyByDate ? _yearlyOrdinal : null,
-      yearlyWeekday: _frequency == 'year' && !_yearlyByDate ? _yearlyWeekday : null,
-      yearlyTheMonth: _frequency == 'year' && !_yearlyByDate ? _yearlyTheMonth : null,
+      yearlyDay: _frequency == 'year' && _yearlyByDate
+          ? (int.tryParse(_yearlyDayController.text) ?? 1)
+          : null,
+      yearlyInterval: _frequency == 'year'
+          ? (int.tryParse(_yearlyIntervalController.text) ?? 1)
+          : null,
+      yearlyOrdinal: _frequency == 'year' && !_yearlyByDate
+          ? _yearlyOrdinal
+          : null,
+      yearlyWeekday: _frequency == 'year' && !_yearlyByDate
+          ? _yearlyWeekday
+          : null,
+      yearlyTheMonth: _frequency == 'year' && !_yearlyByDate
+          ? _yearlyTheMonth
+          : null,
     );
     Get.back(result: data);
   }
 
-  Widget _divider() => const Divider(height: 0, thickness: 1, color: Color(0xffDEE2E6));
+  Widget _divider() =>
+      const Divider(height: 0, thickness: 1, color: Color(0xffDEE2E6));
 
   OutlineInputBorder _fieldBorder({Color color = const Color(0xffDEE2E6)}) {
     return OutlineInputBorder(
@@ -436,7 +566,12 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   }
 
   // ── Frequency row inside the bordered box ──
-  Widget _buildFrequencyRow(String label, String value, {bool isFirst = false, bool isLast = false}) {
+  Widget _buildFrequencyRow(
+    String label,
+    String value, {
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
     return InkWell(
       onTap: () => setState(() {
         _frequency = value;
@@ -468,7 +603,10 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
               ),
             ),
             SizedBox(width: 8.w),
-            Text(label, style: AppTextStyle.style_12_400(color: AppColors.black)),
+            Text(
+              label,
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
           ],
         ),
       ),
@@ -495,9 +633,18 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
       children: [
         Row(
           children: [
-            Text('Every ', style: AppTextStyle.style_12_400(color: AppColors.black)),
-            _buildSmallNumberField(controller: _intervalController, enabled: !_everyWeekday),
-            Text(' day(s)', style: AppTextStyle.style_12_400(color: AppColors.black)),
+            Text(
+              'Every ',
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
+            _buildSmallNumberField(
+              controller: _intervalController,
+              enabled: !_everyWeekday,
+            ),
+            Text(
+              ' day(s)',
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
           ],
         ),
         SizedBox(height: 4.h),
@@ -519,7 +666,10 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
               ),
             ),
             SizedBox(width: 6.w),
-            Text('Every weekday', style: AppTextStyle.style_12_400(color: AppColors.black)),
+            Text(
+              'Every weekday',
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
           ],
         ),
       ],
@@ -533,9 +683,15 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
       children: [
         Row(
           children: [
-            Text('Recur Every ', style: AppTextStyle.style_12_400(color: AppColors.black)),
+            Text(
+              'Recur Every ',
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
             _buildSmallNumberField(controller: _intervalController),
-            Text(' week(s) on:', style: AppTextStyle.style_12_400(color: AppColors.black)),
+            Text(
+              ' week(s) on:',
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
           ],
         ),
         SizedBox(height: 6.h),
@@ -560,7 +716,9 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
               padding: EdgeInsets.symmetric(horizontal: 4.w),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
-              onSelected: (v) => setState(() => v ? _selectedDays.add(day) : _selectedDays.remove(day)),
+              onSelected: (v) => setState(
+                () => v ? _selectedDays.add(day) : _selectedDays.remove(day),
+              ),
             );
           }).toList(),
         ),
@@ -572,14 +730,21 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recur every', style: AppTextStyle.style_12_600(color: AppColors.black)),
+        Text(
+          'Recur every',
+          style: AppTextStyle.style_12_600(color: AppColors.black),
+        ),
         SizedBox(height: 6.h),
 
         // ── Day mode ──
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildModeRadio('Day', _monthlyByDay, (v) => setState(() => _monthlyByDay = v)),
+            _buildModeRadio(
+              'Day',
+              _monthlyByDay,
+              (v) => setState(() => _monthlyByDay = v),
+            ),
             SizedBox(width: 4.w),
             Expanded(
               child: Opacity(
@@ -590,10 +755,22 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                     children: [
                       _buildSmallNumberField(controller: _monthDayController),
                       SizedBox(width: 4.w),
-                      Text('of every ', style: AppTextStyle.style_12_400(color: AppColors.black)),
-                      _buildSmallNumberField(controller: _monthIntervalController),
+                      Text(
+                        'of every ',
+                        style: AppTextStyle.style_12_400(
+                          color: AppColors.black,
+                        ),
+                      ),
+                      _buildSmallNumberField(
+                        controller: _monthIntervalController,
+                      ),
                       SizedBox(width: 4.w),
-                      Text('month(s)', style: AppTextStyle.style_12_400(color: AppColors.black)),
+                      Text(
+                        'month(s)',
+                        style: AppTextStyle.style_12_400(
+                          color: AppColors.black,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -609,7 +786,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
           children: [
             Padding(
               padding: EdgeInsets.only(top: 4.h),
-              child: _buildModeRadio('The', !_monthlyByDay, (v) => setState(() => _monthlyByDay = !v)),
+              child: _buildModeRadio(
+                'The',
+                !_monthlyByDay,
+                (v) => setState(() => _monthlyByDay = !v),
+              ),
             ),
             SizedBox(width: 4.w),
             Expanded(
@@ -627,14 +808,16 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                           _buildDropdown<String>(
                             value: _monthOrdinal,
                             items: _ordinals,
-                            onChanged: (v) => setState(() => _monthOrdinal = v!),
+                            onChanged: (v) =>
+                                setState(() => _monthOrdinal = v!),
                             width: 60.w,
                           ),
                           SizedBox(width: 4.w),
                           _buildDropdown<String>(
                             value: _monthWeekday,
                             items: _weekdays,
-                            onChanged: (v) => setState(() => _monthWeekday = v!),
+                            onChanged: (v) =>
+                                setState(() => _monthWeekday = v!),
                             width: 80.w,
                           ),
                         ],
@@ -643,10 +826,22 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('of every ', style: AppTextStyle.style_12_400(color: AppColors.black)),
-                          _buildSmallNumberField(controller: _monthTheDayIntervalController),
+                          Text(
+                            'of every ',
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.black,
+                            ),
+                          ),
+                          _buildSmallNumberField(
+                            controller: _monthTheDayIntervalController,
+                          ),
                           SizedBox(width: 4.w),
-                          Text('month(s)', style: AppTextStyle.style_12_400(color: AppColors.black)),
+                          Text(
+                            'month(s)',
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.black,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -665,13 +860,19 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recur every', style: AppTextStyle.style_12_600(color: AppColors.black)),
+        Text(
+          'Recur every',
+          style: AppTextStyle.style_12_600(color: AppColors.black),
+        ),
         SizedBox(height: 6.h),
         Row(
           children: [
             _buildSmallNumberField(controller: _yearlyIntervalController),
             SizedBox(width: 6.w),
-            Text('year(s)', style: AppTextStyle.style_12_400(color: AppColors.black)),
+            Text(
+              'year(s)',
+              style: AppTextStyle.style_12_400(color: AppColors.black),
+            ),
           ],
         ),
         SizedBox(height: 8.h),
@@ -680,7 +881,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildModeRadio('On', _yearlyByDate, (v) => setState(() => _yearlyByDate = v)),
+            _buildModeRadio(
+              'On',
+              _yearlyByDate,
+              (v) => setState(() => _yearlyByDate = v),
+            ),
             SizedBox(width: 4.w),
             Expanded(
               child: Opacity(
@@ -712,7 +917,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildModeRadio('The', !_yearlyByDate, (v) => setState(() => _yearlyByDate = !v)),
+            _buildModeRadio(
+              'The',
+              !_yearlyByDate,
+              (v) => setState(() => _yearlyByDate = !v),
+            ),
             SizedBox(width: 4.w),
             Expanded(
               child: Opacity(
@@ -736,7 +945,12 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                         onChanged: (v) => setState(() => _yearlyWeekday = v!),
                         width: 80.w,
                       ),
-                      Text('of ', style: AppTextStyle.style_12_400(color: AppColors.black)),
+                      Text(
+                        'of ',
+                        style: AppTextStyle.style_12_400(
+                          color: AppColors.black,
+                        ),
+                      ),
                       _buildDropdown<String>(
                         value: _yearlyTheMonth,
                         items: _months,
@@ -755,7 +969,11 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   }
 
   // ── Reusable: mode radio (Day / The / On) ──
-  Widget _buildModeRadio(String label, bool selected, ValueChanged<bool> onChanged) {
+  Widget _buildModeRadio(
+    String label,
+    bool selected,
+    ValueChanged<bool> onChanged,
+  ) {
     return GestureDetector(
       onTap: () => onChanged(true),
       child: Row(
@@ -801,12 +1019,19 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
           value: value,
           isDense: true,
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, size: 16.r, color: AppColors.grey400),
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            size: 16.r,
+            color: AppColors.grey400,
+          ),
           style: AppTextStyle.style_11_400(color: AppColors.black),
           items: items.map((e) {
             return DropdownMenuItem<T>(
               value: e,
-              child: Text(e.toString(), style: AppTextStyle.style_11_400(color: AppColors.black)),
+              child: Text(
+                e.toString(),
+                style: AppTextStyle.style_11_400(color: AppColors.black),
+              ),
             );
           }).toList(),
           onChanged: onChanged,
@@ -816,7 +1041,10 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   }
 
   // ── Small number input ──
-  Widget _buildSmallNumberField({TextEditingController? controller, bool enabled = true}) {
+  Widget _buildSmallNumberField({
+    TextEditingController? controller,
+    bool enabled = true,
+  }) {
     return Container(
       width: 50.w,
       height: 30.h,
@@ -882,7 +1110,9 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
           child: Text(
             _formatTimeOfDay(slot),
             style: AppTextStyle.style_12_400(
-              color: slot == _startTime ? const Color(0xff5D3FD3) : AppColors.black,
+              color: slot == _startTime
+                  ? const Color(0xff5D3FD3)
+                  : AppColors.black,
             ),
           ),
         );
@@ -930,15 +1160,15 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
                 TextSpan(
                   text: _formatTimeOfDay(slot),
                   style: AppTextStyle.style_12_400(
-                    color: isSelected ? const Color(0xff5D3FD3) : AppColors.black,
+                    color: isSelected
+                        ? const Color(0xff5D3FD3)
+                        : AppColors.black,
                   ),
                 ),
                 if (durationLabel.isNotEmpty)
                   TextSpan(
                     text: ' $durationLabel',
-                    style: AppTextStyle.style_10_400(
-                      color: AppColors.grey200,
-                    ),
+                    style: AppTextStyle.style_10_400(color: AppColors.grey200),
                   ),
               ],
             ),
@@ -963,13 +1193,17 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
   }
 
   // ── Date field ──
-  Widget _buildDateField(DateTime date, Function(DateTime) onSelected, {bool enabled = true}) {
+  Widget _buildDateField(
+    DateTime? date,
+    Function(DateTime) onSelected, {
+    bool enabled = true,
+  }) {
     return GestureDetector(
       onTap: enabled
           ? () async {
               final selected = await showDatePicker(
                 context: context,
-                initialDate: date,
+                initialDate: date ?? DateTime.now(),
                 firstDate: DateTime(2000),
                 lastDate: DateTime(2100),
               );
@@ -987,8 +1221,12 @@ class _AppointmentRecurrenceDialogState extends State<AppointmentRecurrenceDialo
           padding: EdgeInsets.symmetric(horizontal: 10.w),
           alignment: Alignment.centerLeft,
           child: Text(
-            AppDateUtils.formatToOrdinalDate(date.toIso8601String()),
-            style: AppTextStyle.style_11_400(color: AppColors.grey900),
+            date != null
+                ? AppDateUtils.formatToOrdinalDate(date.toIso8601String())
+                : 'Select date',
+            style: AppTextStyle.style_11_400(
+              color: date != null ? AppColors.grey900 : AppColors.grey200,
+            ),
           ),
         ),
       ),
