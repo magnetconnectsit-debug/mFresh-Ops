@@ -27,6 +27,7 @@ class TasksController extends GetxController {
 
   final activeTab = 0.obs; // 0 for Active, 1 for Completed
   final isLoading = false.obs;
+  final isRefreshing = false.obs; // Silent background refresh (no full-screen loader)
 
   // region Data Lists
   final tasks = <TaskItem>[].obs;
@@ -414,6 +415,58 @@ class TasksController extends GetxController {
     }
   }
 
+  /// Silent refresh after an action (submit/approve/reject/delete).
+  /// Does NOT flip [isLoading] so no full-screen or bottom spinner appears.
+  Future<void> _refreshDailyTasksSilently() async {
+    try {
+      isRefreshing.value = true;
+      final response = await _taskRepository.getDailyTasks(
+        projects: selectedProjects.map((project) => project.projectId).toList(),
+        units: selectedUnits.map((unit) => unit.unitId).toList(),
+        assignees: selectedAssignees.map((assignee) => assignee.id).toList(),
+        groups: selectedGroups.map((group) => group.id).toList(),
+      );
+      if (response != null) {
+        var filteredTasks = response.tasks.where((task) => task.title.trim().toUpperCase() != 'NA').toList();
+        if (selectedProjects.isNotEmpty) {
+          final projectIds = selectedProjects.map((p) => p.projectId.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => projectIds.contains(task.projectId.toString())).toList();
+        }
+        if (selectedGroups.isNotEmpty) {
+          final groupIds = selectedGroups.map((g) => g.id.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => groupIds.contains(task.groupId.toString())).toList();
+        }
+        if (selectedUnits.isNotEmpty) {
+          final unitIds = selectedUnits.map((u) => u.unitId.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => unitIds.contains(task.unitId.toString())).toList();
+        }
+        if (selectedAssignees.isNotEmpty) {
+          final assigneeIds = selectedAssignees.map((a) => a.id.toString()).toSet();
+          filteredTasks = filteredTasks.where((task) => assigneeIds.contains(task.assignTo.toString())).toList();
+        }
+        filteredTasks.sort((a, b) {
+          final orderA = _getTaskSortOrder(a);
+          final orderB = _getTaskSortOrder(b);
+          if (orderA != orderB) return orderA.compareTo(orderB);
+          final aDate = _parseDateTime(a.scheduleDateTime);
+          final bDate = _parseDateTime(b.scheduleDateTime);
+          if (aDate == null && bDate == null) return b.id.compareTo(a.id);
+          if (aDate == null) return 1;
+          if (bDate == null) return -1;
+          return aDate.compareTo(bDate);
+        });
+        allDailyTasks.assignAll(filteredTasks);
+        tasks.assignAll(filteredTasks);
+        hasMore.value = false;
+        taskCounts.assignAll(response.counts);
+      }
+    } catch (e) {
+      debugPrint('Error silently refreshing daily tasks: $e');
+    } finally {
+      isRefreshing.value = false;
+    }
+  }
+
   DateTime? _parseEndDateTime(TaskItem task) {
     if (task.endDate.isEmpty) return null;
     try {
@@ -698,6 +751,12 @@ class TasksController extends GetxController {
       AppCommonToastMessage.show(message: 'Please enter a comment.', type: ToastType.warning);
       return;
     }
+    
+    if (task.photoRequired == '1' && attachments.isEmpty) {
+      AppCommonToastMessage.show(message: 'A photo is required for this task.', type: ToastType.warning);
+      return;
+    }
+    
     try {
       isLoading.value = true;
       final formData = dio.FormData.fromMap({
@@ -714,6 +773,23 @@ class TasksController extends GetxController {
               await dio.MultipartFile.fromFile(file.path),
             ),
           );
+        } else if (file is String) {
+          try {
+            final fileResponse = await dio.Dio().get(
+              file,
+              options: dio.Options(responseType: dio.ResponseType.bytes),
+            );
+            final fileName = file.split('/').last;
+            formData.files.add(MapEntry(
+              'taskimages[]',
+              dio.MultipartFile.fromBytes(
+                fileResponse.data,
+                filename: fileName,
+              ),
+            ));
+          } catch (e) {
+            debugPrint('Failed to download existing image: $e');
+          }
         }
       }
 
@@ -722,12 +798,13 @@ class TasksController extends GetxController {
           : await _taskRepository.submitTask(formData);
 
       if (response != null && response['status'] == true) {
+        isLoading.value = false; // Clear before closing so list screen never shows spinner
         Get.back();
         AppCommonToastMessage.show(
           message: response['message'] ?? 'Task ${isUpdate ? 'updated' : 'submitted'} successfully',
           type: ToastType.success,
         );
-        await fetchDailyTasks();
+        _refreshDailyTasksSilently();
       }
     } catch (e) {
       AppCommonToastMessage.show(
@@ -760,14 +837,32 @@ class TasksController extends GetxController {
               await dio.MultipartFile.fromFile(file.path),
             ),
           );
+        } else if (file is String) {
+          try {
+            final fileResponse = await dio.Dio().get(
+              file,
+              options: dio.Options(responseType: dio.ResponseType.bytes),
+            );
+            final fileName = file.split('/').last;
+            formData.files.add(MapEntry(
+              'taskimages[]',
+              dio.MultipartFile.fromBytes(
+                fileResponse.data,
+                filename: fileName,
+              ),
+            ));
+          } catch (e) {
+            debugPrint('Failed to download existing image: $e');
+          }
         }
       }
 
       final response = await _taskRepository.approveTask(formData);
       if (response != null && response['status'] == true) {
+        isLoading.value = false; // Clear before closing so list screen never shows spinner
         Get.back();
         AppCommonToastMessage.show(message: 'Task approved successfully', type: ToastType.success);
-        await fetchDailyTasks();
+        _refreshDailyTasksSilently();
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to approve task: $e', type: ToastType.error);
@@ -797,14 +892,32 @@ class TasksController extends GetxController {
               await dio.MultipartFile.fromFile(file.path),
             ),
           );
+        } else if (file is String) {
+          try {
+            final fileResponse = await dio.Dio().get(
+              file,
+              options: dio.Options(responseType: dio.ResponseType.bytes),
+            );
+            final fileName = file.split('/').last;
+            formData.files.add(MapEntry(
+              'taskimages[]',
+              dio.MultipartFile.fromBytes(
+                fileResponse.data,
+                filename: fileName,
+              ),
+            ));
+          } catch (e) {
+            debugPrint('Failed to download existing image: $e');
+          }
         }
       }
 
       final response = await _taskRepository.rejectTask(formData);
       if (response != null && response['status'] == true) {
+        isLoading.value = false; // Clear before closing so list screen never shows spinner
         Get.back();
         AppCommonToastMessage.show(message: 'Task rejected successfully', type: ToastType.success);
-        await fetchDailyTasks();
+        _refreshDailyTasksSilently();
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to reject task: $e', type: ToastType.error);
@@ -822,9 +935,10 @@ class TasksController extends GetxController {
         deleteLevel: deleteLevel,
       );
       if (response != null && response['status'] == true) {
+        isLoading.value = false; // Clear before closing so list screen never shows spinner
         Get.back();
         AppCommonToastMessage.show(message: response['message'] ?? 'Task deleted successfully', type: ToastType.success);
-        await fetchDailyTasks();
+        _refreshDailyTasksSilently();
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to delete task: $e', type: ToastType.error);
@@ -886,9 +1000,11 @@ class TasksController extends GetxController {
     try {
       isLoading.value = true;
       Get.dialog(
-        CustomAppLoader(),
+        const CustomAppLoader(),
         barrierDismissible: false,
       );
+      // Allow dialog to push before making fast network requests
+      await Future.delayed(const Duration(milliseconds: 50));
 
       final response = await _taskRepository.getTaskEditDetails(
         task.id.toString(),
@@ -924,9 +1040,11 @@ class TasksController extends GetxController {
     try {
       isLoading.value = true;
       Get.dialog(
-        CustomAppLoader(),
+        const CustomAppLoader(),
         barrierDismissible: false,
       );
+      // Allow dialog to push before making fast network requests
+      await Future.delayed(const Duration(milliseconds: 50));
 
       final response = await _taskRepository.getTaskEditDetails(
         task.id.toString(),
@@ -1251,9 +1369,10 @@ class TasksController extends GetxController {
       isLoading.value = true;
       final response = await _taskRepository.updateTaskInstance(payload);
       if (response != null && response['status'] == true) {
+        isLoading.value = false; // Clear before navigating back so list screen never shows spinner
         Get.back();
         AppCommonToastMessage.show(message: 'Task updated successfully', type: ToastType.success);
-        fetchInitialList();
+        _refreshDailyTasksSilently();
       }
     } catch (e) {
       AppCommonToastMessage.show(message: 'Failed to update task: $e', type: ToastType.error);

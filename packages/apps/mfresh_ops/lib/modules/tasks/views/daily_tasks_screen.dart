@@ -381,19 +381,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       ),
                     ),
                   ],
-                  if (controller.isLoading.value && controller.tasks.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  // No bottom spinner — post-action refreshes are now silent (_refreshDailyTasksSilently)
                 ],
                 SliverToBoxAdapter(
                   child: SizedBox(
