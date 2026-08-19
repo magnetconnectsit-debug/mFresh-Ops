@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
 import 'chart_full_screen_viewer.dart';
@@ -198,23 +198,211 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
       );
     }
 
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4.r,
-            offset: const Offset(0, 2),
-          )
-        ],
+    final chartWidget = LineChart(
+      LineChartData(
+        minX: -0.2,
+        maxX: dataLength - 1 + 0.2,
+        minY: 0,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: yInterval,
+          getDrawingHorizontalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+          getDrawingVerticalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 45.w,
+              interval: yInterval,
+              getTitlesWidget: (value, meta) {
+                if (value == 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Text(
+                    NumberFormat.compact().format(value),
+                    style: AppTextStyle.style_10_400(color: AppColors.grey500),
+                    textAlign: TextAlign.right,
+                  ),
+                );
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30.h,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= dataLength || value != index.toDouble()) {
+                  return const SizedBox.shrink();
+                }
+                
+                String monthStr = "";
+                if (widget.bookingsData.isNotEmpty && index < widget.bookingsData.length) {
+                  monthStr = widget.bookingsData[index].month;
+                } else if (widget.serviceBookingsData.isNotEmpty && index < widget.serviceBookingsData.length) {
+                  monthStr = widget.serviceBookingsData[index].month;
+                }
+                
+                final dt = DateTime.tryParse(monthStr);
+                final isWknd = dt != null && (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday);
+                
+                return Padding(
+                  padding: EdgeInsets.only(top: 8.h),
+                  child: Text(
+                    _formatDate(monthStr),
+                    style: AppTextStyle.style_10_400(color: isWknd ? Colors.red : AppColors.grey500),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        extraLinesData: ExtraLinesData(
+          extraLinesOnTop: false,
+          horizontalLines: extraLines,
+        ),
+        showingTooltipIndicators: () {
+          List<ShowingTooltipIndicators> indicators = [];
+          // Add non-touched spots first
+          for (int index = 0; index < math.max(widget.bookingsData.length, widget.serviceBookingsData.length); index++) {
+            if (index == touchedSpotIndex) continue;
+            
+            if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
+              indicators.add(ShowingTooltipIndicators([LineBarSpot(bookingsBar, 0, bookingsBar.spots[index])]));
+            }
+            if (index < servicesBar.spots.length && servicesBar.spots[index].y > 0) {
+              indicators.add(ShowingTooltipIndicators([LineBarSpot(servicesBar, 1, servicesBar.spots[index])]));
+            }
+          }
+          
+          // Add touched spot last so it paints on top
+          if (touchedSpotIndex != null) {
+            final index = touchedSpotIndex!;
+            List<LineBarSpot> spotsForThisX = [];
+            if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
+              spotsForThisX.add(LineBarSpot(bookingsBar, 0, bookingsBar.spots[index]));
+            }
+            if (index < servicesBar.spots.length && servicesBar.spots[index].y > 0) {
+              spotsForThisX.add(LineBarSpot(servicesBar, 1, servicesBar.spots[index]));
+            }
+            if (spotsForThisX.isNotEmpty) {
+              indicators.add(ShowingTooltipIndicators(spotsForThisX));
+            }
+          }
+          return indicators;
+        }(),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          handleBuiltInTouches: false,
+          touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+            if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
+              final newIndex = response.lineBarSpots![0].spotIndex;
+              if (touchedSpotIndex != newIndex) {
+                setState(() {
+                  touchedSpotIndex = newIndex;
+                });
+              }
+            } else {
+              final eventType = event.runtimeType.toString();
+              if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
+                if (touchedSpotIndex != null) {
+                  setState(() {
+                    touchedSpotIndex = null;
+                  });
+                }
+              }
+            }
+          },
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
+            tooltipPadding: EdgeInsets.all(4.w),
+            tooltipMargin: 8.h,
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            getTooltipItems: (touchedSpots) {
+              if (touchedSpots.isEmpty) return [];
+              
+              int index = touchedSpots.first.spotIndex;
+              
+              if (touchedSpotIndex == index) {
+                // Detailed sticky tooltip
+                String monthStr = "";
+                if (widget.bookingsData.isNotEmpty && index < widget.bookingsData.length) {
+                  monthStr = widget.bookingsData[index].month;
+                } else if (widget.serviceBookingsData.isNotEmpty && index < widget.serviceBookingsData.length) {
+                  monthStr = widget.serviceBookingsData[index].month;
+                }
+
+                final dt = DateTime.tryParse(monthStr);
+                final isWknd = dt != null && (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday);
+
+                List<LineTooltipItem> items = [];
+                for (int i = 0; i < touchedSpots.length; i++) {
+                  final spot = touchedSpots[i];
+                  if (i == 0) {
+                    items.add(LineTooltipItem(
+                      '${_formatDate(monthStr)}\n',
+                      AppTextStyle.style_12_700(color: Colors.white),
+                      children: [
+                        TextSpan(
+                          text: '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
+                          style: AppTextStyle.style_12_400(color: isWknd ? Colors.red : (spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent)),
+                        ),
+                      ],
+                    ));
+                  } else {
+                    items.add(LineTooltipItem(
+                      '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
+                      AppTextStyle.style_12_400(color: isWknd ? Colors.red : (spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent)),
+                    ));
+                  }
+                }
+                return items;
+              } else {
+                // Permanent floating labels
+                return touchedSpots.map((spot) {
+                  if (spot.y == 0) return null;
+                  
+                  int sIndex = spot.spotIndex;
+                  String mStr = "";
+                  if (widget.bookingsData.isNotEmpty && sIndex < widget.bookingsData.length) {
+                    mStr = widget.bookingsData[sIndex].month;
+                  } else if (widget.serviceBookingsData.isNotEmpty && sIndex < widget.serviceBookingsData.length) {
+                    mStr = widget.serviceBookingsData[sIndex].month;
+                  }
+                  final dt2 = DateTime.tryParse(mStr);
+                  final isW2 = dt2 != null && (dt2.weekday == DateTime.saturday || dt2.weekday == DateTime.sunday);
+                  
+                  return LineTooltipItem(
+                    NumberFormat.compact().format(spot.y),
+                    AppTextStyle.style_10_600(color: isW2 ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
+                  );
+                }).toList();
+              }
+            },
+          ),
+        ),
+        lineBarsData: [bookingsBar, servicesBar],
       ),
+    );
+
+    Widget innerContent = Padding(
+      padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+                Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -292,179 +480,35 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
           SizedBox(height: 24.h),
           
           // Chart
-          SizedBox(
-            height: 300.h,
-            child: LineChart(
-              LineChartData(
-                minX: -0.2,
-                maxX: dataLength - 1 + 0.2,
-                minY: 0,
-                maxY: maxY,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  horizontalInterval: yInterval,
-                  getDrawingHorizontalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
-                  getDrawingVerticalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
-                ),
-                titlesData: FlTitlesData(
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 45.w,
-                      interval: yInterval,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0) return const SizedBox.shrink();
-                        return Padding(
-                          padding: EdgeInsets.only(right: 8.w),
-                          child: Text(
-                            NumberFormat.compact().format(value),
-                            style: AppTextStyle.style_10_400(color: AppColors.grey500),
-                            textAlign: TextAlign.right,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30.h,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= dataLength || value != index.toDouble()) {
-                          return const SizedBox.shrink();
-                        }
-                        
-                        String monthStr = "";
-                        if (widget.bookingsData.isNotEmpty && index < widget.bookingsData.length) {
-                          monthStr = widget.bookingsData[index].month;
-                        } else if (widget.serviceBookingsData.isNotEmpty && index < widget.serviceBookingsData.length) {
-                          monthStr = widget.serviceBookingsData[index].month;
-                        }
-                        
-                        return Padding(
-                          padding: EdgeInsets.only(top: 8.h),
-                          child: Text(
-                            _formatDate(monthStr),
-                            style: AppTextStyle.style_10_400(color: AppColors.grey500),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                extraLinesData: ExtraLinesData(
-                  horizontalLines: extraLines,
-                ),
-                showingTooltipIndicators: () {
-                  List<ShowingTooltipIndicators> indicators = [];
-                  for (int index = 0; index < math.max(widget.bookingsData.length, widget.serviceBookingsData.length); index++) {
-                    if (touchedSpotIndex == index) {
-                      List<LineBarSpot> spotsForThisX = [];
-                      if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
-                        spotsForThisX.add(LineBarSpot(bookingsBar, 0, bookingsBar.spots[index]));
-                      }
-                      if (index < servicesBar.spots.length && servicesBar.spots[index].y > 0) {
-                        spotsForThisX.add(LineBarSpot(servicesBar, 1, servicesBar.spots[index]));
-                      }
-                      if (spotsForThisX.isNotEmpty) {
-                        indicators.add(ShowingTooltipIndicators(spotsForThisX));
-                      }
-                    } else if (touchedSpotIndex == null) {
-                      if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
-                        indicators.add(ShowingTooltipIndicators([LineBarSpot(bookingsBar, 0, bookingsBar.spots[index])]));
-                      }
-                      if (index < servicesBar.spots.length && servicesBar.spots[index].y > 0) {
-                        indicators.add(ShowingTooltipIndicators([LineBarSpot(servicesBar, 1, servicesBar.spots[index])]));
-                      }
-                    }
-                  }
-                  return indicators;
-                }(),
-                lineTouchData: LineTouchData(
-                  enabled: true,
-                  handleBuiltInTouches: false,
-                  touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
-                    if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
-                      setState(() {
-                        touchedSpotIndex = response.lineBarSpots![0].spotIndex;
-                      });
-                    } else {
-                      final eventType = event.runtimeType.toString();
-                      if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                        setState(() {
-                          touchedSpotIndex = null;
-                        });
-                      }
-                    }
-                  },
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
-                    tooltipPadding: EdgeInsets.all(4.w),
-                    tooltipMargin: 8.h,
-                    fitInsideHorizontally: true,
-                    fitInsideVertically: true,
-                    getTooltipItems: (touchedSpots) {
-                      if (touchedSpots.isEmpty) return [];
-                      
-                      int index = touchedSpots.first.spotIndex;
-                      
-                      if (touchedSpotIndex == index) {
-                        // Detailed sticky tooltip
-                        String monthStr = "";
-                        if (widget.bookingsData.isNotEmpty && index < widget.bookingsData.length) {
-                          monthStr = widget.bookingsData[index].month;
-                        } else if (widget.serviceBookingsData.isNotEmpty && index < widget.serviceBookingsData.length) {
-                          monthStr = widget.serviceBookingsData[index].month;
-                        }
+          if (widget.isFullScreen)
+            Expanded(child: chartWidget)
+          else
+            SizedBox(height: 300.h, child: chartWidget),
+        ],
+      ),
+    );
 
-                        List<LineTooltipItem> items = [];
-                        for (int i = 0; i < touchedSpots.length; i++) {
-                          final spot = touchedSpots[i];
-                          if (i == 0) {
-                            items.add(LineTooltipItem(
-                              '${_formatDate(monthStr)}\n',
-                              AppTextStyle.style_12_700(color: Colors.white),
-                              children: [
-                                TextSpan(
-                                  text: '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
-                                  style: AppTextStyle.style_12_400(color: spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent),
-                                ),
-                              ],
-                            ));
-                          } else {
-                            items.add(LineTooltipItem(
-                              '${spot.barIndex == 0 ? 'Bookings' : 'Services'}: ${NumberFormat('#,##,###').format(spot.y)}',
-                              AppTextStyle.style_12_400(color: spot.barIndex == 0 ? Colors.greenAccent : Colors.lightBlueAccent),
-                            ));
-                          }
-                        }
-                        return items;
-                      } else {
-                        // Permanent floating labels
-                        return touchedSpots.map((spot) {
-                          if (spot.y == 0) return null;
-                          return LineTooltipItem(
-                            NumberFormat.compact().format(spot.y),
-                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
-                          );
-                        }).toList();
-                      }
-                    },
-                  ),
-                ),
-                lineBarsData: [bookingsBar, servicesBar],
-              ),
-            ),
-          ),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(height: 8.h, color: const Color(0xFF059669)),
+          if (widget.isFullScreen)
+            Expanded(child: innerContent)
+          else
+            innerContent,
         ],
       ),
     );

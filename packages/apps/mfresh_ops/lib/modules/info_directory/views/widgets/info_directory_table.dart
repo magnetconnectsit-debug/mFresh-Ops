@@ -7,7 +7,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_webview.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/info_directory_controller.dart';
-import 'package:mfresh_ops/data/models/contact_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/contact_model.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/data/models/asset_product_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/asset_product_model.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart' as mfresh_auth;
 

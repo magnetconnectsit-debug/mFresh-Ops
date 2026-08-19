@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
 import 'dart:math';
@@ -238,15 +238,20 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
                     handleBuiltInTouches: false,
                     touchCallback: (FlTouchEvent event, barTouchResponse) {
                       if (barTouchResponse != null && barTouchResponse.spot != null) {
-                        setState(() {
-                          touchedGroupIndex = barTouchResponse.spot!.touchedBarGroupIndex;
-                        });
+                        final newIndex = barTouchResponse.spot!.touchedBarGroupIndex;
+                        if (touchedGroupIndex != newIndex) {
+                          setState(() {
+                            touchedGroupIndex = newIndex;
+                          });
+                        }
                       } else {
                         final eventType = event.runtimeType.toString();
                         if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                          setState(() {
-                            touchedGroupIndex = null;
-                          });
+                          if (touchedGroupIndex != null) {
+                            setState(() {
+                              touchedGroupIndex = null;
+                            });
+                          }
                         }
                       }
                     },

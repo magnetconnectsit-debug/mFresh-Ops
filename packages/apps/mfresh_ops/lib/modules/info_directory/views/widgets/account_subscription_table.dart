@@ -5,7 +5,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
-import 'package:mfresh_ops/data/models/account_subscription_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/account_subscription_model.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/info_directory/views/widgets/info_directory_table.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';

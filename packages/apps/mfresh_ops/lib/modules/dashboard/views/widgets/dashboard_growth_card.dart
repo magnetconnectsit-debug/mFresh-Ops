@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

@@ -22,6 +22,10 @@ class AppConstants {
   static const String sendOtp = 'adminsend-otp';
   static const String verifyOtp = 'adminverify-otp';
 
+  // Dashboard
+  static const String dashboardData = 'dashboard-data';
+  static const String comparisonDashboardData = 'comparison-dashboard-data';
+
   // Booking Module
   static const String customerBookingDetails = 'customer/customerbookingdetails';
   static const String resendBookingSms = 'customer/resend-booking-sms';
