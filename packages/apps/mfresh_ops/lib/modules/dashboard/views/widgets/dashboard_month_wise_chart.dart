@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
 import 'chart_full_screen_viewer.dart';
@@ -121,19 +121,171 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
       ),
     );
 
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4.r,
-            offset: const Offset(0, 2),
-          )
-        ],
+    final chartWidget = LineChart(
+      LineChartData(
+        minX: -0.2,
+        maxX: widget.data.length - 1 + 0.2,
+        minY: 0,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: yInterval,
+          getDrawingHorizontalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+          getDrawingVerticalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 50.w,
+              interval: yInterval,
+              getTitlesWidget: (value, meta) {
+                if (value == 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Text(
+                    '₹${NumberFormat.compact().format(value)}',
+                    style: AppTextStyle.style_10_400(color: AppColors.grey500),
+                    textAlign: TextAlign.right,
+                  ),
+                );
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 50.h,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= widget.data.length || value != index.toDouble()) {
+                  return const SizedBox.shrink();
+                }
+                
+                bool isWeekend = false;
+                if (widget.showDays) {
+                  final dt = DateTime.tryParse(widget.data[index].date);
+                  isWeekend = dt != null && (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday);
+                }
+                
+                return SideTitleWidget(
+                  meta: meta,
+                  angle: -0.8,
+                  child: Text(
+                    _formatDate(widget.data[index].date),
+                    style: AppTextStyle.style_8_400(color: isWeekend ? Colors.red : AppColors.grey500),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        extraLinesData: ExtraLinesData(
+          extraLinesOnTop: false,
+          horizontalLines: [
+            HorizontalLine(
+              y: averageRevenue,
+              color: Colors.red,
+              strokeWidth: 1.5,
+              dashArray: [4, 4],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topLeft,
+                padding: EdgeInsets.only(bottom: 4.h, left: 4.w),
+                style: AppTextStyle.style_10_700(color: Colors.red),
+                labelResolver: (line) => 'Avg Revenue: ₹${NumberFormat('#,##,###').format(averageRevenue)}',
+              ),
+            ),
+          ],
+        ),
+        showingTooltipIndicators: () {
+          final indicators = <ShowingTooltipIndicators>[];
+          // Add non-touched spots first
+          for (int i = 0; i < spots.length; i++) {
+            if (spots[i].y == 0 || i == touchedSpotIndex) continue;
+            indicators.add(ShowingTooltipIndicators([LineBarSpot(barData, 0, spots[i])]));
+          }
+          // Add touched spot last so it paints over others
+          if (touchedSpotIndex != null && touchedSpotIndex! >= 0 && touchedSpotIndex! < spots.length) {
+            if (spots[touchedSpotIndex!].y != 0) {
+              indicators.add(ShowingTooltipIndicators([LineBarSpot(barData, 0, spots[touchedSpotIndex!])]));
+            }
+          }
+          return indicators;
+        }(),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          handleBuiltInTouches: false,
+          touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+            if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
+              final newIndex = response.lineBarSpots![0].spotIndex;
+              if (touchedSpotIndex != newIndex) {
+                setState(() {
+                  touchedSpotIndex = newIndex;
+                });
+              }
+            } else {
+              final eventType = event.runtimeType.toString();
+              if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
+                if (touchedSpotIndex != null) {
+                  setState(() {
+                    touchedSpotIndex = null;
+                  });
+                }
+              }
+            }
+          },
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
+            tooltipPadding: EdgeInsets.all(4.w),
+            tooltipMargin: 8.h,
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                if (spot.y == 0) return null;
+                
+                bool isWknd = false;
+                if (widget.showDays) {
+                  final dt = DateTime.tryParse(widget.data[spot.spotIndex].date);
+                  isWknd = dt != null && (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday);
+                }
+                
+                if (touchedSpotIndex == spot.spotIndex) {
+                  return LineTooltipItem(
+                    '${_formatDate(widget.data[spot.spotIndex].date)}\n',
+                    AppTextStyle.style_12_700(color: Colors.white),
+                    children: [
+                      TextSpan(
+                        text: 'Revenue: ₹${NumberFormat('#,##,###').format(spot.y)}',
+                        style: AppTextStyle.style_12_400(color: isWknd ? Colors.red : Colors.white70),
+                      ),
+                    ],
+                  );
+                } else {
+                  return LineTooltipItem(
+                    '₹${NumberFormat.compact().format(spot.y)}',
+                    AppTextStyle.style_10_600(color: isWknd ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
+                  );
+                }
+              }).toList();
+            },
+          ),
+        ),
+        lineBarsData: [barData],
       ),
+    );
+
+    Widget innerContent = Padding(
+      padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -174,153 +326,35 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
             ],
           ),
           SizedBox(height: 24.h),
-          SizedBox(
-            height: 250.h,
-            child: LineChart(
-              LineChartData(
-                minX: -0.2,
-                maxX: widget.data.length - 1 + 0.2,
-                minY: 0,
-                maxY: maxY,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  horizontalInterval: yInterval,
-                  getDrawingHorizontalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
-                  getDrawingVerticalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
-                ),
-                titlesData: FlTitlesData(
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50.w,
-                      interval: yInterval,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0) return const SizedBox.shrink();
-                        return Padding(
-                          padding: EdgeInsets.only(right: 8.w),
-                          child: Text(
-                            '₹${NumberFormat.compact().format(value)}',
-                            style: AppTextStyle.style_10_400(color: AppColors.grey500),
-                            textAlign: TextAlign.right,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50.h,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= widget.data.length || value != index.toDouble()) {
-                          return const SizedBox.shrink();
-                        }
-                        
-                        bool isWeekend = false;
-                        if (widget.showDays) {
-                          final dt = DateTime.tryParse(widget.data[index].date);
-                          isWeekend = dt != null && (dt.weekday == DateTime.saturday || dt.weekday == DateTime.sunday);
-                        }
-                        
-                        return SideTitleWidget(
-                          meta: meta,
-                          angle: -0.8,
-                          child: Text(
-                            _formatDate(widget.data[index].date),
-                            style: AppTextStyle.style_8_400(color: isWeekend ? Colors.red : AppColors.grey500),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                extraLinesData: ExtraLinesData(
-                  horizontalLines: [
-                    HorizontalLine(
-                      y: averageRevenue,
-                      color: Colors.red,
-                      strokeWidth: 1.5,
-                      dashArray: [4, 4],
-                      label: HorizontalLineLabel(
-                        show: true,
-                        alignment: Alignment.topLeft,
-                        padding: EdgeInsets.only(bottom: 4.h, left: 4.w),
-                        style: AppTextStyle.style_10_700(color: Colors.red),
-                        labelResolver: (line) => 'Avg Revenue: ₹${NumberFormat('#,##,###').format(averageRevenue)}',
-                      ),
-                    ),
-                  ],
-                ),
-                showingTooltipIndicators: List.generate(
-                  spots.length,
-                  (index) {
-                    if (spots[index].y == 0) return const ShowingTooltipIndicators([]);
-                    return ShowingTooltipIndicators([
-                      LineBarSpot(barData, 0, spots[index]),
-                    ]);
-                  },
-                ),
-                lineTouchData: LineTouchData(
-                  enabled: true,
-                  handleBuiltInTouches: false,
-                  touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
-                    if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
-                      setState(() {
-                        touchedSpotIndex = response.lineBarSpots![0].spotIndex;
-                      });
-                    } else {
-                      final eventType = event.runtimeType.toString();
-                      if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                        setState(() {
-                          touchedSpotIndex = null;
-                        });
-                      }
-                    }
-                  },
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
-                    tooltipPadding: EdgeInsets.all(4.w),
-                    tooltipMargin: 8.h,
-                    fitInsideHorizontally: true,
-                    fitInsideVertically: true,
-                    getTooltipItems: (touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        if (spot.y == 0) return null;
-                        
-                        if (touchedSpotIndex == spot.spotIndex) {
-                          return LineTooltipItem(
-                            '${_formatDate(widget.data[spot.spotIndex].date)}\n',
-                            AppTextStyle.style_12_700(color: Colors.white),
-                            children: [
-                              TextSpan(
-                                text: 'Revenue: ₹${NumberFormat('#,##,###').format(spot.y)}',
-                                style: AppTextStyle.style_12_400(color: Colors.white70),
-                              ),
-                            ],
-                          );
-                        } else {
-                          return LineTooltipItem(
-                            '₹${NumberFormat.compact().format(spot.y)}',
-                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
-                          );
-                        }
-                      }).toList();
-                    },
-                  ),
-                ),
-                lineBarsData: [barData],
-              ),
-            ),
-          ),
+          if (widget.isFullScreen)
+            Expanded(child: chartWidget)
+          else
+            SizedBox(height: 250.h, child: chartWidget),
+        ],
+      ),
+    );
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(height: 8.h, color: const Color(0xFF059669)),
+          if (widget.isFullScreen)
+            Expanded(child: innerContent)
+          else
+            innerContent,
         ],
       ),
     );

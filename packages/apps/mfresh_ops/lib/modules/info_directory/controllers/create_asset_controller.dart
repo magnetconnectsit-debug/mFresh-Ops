@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:mfresh_ops/data/models/asset_product_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/asset_product_model.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 
 class CreateAssetController extends GetxController {

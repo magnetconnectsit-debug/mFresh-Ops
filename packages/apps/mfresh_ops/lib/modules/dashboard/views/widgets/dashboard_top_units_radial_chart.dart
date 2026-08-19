@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'chart_full_screen_viewer.dart';
 
 class DashboardTopUnitsRadialChart extends StatefulWidget {
@@ -38,28 +38,28 @@ class _DashboardTopUnitsRadialChartState extends State<DashboardTopUnitsRadialCh
     ];
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border(
-          top: BorderSide(
-            color: const Color(0xFF059669), // Green top border like mockup
-            width: 4.h,
-          ),
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
+          Container(height: 8.h, color: const Color(0xFF059669)),
+          Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -220,6 +220,9 @@ class _DashboardTopUnitsRadialChartState extends State<DashboardTopUnitsRadialCh
               );
             }),
           ),
+        ],
+      ),
+    ),
         ],
       ),
     );

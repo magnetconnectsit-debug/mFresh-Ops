@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/data/models/account_subscription_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/account_subscription_model.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
 
 class CreateAccountSubscriptionController extends GetxController {

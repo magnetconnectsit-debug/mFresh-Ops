@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
@@ -158,9 +158,9 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
         borderRadius: BorderRadius.circular(8.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -632,15 +632,20 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                         handleBuiltInTouches: false,
                         touchCallback: (FlTouchEvent event, barTouchResponse) {
                           if (barTouchResponse != null && barTouchResponse.spot != null) {
-                            setState(() {
-                              tappedIndex = barTouchResponse.spot!.touchedBarGroupIndex;
-                            });
+                            final newIndex = barTouchResponse.spot!.touchedBarGroupIndex;
+                            if (tappedIndex != newIndex) {
+                              setState(() {
+                                tappedIndex = newIndex;
+                              });
+                            }
                           } else {
                             final eventType = event.runtimeType.toString();
                             if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                              setState(() {
-                                tappedIndex = null;
-                              });
+                              if (tappedIndex != null) {
+                                setState(() {
+                                  tappedIndex = null;
+                                });
+                              }
                             }
                           }
                         },

@@ -168,7 +168,8 @@ class AdminCollectionsTable extends StatelessWidget {
     }
 
     final bool isCurrentMonthVal = date != null && _isCurrentMonth(date);
-    final bool isClickable = !isTotal && !isEmpty && isCurrentMonthVal && context != null && unitId != null;
+    // Allow clicking even if isEmpty is true
+    final bool isClickable = !isTotal && isCurrentMonthVal && context != null && unitId != null;
 
     Widget actualCell = _buildDataCell(actualText, width: width, color: actualBg);
     if (isClickable) {

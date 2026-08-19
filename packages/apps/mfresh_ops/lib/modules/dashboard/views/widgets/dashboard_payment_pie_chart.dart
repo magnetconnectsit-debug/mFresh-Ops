@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'chart_full_screen_viewer.dart';
 
 class DashboardPaymentPieChart extends StatefulWidget {
@@ -37,28 +37,28 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
     final total = items.fold(0.0, (sum, item) => sum + item.value);
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border(
-          top: BorderSide(
-            color: const Color(0xFF1976D2), // Blue top border like mockup
-            width: 4.h,
-          ),
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
+          Container(height: 8.h, color: const Color(0xFF1976D2)),
+          Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -104,15 +104,20 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
                           pieTouchData: PieTouchData(
                             touchCallback: (FlTouchEvent event, pieTouchResponse) {
                               if (pieTouchResponse != null && pieTouchResponse.touchedSection != null) {
-                                setState(() {
-                                  touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                });
+                                final newIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                if (touchedIndex != newIndex) {
+                                  setState(() {
+                                    touchedIndex = newIndex;
+                                  });
+                                }
                               } else {
                                 final eventType = event.runtimeType.toString();
                                 if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                                  setState(() {
-                                    touchedIndex = -1;
-                                  });
+                                  if (touchedIndex != -1) {
+                                    setState(() {
+                                      touchedIndex = -1;
+                                    });
+                                  }
                                 }
                               }
                             },
@@ -140,7 +145,7 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
                                     title: '',
                                     radius: radius,
                                     badgeWidget: (percent < 2.0) // Hide badges for tiny slices
-                                        ? null
+                                        ? const SizedBox.shrink()
                                         : Container(
                                             padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                                             decoration: BoxDecoration(
@@ -244,6 +249,9 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
               ),
             ],
           ),
+        ],
+      ),
+    ),
         ],
       ),
     );

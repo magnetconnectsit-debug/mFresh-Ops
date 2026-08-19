@@ -70,7 +70,7 @@ class AdminCollectionsScreen extends StatelessWidget {
                 ),
               SizedBox(height: 8.h),
               const Expanded(child: AdminCollectionsTable()),
-              SizedBox(height: 16.h), // Bottom padding
+              SizedBox(height: 45.h), // Bottom padding
             ],
           );
         }),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:mfresh_ops/data/models/contact_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/contact_model.dart';
 import 'package:mfresh_ops/data/repositories/contact_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:core/core.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
 import 'chart_full_screen_viewer.dart';
@@ -81,15 +81,19 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
 
   String _formatDate(String dateStr) {
     try {
-      if (dateStr.length >= 10) {
-        final parsed = DateTime.parse(dateStr);
-        return DateFormat('dd MMM').format(parsed);
-      } else {
-        final parsed = DateFormat('yyyy-MM').parse(dateStr);
-        return DateFormat('MMM yyyy').format(parsed);
-      }
-    } catch (e) {
+      final d = DateFormat('yyyy-MM-dd').parse(dateStr);
+      return DateFormat('dd/MM').format(d);
+    } catch (_) {
       return dateStr;
+    }
+  }
+
+  bool _isWeekend(String dateStr) {
+    try {
+      final d = DateFormat('yyyy-MM-dd').parse(dateStr);
+      return d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -192,19 +196,209 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
       );
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4.r,
-            offset: const Offset(0, 2),
-          )
-        ],
+    final chartWidget = LineChart(
+      LineChartData(
+        minX: -0.5,
+        maxX: distinctDatesSet.length - 0.5,
+        minY: 0,
+        maxY: maxRevenue,
+        showingTooltipIndicators: () {
+          List<ShowingTooltipIndicators> indicators = [];
+          // Add non-touched spots first
+          for (int xIndex = 0; xIndex < distinctDatesSet.length; xIndex++) {
+            if (xIndex == touchedSpotIndex) continue;
+            for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
+              if (lineBarsData[barIndex].spots[xIndex].y != 0) {
+                indicators.add(ShowingTooltipIndicators([
+                  LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex])
+                ]));
+              }
+            }
+          }
+          
+          // Add touched spot last so it paints on top
+          if (touchedSpotIndex != null) {
+            final xIndex = touchedSpotIndex!;
+            List<LineBarSpot> spotsForThisX = [];
+            for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
+              if (lineBarsData[barIndex].spots[xIndex].y != 0) {
+                spotsForThisX.add(LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex]));
+              }
+            }
+            if (spotsForThisX.isNotEmpty) {
+              indicators.add(ShowingTooltipIndicators(spotsForThisX));
+            }
+          }
+          return indicators;
+        }(),
+        lineTouchData: LineTouchData(
+          enabled: true,
+          handleBuiltInTouches: false,
+          touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+            if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
+              final newIndex = response.lineBarSpots![0].spotIndex;
+              if (touchedSpotIndex != newIndex) {
+                setState(() {
+                  touchedSpotIndex = newIndex;
+                });
+              }
+            } else {
+              final eventType = event.runtimeType.toString();
+              if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
+                if (touchedSpotIndex != null) {
+                  setState(() {
+                    touchedSpotIndex = null;
+                  });
+                }
+              }
+            }
+          },
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => touchedSpotIndex == spot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
+            tooltipPadding: EdgeInsets.all(4.w),
+            tooltipMargin: 8.h,
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            getTooltipItems: (touchedSpots) {
+              if (touchedSpots.isEmpty) return [];
+              
+              int xIndex = touchedSpots.first.spotIndex;
+              
+              if (touchedSpotIndex == xIndex) {
+                // Detailed sticky tooltip for touched vertical line
+                final rawDate = distinctDatesSet[xIndex];
+                final isWknd = _isWeekend(rawDate);
+                
+                List<String> visibleUnits = distinctUnitsSet.where((u) => !hiddenUnits.contains(u)).toList();
+                
+                bool isFirst = true;
+                return touchedSpots.map((spot) {
+                  int barIndex = spot.barIndex;
+                  double yVal = spot.y;
+                  
+                  if (yVal == 0) return null;
+                  
+                  String uName = visibleUnits.length > barIndex ? visibleUnits[barIndex] : 'Unknown';
+                  Color uColor = spot.y > 0 ? (lineBarsData.length > barIndex ? (lineBarsData[barIndex].color ?? Colors.blue) : Colors.blue) : Colors.blue;
+                  
+                  if (isFirst) {
+                    isFirst = false;
+                    return LineTooltipItem(
+                      '${_formatDate(rawDate)}\n',
+                      AppTextStyle.style_12_700(color: Colors.white),
+                      children: [
+                        TextSpan(
+                          text: '$uName: ₹${NumberFormat('#,##,###').format(yVal)}',
+                          style: AppTextStyle.style_12_400(color: isWknd ? Colors.red : uColor),
+                        ),
+                      ],
+                    );
+                  } else {
+                    return LineTooltipItem(
+                      '$uName: ₹${NumberFormat('#,##,###').format(yVal)}',
+                      AppTextStyle.style_12_400(color: isWknd ? Colors.red : uColor),
+                    );
+                  }
+                }).toList();
+              } else {
+                // Return permanent floating labels for non-touched
+                return touchedSpots.map((spot) {
+                  if (spot.y == 0) return null;
+                  final rawDate = distinctDatesSet[spot.spotIndex];
+                  final isWknd = _isWeekend(rawDate);
+                  return LineTooltipItem(
+                    NumberFormat.compact().format(spot.y),
+                    AppTextStyle.style_10_600(color: isWknd ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
+                  );
+                }).toList();
+              }
+            },
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: maxRevenue / 5,
+          getDrawingHorizontalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+          getDrawingVerticalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+        ),
+        extraLinesData: ExtraLinesData(
+          extraLinesOnTop: false,
+          horizontalLines: [
+            HorizontalLine(
+              y: averageRevenue,
+              color: Colors.red,
+              strokeWidth: 1.5,
+              dashArray: [4, 4],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topLeft,
+                padding: EdgeInsets.only(bottom: 4.h, left: 4.w),
+                style: AppTextStyle.style_10_700(color: Colors.red),
+                labelResolver: (line) => 'Avg: ₹${NumberFormat('#,##,###').format(averageRevenue)}',
+              ),
+            ),
+          ],
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 48.h,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value < 0 || value >= distinctDatesSet.length || value != value.toInt()) {
+                  return const SizedBox.shrink();
+                }
+                final rawDate = distinctDatesSet[value.toInt()];
+                final isWknd = _isWeekend(rawDate);
+                return Padding(
+                  padding: EdgeInsets.only(top: 16.h),
+                  child: Transform.rotate(
+                    angle: -0.8, // More tilt for dates
+                    child: Text(
+                      _formatDate(rawDate),
+                      style: AppTextStyle.style_10_400(color: isWknd ? Colors.red : Colors.black54),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 50.w,
+              interval: maxRevenue / 5,
+              getTitlesWidget: (value, meta) {
+                if (value == 0) return const SizedBox.shrink();
+                return Text(
+                  '₹${NumberFormat.compact().format(value)}',
+                  style: AppTextStyle.style_10_400(color: Colors.black54),
+                  textAlign: TextAlign.right,
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.withAlpha(50), width: 1),
+            left: BorderSide(color: Colors.grey.withAlpha(50), width: 1),
+          ),
+        ),
+        lineBarsData: lineBarsData,
       ),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeInOut,
+    );
+
+    Widget innerContent = Padding(
+      padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -300,191 +494,35 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
             ),
           ),
           SizedBox(height: 24.h),
-          
-          // Chart
-          SizedBox(
-            height: 300.h,
-            child: LineChart(
-              LineChartData(
-                minX: -0.5,
-                maxX: distinctDatesSet.length - 0.5,
-                minY: 0,
-                maxY: maxRevenue,
-                showingTooltipIndicators: () {
-                  List<ShowingTooltipIndicators> indicators = [];
-                  for (int xIndex = 0; xIndex < distinctDatesSet.length; xIndex++) {
-                    if (touchedSpotIndex == xIndex) {
-                      // Group all lines together into a single tooltip indicator for the touched index
-                      List<LineBarSpot> spotsForThisX = [];
-                      for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
-                        if (lineBarsData[barIndex].spots[xIndex].y != 0) {
-                          spotsForThisX.add(LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex]));
-                        }
-                      }
-                      if (spotsForThisX.isNotEmpty) {
-                        indicators.add(ShowingTooltipIndicators(spotsForThisX));
-                      }
-                    } else if (touchedSpotIndex == null) {
-                      // Separate them for permanent labels (only when nothing is touched)
-                      for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
-                        if (lineBarsData[barIndex].spots[xIndex].y != 0) {
-                          indicators.add(ShowingTooltipIndicators([
-                            LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex])
-                          ]));
-                        }
-                      }
-                    }
-                  }
-                  return indicators;
-                }(),
-                lineTouchData: LineTouchData(
-                  enabled: true,
-                  handleBuiltInTouches: false,
-                  touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
-                    if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
-                      setState(() {
-                        touchedSpotIndex = response.lineBarSpots![0].spotIndex;
-                      });
-                    } else {
-                      final eventType = event.runtimeType.toString();
-                      if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                        setState(() {
-                          touchedSpotIndex = null;
-                        });
-                      }
-                    }
-                  },
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (touchedSpot) => touchedSpotIndex == touchedSpot.spotIndex ? const Color(0xFF1F2937) : Colors.transparent,
-                    tooltipPadding: EdgeInsets.all(4.w),
-                    tooltipMargin: 8.h,
-                    fitInsideHorizontally: true,
-                    fitInsideVertically: true,
-                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                      bool isFirst = true;
-                      return touchedSpots.map((spot) {
-                        if (spot.y == 0) return null; // Hide 0 values
-                        
-                        String unitNo = distinctUnitsSet[spot.barIndex];
-                        Color unitColor = _getColorForUnit(unitNo, spot.barIndex);
-                        
-                        // Check if this is the hovered spot
-                        if (touchedSpotIndex == spot.spotIndex) {
-                          String dateStr = "";
-                          if (isFirst) {
-                            int xIndex = spot.x.toInt();
-                            if (xIndex >= 0 && xIndex < distinctDatesSet.length) {
-                              dateStr = '${_formatDate(distinctDatesSet[xIndex])}\n';
-                            }
-                            isFirst = false;
-                          }
-                          return LineTooltipItem(
-                            '$dateStr$unitNo: ',
-                            AppTextStyle.style_10_600(color: Colors.white),
-                            children: [
-                              TextSpan(
-                                text: '₹${NumberFormat('#,##,###').format(spot.y)}',
-                                style: AppTextStyle.style_12_600(color: unitColor),
-                              ),
-                            ],
-                          );
-                        } else {
-                          // Permanent label
-                          return LineTooltipItem(
-                            '₹${NumberFormat.compact().format(spot.y)}',
-                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
-                          );
-                        }
-                      }).toList();
-                    },
-                  ),
-                ),
-                extraLinesData: ExtraLinesData(
-                  horizontalLines: [
-                    HorizontalLine(
-                      y: averageRevenue,
-                      color: Colors.red,
-                      strokeWidth: 2,
-                      dashArray: [5, 5],
-                      label: HorizontalLineLabel(
-                        show: true,
-                        alignment: Alignment.topCenter,
-                        padding: EdgeInsets.only(bottom: 4.h),
-                        style: AppTextStyle.style_10_700(color: Colors.red),
-                        labelResolver: (line) => 'Avg: ₹${NumberFormat('#,##,###').format(line.y)}',
-                      ),
-                    ),
-                  ],
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  drawHorizontalLine: true,
-                  horizontalInterval: maxRevenue / 5,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.withAlpha(30),
-                    strokeWidth: 1,
-                  ),
-                  getDrawingVerticalLine: (value) => FlLine(
-                    color: Colors.grey.withAlpha(30),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 48.h,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        if (value < 0 || value >= distinctDatesSet.length || value != value.toInt()) {
-                          return const SizedBox.shrink();
-                        }
-                        return Padding(
-                          padding: EdgeInsets.only(top: 16.h),
-                          child: Transform.rotate(
-                            angle: -0.8, // More tilt for dates
-                            child: Text(
-                              _formatDate(distinctDatesSet[value.toInt()]),
-                              style: AppTextStyle.style_10_400(color: Colors.black54),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50.w,
-                      interval: maxRevenue / 5,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0) return const SizedBox.shrink();
-                        return Text(
-                          '₹${NumberFormat.compact().format(value)}',
-                          style: AppTextStyle.style_10_400(color: Colors.black54),
-                          textAlign: TextAlign.right,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.withAlpha(50), width: 1),
-                    left: BorderSide(color: Colors.grey.withAlpha(50), width: 1),
-                  ),
-                ),
-                lineBarsData: lineBarsData,
-              ),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeInOut,
-            ),
-          ),
+          if (widget.isFullScreen)
+            Expanded(child: chartWidget)
+          else
+            SizedBox(height: 300.h, child: chartWidget),
+        ],
+      ),
+    );
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(height: 8.h, color: const Color(0xFF059669)),
+          if (widget.isFullScreen)
+            Expanded(child: innerContent)
+          else
+            innerContent,
         ],
       ),
     );

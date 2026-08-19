@@ -7,7 +7,8 @@ import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/dashboard_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
-import 'package:mfresh_ops/modules/dashboard/models/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
+import 'package:mfresh_ops/data/models/revenue_report/comparison_model.dart';
 
 class DashboardController extends GetxController {
   final DashboardRepository _repository = Get.put(DashboardRepository());
@@ -31,6 +32,18 @@ class DashboardController extends GetxController {
 
   final units = <SupportUnit>[].obs;
 
+  // ── Comparison tab ──
+  final rxDashboardTab = 0.obs; // 0 = Revenue, 1 = Comparison
+  final rxComparisonIsLoading = false.obs;
+  final rxComparisonResult = Rxn<ComparisonResponse>();
+
+  // Up to 4 comparison slots (Data A–D)
+  static const int maxComparisonSlots = 3;
+  final comparisonSlots = List.generate(
+    maxComparisonSlots,
+    (_) => ComparisonSlot(),
+  ).obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -46,6 +59,36 @@ class DashboardController extends GetxController {
       debugPrint('Error fetching units in dashboard: $e');
     }
   }
+
+  Future<void> fetchComparisonData() async {
+    final filledSlots = comparisonSlots.where((s) => s.isComplete).toList();
+    if (filledSlots.isEmpty) {
+      AppCommonToastMessage.show(
+        message: 'Please fill at least one comparison slot completely.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    try {
+      rxComparisonIsLoading.value = true;
+      final payload = filledSlots.map((s) => s.toPayload()).toList();
+      final response = await _repository.getComparisonData(payload);
+      if (response != null) {
+        rxComparisonResult.value = ComparisonResponse.fromJson(
+          Map<String, dynamic>.from(response as Map),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching comparison data: $e');
+      AppCommonToastMessage.show(
+        message: 'Failed to load comparison data.',
+        type: ToastType.error,
+      );
+    } finally {
+      rxComparisonIsLoading.value = false;
+    }
+  }
+
 
   Future<void> pullToRefresh() async {
     // A swipe-to-refresh should reload the dashboard and clear all filters.

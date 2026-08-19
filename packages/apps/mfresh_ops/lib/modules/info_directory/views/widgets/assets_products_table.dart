@@ -5,7 +5,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
-import 'package:mfresh_ops/data/models/asset_product_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/asset_product_model.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/widgets/app_image_view.dart';
