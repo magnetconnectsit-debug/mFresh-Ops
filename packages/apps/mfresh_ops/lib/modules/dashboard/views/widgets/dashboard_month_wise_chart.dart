@@ -147,7 +147,7 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
                 return Padding(
                   padding: EdgeInsets.only(right: 8.w),
                   child: Text(
-                    '₹${NumberFormat.compact().format(value)}',
+                    '₹${NumberFormat('#,##,###').format(value)}',
                     style: AppTextStyle.style_10_400(color: AppColors.grey500),
                     textAlign: TextAlign.right,
                   ),
@@ -272,7 +272,7 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
                   );
                 } else {
                   return LineTooltipItem(
-                    '₹${NumberFormat.compact().format(spot.y)}',
+                    '₹${NumberFormat('#,##,###').format(spot.y)}',
                     AppTextStyle.style_10_600(color: isWknd ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
                   );
                 }

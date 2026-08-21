@@ -95,148 +95,6 @@ class _DashboardViewState extends State<DashboardView> {
       ),
       body: Column(
         children: [
-          // ── Revenue Report title & Filters ──────────────────────────
-          Obx(() {
-            if (controller.rxDashboardTab.value == 1) return const SizedBox.shrink();
-            return Container(
-              color: Colors.white,
-              padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
-              child: Row(
-                children: [
-                  Text(
-                    'Revenue Report',
-                    style: AppTextStyle.style_18_600(color: AppColors.black),
-                  ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Obx(() {
-                    final List<Widget> chips = [];
-                    
-                    Widget buildChip(String label, VoidCallback onRemove) {
-                      return GestureDetector(
-                        onTap: onRemove,
-                        child: Container(
-                          margin: EdgeInsets.only(left: 6.w),
-                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(label, style: AppTextStyle.style_10_500(color: AppColors.primary)),
-                              SizedBox(width: 4.w),
-                              Icon(Icons.close, size: 10.sp, color: AppColors.primary),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    // Date Filter
-                    if (controller.rxDateFilter.value != null) {
-                      final labels = {
-                        'today': 'Today',
-                        'yesterday': 'Yesterday',
-                        'this_week': 'This Week',
-                        'last_week': 'Last Week',
-                        'this_month': 'This Month',
-                        'last_month': 'Last Month',
-                        'custom': 'Custom',
-                      };
-                      final label = labels[controller.rxDateFilter.value] ?? controller.rxDateFilter.value!;
-                      chips.add(buildChip(label, () => controller.setDateFilter(null)));
-                    }
-
-                    // Custom Date Range
-                    if (controller.rxStartDate.value != null && controller.rxEndDate.value != null) {
-                      final startDt = DateTime.tryParse(controller.rxStartDate.value!);
-                      final endDt = DateTime.tryParse(controller.rxEndDate.value!);
-                      
-                      bool isDefaultTime = false;
-                      if (startDt != null && endDt != null) {
-                        isDefaultTime = startDt.hour == 0 && startDt.minute == 0 && endDt.hour == 23 && endDt.minute == 59;
-                      }
-
-                      final start = isDefaultTime
-                          ? AppDateUtils.formatToDateDayMonth(controller.rxStartDate.value)
-                          : AppDateUtils.formatToDateTimeAmPm(controller.rxStartDate.value);
-                      final end = isDefaultTime
-                          ? AppDateUtils.formatToDateDayMonth(controller.rxEndDate.value)
-                          : AppDateUtils.formatToDateTimeAmPm(controller.rxEndDate.value);
-                          
-                      chips.add(buildChip('$start - $end', () => controller.clearCustomDateFilter()));
-                    }
-
-                    // Month Filter
-                    if (controller.rxMonthFilter.value != null) {
-                      final labels = {
-                        'threemonth': 'Last 3 Months',
-                        'sixmonth': 'Last 6 Months',
-                      };
-                      final label = labels[controller.rxMonthFilter.value] ?? controller.rxMonthFilter.value!;
-                      chips.add(buildChip(label, () => controller.setMonthFilter(null)));
-                    }
-
-                    if (controller.rxFromMonth.value != null && controller.rxToMonth.value != null) {
-                      chips.add(
-                        buildChip(
-                          '${controller.rxFromMonth.value} - ${controller.rxToMonth.value}',
-                          () => controller.setMonthFilter(null),
-                        ),
-                      );
-                    }
-
-                    // Growth Filter
-                    if (controller.rxGrowthFilter.value != null) {
-                      final labels = {
-                        'monthly': 'Monthly',
-                        'quarterly': 'Quarterly',
-                        'halfyearly': 'Half Yearly',
-                      };
-                      final label = labels[controller.rxGrowthFilter.value] ?? controller.rxGrowthFilter.value!;
-                      chips.add(buildChip(label, () => controller.setGrowthFilter(null)));
-                    }
-
-                    // Payment Mode Filter
-                    if (controller.rxPaymentMode.value != null) {
-                      final labels = {
-                        '0': 'ON - Cust',
-                        '3': 'ON - Ex_QR',
-                        '2': 'ON - In_QR',
-                        '1': 'Cash',
-                      };
-                      final label = labels[controller.rxPaymentMode.value] ?? controller.rxPaymentMode.value!;
-                      chips.add(buildChip(label, () => controller.clearPaymentMode()));
-                    }
-
-                    // Units Filter
-                    if (controller.rxSelectedUnitIds.isNotEmpty) {
-                      final label = controller.rxSelectedUnitIds.length == 1 
-                          ? controller.rxSelectedUnitIds.first 
-                          : '${controller.rxSelectedUnitIds.length} Units';
-                      chips.add(buildChip(label, () => controller.setUnitFilters({})));
-                    }
-
-                    if (chips.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      reverse: true, // align to right
-                      child: Row(
-                        children: chips,
-                      ),
-                    );
-                  }),
-                ),
-              ],
-            ),
-          );
-        }),
 
           // ── Tab content ──────────────────────────────────────────
           Expanded(
@@ -246,8 +104,149 @@ class _DashboardViewState extends State<DashboardView> {
               children: [
                 // ── Revenue tab ──
                 _KeepAliveWrapper(
-                  child: Obx(() {
-                    final bool isLoading = controller.rxIsLoading.value;
+                  child: Column(
+                    children: [
+                      Container(
+                        color: Colors.white,
+                        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Revenue Report',
+                              style: AppTextStyle.style_18_600(color: AppColors.black),
+                            ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Obx(() {
+                              final List<Widget> chips = [];
+                              
+                              Widget buildChip(String label, VoidCallback onRemove) {
+                                return GestureDetector(
+                                  onTap: onRemove,
+                                  child: Container(
+                                    margin: EdgeInsets.only(left: 6.w),
+                                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(label, style: AppTextStyle.style_10_500(color: AppColors.primary)),
+                                        SizedBox(width: 4.w),
+                                        Icon(Icons.close, size: 10.sp, color: AppColors.primary),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              // Date Filter
+                              if (controller.rxDateFilter.value != null) {
+                                final labels = {
+                                  'today': 'Today',
+                                  'yesterday': 'Yesterday',
+                                  'this_week': 'This Week',
+                                  'last_week': 'Last Week',
+                                  'this_month': 'This Month',
+                                  'last_month': 'Last Month',
+                                  'custom': 'Custom',
+                                };
+                                final label = labels[controller.rxDateFilter.value] ?? controller.rxDateFilter.value!;
+                                chips.add(buildChip(label, () => controller.setDateFilter(null)));
+                              }
+
+                              // Custom Date Range
+                              if (controller.rxStartDate.value != null && controller.rxEndDate.value != null) {
+                                final startDt = DateTime.tryParse(controller.rxStartDate.value!);
+                                final endDt = DateTime.tryParse(controller.rxEndDate.value!);
+                                
+                                bool isDefaultTime = false;
+                                if (startDt != null && endDt != null) {
+                                  isDefaultTime = startDt.hour == 0 && startDt.minute == 0 && endDt.hour == 23 && endDt.minute == 59;
+                                }
+
+                                final start = isDefaultTime
+                                    ? AppDateUtils.formatToDateDayMonth(controller.rxStartDate.value)
+                                    : AppDateUtils.formatToDateTimeAmPm(controller.rxStartDate.value);
+                                final end = isDefaultTime
+                                    ? AppDateUtils.formatToDateDayMonth(controller.rxEndDate.value)
+                                    : AppDateUtils.formatToDateTimeAmPm(controller.rxEndDate.value);
+                                    
+                                chips.add(buildChip('$start - $end', () => controller.clearCustomDateFilter()));
+                              }
+
+                              // Month Filter
+                              if (controller.rxMonthFilter.value != null) {
+                                final labels = {
+                                  'threemonth': 'Last 3 Months',
+                                  'sixmonth': 'Last 6 Months',
+                                };
+                                final label = labels[controller.rxMonthFilter.value] ?? controller.rxMonthFilter.value!;
+                                chips.add(buildChip(label, () => controller.setMonthFilter(null)));
+                              }
+
+                              if (controller.rxFromMonth.value != null && controller.rxToMonth.value != null) {
+                                chips.add(
+                                  buildChip(
+                                    '${controller.rxFromMonth.value} - ${controller.rxToMonth.value}',
+                                    () => controller.setMonthFilter(null),
+                                  ),
+                                );
+                              }
+
+                              // Growth Filter
+                              if (controller.rxGrowthFilter.value != null) {
+                                final labels = {
+                                  'monthly': 'Monthly',
+                                  'quarterly': 'Quarterly',
+                                  'halfyearly': 'Half Yearly',
+                                };
+                                final label = labels[controller.rxGrowthFilter.value] ?? controller.rxGrowthFilter.value!;
+                                chips.add(buildChip(label, () => controller.setGrowthFilter(null)));
+                              }
+
+                              // Payment Mode Filter
+                              if (controller.rxPaymentMode.value != null) {
+                                final labels = {
+                                  '0': 'ON - Cust',
+                                  '3': 'ON - Ex_QR',
+                                  '2': 'ON - In_QR',
+                                  '1': 'Cash',
+                                };
+                                final label = labels[controller.rxPaymentMode.value] ?? controller.rxPaymentMode.value!;
+                                chips.add(buildChip(label, () => controller.clearPaymentMode()));
+                              }
+
+                              // Units Filter
+                              if (controller.rxSelectedUnitIds.isNotEmpty) {
+                                final label = controller.rxSelectedUnitIds.length == 1 
+                                    ? controller.rxSelectedUnitIds.first 
+                                    : '${controller.rxSelectedUnitIds.length} Units';
+                                chips.add(buildChip(label, () => controller.setUnitFilters({})));
+                              }
+
+                              if (chips.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                reverse: true, // align to right
+                                child: Row(
+                                  children: chips,
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Obx(() {
+                        final bool isLoading = controller.rxIsLoading.value;
                     final data = controller.rxDashboardData.value;
 
               final displayData = data;
@@ -293,30 +292,30 @@ class _DashboardViewState extends State<DashboardView> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 DashboardMetricsCard(data: data!),
-                                SizedBox(height: 24.h),
+                                SizedBox(height: 8.h),
                                 if (data!.growthData != null && data!.growthData!.filterUsed.isNotEmpty)
                                   DashboardGrowthCard(growthData: data!.growthData!),
                                 DashboardUnitsChart(
                                   key: const GlobalObjectKey('dashboard_units_chart'),
                                   data: data!.allUnits,
                                 ),
-                                SizedBox(height: 24.h),
+                                SizedBox(height: 8.h),
                                 DashboardUnitWiseChart(
                                   key: const GlobalObjectKey('dashboard_unit_wise_chart'),
                                   data: data!.unitWiseRevenueGraph,
                                 ),
-                                SizedBox(height: 24.h),
+                                SizedBox(height: 8.h),
                                 if (!hasMonthFilter && data!.dailyRevenue.isNotEmpty) ...[
                                   DashboardMonthWiseChart(
                                     data: data!.dailyRevenue,
                                     title: 'Revenue by Day',
                                     showDays: true,
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                 ],
                                 if (!hasDateFilter && data!.revenueData.isNotEmpty) ...[
                                   DashboardMonthWiseChart(data: data!.revenueData),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                 ],
                                 if (!hasMonthFilter && data!.dailyBookings.isNotEmpty) ...[
                                   DashboardDailyCountChart(
@@ -324,14 +323,14 @@ class _DashboardViewState extends State<DashboardView> {
                                     data: data!.dailyBookings,
                                     color: const Color(0xFF34A853),
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                 ],
                                 if (!hasDateFilter && (data!.monthWiseBookings.isNotEmpty || data!.monthWiseServiceBookings.isNotEmpty)) ...[
                                   DashboardBookingsChart(
                                     bookingsData: data!.monthWiseBookings,
                                     serviceBookingsData: data!.monthWiseServiceBookings,
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                 ],
                                 if (!hasMonthFilter && data!.dailyServiceBookings.isNotEmpty) ...[
                                   DashboardDailyCountChart(
@@ -339,7 +338,7 @@ class _DashboardViewState extends State<DashboardView> {
                                     data: data!.dailyServiceBookings,
                                     color: const Color(0xFF1677FF),
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                 ],
                                 if (data!.timeRevenueData.isNotEmpty)
                                   DashboardHourlyChart(
@@ -348,7 +347,7 @@ class _DashboardViewState extends State<DashboardView> {
                                     barColor: const Color(0xFFFCA5A5),
                                     isRevenue: true,
                                   ),
-                                SizedBox(height: 24.h),
+                                SizedBox(height: 8.h),
                                 if (data!.timeBookingData.isNotEmpty)
                                   DashboardHourlyChart(
                                     title: 'Booking by Hour',
@@ -356,20 +355,20 @@ class _DashboardViewState extends State<DashboardView> {
                                     barColor: const Color(0xFF86EFAC),
                                     isRevenue: false,
                                   ),
-                                SizedBox(height: 24.h),
+                                SizedBox(height: 8.h),
                                 if (data!.serviceWiseData.isNotEmpty) ...[
                                   DashboardServiceChart(
                                     title: 'Service Wise Revenue',
                                     data: data!.serviceWiseData,
                                     isRevenue: true,
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                   DashboardServiceChart(
                                     title: 'Service Wise Booking Count',
                                     data: data!.serviceWiseData,
                                     isRevenue: false,
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(height: 8.h),
                                 ],
                                 LayoutBuilder(
                                   builder: (context, constraints) {
@@ -378,7 +377,7 @@ class _DashboardViewState extends State<DashboardView> {
 
                                     return Wrap(
                                       spacing: 24.w,
-                                      runSpacing: 24.h,
+                                      runSpacing: 8.h,
                                       children: [
                                         if (data!.topUnits.isNotEmpty)
                                           SizedBox(
@@ -419,6 +418,9 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
               );
             }),
+                    ),
+                  ],
+                ),
               ),
 
                 // ── Comparison tab ──

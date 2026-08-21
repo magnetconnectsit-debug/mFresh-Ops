@@ -107,6 +107,14 @@ class TicketDetailsTimeline extends StatelessWidget {
                 controller.pickVideo();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.description),
+              title: const Text('Choose Document (PDF/XLS)'),
+              onTap: () {
+                Get.back();
+                controller.pickDocument();
+              },
+            ),
           ],
         ),
       )),
@@ -293,7 +301,8 @@ class TicketDetailsTimeline extends StatelessWidget {
           ),
           Obx(
             () => (controller.selectedImages.isNotEmpty ||
-                    controller.selectedVideos.isNotEmpty)
+                    controller.selectedVideos.isNotEmpty ||
+                    controller.selectedDocuments.isNotEmpty)
                 ? Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(
@@ -362,6 +371,43 @@ class TicketDetailsTimeline extends StatelessWidget {
                                   ),
                                   onPressed: () =>
                                       controller.selectedVideos.remove(file),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...controller.selectedDocuments.map(
+                          (file) => Stack(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.blue),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.description,
+                                    color: Colors.blue,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(
+                                    Icons.cancel,
+                                    color: Colors.red,
+                                    size: 18,
+                                  ),
+                                  onPressed: () =>
+                                      controller.selectedDocuments.remove(file),
                                 ),
                               ),
                             ],

@@ -307,7 +307,7 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
                   final rawDate = distinctDatesSet[spot.spotIndex];
                   final isWknd = _isWeekend(rawDate);
                   return LineTooltipItem(
-                    NumberFormat.compact().format(spot.y),
+                    NumberFormat('#,##,###').format(spot.y),
                     AppTextStyle.style_10_600(color: isWknd ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
                   );
                 }).toList();
@@ -376,7 +376,7 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
               getTitlesWidget: (value, meta) {
                 if (value == 0) return const SizedBox.shrink();
                 return Text(
-                  '₹${NumberFormat.compact().format(value)}',
+                  '₹${NumberFormat('#,##,###').format(value)}',
                   style: AppTextStyle.style_10_400(color: Colors.black54),
                   textAlign: TextAlign.right,
                 );

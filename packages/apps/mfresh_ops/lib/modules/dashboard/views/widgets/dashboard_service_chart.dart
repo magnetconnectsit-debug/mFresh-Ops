@@ -103,19 +103,8 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
     if (yInterval == 0) yInterval = 1;
     double maxY = maxVal + (maxVal * 0.15);
 
-    return Container(
+    final innerContent = Padding(
       padding: EdgeInsets.symmetric(vertical: 16.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 4.r,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -189,8 +178,8 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
                             padding: EdgeInsets.only(right: 8.w),
                             child: Text(
                               widget.isRevenue
-                                  ? '₹${NumberFormat.compact().format(value)}'
-                                  : NumberFormat.compact().format(value),
+                                  ? '₹${NumberFormat('#,##,###').format(value)}'
+                                  : NumberFormat('#,##,###').format(value),
                               style: AppTextStyle.style_10_400(color: AppColors.grey500),
                               textAlign: TextAlign.right,
                             ),
@@ -313,6 +302,28 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(height: 8.h, color: const Color(0xFF059669)),
+          innerContent,
         ],
       ),
     );

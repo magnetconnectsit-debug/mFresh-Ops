@@ -33,23 +33,31 @@ class SubActionEditorSheet extends StatefulWidget {
 class _SubActionEditorSheetState extends State<SubActionEditorSheet> {
   late List<GridSubAction> availableActions;
   late List<GridSubAction> selectedActions;
+  late TextEditingController _titleController;
 
   @override
   void initState() {
     super.initState();
     availableActions = widget.controller.getAvailableSubActionsFor(widget.item.title);
     selectedActions = List.from(widget.item.subActions);
+    _titleController = TextEditingController(text: widget.item.headerTitle ?? widget.item.title);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
   }
 
   void _toggleAction(GridSubAction action, bool isSelected) {
     setState(() {
       if (isSelected) {
-        if (selectedActions.length < 3) {
+        if (selectedActions.length < 4) {
           selectedActions.add(action);
         } else {
           Get.snackbar(
             'Limit Reached',
-            'You can only have up to 4 items per card (including the title).',
+            'You can only select up to 4 actions.',
             snackPosition: SnackPosition.BOTTOM,
             margin: EdgeInsets.all(16.r),
           );
@@ -78,7 +86,7 @@ class _SubActionEditorSheetState extends State<SubActionEditorSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Customize ${widget.item.title}',
+                'Customize ${widget.item.headerTitle ?? widget.item.title}',
                 style: AppTextStyle.style_16_700(color: AppColors.black),
               ),
               IconButton(
@@ -89,7 +97,7 @@ class _SubActionEditorSheetState extends State<SubActionEditorSheet> {
           ),
           SizedBox(height: 10.h),
           Text(
-            'Select up to 3 actions. Drag selected actions to reorder them.',
+            'Select up to 4 actions. Drag selected actions to reorder them.',
             style: AppTextStyle.style_12_400(color: AppColors.grey700),
           ),
           SizedBox(height: 20.h),
@@ -135,6 +143,23 @@ class _SubActionEditorSheetState extends State<SubActionEditorSheet> {
           ],
 
           Text(
+            'Header Title',
+            style: AppTextStyle.style_14_600(color: AppColors.black),
+          ),
+          SizedBox(height: 10.h),
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(
+              hintText: 'Enter header title',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            ),
+          ),
+          SizedBox(height: 20.h),
+
+          Text(
             'Available Actions',
             style: AppTextStyle.style_14_600(color: AppColors.black),
           ),
@@ -166,7 +191,11 @@ class _SubActionEditorSheetState extends State<SubActionEditorSheet> {
                 ),
               ),
               onPressed: () {
-                widget.controller.updateSubActionsFor(widget.item.title, selectedActions);
+                widget.controller.updateCardConfig(
+                  widget.item.title, 
+                  selectedActions,
+                  _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : widget.item.title,
+                );
                 Get.back();
               },
               child: Text(

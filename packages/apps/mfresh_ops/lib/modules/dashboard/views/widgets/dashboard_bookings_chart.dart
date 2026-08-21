@@ -224,7 +224,7 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
                 return Padding(
                   padding: EdgeInsets.only(right: 8.w),
                   child: Text(
-                    NumberFormat.compact().format(value),
+                    NumberFormat('#,##,###').format(value),
                     style: AppTextStyle.style_10_400(color: AppColors.grey500),
                     textAlign: TextAlign.right,
                   ),
@@ -385,7 +385,7 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
                   final isW2 = dt2 != null && (dt2.weekday == DateTime.saturday || dt2.weekday == DateTime.sunday);
                   
                   return LineTooltipItem(
-                    NumberFormat.compact().format(spot.y),
+                    NumberFormat('#,##,###').format(spot.y),
                     AppTextStyle.style_10_600(color: isW2 ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
                   );
                 }).toList();
