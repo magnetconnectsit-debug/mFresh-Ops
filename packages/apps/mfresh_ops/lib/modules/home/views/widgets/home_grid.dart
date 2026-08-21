@@ -35,11 +35,8 @@ class HomeGrid extends StatelessWidget {
               .animate(onPlay: (c) => c.repeat())
               .shake(hz: 1.5, curve: Curves.easeInOutCubic, rotation: 0.02);
         }
-        
-        return Container(
-          key: ValueKey(item.title),
-          child: card,
-        );
+
+        return Container(key: ValueKey(item.title), child: card);
       }
 
       return Column(
@@ -98,31 +95,25 @@ class HomeGrid extends StatelessWidget {
     GridItemData item,
     HomeGridController controller,
   ) {
-    final bool showWideTopPill = item.subActions.length < 3;
-    final bool isCompact = item.subActions.length > 2 || !showWideTopPill;
-    
+    final bool isCompact = true;
+    final int totalItems = item.subActions.length;
+
     List<Widget> gridItems = [];
-    if (!showWideTopPill) {
-      gridItems.add(_buildCompactActionBtn(
-        title: item.title,
-        icon: item.icon,
-        route: item.route,
-        isCompact: isCompact,
-        controller: controller,
-      ));
-    }
     for (int i = 0; i < item.subActions.length; i++) {
       final action = item.subActions[i];
-      gridItems.add(_buildCompactActionBtn(
-        title: action.title,
-        icon: action.icon,
-        route: action.route,
-        arguments: action.arguments,
-        isCompact: isCompact,
-        isSolidIcon: action.isSolidIcon,
-        controller: controller,
-        fallbackRoute: item.route,
-      ));
+      gridItems.add(
+        _buildCompactActionBtn(
+          title: action.title,
+          icon: action.icon,
+          route: action.route,
+          arguments: action.arguments,
+          isCompact: isCompact,
+          isSolidIcon: action.isSolidIcon,
+          isRowLayout: totalItems == 1 ? true : (totalItems == 2 ? true : (totalItems == 3 && i == 0)),
+          controller: controller,
+          fallbackRoute: item.route,
+        ),
+      );
     }
 
     Widget card = Stack(
@@ -145,57 +136,67 @@ class HomeGrid extends StatelessWidget {
             borderRadius: BorderRadius.circular(25.r),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(25.r),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),
-                child: Column(
-                  mainAxisAlignment: showWideTopPill ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (showWideTopPill)
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12.r),
-                          onTap: () {
-                            if (controller.isEditMode.value) return;
-                            if (item.route != null) {
-                              Get.toNamed(item.route!);
-                            }
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              vertical: 12.h,
-                              horizontal: 10.w,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBEBEB),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            alignment: Alignment.center,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                item.title,
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                style: AppTextStyle.style_14_600(
-                                  color: AppColors.black,
-                                ).copyWith(fontSize: 13.5.sp),
-                              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 4.h,
+                      horizontal: 10.w,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          item.icon,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          size: 14.r,
+                        ),
+                        SizedBox(width: 6.w),
+                        Flexible(
+                          child: Text(
+                            (item.headerTitle ?? item.title).toUpperCase(),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            // overflow: TextOverflow.ellipsis,
+                            style: AppTextStyle.style_10_600(
+                              color: Colors.white,
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  // Fading gradient line
+                  Container(
+                    height: 1,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.0),
+                          Colors.white.withValues(alpha: 0.3),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                        stops: const [0.0, 0.5, 1.0],
                       ),
-                    if (gridItems.isNotEmpty)
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: showWideTopPill ? 8.h : 0),
-                          child: _buildSubActionsGrid(gridItems),
-                        ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 6.h,
+                        horizontal: 10.w,
                       ),
-                  ],
-                ),
+                      child: gridItems.isNotEmpty
+                          ? _buildSubActionsGrid(gridItems)
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -213,17 +214,12 @@ class HomeGrid extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
-                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Icon(
-                  Icons.edit_rounded,
-                  size: 18.r,
-                  color: AppColors.primaryOrange,
-                ),
+                child: Icon(Icons.edit, size: 16.r, color: AppColors.black),
               ),
             ),
           ),
@@ -235,14 +231,70 @@ class HomeGrid extends StatelessWidget {
           .animate(onPlay: (c) => c.repeat())
           .shake(hz: 1.5, curve: Curves.easeInOutCubic, rotation: 0.02);
     }
-    
-    return Container(
-      key: ValueKey(item.title),
-      child: card,
-    );
+
+    return Container(key: ValueKey(item.title), child: card);
   }
 
   Widget _buildSubActionsGrid(List<Widget> gridItems) {
+    final int totalItems = gridItems.length;
+
+    if (totalItems == 1) {
+      return Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          height: 35.h,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [gridItems[0]],
+          ),
+        ),
+      );
+    } else if (totalItems == 2) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [gridItems[0]],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [gridItems[1]],
+            ),
+          ),
+        ],
+      );
+    } else if (totalItems == 3) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [gridItems[0]],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                gridItems[1],
+                SizedBox(width: 8.w),
+                gridItems[2],
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
@@ -252,9 +304,13 @@ class HomeGrid extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              gridItems.isNotEmpty ? gridItems[0] : const Expanded(child: SizedBox()),
+              gridItems.isNotEmpty
+                  ? gridItems[0]
+                  : const Expanded(child: SizedBox()),
               SizedBox(width: 8.w),
-              gridItems.length > 1 ? gridItems[1] : const Expanded(child: SizedBox()),
+              gridItems.length > 1
+                  ? gridItems[1]
+                  : const Expanded(child: SizedBox()),
             ],
           ),
         ),
@@ -267,7 +323,9 @@ class HomeGrid extends StatelessWidget {
               children: [
                 gridItems[2],
                 SizedBox(width: 8.w),
-                gridItems.length > 3 ? gridItems[3] : const Expanded(child: SizedBox()),
+                gridItems.length > 3
+                    ? gridItems[3]
+                    : const Expanded(child: SizedBox()),
               ],
             ),
           ),
@@ -283,9 +341,29 @@ class HomeGrid extends StatelessWidget {
     Map<String, dynamic>? arguments,
     required bool isCompact,
     bool isSolidIcon = false,
+    bool isRowLayout = false,
     required HomeGridController controller,
     String? fallbackRoute,
   }) {
+    Widget iconWidget = isSolidIcon
+        ? Container(
+            padding: EdgeInsets.all((isCompact && !isRowLayout) ? 1.r : 2.r),
+            decoration: const BoxDecoration(
+              color: Color(0xFF4A4A4A),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: (isCompact && !isRowLayout) ? 14.r : 16.r,
+            ),
+          )
+        : Icon(
+            icon,
+            color: AppColors.black,
+            size: (isCompact && !isRowLayout) ? 16.r : 20.r,
+          );
+
     return Expanded(
       child: Material(
         color: Colors.transparent,
@@ -306,47 +384,48 @@ class HomeGrid extends StatelessWidget {
           },
           child: Container(
             padding: EdgeInsets.symmetric(
-              vertical: isCompact ? 2.h : 6.h,
+              vertical: (isCompact && !isRowLayout) ? 2.h : 6.h,
               horizontal: 4.w,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFFEBEBEB),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                isSolidIcon
-                    ? Container(
-                        padding: EdgeInsets.all(isCompact ? 1.r : 2.r),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF4A4A4A),
-                          shape: BoxShape.circle,
+            child: isRowLayout
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      iconWidget,
+                      SizedBox(width: 8.w),
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyle.style_10_500(
+                            color: AppColors.grey700,
+                          ).copyWith(fontSize: 10.sp),
                         ),
-                        child: Icon(
-                          icon,
-                          color: Colors.white,
-                          size: isCompact ? 14.r : 16.r,
-                        ),
-                      )
-                    : Icon(
-                        icon,
-                        color: AppColors.black,
-                        size: isCompact ? 16.r : 20.r,
                       ),
-                SizedBox(height: isCompact ? 1.h : 2.h),
-                Text(
-                  title.split(' ').first,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.style_10_500(
-                    color: AppColors.grey700,
-                  ).copyWith(fontSize: isCompact ? 8.sp : 9.sp),
-                ),
-              ],
-            ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      iconWidget,
+                      SizedBox(height: isCompact ? 1.h : 2.h),
+                      Text(
+                        title.split(' ').first,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyle.style_10_500(
+                          color: AppColors.grey700,
+                        ).copyWith(fontSize: isCompact ? 8.sp : 9.sp),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

@@ -1,6 +1,6 @@
 name: mfresh_ops
 description: "Magnet Connects Operations App (mfresh_ops)."
-version: 1.0.34+44
+version: 1.0.35+45
 publish_to: 'none'
 
 environment:
@@ -28,6 +28,7 @@ dependencies:
   package_info_plus: ^9.0.1
   flutter_screenutil: ^5.9.3
   image_picker: ^1.1.2
+  file_picker: ^8.1.4
   video_compress: ^3.1.2
   csv: ^6.0.0
   path_provider: ^2.1.3

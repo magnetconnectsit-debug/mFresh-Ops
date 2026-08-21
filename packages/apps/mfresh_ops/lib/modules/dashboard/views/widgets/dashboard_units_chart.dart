@@ -91,7 +91,7 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
       decimalDigits: 0,
     );
 
-    final formatCompactCurrency = NumberFormat.compactCurrency(
+    final formatCompactCurrency = NumberFormat.currency(
       locale: 'en_IN',
       symbol: '₹',
       decimalDigits: 0,
@@ -294,7 +294,7 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                             );
 
                             return BarTooltipItem(
-                              '₹${NumberFormat.compact().format(rod.toY)}',
+                              '₹${NumberFormat('#,##,###').format(rod.toY)}',
                               AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
                             );
                           },

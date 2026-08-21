@@ -26,6 +26,7 @@ class GridSubAction {
 
 class GridItemData {
   final String title;
+  final String? headerTitle;
   final String subtitle;
   final IconData icon;
   final List<Color> gradient;
@@ -36,6 +37,7 @@ class GridItemData {
 
   GridItemData({
     required this.title,
+    this.headerTitle,
     required this.subtitle,
     required this.icon,
     required this.gradient,
@@ -47,6 +49,7 @@ class GridItemData {
 
   GridItemData copyWith({
     String? title,
+    String? headerTitle,
     String? subtitle,
     IconData? icon,
     List<Color>? gradient,
@@ -57,6 +60,7 @@ class GridItemData {
   }) {
     return GridItemData(
       title: title ?? this.title,
+      headerTitle: headerTitle ?? this.headerTitle,
       subtitle: subtitle ?? this.subtitle,
       icon: icon ?? this.icon,
       gradient: gradient ?? this.gradient,
@@ -84,6 +88,7 @@ class HomeGridController extends GetxController {
   final List<GridItemData> _allItems = [
     GridItemData(
       title: 'Revenue Report',
+      headerTitle: 'Reports',
       subtitle: 'View analytics',
       icon: Icons.dashboard_rounded,
       gradient: const [Color(0xFFE85D04), Color(0xFFDC2F02)],
@@ -92,6 +97,7 @@ class HomeGridController extends GetxController {
     ),
     GridItemData(
       title: 'Support Ticket',
+      headerTitle: 'Ticket Management',
       subtitle: 'Manage helpdesk',
       icon: Icons.support_agent_rounded,
       gradient: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
@@ -115,6 +121,7 @@ class HomeGridController extends GetxController {
     ),
     GridItemData(
       title: 'Daily Task',
+      headerTitle: 'Task Scheduler',
       subtitle: 'Daily operations',
       icon: Icons.assignment_rounded,
       gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
@@ -139,6 +146,7 @@ class HomeGridController extends GetxController {
     ),
     GridItemData(
       title: 'Unit Inventory',
+      headerTitle: 'Inventory',
       subtitle: 'Stock & Items',
       icon: Icons.inventory_2_rounded,
       gradient: const [Color(0xFF10B981), Color(0xFF059669)],
@@ -146,12 +154,42 @@ class HomeGridController extends GetxController {
       permissionKey: 'unit_inventory_stock',
       actionPermissionKey: 'unit_inventory_stock',
       subActions: [
-        GridSubAction(title: 'Store Inventory', icon: Icons.store, route: AppRoutes.storeInventory, permissionKey: 'store_inventory_stock'),
-        GridSubAction(title: 'Consumption', icon: Icons.restaurant, route: AppRoutes.allConsumption, permissionKey: 'consumption_report'),
-        GridSubAction(title: 'Allotments', icon: Icons.receipt_long, route: AppRoutes.allotments, permissionKey: 'allotments_report'),
-        GridSubAction(title: 'Measurements', icon: Icons.straighten, route: AppRoutes.measurements, permissionKey: 'measurements_panel'),
-        GridSubAction(title: 'Items', icon: Icons.category, route: AppRoutes.items, permissionKey: 'inventory_item'),
-        GridSubAction(title: 'Store', icon: Icons.storefront, route: AppRoutes.storeRooms, permissionKey: 'store_room'),
+        GridSubAction(
+          title: 'Store Inventory',
+          icon: Icons.store,
+          route: AppRoutes.storeInventory,
+          permissionKey: 'store_inventory_stock',
+        ),
+        GridSubAction(
+          title: 'Consumption',
+          icon: Icons.restaurant,
+          route: AppRoutes.allConsumption,
+          permissionKey: 'consumption_report',
+        ),
+        GridSubAction(
+          title: 'Allotments',
+          icon: Icons.receipt_long,
+          route: AppRoutes.allotments,
+          permissionKey: 'allotments_report',
+        ),
+        GridSubAction(
+          title: 'Measurements',
+          icon: Icons.straighten,
+          route: AppRoutes.measurements,
+          permissionKey: 'measurements_panel',
+        ),
+        GridSubAction(
+          title: 'Items',
+          icon: Icons.category,
+          route: AppRoutes.items,
+          permissionKey: 'inventory_item',
+        ),
+        GridSubAction(
+          title: 'Store',
+          icon: Icons.storefront,
+          route: AppRoutes.storeRooms,
+          permissionKey: 'store_room',
+        ),
       ],
     ),
     GridItemData(
@@ -167,28 +205,60 @@ class HomeGridController extends GetxController {
     ),
     GridItemData(
       title: 'Collection',
+      headerTitle: 'Collections',
       subtitle: 'Manage collections',
       icon: Icons.account_balance_wallet_rounded,
       gradient: const [Color(0xFF14B8A6), Color(0xFF0F766E)],
       route: AppRoutes.adminCollections,
       permissionKey: 'collection_panel',
       subActions: [
-        GridSubAction(title: 'Collections', icon: Icons.payments, route: AppRoutes.collections, permissionKey: 'normal_admin_collection'),
-        GridSubAction(title: 'Deposits', icon: Icons.account_balance, route: AppRoutes.deposits, permissionKey: 'deposit_panel'),
+        GridSubAction(
+          title: 'Collections',
+          icon: Icons.payments,
+          route: AppRoutes.collections,
+          permissionKey: 'normal_admin_collection',
+        ),
+        GridSubAction(
+          title: 'Deposits',
+          icon: Icons.account_balance,
+          route: AppRoutes.deposits,
+          permissionKey: 'deposit_panel',
+        ),
       ],
     ),
     GridItemData(
       title: 'Contacts',
+      headerTitle: 'Info Directory',
       subtitle: 'Contacts & brands',
       icon: Icons.contact_phone_rounded,
       gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
       route: AppRoutes.infoDirectory,
       permissionKey: 'c_directory_panel',
       subActions: [
-        GridSubAction(title: 'Assets & Products', icon: Icons.inventory, route: AppRoutes.assetsProducts, permissionKey: 'Asset_Panel'),
-        GridSubAction(title: 'Account Details', icon: Icons.account_box, route: AppRoutes.accountSubscription, permissionKey: 'Account_subscription_panel'),
-        GridSubAction(title: 'Brands', icon: Icons.branding_watermark, route: AppRoutes.contactBrands, permissionKey: 'brand_details'),
-        GridSubAction(title: 'Companies', icon: Icons.business, route: AppRoutes.contactCompanies, permissionKey: 'company_details'),
+        GridSubAction(
+          title: 'Assets & Products',
+          icon: Icons.inventory,
+          route: AppRoutes.assetsProducts,
+          permissionKey: 'Asset_Panel',
+        ),
+        GridSubAction(
+          title: 'Account Details',
+          icon: Icons.account_box,
+          route: AppRoutes.accountSubscription,
+          permissionKey: 'Account_subscription_panel',
+        ),
+        GridSubAction(
+          title: 'Brands',
+          icon: Icons.branding_watermark,
+          route: AppRoutes.contactBrands,
+          permissionKey: 'brand_details',
+        ),
+        GridSubAction(
+          title: 'Companies',
+          icon: Icons.business,
+          route: AppRoutes.contactCompanies,
+          permissionKey: 'company_details',
+        ),
       ],
     ),
   ];
@@ -343,12 +413,13 @@ class HomeGridController extends GetxController {
 
     // Load advanced config
     final config = _storage.getHomeGridConfig();
-    
+
     // Fallback to legacy order if config doesn't exist
     final legacyOrder = _storage.getHomeGridOrder();
-    
+
     final savedOrder = config?['order'] as List<dynamic>? ?? legacyOrder;
     final savedSubActions = config?['subActions'] as Map<dynamic, dynamic>?;
+    final savedHeaderTitles = config?['headerTitles'] as Map<dynamic, dynamic>?;
 
     final orderedItems = <GridItemData>[];
 
@@ -368,17 +439,47 @@ class HomeGridController extends GetxController {
     // Apply sub-action filtering based on saved config
     for (int i = 0; i < orderedItems.length; i++) {
       final item = orderedItems[i];
+      String? savedHeaderTitle = item.headerTitle;
+      if (savedHeaderTitles != null && savedHeaderTitles.containsKey(item.title)) {
+         savedHeaderTitle = savedHeaderTitles[item.title] as String;
+      }
+      
+      final originalSubs = [
+        GridSubAction(
+          title: item.title,
+          icon: item.icon,
+          route: item.route,
+          permissionKey: item.actionPermissionKey ?? item.permissionKey,
+        ),
+        ...item.subActions,
+      ];
+
       if (savedSubActions != null && savedSubActions.containsKey(item.title)) {
-        final savedSubs = (savedSubActions[item.title] as List<dynamic>).cast<String>();
-        final originalSubs = item.subActions;
+        final savedSubs = (savedSubActions[item.title] as List<dynamic>)
+            .cast<String>();
+            
+        if (!savedSubs.contains(item.title)) {
+          savedSubs.insert(0, item.title);
+        }
+        
         final filteredSubs = <GridSubAction>[];
         for (final savedTitle in savedSubs) {
-          final found = originalSubs.firstWhereOrNull((s) => s.title == savedTitle);
+          final found = originalSubs.firstWhereOrNull(
+            (s) => s.title == savedTitle,
+          );
           if (found != null) {
             filteredSubs.add(found);
           }
         }
-        orderedItems[i] = item.copyWith(subActions: filteredSubs);
+        if (filteredSubs.length > 4) {
+          filteredSubs.removeRange(4, filteredSubs.length);
+        }
+        orderedItems[i] = item.copyWith(subActions: filteredSubs, headerTitle: savedHeaderTitle);
+      } else {
+        if (originalSubs.length > 4) {
+          originalSubs.removeRange(4, originalSubs.length);
+        }
+        orderedItems[i] = item.copyWith(subActions: originalSubs, headerTitle: savedHeaderTitle);
       }
     }
 
@@ -395,27 +496,49 @@ class HomeGridController extends GetxController {
   void saveCurrentConfig() {
     final order = gridItems.map((e) => e.title).toList();
     final subActions = <String, List<String>>{};
+    final headerTitles = <String, String>{};
     for (final item in gridItems) {
       subActions[item.title] = item.subActions.map((s) => s.title).toList();
+      if (item.headerTitle != null) {
+        headerTitles[item.title] = item.headerTitle!;
+      }
     }
-    _storage.saveHomeGridConfig({'order': order, 'subActions': subActions});
+    _storage.saveHomeGridConfig({'order': order, 'subActions': subActions, 'headerTitles': headerTitles});
   }
+
   List<GridSubAction> getAvailableSubActionsFor(String cardTitle) {
     final userPermissions = _authRepo.rxUserPermissions;
-    final originalItem = _allItems.firstWhereOrNull((e) => e.title == cardTitle);
+    final originalItem = _allItems.firstWhereOrNull(
+      (e) => e.title == cardTitle,
+    );
     if (originalItem == null) return [];
-    
-    return originalItem.subActions
-        .where((s) => s.permissionKey == null || userPermissions.contains(s.permissionKey))
+
+    final mainAction = GridSubAction(
+      title: originalItem.title,
+      icon: originalItem.icon,
+      route: originalItem.route,
+      permissionKey: originalItem.actionPermissionKey ?? originalItem.permissionKey,
+    );
+
+    final subs = originalItem.subActions
+        .where(
+          (s) =>
+              s.permissionKey == null ||
+              userPermissions.contains(s.permissionKey),
+        )
         .toList();
+        
+    return [
+      if (mainAction.permissionKey == null || userPermissions.contains(mainAction.permissionKey))
+        mainAction,
+      ...subs,
+    ];
   }
 
-
-
-  void updateSubActionsFor(String cardTitle, List<GridSubAction> newSubs) {
+  void updateCardConfig(String cardTitle, List<GridSubAction> newSubs, String? newHeaderTitle) {
     final index = gridItems.indexWhere((e) => e.title == cardTitle);
     if (index != -1) {
-      gridItems[index] = gridItems[index].copyWith(subActions: newSubs);
+      gridItems[index] = gridItems[index].copyWith(subActions: newSubs, headerTitle: newHeaderTitle);
       saveCurrentConfig();
     }
   }

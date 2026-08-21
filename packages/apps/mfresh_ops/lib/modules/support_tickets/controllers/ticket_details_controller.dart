@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_common_toast_message.dart';
@@ -21,6 +22,7 @@ class TicketDetailsController extends GetxController {
   final ImagePicker _picker = ImagePicker();
   final selectedImages = <File>[].obs;
   final selectedVideos = <File>[].obs;
+  final selectedDocuments = <File>[].obs;
   final isLoading = false.obs;
 
   final ticketId = Rxn<int>();
@@ -354,6 +356,28 @@ class TicketDetailsController extends GetxController {
     }
   }
 
+  Future<void> pickDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'xls', 'xlsx'],
+        allowMultiple: true,
+      );
+      if (result != null) {
+        for (var file in result.files) {
+          if (file.path != null) {
+            selectedDocuments.add(File(file.path!));
+          }
+        }
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Failed to pick document: $e',
+        type: ToastType.error,
+      );
+    }
+  }
+
   Future<void> pickImages() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
@@ -406,6 +430,10 @@ class TicketDetailsController extends GetxController {
 
   void removeImage(int index) {
     selectedImages.removeAt(index);
+  }
+
+  void removeDocument(int index) {
+    selectedDocuments.removeAt(index);
   }
 
   Future<void> pickVideo() async {
@@ -542,6 +570,7 @@ class TicketDetailsController extends GetxController {
       if (response != null && response['status'] == true) {
         selectedImages.clear();
         selectedVideos.clear();
+        selectedDocuments.clear();
         Get.back();
         AppCommonToastMessage.show(
           message: 'Ticket updated successfully',
@@ -588,9 +617,9 @@ class TicketDetailsController extends GetxController {
 
   Future<void> addComment() async {
     final text = commentController.text.trim();
-    if (text.isEmpty && selectedImages.isEmpty && selectedVideos.isEmpty) {
+    if (text.isEmpty && selectedImages.isEmpty && selectedVideos.isEmpty && selectedDocuments.isEmpty) {
       AppCommonToastMessage.show(
-        message: 'Please enter a comment or attach an image/video',
+        message: 'Please enter a comment or attach a file',
         type: ToastType.error,
       );
       return;
@@ -627,12 +656,21 @@ class TicketDetailsController extends GetxController {
           ),
         );
       }
+      for (var file in selectedDocuments) {
+        formData.files.add(
+          MapEntry(
+            'ticket_images[]',
+            await dio.MultipartFile.fromFile(file.path),
+          ),
+        );
+      }
 
       final response = await _supportRepository.addComment(formData);
       if (response != null && response['status'] == true) {
         commentController.clear();
         selectedImages.clear();
         selectedVideos.clear();
+        selectedDocuments.clear();
         isInternal.value = false;
         AppCommonToastMessage.show(
           message: 'Comment added successfully',

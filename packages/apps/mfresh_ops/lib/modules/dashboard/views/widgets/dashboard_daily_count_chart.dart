@@ -94,7 +94,7 @@ class _DashboardDailyCountChartState extends State<DashboardDailyCountChart> {
               reservedSize: 40.w,
               interval: interval,
               getTitlesWidget: (value, _) => Text(
-                NumberFormat.compact().format(value),
+                NumberFormat('#,##,###').format(value),
                 style: AppTextStyle.style_10_400(color: AppColors.grey500),
               ),
             ),
