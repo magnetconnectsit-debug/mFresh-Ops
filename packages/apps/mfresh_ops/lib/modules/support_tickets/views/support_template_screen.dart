@@ -276,6 +276,45 @@ class SupportTemplateScreen extends StatelessWidget {
             maxLines: 12,
             isRequired: true,
           ),
+          SizedBox(height: 16.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Subtasks',
+                style: AppTextStyle.style_14_600(color: AppColors.black),
+              ),
+              TextButton.icon(
+                onPressed: () => controller.addSubtaskField(),
+                icon: Icon(Icons.add, size: 16.r),
+                label: const Text('Add Subtask'),
+              ),
+            ],
+          ),
+          Obx(() => Column(
+            children: controller.subtaskControllers.asMap().entries.map((entry) {
+              final index = entry.key;
+              final subController = entry.value;
+              return Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AppCommonTextField(
+                        controller: subController,
+                        hintText: 'Enter subtask',
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => controller.removeSubtaskField(index),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          )),
           SizedBox(height: 24.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,

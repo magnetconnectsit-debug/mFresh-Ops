@@ -39,7 +39,108 @@ class TaskFilterCard extends StatelessWidget {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Filters',
+                style: AppTextStyle.style_12_600(color: AppColors.grey800),
+              ),
+              Obx(() {
+                if (controller.isFiltered) {
+                  return InkWell(
+                    onTap: () => controller.resetFilters(),
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.refresh_rounded, size: 14.r, color: AppColors.red),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'Reset',
+                            style: AppTextStyle.style_12_600(color: AppColors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+            ],
+          ),
+          Obx(() {
+            if (!controller.isFiltered) return const SizedBox.shrink();
+
+            final List<Widget> chips = [];
+
+            Widget buildChip(String label, VoidCallback onDeleted) {
+              return Padding(
+                padding: EdgeInsets.only(top: 8.h, right: 6.w),
+                child: InkWell(
+                  onTap: onDeleted,
+                  borderRadius: BorderRadius.circular(6.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.blue500.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(color: AppColors.blue500.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: AppTextStyle.style_10_500(color: AppColors.blue500),
+                        ),
+                        SizedBox(width: 4.w),
+                        Icon(Icons.close, size: 14.r, color: AppColors.blue500),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            for (var p in controller.selectedProjects) {
+              chips.add(buildChip(p.projectName, () {
+                controller.selectedProjects.remove(p);
+                controller.applyFilters();
+              }));
+            }
+            for (var u in controller.selectedUnits) {
+              chips.add(buildChip(u.unitName, () {
+                controller.selectedUnits.remove(u);
+                controller.applyFilters();
+              }));
+            }
+            for (var g in controller.selectedGroups) {
+              chips.add(buildChip(g.roleName, () {
+                controller.selectedGroups.remove(g);
+                controller.applyFilters();
+              }));
+            }
+            for (var a in controller.selectedAssignees) {
+              chips.add(buildChip(a.name, () {
+                controller.selectedAssignees.remove(a);
+                controller.applyFilters();
+              }));
+            }
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: chips,
+              ),
+            );
+          }),
+          SizedBox(height: 8.h),
           if (canFilterProject || canFilterUnit)
             Row(
               children: [

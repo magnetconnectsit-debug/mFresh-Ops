@@ -611,6 +611,10 @@ class CreateTicketScreen extends StatelessWidget {
                               final t = await showTimePicker(
                                 context: context,
                                 initialTime: tempTime,
+                                builder: (context, child) => MediaQuery(
+                                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                  child: child!,
+                                ),
                               );
                               if (t != null) setModalState(() => tempTime = t);
                             },

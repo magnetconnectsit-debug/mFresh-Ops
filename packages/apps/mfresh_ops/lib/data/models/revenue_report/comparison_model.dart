@@ -4,29 +4,21 @@ import 'package:flutter/material.dart';
 class ComparisonSlot extends ChangeNotifier {
   DateTime? fromDate;
   DateTime? toDate;
-  String? unitName; // display name
-  String? unitId;   // value sent to API
+  Set<String> selectedUnitNames = {};
+  Set<String> selectedUnitIds = {};
 
-  bool get isComplete => fromDate != null && toDate != null && unitId != null;
-
-  void update({DateTime? from, DateTime? to, String? name, String? id}) {
-    if (from != null) fromDate = from;
-    if (to != null) toDate = to;
-    if (name != null) unitName = name;
-    if (id != null) unitId = id;
-    notifyListeners();
-  }
+  bool get isComplete => fromDate != null && toDate != null && selectedUnitNames.isNotEmpty;
 
   void clear() {
     fromDate = null;
     toDate = null;
-    unitName = null;
-    unitId = null;
+    selectedUnitNames.clear();
+    selectedUnitIds.clear();
     notifyListeners();
   }
 
   Map<String, dynamic> toPayload() => {
-    'unit': unitId!,
+    'unit': selectedUnitNames.toList(),
     'from_date': '${fromDate!.year}-${fromDate!.month.toString().padLeft(2,'0')}-${fromDate!.day.toString().padLeft(2,'0')}',
     'to_date': '${toDate!.year}-${toDate!.month.toString().padLeft(2,'0')}-${toDate!.day.toString().padLeft(2,'0')}',
   };
@@ -56,28 +48,43 @@ class ComparisonDataPoint {
 
 class ComparisonEntry {
   final int comparison;
+  final String dataName;
+  final String label;
   final String unit;
   final String fromDate;
   final String toDate;
+  final int totalDays;
+  final double sumRevenue;
   final double apiTotalRevenue;
+  final double avgRevenue;
   final List<ComparisonDataPoint> data;
 
   ComparisonEntry({
     required this.comparison,
+    required this.dataName,
+    required this.label,
     required this.unit,
     required this.fromDate,
     required this.toDate,
+    required this.totalDays,
+    required this.sumRevenue,
     required this.apiTotalRevenue,
+    required this.avgRevenue,
     required this.data,
   });
 
   factory ComparisonEntry.fromJson(Map<String, dynamic> json) {
     return ComparisonEntry(
       comparison: json['comparison'] as int? ?? 0,
+      dataName: json['data_name']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
       unit: json['unit']?.toString() ?? '',
       fromDate: json['from_date']?.toString() ?? '',
       toDate: json['to_date']?.toString() ?? '',
+      totalDays: json['total_days'] as int? ?? 0,
+      sumRevenue: (json['sum_revenue'] as num?)?.toDouble() ?? 0,
       apiTotalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0,
+      avgRevenue: (json['avg_revenue'] as num?)?.toDouble() ?? 0,
       data: (json['data'] as List<dynamic>? ?? [])
           .map((e) => ComparisonDataPoint.fromJson(e as Map<String, dynamic>))
           .toList(),

@@ -54,4 +54,7 @@ abstract class AppRoutes {
   // Account Details Module
   static const accountSubscription = '/account-subscription';
   static const createAccountSubscription = '/create-account-subscription';
+
+  // Payment Reminder
+  static const paymentReminder = '/payment-reminder';
 }

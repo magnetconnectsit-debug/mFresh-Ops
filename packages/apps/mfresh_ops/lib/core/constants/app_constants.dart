@@ -97,6 +97,10 @@ class AppConstants {
   static const String deleteTask = 'delete-Task';
   static const String userTaskFilter = 'User_task_filter';
 
+  // Payment Reminder
+  static const String paymentIndex = 'payment-index';
+  static const String paymentAdd = 'payment-add';
+
   // Inventory
   static const String invGetStates = 'inv-get-states';
   static const String invStatesWiseDistrict = 'inv-states-Wise-District';

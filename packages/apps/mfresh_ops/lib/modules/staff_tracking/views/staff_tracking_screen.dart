@@ -93,23 +93,24 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
         }),
       ),
       body: Obx(() {
-        final authRepo = Get.find<AuthRepository>();
-        final canViewMap = authRepo.rxUserPermissions.contains('attendance_map_view');
+        final canViewMap = controller.canViewMap.value;
+        final showStaffTab = controller.showStaffTab.value;
 
         return Column(
           children: [
             // Stats Row
             _buildStatsRow(controller),
-            if (canViewMap)
+            if (showStaffTab || canViewMap)
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TabBar(
-              controller: controller.tabController,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TabBar(
+                  key: ValueKey('${showStaffTab}_$canViewMap'),
+                  controller: controller.tabController!,
               padding: const EdgeInsets.all(4),
               indicator: BoxDecoration(
                 color: Colors.white,
@@ -128,8 +129,9 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
               unselectedLabelColor: AppColors.grey500,
               labelStyle: AppTextStyle.style_12_600(),
               unselectedLabelStyle: AppTextStyle.style_12_500(),
-              tabs: const [
-                Tab(
+              labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+              tabs: [
+                const Tab(
                   height: 32,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -140,23 +142,37 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                     ],
                   ),
                 ),
-                Tab(
-                  height: 32,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.map_rounded, size: 16),
-                      SizedBox(width: 6),
-                      Text('Map View'),
-                    ],
+                if (showStaffTab)
+                  const Tab(
+                    height: 32,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_alt_rounded, size: 16),
+                        SizedBox(width: 6),
+                        Text('Staff'),
+                      ],
+                    ),
                   ),
-                ),
+                if (canViewMap)
+                  const Tab(
+                    height: 32,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.map_rounded, size: 16),
+                        SizedBox(width: 6),
+                        Text('Map View'),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
           Expanded(
             child: TabBarView(
-              controller: controller.tabController,
+              key: ValueKey('${showStaffTab}_$canViewMap'),
+              controller: controller.tabController!,
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 // Tab 1: List
@@ -185,6 +201,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                               final emp = controller.filteredEmployees[index];
                               return EmployeeTrackingCard(
                                 employee: emp,
+                                canViewMap: canViewMap,
                                 onTap: () =>
                                     controller.openEmployeeHistory(emp),
                               );
@@ -197,9 +214,51 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                   ],
                 ),
 
-                // Tab 2: Map
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
+                // Tab 2: Staff (Conditionally Added)
+                if (showStaffTab)
+                  Column(
+                    children: [
+                      const SizedBox(height: 6),
+                      Expanded(
+                        child: Obx(() {
+                          if (!controller.hasFetchedOnce.value) {
+                            return const Center(child: CustomAppLoader());
+                          }
+
+                          if (controller.filteredEmployees.isEmpty) {
+                            return _buildEmptyState();
+                          }
+
+                          return RefreshIndicator(
+                            onRefresh: controller.fetchEmployees,
+                            color: AppColors.blue500,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                              itemCount: controller.filteredEmployees.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final emp = controller.filteredEmployees[index];
+                                return EmployeeTrackingCard(
+                                  employee: emp,
+                                  canViewMap: canViewMap,
+                                  onTap: () =>
+                                      controller.openEmployeeHistory(emp),
+                                  hideBottomRow: true,
+                                );
+                              },
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+
+                // Tab 3: Map
+                if (canViewMap)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     borderRadius: const BorderRadius.vertical(
@@ -324,7 +383,7 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
   Widget _buildSearchAutocomplete(BuildContext context) {
     return Autocomplete<Map<String, dynamic>>(
       optionsBuilder: (TextEditingValue textEditingValue) {
-        if (controller.tabController.index == 0 ||
+        if (controller.tabController?.index == 0 ||
             textEditingValue.text.isEmpty) {
           return const Iterable<Map<String, dynamic>>.empty();
         }

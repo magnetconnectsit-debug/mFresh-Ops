@@ -22,7 +22,7 @@ class HomeGrid extends StatelessWidget {
       final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 14.r,
-        mainAxisSpacing: 8.r,
+        mainAxisSpacing: 14.r,
         childAspectRatio: 1.15,
       );
 
@@ -122,7 +122,7 @@ class HomeGrid extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: const Color(0xFFff895b),
-            borderRadius: BorderRadius.circular(25.r),
+            borderRadius: BorderRadius.circular(11.r),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),
@@ -133,9 +133,9 @@ class HomeGrid extends StatelessWidget {
           ),
           child: Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(25.r),
+            borderRadius: BorderRadius.circular(11.r),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(25.r),
+              borderRadius: BorderRadius.circular(11.r),
               child: Column(
                 children: [
                   Container(
@@ -239,15 +239,17 @@ class HomeGrid extends StatelessWidget {
     final int totalItems = gridItems.length;
 
     if (totalItems == 1) {
-      return Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          height: 35.h,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [gridItems[0]],
+      return Column(
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [gridItems[0]],
+            ),
           ),
-        ),
+          SizedBox(height: 8.r),
+          const Expanded(child: SizedBox.shrink()),
+        ],
       );
     } else if (totalItems == 2) {
       return Column(
@@ -260,7 +262,7 @@ class HomeGrid extends StatelessWidget {
               children: [gridItems[0]],
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 8.r),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -280,13 +282,13 @@ class HomeGrid extends StatelessWidget {
               children: [gridItems[0]],
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 8.r),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 gridItems[1],
-                SizedBox(width: 8.w),
+                SizedBox(width: 8.r),
                 gridItems[2],
               ],
             ),
@@ -307,7 +309,7 @@ class HomeGrid extends StatelessWidget {
               gridItems.isNotEmpty
                   ? gridItems[0]
                   : const Expanded(child: SizedBox()),
-              SizedBox(width: 8.w),
+              SizedBox(width: 8.r),
               gridItems.length > 1
                   ? gridItems[1]
                   : const Expanded(child: SizedBox()),
@@ -316,13 +318,13 @@ class HomeGrid extends StatelessWidget {
         ),
         // Row 2
         if (gridItems.length > 2) ...[
-          SizedBox(height: 8.h),
+          SizedBox(height: 8.r),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 gridItems[2],
-                SizedBox(width: 8.w),
+                SizedBox(width: 8.r),
                 gridItems.length > 3
                     ? gridItems[3]
                     : const Expanded(child: SizedBox()),
@@ -368,7 +370,7 @@ class HomeGrid extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(10.r),
           onTap: () {
             if (controller.isEditMode.value) return;
             if (route != null) {
@@ -389,7 +391,7 @@ class HomeGrid extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: const Color(0xFFEBEBEB),
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(10.r),
             ),
             child: isRowLayout
                 ? Row(

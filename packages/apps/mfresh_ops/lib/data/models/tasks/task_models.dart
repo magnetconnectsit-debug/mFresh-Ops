@@ -88,6 +88,8 @@ class TaskItem {
   final String occurrences;
   final String startTime;
   final String endTime;
+  final String? instStartTime;
+  final String? instEndTime;
   final String createdAt;
   final String updatedAt;
   final int taskInstanceId;
@@ -133,6 +135,8 @@ class TaskItem {
     required this.occurrences,
     required this.startTime,
     required this.endTime,
+    this.instStartTime,
+    this.instEndTime,
     required this.createdAt,
     required this.updatedAt,
     required this.taskInstanceId,
@@ -177,8 +181,10 @@ class TaskItem {
       monthDays: json['month_days'] ?? '',
       yearDays: json['year_days'] ?? '',
       occurrences: json['occurrences']?.toString() ?? '',
-      startTime: json['start_time'] ?? json['inst_start_time'] ?? '',
-      endTime: json['end_time'] ?? json['inst_end_time'] ?? '',
+      startTime: json['start_time'] ?? '',
+      endTime: json['end_time'] ?? '',
+      instStartTime: json['inst_start_time'],
+      instEndTime: json['inst_end_time'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       taskInstanceId: json['task_instance_id'] ?? 0,
@@ -224,6 +230,8 @@ class TaskItem {
     String? occurrences,
     String? startTime,
     String? endTime,
+    String? instStartTime,
+    String? instEndTime,
     String? createdAt,
     String? updatedAt,
     int? taskInstanceId,
@@ -267,6 +275,8 @@ class TaskItem {
       occurrences: occurrences ?? this.occurrences,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
+      instStartTime: instStartTime ?? this.instStartTime,
+      instEndTime: instEndTime ?? this.instEndTime,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       taskInstanceId: taskInstanceId ?? this.taskInstanceId,

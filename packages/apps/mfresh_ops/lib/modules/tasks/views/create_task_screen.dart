@@ -10,6 +10,24 @@ import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dr
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 
+class _FormLifecycleWrapper extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDispose;
+  const _FormLifecycleWrapper({required this.child, required this.onDispose});
+  @override
+  State<_FormLifecycleWrapper> createState() => _FormLifecycleWrapperState();
+}
+
+class _FormLifecycleWrapperState extends State<_FormLifecycleWrapper> {
+  @override
+  void dispose() {
+    widget.onDispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 class CreateTaskScreen extends GetView<TasksController> {
   const CreateTaskScreen({super.key});
 
@@ -27,8 +45,13 @@ class CreateTaskScreen extends GetView<TasksController> {
       controller.formInitialized.value = true;
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.white,
+    return _FormLifecycleWrapper(
+      onDispose: () {
+        controller.formInitialized.value = false;
+        controller.resetForm();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
@@ -217,48 +240,69 @@ class CreateTaskScreen extends GetView<TasksController> {
                       ),
                       SizedBox(height: 12.h),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Obx(
-                              () => _buildDateTimeField(
+                      // ── Date Range Row (drag-to-select) ──
+                      Obx(() {
+                        Future<void> pickDateRange() async {
+                          final initialRange =
+                              controller.selectedStartDate.value != null &&
+                                  controller.selectedEndDate.value != null
+                              ? DateTimeRange(
+                                  start: controller.selectedStartDate.value!,
+                                  end: controller.selectedEndDate.value!,
+                                )
+                              : null;
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                            initialDateRange: initialRange,
+                            builder: (context, child) => Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: ColorScheme.light(
+                                  primary: AppColors.primary,
+                                  onPrimary: Colors.white,
+                                  onSurface: Colors.black,
+                                ),
+                              ),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) {
+                            controller.selectedStartDate.value = picked.start;
+                            controller.selectedEndDate.value = picked.end;
+                          }
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _buildDateTimeField(
                                 label: 'Start Date',
                                 icon: Icons.calendar_today_outlined,
-                                value:
-                                    controller.selectedStartDate.value != null
+                                value: controller.selectedStartDate.value != null
                                     ? AppDateUtils.formatToOrdinalDate(
                                         controller.selectedStartDate.value!
                                             .toIso8601String(),
                                       )
                                     : null,
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: DateTime.now(),
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(
-                                      const Duration(days: 365),
-                                    ),
-                                  );
-                                  if (date != null) {
-                                    controller.selectedStartDate.value = date;
-                                  }
-                                },
+                                onTap: pickDateRange,
                               ),
                             ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Obx(
-                              () => _buildDateTimeField(
-                                label: 'Time',
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: _buildDateTimeField(
+                                label: 'Start Time',
                                 icon: Icons.keyboard_arrow_down,
                                 value: controller.selectedStartTime.value
                                     ?.format(context),
                                 onTap: () async {
                                   final time = await showTimePicker(
                                     context: context,
-                                    initialTime: TimeOfDay.now(),
+                                    initialTime: controller.selectedStartTime.value ?? TimeOfDay.now(),
+                                    builder: (context, child) => MediaQuery(
+                                      data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                      child: child!,
+                                    ),
                                   );
                                   if (time != null) {
                                     controller.selectedStartTime.value = time;
@@ -266,16 +310,47 @@ class CreateTaskScreen extends GetView<TasksController> {
                                 },
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        );
+                      }),
                       SizedBox(height: 12.h),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Obx(
-                              () => _buildDateTimeField(
+                      Obx(() {
+                        Future<void> pickDateRange() async {
+                          final initialRange =
+                              controller.selectedStartDate.value != null &&
+                                  controller.selectedEndDate.value != null
+                              ? DateTimeRange(
+                                  start: controller.selectedStartDate.value!,
+                                  end: controller.selectedEndDate.value!,
+                                )
+                              : null;
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                            initialDateRange: initialRange,
+                            builder: (context, child) => Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: ColorScheme.light(
+                                  primary: AppColors.primary,
+                                  onPrimary: Colors.white,
+                                  onSurface: Colors.black,
+                                ),
+                              ),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) {
+                            controller.selectedStartDate.value = picked.start;
+                            controller.selectedEndDate.value = picked.end;
+                          }
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _buildDateTimeField(
                                 label: 'End Date',
                                 icon: Icons.calendar_today_outlined,
                                 value: controller.selectedEndDate.value != null
@@ -284,31 +359,13 @@ class CreateTaskScreen extends GetView<TasksController> {
                                             .toIso8601String(),
                                       )
                                     : null,
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate:
-                                        controller.selectedStartDate.value ??
-                                        DateTime.now(),
-                                    firstDate:
-                                        controller.selectedStartDate.value ??
-                                        DateTime.now(),
-                                    lastDate: DateTime.now().add(
-                                      const Duration(days: 365),
-                                    ),
-                                  );
-                                  if (date != null) {
-                                    controller.selectedEndDate.value = date;
-                                  }
-                                },
+                                onTap: pickDateRange,
                               ),
                             ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Obx(
-                              () => _buildDateTimeField(
-                                label: 'Time',
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: _buildDateTimeField(
+                                label: 'End Time',
                                 icon: Icons.keyboard_arrow_down,
                                 value: controller.selectedEndTime.value?.format(
                                   context,
@@ -316,7 +373,11 @@ class CreateTaskScreen extends GetView<TasksController> {
                                 onTap: () async {
                                   final time = await showTimePicker(
                                     context: context,
-                                    initialTime: TimeOfDay.now(),
+                                    initialTime: controller.selectedEndTime.value ?? TimeOfDay.now(),
+                                    builder: (context, child) => MediaQuery(
+                                      data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                      child: child!,
+                                    ),
                                   );
                                   if (time != null) {
                                     controller.selectedEndTime.value = time;
@@ -324,9 +385,9 @@ class CreateTaskScreen extends GetView<TasksController> {
                                 },
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        );
+                      }),
                       SizedBox(height: 16.h),
 
                       Row(
@@ -602,7 +663,7 @@ class CreateTaskScreen extends GetView<TasksController> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildTextField({

@@ -15,6 +15,9 @@ class SupportTemplateController extends GetxController {
   final searchController = TextEditingController();
   final templateNameController = TextEditingController();
   final descriptionController = TextEditingController();
+  
+  final subtaskControllers = <TextEditingController>[].obs;
+  final subtasks = <String>[].obs;
 
   final allTemplates = <SupportTemplateModel>[].obs;
   final filteredTemplates = <SupportTemplateModel>[].obs;
@@ -98,6 +101,15 @@ class SupportTemplateController extends GetxController {
   void openEditForm(SupportTemplateModel template) {
     templateNameController.text = template.templateName;
     descriptionController.text = template.description;
+    subtasks.assignAll(template.subtasks);
+    
+    // Initialize text controllers for existing subtasks
+    subtaskControllers.clear();
+    for (var st in template.subtasks) {
+      subtaskControllers.add(TextEditingController(text: st));
+    }
+    
+    isFormScreenOpen.value = true;
     isEditing.value = true;
     editingTemplateId.value = template.id;
   }
@@ -122,6 +134,14 @@ class SupportTemplateController extends GetxController {
       return false;
     }
 
+    // Sync subtask text fields into subtasks list before sending
+    subtasks.assignAll(
+      subtaskControllers
+          .map((e) => e.text.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+    );
+
     isLoading.value = true;
     try {
       if (isEditing.value) {
@@ -129,6 +149,7 @@ class SupportTemplateController extends GetxController {
           editingTemplateId.value,
           name,
           desc,
+          subtasks.toList(),
         );
         if (success) {
           isFormScreenOpen.value = false;
@@ -146,7 +167,7 @@ class SupportTemplateController extends GetxController {
           );
         }
       } else {
-        final success = await _supportRepository.addTemplate(name, desc);
+        final success = await _supportRepository.addTemplate(name, desc, subtasks.toList());
         if (success) {
           isFormScreenOpen.value = false;
           fetchTemplates();
@@ -171,12 +192,34 @@ class SupportTemplateController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+    isEditing.value = false;
+    editingTemplateId.value = -1;
+    templateNameController.clear();
+    descriptionController.clear();
+    for (var c in subtaskControllers) { c.dispose(); }
+    subtaskControllers.clear();
+    subtasks.clear();
     return false;
   }
 
   void clearControllers() {
+    searchController.clear();
     templateNameController.clear();
     descriptionController.clear();
+    for (var c in subtaskControllers) { c.dispose(); }
+    subtaskControllers.clear();
+    subtasks.clear();
+  }
+
+  void addSubtaskField() {
+    subtaskControllers.add(TextEditingController());
+  }
+
+  void removeSubtaskField(int index) {
+    if (index >= 0 && index < subtaskControllers.length) {
+      subtaskControllers[index].dispose();
+      subtaskControllers.removeAt(index);
+    }
   }
 
   @override
