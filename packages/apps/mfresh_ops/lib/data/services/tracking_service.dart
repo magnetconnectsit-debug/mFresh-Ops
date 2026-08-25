@@ -573,7 +573,11 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           _enqueueLocation(pos);
         }
       }
-    });
+    }, onError: (error) {
+      debugPrint('Foreground location stream error: $error');
+      // Automatically restart stream if it crashes (e.g. network switch on Android)
+      Future.delayed(const Duration(seconds: 5), _startLocationUpdates);
+    }, cancelOnError: false);
   }
 
   void _startForegroundUpdateTimer() {

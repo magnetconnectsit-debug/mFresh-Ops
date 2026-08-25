@@ -433,11 +433,11 @@ class SupportRepository extends GetxService {
     }
   }
 
-  Future<bool> addTemplate(String subject, String descp) async {
+  Future<bool> addTemplate(String subject, String descp, List<String> subtasks) async {
     try {
       final response = await _apiService.post(
         AppConstants.templateStore,
-        data: {'template_subject': subject, 'template_descp': descp},
+        data: {'template_subject': subject, 'template_descp': descp, 'subtasks': subtasks},
       );
       return response != null && response['status'] == true;
     } catch (e) {
@@ -445,7 +445,7 @@ class SupportRepository extends GetxService {
     }
   }
 
-  Future<bool> updateTemplate(int id, String subject, String descp) async {
+  Future<bool> updateTemplate(int id, String subject, String descp, List<String> subtasks) async {
     try {
       final response = await _apiService.post(
         AppConstants.templateUpdate,
@@ -453,6 +453,7 @@ class SupportRepository extends GetxService {
           'template_id': id,
           'template_subject': subject,
           'template_descp': descp,
+          'subtasks': subtasks,
         },
       );
       return response != null && response['status'] == true;

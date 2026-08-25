@@ -10,6 +10,8 @@ import 'package:mfresh_ops/modules/info_directory/views/create_account_subscript
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/payment_reminder_screen.dart';
+import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
 import 'package:dev/views/dev_settings_screen.dart';
@@ -316,6 +318,13 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.lazyPut(() => AccountSubscriptionRepository());
         Get.lazyPut(() => CreateAccountSubscriptionController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.paymentReminder,
+      page: () => const PaymentReminderScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => PaymentReminderRepository());
       }),
     ),
   ];

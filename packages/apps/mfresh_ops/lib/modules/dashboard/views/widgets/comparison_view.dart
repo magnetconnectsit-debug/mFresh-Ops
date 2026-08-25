@@ -9,6 +9,7 @@ import 'package:mfresh_ops/data/models/revenue_report/comparison_model.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/dashboard/views/widgets/chart_full_screen_viewer.dart';
+import 'package:mfresh_ops/data/models/support/support_dropdown_models.dart';
 import 'dart:ui' as ui;
 const _kSeriesColors = [
   Color(0xFF3B82F6), // blue   — Data A
@@ -358,10 +359,17 @@ class _SlotRowState extends State<_SlotRow> {
                         final units = _c.units;
                         return _CompactUnit(
                           units: units.map((u) => u.unitName).toList(),
-                          selected: slot.unitName,
+                          selected: slot.selectedUnitNames,
                           onChanged: (v) => setState(() {
-                            slot.unitName = v;
-                            slot.unitId = v;
+                            slot.selectedUnitNames = v;
+                            // the original code sent unitId as the string name (which seems wrong, but just mapping to string id now)
+                            slot.selectedUnitIds = v.map((name) {
+                              final u = units.firstWhere(
+                                  (element) => element.unitName == name,
+                                  orElse: () => SupportUnit(unitId: 0, unitName: name));
+                              // We use the ID, but fallback to name if ID was 0 because original logic was slot.unitId = v (the name).
+                              return u.unitId == 0 ? name : u.unitId.toString();
+                            }).toSet();
                           }),
                         );
                       }),
@@ -425,8 +433,8 @@ class _CompactField extends StatelessWidget {
 
 class _CompactUnit extends StatelessWidget {
   final List<String> units;
-  final String? selected;
-  final ValueChanged<String> onChanged;
+  final Set<String> selected;
+  final ValueChanged<Set<String>> onChanged;
   const _CompactUnit({
     required this.units,
     required this.selected,
@@ -436,22 +444,22 @@ class _CompactUnit extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiSelectDropdownWidget<String>(
-      isSingleSelect: true,
-      hint: 'Unit',
-      selectedValues: selected != null ? {selected!} : {},
+      isSingleSelect: false,
+      hint: 'Units',
+      selectedValues: selected,
       height: 24.h,
       items: units
           .map((u) => DropdownMenuItem(value: u, child: Text(u, style: AppTextStyle.style_10_400(color: AppColors.black))))
           .toList(),
-      onChanged: (vals) {
-        if (vals.isNotEmpty) {
-          onChanged(vals.first);
-        }
-      },
+      onChanged: onChanged,
       customChild: _CompactField(
         label: 'Unit',
-        value: selected ?? 'Select',
-        hasValue: selected != null,
+        value: selected.isEmpty 
+            ? 'Select' 
+            : selected.length == 1 
+                ? selected.first 
+                : '${selected.length} Units',
+        hasValue: selected.isNotEmpty,
         onTap: null,
       ),
     );
@@ -520,7 +528,7 @@ class _ChartCardState extends State<_ChartCard> {
             Center(
               child: Wrap(
                 spacing: 12.w,
-                runSpacing: 0,
+                runSpacing: 4.h,
                 alignment: WrapAlignment.center,
                 children: widget.comparisons.map((e) {
                   final idx = (e.comparison - 1).clamp(
@@ -528,9 +536,23 @@ class _ChartCardState extends State<_ChartCard> {
                     _kSeriesColors.length - 1,
                   );
                   final color = _kSeriesColors[idx];
-                  final lbl = _kSeriesLabels[idx];
                   final isHidden = hiddenSeries.contains(idx);
-
+                  final fmtAmount = NumberFormat('#,##,###.##').format;
+                  String fmtDate(String d) {
+                    try {
+                      final dt = DateTime.parse(d);
+                      final month = DateFormat('MMM').format(dt);
+                      final day = dt.day;
+                      String suffix = 'th';
+                      if (day % 10 == 1 && day != 11) suffix = 'st';
+                      else if (day % 10 == 2 && day != 12) suffix = 'nd';
+                      else if (day % 10 == 3 && day != 13) suffix = 'rd';
+                      return '${day}$suffix $month';
+                    } catch (_) {
+                      return d;
+                    }
+                  }
+                  
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -542,42 +564,53 @@ class _ChartCardState extends State<_ChartCard> {
                       });
                     },
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 4.w,
-                        vertical: 0,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 32.w,
-                            height: 12.h,
-                            decoration: BoxDecoration(
-                              color: isHidden
-                                  ? Colors.grey[300]
-                                  : color.withValues(alpha: 0.2),
-                              border: Border.all(
-                                color: isHidden ? Colors.grey : color,
-                                width: 2,
-                              ),
-                              borderRadius: BorderRadius.circular(2.r),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            '$lbl (${AppDateUtils.formatToDateDayMonth(e.fromDate)} to ${AppDateUtils.formatToDateDayMonth(e.toDate)})',
-                            style:
-                                AppTextStyle.style_12_400(
-                                  color: isHidden
-                                      ? Colors.grey
-                                      : AppColors.grey800,
-                                ).copyWith(
-                                  decoration: isHidden
-                                      ? TextDecoration.lineThrough
-                                      : null,
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 24.w,
+                                  height: 12.h,
+                                  decoration: BoxDecoration(
+                                    color: isHidden ? Colors.grey[300] : color.withValues(alpha: 0.2),
+                                    border: Border.all(color: isHidden ? Colors.grey : color, width: 2),
+                                    borderRadius: BorderRadius.circular(2.r),
+                                  ),
                                 ),
-                          ),
-                        ],
+                                SizedBox(width: 8.w),
+                                Flexible(
+                                  child: Text(
+                                    '${e.label} | ${fmtDate(e.fromDate)} to ${fmtDate(e.toDate)}',
+                                    style: AppTextStyle.style_10_500(color: isHidden ? Colors.grey : AppColors.grey800).copyWith(
+                                      decoration: isHidden ? TextDecoration.lineThrough : null,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 2.h),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(width: 32.w),
+                                Flexible(
+                                  child: Text(
+                                    'Sum ₹${fmtAmount(e.sumRevenue)}  |  Avg ₹${fmtAmount(e.avgRevenue)}',
+                                    style: AppTextStyle.style_10_500(color: isHidden ? Colors.grey : AppColors.grey800).copyWith(
+                                      decoration: isHidden ? TextDecoration.lineThrough : null,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -599,6 +632,31 @@ class _ChartCardState extends State<_ChartCard> {
   }
 }
 
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    
+    var max = size.width;
+    var dashWidth = 5.0;
+    var dashSpace = 3.0;
+    double startX = 0;
+    while (startX < max) {
+      canvas.drawLine(Offset(startX, size.height / 2), Offset(startX + dashWidth, size.height / 2), paint);
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _TextDotPainter extends FlDotPainter {
   final String text;
   final Color color;
@@ -614,7 +672,7 @@ class _TextDotPainter extends FlDotPainter {
     canvas.drawCircle(offsetInCanvas, 4, fillPaint);
 
     final strokePaint = Paint()
-      ..color = Colors.black
+      ..color = color
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(offsetInCanvas, 4, strokePaint);
@@ -712,39 +770,52 @@ class _LineChartState extends State<_LineChart> {
           color: color,
           barWidth: 3,
           isStrokeCapRound: true,
-          dotData: FlDotData(
-            show: true,
-            getDotPainter: (spot, percent, barData, index) {
-              double yOffset = -18;
-              
-              // Check for overlap with other visible series
-              for (int j = 0; j < widget.comparisons.length; j++) {
-                if (j == i) continue;
-                final otherColorIdx = (widget.comparisons[j].comparison - 1).clamp(0, _kSeriesColors.length - 1);
-                if (widget.hiddenSeries.contains(otherColorIdx)) continue;
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                double yOffset = -18;
                 
-                final otherEntry = widget.comparisons[j];
-                if (index < otherEntry.data.length) {
-                   final otherY = otherEntry.data[index].revenue;
-                   // If they are somewhat close (within 15% of spot y or absolute threshold)
-                   if ((spot.y - otherY).abs() < (spot.y * 0.2 + 500)) {
-                      // Overlapping! Adjust offset based on relative height
-                      if (spot.y > otherY) {
-                         yOffset = -22;
-                      } else if (spot.y < otherY) {
-                         yOffset = 8;
-                      } else {
-                         // Exactly same, use index tie breaker
-                         yOffset = i > j ? -22 : 8;
-                      }
-                   }
+                // Check for overlap with other visible series
+                for (int j = 0; j < widget.comparisons.length; j++) {
+                  if (j == i) continue;
+                  final otherColorIdx = (widget.comparisons[j].comparison - 1).clamp(0, _kSeriesColors.length - 1);
+                  if (widget.hiddenSeries.contains(otherColorIdx)) continue;
+                  
+                  final otherEntry = widget.comparisons[j];
+                  if (index < otherEntry.data.length) {
+                     final otherY = otherEntry.data[index].revenue;
+                     // If they are somewhat close (within 15% of spot y or absolute threshold)
+                     if ((spot.y - otherY).abs() < (spot.y * 0.2 + 500)) {
+                        // Overlapping! Adjust offset based on relative height
+                        if (spot.y > otherY) {
+                           yOffset = -22;
+                        } else if (spot.y < otherY) {
+                           yOffset = 8;
+                        } else {
+                           // Exactly same, use index tie breaker
+                           yOffset = i > j ? -22 : 8;
+                        }
+                     }
+                  }
                 }
-              }
 
-              final valStr = NumberFormat('#,##,###').format(spot.y);
-              return _TextDotPainter(valStr, color, yOffset);
-            },
-          ),
+                final dateStr = entry.data[index].date;
+                String formattedDate = dateStr;
+                try {
+                  final dt = DateTime.parse(dateStr);
+                  final month = DateFormat('MMM').format(dt);
+                  final day = dt.day;
+                  String suffix = 'th';
+                  if (day % 10 == 1 && day != 11) suffix = 'st';
+                  else if (day % 10 == 2 && day != 12) suffix = 'nd';
+                  else if (day % 10 == 3 && day != 13) suffix = 'rd';
+                  formattedDate = '${day}$suffix $month';
+                } catch (_) {}
+                
+                final valStr = '₹${NumberFormat('#,##,###').format(spot.y)} ($formattedDate)';
+                return _TextDotPainter(valStr, color, yOffset);
+              },
+            ),
           belowBarData: BarAreaData(
             show: true,
             color: color.withValues(alpha: 0.15),
@@ -797,6 +868,31 @@ class _LineChartState extends State<_LineChart> {
         minX: 0,
         maxX: (maxX - 1).toDouble().clamp(0, double.infinity),
         lineBarsData: lines,
+        extraLinesData: ExtraLinesData(
+          horizontalLines: widget.comparisons.map((e) {
+            final idx = (e.comparison - 1).clamp(0, _kSeriesColors.length - 1);
+            if (widget.hiddenSeries.contains(idx)) return null;
+            final color = _kSeriesColors[idx];
+            return HorizontalLine(
+              y: e.avgRevenue,
+              color: color,
+              strokeWidth: 1.5,
+              dashArray: [5, 3],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topRight,
+                padding: const EdgeInsets.only(right: 4, bottom: 2),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w600,
+                  backgroundColor: Colors.white.withValues(alpha: 0.7),
+                ),
+                labelResolver: (line) => 'Avg: ₹${NumberFormat('#,##,###.##').format(line.y)}',
+              ),
+            );
+          }).whereType<HorizontalLine>().toList(),
+        ),
         showingTooltipIndicators: () {
           List<ShowingTooltipIndicators> indicators = [];
           if (touchedSpotIndex != null) {

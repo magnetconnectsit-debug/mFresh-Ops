@@ -136,6 +136,15 @@ class CommonSidebar extends StatelessWidget {
               final showTaskScheduler = userPermissions.contains(
                 'Task_Sheduler_Pannel',
               );
+
+              final supportTicketSubItems = [
+                'Support Ticket',
+                if (userPermissions.contains('M_Template')) 'M_Template',
+                if (userPermissions.contains('M_Projects')) 'M_Projects',
+                if (userPermissions.contains('m_sub_category')) 'M_Sub Category',
+                if (userPermissions.contains('maintenance_category')) 'M_Category',
+              ];
+
               final taskSubItems = [
                 if (userPermissions.contains('All_Task')) 'All Task',
                 if (userPermissions.contains('Daily_Task')) 'Daily Task',
@@ -182,11 +191,11 @@ class CommonSidebar extends StatelessWidget {
                     currentRoute: currentRoute,
                   ),
 
-                  if (userPermissions.contains('maintenance_panel'))
+                  if (userPermissions.contains('maintenance_panel') && supportTicketSubItems.isNotEmpty)
                     _buildExpandableMenuItem(
                       icon: Icons.support_agent_outlined,
                       title: 'Support Ticket',
-                      subItems: ['Support Ticket'],
+                      subItems: supportTicketSubItems,
                       currentRoute: currentRoute,
                     ),
 
@@ -248,6 +257,14 @@ class CommonSidebar extends StatelessWidget {
                       subItems: infoDirectorySubItems,
                       currentRoute: currentRoute,
                     ),
+
+                  // _buildMenuItem(
+                  //   icon: Icons.payment_outlined,
+                  //   activeIcon: Icons.payment,
+                  //   title: 'Payment Reminder',
+                  //   route: AppRoutes.paymentReminder,
+                  //   currentRoute: currentRoute,
+                  // ),
 
                   _buildMenuItem(
                     icon: Icons.person_outline,

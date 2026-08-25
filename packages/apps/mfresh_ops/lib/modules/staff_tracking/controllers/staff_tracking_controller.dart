@@ -17,10 +17,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class StaffTrackingController extends GetxController
-    with GetSingleTickerProviderStateMixin {
+    with GetTickerProviderStateMixin {
   final TrackingRepository _repository = Get.find<TrackingRepository>();
 
-  late TabController tabController;
+  TabController? tabController;
   final RxBool isSearching = false.obs;
 
   final RxList<Map<String, dynamic>> allEmployees =
@@ -42,6 +42,7 @@ class StaffTrackingController extends GetxController
   Timer? _debounceTimer;
   Timer? _pollingTimer;
   Timer? _rippleTimer;
+  Timer? _searchDebounce;
   double _rippleFactor = 0.0;
 
   // Cache for marker icons to avoid recreating bitmaps continuously
@@ -64,23 +65,41 @@ class StaffTrackingController extends GetxController
         : MapType.normal;
   }
 
+  final RxBool showStaffTab = false.obs;
+  final RxBool canViewMap = false.obs;
+  late Worker _permissionsWorker;
+
   @override
   void onInit() {
     super.onInit();
-    tabController = TabController(length: 2, vsync: this);
-    tabController.addListener(() {
-      if (tabController.index == 1 && _pendingFitBounds) {
-        _pendingFitBounds = false;
-        Future.delayed(const Duration(milliseconds: 300), () {
-          fitBounds();
-        });
+    final authRepo = Get.find<AuthRepository>();
+    showStaffTab.value = authRepo.rxUserPermissions.any((p) => p.toLowerCase() == 'staff_tab');
+    canViewMap.value = authRepo.rxUserPermissions.any((p) => p.toLowerCase() == 'attendance_map_view');
+    _initTabController();
+
+    _permissionsWorker = ever(authRepo.rxUserPermissions, (permissions) {
+      final newCanViewMap = permissions.any((p) => p.toLowerCase() == 'attendance_map_view');
+      final newShowStaffTab = permissions.any((p) => p.toLowerCase() == 'staff_tab');
+      
+      if (newCanViewMap != canViewMap.value || newShowStaffTab != showStaffTab.value) {
+        canViewMap.value = newCanViewMap;
+        showStaffTab.value = newShowStaffTab;
+        _initTabController();
       }
     });
-    searchController.addListener(filterEmployees);
+
+    searchController.addListener(_onSearchChanged);
     _checkLocationPermissions();
     fetchEmployees();
     _startPolling();
     _startRippleAnimation();
+  }
+
+  void _onSearchChanged() {
+    if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      filterEmployees();
+    });
   }
 
   Future<void> _checkLocationPermissions() async {
@@ -107,20 +126,58 @@ class StaffTrackingController extends GetxController
     }
   }
 
+  int get mapIndex {
+    final isStaff = showStaffTab.value;
+    final isMap = canViewMap.value;
+    return isStaff ? (isMap ? 2 : -1) : (isMap ? 1 : -1);
+  }
+
+  void _initTabController() {
+    final isStaff = showStaffTab.value;
+    final isMap = canViewMap.value;
+    
+    int length = 1; // List view is always present
+    if (isStaff) length++;
+    if (isMap) length++;
+
+    final oldController = tabController;
+    tabController = TabController(length: length, vsync: this);
+    tabController!.addListener(() {
+      if (mapIndex != -1 && tabController!.index == mapIndex && _pendingFitBounds) {
+        _pendingFitBounds = false;
+        Future.delayed(const Duration(milliseconds: 300), () {
+          fitBounds();
+        });
+      }
+    });
+
+    if (oldController != null) {
+      // Delay disposal so TabBar can safely detach its listeners during the rebuild
+      Future.delayed(const Duration(milliseconds: 500), () {
+        oldController.dispose();
+      });
+    }
+  }
+
   @override
   void onClose() {
-    tabController.dispose();
-    searchController.dispose();
+    _permissionsWorker.dispose();
+    tabController?.dispose();
     _debounceTimer?.cancel();
     _pollingTimer?.cancel();
     _rippleTimer?.cancel();
+    _searchDebounce?.cancel();
+    searchController.dispose();
     super.onClose();
   }
 
   void _startRippleAnimation() {
     _rippleTimer?.cancel();
-    _rippleTimer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
-      _rippleFactor += 0.03;
+    // Reduce frame rate to 150ms to save massive CPU usage over platform channel
+    _rippleTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
+      if (tabController?.index != mapIndex) return; // Only animate if map is visible
+      
+      _rippleFactor += 0.05;
       if (_rippleFactor > 1.0) {
         _rippleFactor = 0.0;
       }
@@ -171,7 +228,7 @@ class StaffTrackingController extends GetxController
     isSearching.value = false;
     searchController.clear();
 
-    tabController.animateTo(1);
+    tabController?.animateTo(1);
 
     final lat = emp['latitude'] ?? emp['live_status']?['latitude'];
     final lng = emp['longitude'] ?? emp['live_status']?['longitude'];
@@ -656,7 +713,7 @@ class StaffTrackingController extends GetxController
   void fitBounds([int retries = 3]) {
     if (mapController == null || filteredEmployees.isEmpty) return;
 
-    if (tabController.index != 1) {
+    if (tabController?.index != mapIndex) {
       _pendingFitBounds = true;
       return;
     }
@@ -708,9 +765,13 @@ class StaffTrackingController extends GetxController
 
     if (minLat != null && maxLat != null && minLng != null && maxLng != null) {
       if (validCount == 1) {
-        mapController!.animateCamera(
-          CameraUpdate.newLatLngZoom(LatLng(minLat, minLng), 14),
-        );
+        try {
+          mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(LatLng(minLat, minLng), 14),
+          );
+        } catch (e) {
+          debugPrint('fitBounds animateCamera single marker error: $e');
+        }
       } else {
         // Enforce a minimum bounding box size to prevent excessive zooming
         // 0.02 degrees is roughly 2km
@@ -727,32 +788,40 @@ class StaffTrackingController extends GetxController
           maxLng = centerLng + 0.01;
         }
 
-        mapController!
-            .animateCamera(
-              CameraUpdate.newLatLngBounds(
-                LatLngBounds(
-                  southwest: LatLng(minLat!, minLng!),
-                  northeast: LatLng(maxLat!, maxLng!),
+        try {
+          mapController!
+              .animateCamera(
+                CameraUpdate.newLatLngBounds(
+                  LatLngBounds(
+                    southwest: LatLng(minLat!, minLng!),
+                    northeast: LatLng(maxLat!, maxLng!),
+                  ),
+                  50.0,
                 ),
-                50.0,
-              ),
-            )
-            .catchError((e) {
-              debugPrint('fitBounds error: $e');
-              if (retries > 0) {
-                // Map layout might not be ready yet. Retry after a delay.
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  fitBounds(retries - 1);
-                });
-              } else {
-                // Ultimate fallback to center zoom if bounds repeatedly fail
-                double centerLat = (minLat! + maxLat!) / 2;
-                double centerLng = (minLng! + maxLng!) / 2;
-                mapController!.animateCamera(
-                  CameraUpdate.newLatLngZoom(LatLng(centerLat, centerLng), 10),
-                );
-              }
-            });
+              )
+              .catchError((e) {
+                debugPrint('fitBounds error: $e');
+                if (retries > 0) {
+                  // Map layout might not be ready yet. Retry after a delay.
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    fitBounds(retries - 1);
+                  });
+                } else {
+                  // Ultimate fallback to center zoom if bounds repeatedly fail
+                  try {
+                    double centerLat = (minLat! + maxLat!) / 2;
+                    double centerLng = (minLng! + maxLng!) / 2;
+                    mapController!.animateCamera(
+                      CameraUpdate.newLatLngZoom(LatLng(centerLat, centerLng), 10),
+                    );
+                  } catch (e2) {
+                    debugPrint('fitBounds fallback animateCamera error: $e2');
+                  }
+                }
+              });
+        } catch (e) {
+          debugPrint('fitBounds animateCamera bounds error: $e');
+        }
       }
     }
   }

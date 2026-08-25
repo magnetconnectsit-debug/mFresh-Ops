@@ -4,24 +4,23 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:core/widgets/app_image_view.dart';
-import 'package:get/get.dart';
-import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class EmployeeTrackingCard extends StatelessWidget {
   final Map<String, dynamic> employee;
   final VoidCallback onTap;
+  final bool hideBottomRow;
+  final bool canViewMap;
 
   const EmployeeTrackingCard({
     super.key,
     required this.employee,
     required this.onTap,
+    this.hideBottomRow = false,
+    this.canViewMap = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final authRepo = Get.find<AuthRepository>();
-    final canViewMap = authRepo.rxUserPermissions.contains('attendance_map_view');
-
     final name = employee['name'] ?? 'Unknown';
     final mobile = employee['mobile'] ?? '';
     final status = employee['current_status']?.toString().toLowerCase();
@@ -228,23 +227,65 @@ class EmployeeTrackingCard extends StatelessWidget {
                                             employee['is_on_duty'] == true)
                                         ? 'On Duty'
                                         : 'Off Duty',
-                                    style: AppTextStyle.style_10_600(
-                                      color:
-                                          (employee['is_on_duty'] == 1 ||
-                                              employee['is_on_duty'] == true)
-                                          ? AppColors.green
-                                          : AppColors.red,
-                                    ).copyWith(
-                                      decoration: (employee['is_on_duty'] == 1 || employee['is_on_duty'] == true) && isStale10Min 
-                                          ? TextDecoration.lineThrough 
-                                          : null,
-                                      decorationColor: AppColors.red,
-                                      decorationThickness: 4.0,
-                                    ),
+                                    style:
+                                        AppTextStyle.style_10_600(
+                                          color:
+                                              (employee['is_on_duty'] == 1 ||
+                                                  employee['is_on_duty'] ==
+                                                      true)
+                                              ? AppColors.green
+                                              : AppColors.red,
+                                        ).copyWith(
+                                          decoration:
+                                              (employee['is_on_duty'] == 1 ||
+                                                      employee['is_on_duty'] ==
+                                                          true) &&
+                                                  isStale10Min
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                          decorationColor: AppColors.red,
+                                          decorationThickness: 4.0,
+                                        ),
                                   ),
                                 ),
                               ],
                             ),
+                          if (hideBottomRow) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    (isStale10Min
+                                            ? AppColors.orange
+                                            : AppColors.green)
+                                        .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 10,
+                                    color: isStale10Min
+                                        ? AppColors.orange
+                                        : AppColors.green,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Last Seen: $formattedLastSeen',
+                                    style: AppTextStyle.style_10_600(
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -276,8 +317,8 @@ class EmployeeTrackingCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                
-                if (canViewMap) ...[
+
+                if (canViewMap && !hideBottomRow) ...[
                   const SizedBox(height: 6),
                   Divider(color: AppColors.grey50, height: 1, thickness: 1),
                   const SizedBox(height: 6),
@@ -308,7 +349,9 @@ class EmployeeTrackingCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             statusText,
-                            style: AppTextStyle.style_10_600(color: statusColor),
+                            style: AppTextStyle.style_10_600(
+                              color: statusColor,
+                            ),
                           ),
                         ],
                       ),

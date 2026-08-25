@@ -528,6 +528,10 @@ class EditTicketScreen extends StatelessWidget {
       final pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        ),
       );
       if (pickedTime != null) {
         controller.followUpDate.value = DateTime(
@@ -746,6 +750,10 @@ class EditTicketScreen extends StatelessWidget {
                               final picked = await showTimePicker(
                                 context: context,
                                 initialTime: tempTime,
+                                builder: (context, child) => MediaQuery(
+                                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                  child: child!,
+                                ),
                               );
                               if (picked != null) {
                                 setModalState(() => tempTime = picked);

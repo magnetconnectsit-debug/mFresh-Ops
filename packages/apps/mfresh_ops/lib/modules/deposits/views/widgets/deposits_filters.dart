@@ -15,8 +15,8 @@ class DepositsFilters extends StatelessWidget {
     final controller = Get.find<DepositsController>();
 
     return Container(
-      padding: EdgeInsets.all(12.r),
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+      padding: EdgeInsets.all(4.r),
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
@@ -39,7 +39,7 @@ class DepositsFilters extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Padding(
-                    padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 8.h),
+                    padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 4.h),
                     child: Text(
                       'Filters',
                       style: AppTextStyle.style_14_600(color: AppColors.black),
@@ -65,9 +65,9 @@ class DepositsFilters extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  mainAxisExtent: 34.h,
+                  crossAxisSpacing: 4.w,
+                  mainAxisSpacing: 4.h,
+                  mainAxisExtent: 28.h,
                 ),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),

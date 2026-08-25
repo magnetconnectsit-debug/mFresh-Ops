@@ -219,6 +219,14 @@ class TasksController extends GetxController {
     }
   }
 
+  Future<void> resetFilters() async {
+    selectedProjects.clear();
+    selectedGroups.clear();
+    selectedUnits.clear();
+    selectedAssignees.clear();
+    await applyFilters();
+  }
+
   Future<void> pullToRefresh() async {
     selectedProjects.clear();
     selectedGroups.clear();
@@ -486,8 +494,8 @@ class TasksController extends GetxController {
   }
 
   int _getTaskSortOrder(TaskItem task) {
-    final statusLower = task.status.toLowerCase();
-    final dayStatusLower = task.taskDayStatus?.toLowerCase() ?? '';
+    final statusLower = task.status.toLowerCase().trim();
+    final dayStatusLower = task.taskDayStatus?.toLowerCase().trim() ?? '';
     
     final isCompletedOrApproved = statusLower == 'completed' || statusLower == 'approved';
     final isReviewOrUnderReview = statusLower == 'review' || statusLower == 'under_review';

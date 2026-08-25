@@ -153,8 +153,8 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
-    final statusLower = task.status.toLowerCase();
-    final dayStatusLower = task.taskDayStatus?.toLowerCase() ?? '';
+    final statusLower = task.status.toLowerCase().trim();
+    final dayStatusLower = task.taskDayStatus?.toLowerCase().trim() ?? '';
 
     final isCompletedOrApproved =
         statusLower == 'completed' || statusLower == 'approved';
@@ -309,10 +309,11 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                       runSpacing: 4.h,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _buildIconText(
-                          Icons.access_time_outlined,
-                          '${task.startTime} - ${task.endTime}',
-                        ),
+                        if (task.instStartTime != null && task.instEndTime != null)
+                          _buildIconText(
+                            Icons.access_time_outlined,
+                            '${task.instStartTime} - ${task.instEndTime}',
+                          ),
                         _buildIconText(
                           Icons.calendar_today_outlined,
                           _formatCardDate(task.scheduleDateTime),
@@ -455,13 +456,15 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 75.w,
-                        height: 22.h,
+                        constraints: BoxConstraints(minWidth: 75.w),
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                         decoration: BoxDecoration(
                           color: statusBg,
                           borderRadius: BorderRadius.circular(4.r),
                         ),
                         child: Center(
+                          widthFactor: 1.0,
+                          heightFactor: 1.0,
                           child: Text(
                             statusText,
                             style: TextStyle(
@@ -469,6 +472,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                               fontWeight: FontWeight.w700,
                               color: statusTextColor,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),

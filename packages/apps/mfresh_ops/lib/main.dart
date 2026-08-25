@@ -165,6 +165,11 @@ class MyTaskHandler extends TaskHandler {
       }
     });
 
+    _startLocationStream();
+  }
+
+  void _startLocationStream() {
+    _positionStream?.cancel();
     _positionStream =
         Geolocator.getPositionStream(
           locationSettings: _streamLocationSettings(),
@@ -186,7 +191,11 @@ class MyTaskHandler extends TaskHandler {
           )) {
             _enqueueLocation(position);
           }
-        });
+        }, onError: (error) {
+          debugPrint('Background location stream error: $error');
+          // Automatically restart stream if it crashes (e.g. network switch on Android)
+          Future.delayed(const Duration(seconds: 5), _startLocationStream);
+        }, cancelOnError: false);
   }
 
   @override
