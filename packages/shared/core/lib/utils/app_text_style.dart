@@ -461,11 +461,13 @@ class AppTextStyle {
 
   ///Font 10
   //region style_10_400
-  static TextStyle style_10_400({Color? color}) {
+  static TextStyle style_10_400({Color? color, bool isUnderline = false}) {
     return GoogleFonts.poppins(
       fontSize: 10.sp,
       fontWeight: FontWeight.w400,
       color: color ?? AppColors.grey400,
+      decoration: isUnderline ? TextDecoration.underline : TextDecoration.none,
+      decorationColor: color ?? AppColors.grey400,
     );
   }
 
@@ -493,11 +495,14 @@ class AppTextStyle {
 
   //endregion
   //region style_10_600
-  static TextStyle style_10_600({Color? color}) {
+  static TextStyle style_10_600({Color? color, bool isUnderline = false, double? spacing}) {
     return GoogleFonts.poppins(
       fontSize: 10.sp,
       fontWeight: FontWeight.w600,
       color: color ?? AppColors.grey400,
+      decoration: isUnderline ? TextDecoration.underline : TextDecoration.none,
+      decorationColor: color ?? AppColors.grey400,
+      letterSpacing: spacing,
     );
   }
 
@@ -566,6 +571,17 @@ class AppTextStyle {
       fontSize: 8.sp,
       fontWeight: FontWeight.w700,
       color: color ?? AppColors.grey400,
+    );
+  }
+  //endregion
+
+  //region style_8_600
+  static TextStyle style_8_600({Color? color, double? spacing}) {
+    return GoogleFonts.poppins(
+      fontSize: 8.sp,
+      fontWeight: FontWeight.w600,
+      color: color ?? AppColors.grey400,
+      letterSpacing: spacing,
     );
   }
   //endregion

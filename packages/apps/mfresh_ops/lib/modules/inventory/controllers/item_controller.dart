@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
+import 'package:core/widgets/app_common_dropdown_page.dart';
+import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/models/inventory/item_model.dart';
 
 class ItemController extends GetxController {
+  final InventoryRepository _inventoryRepository = Get.find<InventoryRepository>();
   final isSearching = false.obs;
   final searchController = TextEditingController();
   final isExporting = false.obs;
   final isExportingPdf = false.obs;
+  final isLoading = false.obs;
 
   final itemNameController = TextEditingController();
   final itemIdController = TextEditingController();
@@ -17,26 +22,79 @@ class ItemController extends GetxController {
   final selectedMeasurement = RxnString();
   final selectedCategory = RxnString();
 
-  final measurementOptions = ['Litre', 'Piece', 'Packet', 'Kg', 'Gram'].obs;
-  final categoryOptions = ['Cleaning', 'Toiletries', 'Stationery', 'Others'].obs;
+  final measurementOptions = <DropdownOption<String>>[].obs;
 
-  final allItems = <ItemModel>[
-    ItemModel(siNo: 1, itemName: 'Hand Wash', itemId: '2001', measurement: 'Litre', category: 'Toiletries', lowQuantityStore: '10', lowQuantityUnit: '2'),
-    ItemModel(siNo: 2, itemName: 'Body Wash', itemId: '2002', measurement: 'Litre', category: 'Toiletries', lowQuantityStore: '5', lowQuantityUnit: '1'),
-    ItemModel(siNo: 3, itemName: 'Shampoo - Sachet', itemId: '2003', measurement: 'Piece', category: 'Toiletries', lowQuantityStore: '100', lowQuantityUnit: '20'),
-    ItemModel(siNo: 4, itemName: 'Floor Cleaner', itemId: '2004', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '20', lowQuantityUnit: '5'),
-    ItemModel(siNo: 5, itemName: 'Toilet Cleaner', itemId: '2005', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '15', lowQuantityUnit: '3'),
-    ItemModel(siNo: 6, itemName: 'Glass Cleaner', itemId: '2006', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '10', lowQuantityUnit: '2'),
-    ItemModel(siNo: 7, itemName: 'Phenyl', itemId: '2007', measurement: 'Litre', category: 'Cleaning', lowQuantityStore: '50', lowQuantityUnit: '10'),
-    ItemModel(siNo: 8, itemName: 'Garbage Bag - Small', itemId: '2009', measurement: 'Packet', category: 'Cleaning', lowQuantityStore: '30', lowQuantityUnit: '5'),
-  ].obs;
+  final categoryOptions = <DropdownOption<String>>[].obs;
 
+  final allItems = <ItemModel>[].obs;
   final filteredItems = <ItemModel>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    filteredItems.assignAll(allItems);
+    initController();
+  }
+
+  Future<void> initController() async {
+    isLoading.value = true;
+    await fetchMeasurements();
+    await fetchCategories();
+    await fetchItems();
+    isLoading.value = false;
+  }
+
+  Future<void> onRefresh() async {
+    await fetchMeasurements();
+    await fetchCategories();
+    await fetchItems();
+  }
+
+  Future<void> fetchMeasurements() async {
+    try {
+      final response = await _inventoryRepository.getMeasurements();
+      if (response != null && response['status'] == 'success') {
+        final List data = response['data'] ?? [];
+        measurementOptions.assignAll(data.map((e) => DropdownOption<String>(
+          value: e['id'].toString(), 
+          label: e['measurement_unit']?.toString() ?? '',
+        )).toList());
+      }
+    } catch (e) {
+      debugPrint('Error fetching measurements: $e');
+    }
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      final response = await _inventoryRepository.getCategories();
+      if (response != null && response['status'] == 'success') {
+        final List data = response['data'] ?? [];
+        categoryOptions.assignAll(data.map((e) => DropdownOption<String>(
+          value: e['categoryID'].toString(), 
+          label: e['invcatgeoryname']?.toString() ?? '',
+        )).toList());
+      }
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+    }
+  }
+
+  Future<void> fetchItems() async {
+    try {
+      final response = await _inventoryRepository.getAllItems();
+      if (response != null && response['status'] == true) {
+        final List data = response['data'] ?? [];
+        final parsed = data.map((e) => ItemModel.fromJson(e)).toList();
+        allItems.assignAll(parsed);
+        applyFilters();
+      }
+    } catch (e) {
+      debugPrint('Error fetching items: $e');
+      AppCommonToastMessage.show(
+        message: "Failed to load items: $e",
+        type: ToastType.error,
+      );
+    }
   }
 
   void toggleSearch() {
@@ -58,43 +116,101 @@ class ItemController extends GetxController {
     );
   }
 
+  String getMeasurementName(String unitId) {
+    final match = measurementOptions.firstWhereOrNull((opt) => opt.value == unitId);
+    return match?.label ?? 'Unit $unitId';
+  }
+
+  String getCategoryName(String catId) {
+    final option = categoryOptions.firstWhereOrNull((opt) => opt.value == catId);
+    return option?.label ?? 'Category $catId';
+  }
+
   Future<void> exportToExcel() async {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
       title: 'Items Report',
-      columns: const ["SI No", "Item Name", "Item Id", "Measurement"],
-      rows: filteredItems.map((item) => [item.siNo, item.itemName, item.itemId, item.measurement]).toList(),
+      columns: const ["SI No", "Item Name", "Item Id", "Measurement", "Category"],
+      rows: filteredItems.asMap().entries
+          .map(
+            (entry) => [
+              entry.key + 1,
+              entry.value.itemName,
+              entry.value.itemId,
+              getMeasurementName(entry.value.measurementUnitId),
+              getCategoryName(entry.value.categoryInv),
+            ],
+          )
+          .toList(),
     );
     isExporting.value = false;
   }
 
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
-    await AppExportUtils.exportToPdf(title: 'Items Report');
+    await AppExportUtils.exportToPdf(
+      title: 'Items Report',
+      columns: const ["SI No", "Item Name", "Item Id", "Measurement", "Category"],
+      rows: filteredItems.asMap().entries
+          .map(
+            (entry) => [
+              entry.key + 1,
+              entry.value.itemName,
+              entry.value.itemId,
+              getMeasurementName(entry.value.measurementUnitId),
+              getCategoryName(entry.value.categoryInv),
+            ],
+          )
+          .toList(),
+    );
     isExportingPdf.value = false;
   }
 
-  void addItem() {
-    if (itemNameController.text.isNotEmpty && 
-        itemIdController.text.isNotEmpty && 
-        selectedMeasurement.value != null && 
-        selectedCategory.value != null) {
-      final newItem = ItemModel(
-        siNo: allItems.length + 1,
-        itemName: itemNameController.text,
-        itemId: itemIdController.text,
-        measurement: selectedMeasurement.value!,
-        category: selectedCategory.value!,
-        lowQuantityStore: lowQuantityStoreController.text,
-        lowQuantityUnit: lowQuantityUnitController.text,
+  Future<bool> addItem() async {
+    if (itemNameController.text.isEmpty ||
+        itemIdController.text.isEmpty ||
+        selectedMeasurement.value == null ||
+        selectedCategory.value == null) {
+      AppCommonToastMessage.show(
+        message: "Please fill all required fields",
+        type: ToastType.error,
       );
-      allItems.add(newItem);
-      applyFilters();
-      clearControllers();
-      Get.back();
-      AppCommonToastMessage.show(message: "Item added successfully!", type: ToastType.success);
-    } else {
-      AppCommonToastMessage.show(message: "Please fill all required fields", type: ToastType.error);
+      return false;
+    }
+
+    isLoading.value = true;
+    try {
+      final response = await _inventoryRepository.createItem(
+        itemName: itemNameController.text.trim(),
+        itemId: itemIdController.text.trim(),
+        measurementUnitId: int.parse(selectedMeasurement.value!),
+        categoryId: int.parse(selectedCategory.value!),
+        lowQtyStore: int.tryParse(lowQuantityStoreController.text) ?? 0,
+        lowQtyUnit: lowQuantityUnitController.text.trim(),
+      );
+
+      if (response != null && response['status'] == 'success') {
+        AppCommonToastMessage.show(
+          message: response['message']?.toString() ?? "Item created successfully",
+          type: ToastType.success,
+        );
+        await fetchItems();
+        return true;
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message']?.toString() ?? "Failed to create item",
+          type: ToastType.error,
+        );
+        return false;
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: "Error creating item: $e",
+        type: ToastType.error,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -107,11 +223,69 @@ class ItemController extends GetxController {
     selectedCategory.value = null;
   }
 
-  void editItem(int index, ItemModel updatedItem) {
-    allItems[index] = updatedItem;
-    applyFilters();
-    Get.back();
-    AppCommonToastMessage.show(message: "Item updated successfully!", type: ToastType.success);
+  void prepareAddDialog() {
+    clearControllers();
+    if (allItems.isNotEmpty) {
+      int maxId = 0;
+      for (var item in allItems) {
+        final idVal = int.tryParse(item.itemId) ?? 0;
+        if (idVal > maxId) {
+          maxId = idVal;
+        }
+      }
+      if (maxId > 0) {
+        itemIdController.text = (maxId + 1).toString();
+      }
+    }
+  }
+
+  Future<bool> editItem(int primaryId) async {
+    if (itemNameController.text.isEmpty ||
+        itemIdController.text.isEmpty ||
+        selectedMeasurement.value == null ||
+        selectedCategory.value == null) {
+      AppCommonToastMessage.show(
+        message: "Please fill all required fields",
+        type: ToastType.error,
+      );
+      return false;
+    }
+
+    isLoading.value = true;
+    try {
+      final response = await _inventoryRepository.updateItem(
+        primaryId: primaryId,
+        itemName: itemNameController.text.trim(),
+        itemId: itemIdController.text.trim(),
+        measurementUnitId: int.parse(selectedMeasurement.value!),
+        categoryId: int.parse(selectedCategory.value!),
+        lowQtyStore: int.tryParse(lowQuantityStoreController.text) ?? 0,
+        lowQtyUnit: lowQuantityUnitController.text.trim(),
+      );
+
+      if (response != null && response['status'] == 'success') {
+        AppCommonToastMessage.show(
+          message: response['message']?.toString() ?? "Item updated successfully",
+          type: ToastType.success,
+        );
+        await fetchItems();
+        return true;
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message']?.toString() ?? "Failed to update item",
+          type: ToastType.error,
+        );
+        return false;
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: "Error updating item: $e",
+        type: ToastType.error,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   @override
@@ -123,24 +297,4 @@ class ItemController extends GetxController {
     lowQuantityUnitController.dispose();
     super.onClose();
   }
-}
-
-class ItemModel {
-  final int siNo;
-  final String itemName;
-  final String itemId;
-  final String measurement;
-  final String category;
-  final String lowQuantityStore;
-  final String lowQuantityUnit;
-
-  ItemModel({
-    required this.siNo,
-    required this.itemName,
-    required this.itemId,
-    required this.measurement,
-    required this.category,
-    required this.lowQuantityStore,
-    required this.lowQuantityUnit,
-  });
 }

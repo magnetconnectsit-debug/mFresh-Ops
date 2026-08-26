@@ -4,6 +4,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 // endregion
 
 // region AppCommonDropdown
@@ -20,12 +21,16 @@ class AppCommonDropdown<T> extends StatelessWidget {
   final double? height;
   final TextStyle? style;
   final TextStyle? hintStyle;
+  final TextAlign textAlign;
+  final Color? fillColor;
+  final Color? borderColor;
   
   // Multi-select properties
   final bool isMultiSelect;
   final List<T>? selectedValues;
   final List<DropdownOption<T>>? options;
   final Function(List<T>)? onMultiSelectChanged;
+  final bool showChips;
 
   // endregion
 
@@ -43,10 +48,14 @@ class AppCommonDropdown<T> extends StatelessWidget {
     this.height,
     this.style,
     this.hintStyle,
+    this.textAlign = TextAlign.center,
+    this.fillColor,
+    this.borderColor,
     this.isMultiSelect = false,
     this.selectedValues,
     this.options,
     this.onMultiSelectChanged,
+    this.showChips = true,
   });
 
   // endregion
@@ -59,7 +68,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
       children: [
         if (title != null)
           Padding(
-            padding: EdgeInsets.only(bottom: 8.h),
+            padding: EdgeInsets.only(bottom: 6.h),
             child: Text.rich(
               TextSpan(
                 text: title!,
@@ -75,52 +84,62 @@ class AppCommonDropdown<T> extends StatelessWidget {
             ),
           ),
         
-        isMultiSelect ? _buildMultiSelect(context) : _buildSingleSelect(),
+
+        options != null ? _buildPageSelect(context) : _buildSingleSelect(),
       ],
     );
   }
 
   Widget _buildSingleSelect() {
     return SizedBox(
-      height: height ?? 44.h,
+      height: height ?? 32.h,
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         items: items,
         onChanged: onChanged,
         validator: validator,
         isExpanded: true,
+        itemHeight: null,
         icon: Icon(
           Icons.keyboard_arrow_down_rounded,
           color: AppColors.grey300,
-          size: 20.r,
+          size: 16.r,
         ),
-        style: style ?? AppTextStyle.style_14_400(color: AppColors.black1),
+        style: style ?? AppTextStyle.style_11_600(color: AppColors.black),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: hintStyle ?? AppTextStyle.style_12_400(color: AppColors.grey100),
+          hintStyle: hintStyle ?? AppTextStyle.style_11_600(color: AppColors.black),
           contentPadding: contentPadding ??
               EdgeInsets.symmetric(
-                horizontal: 16.w,
-                vertical: 6.h,
+                horizontal: 8.w,
+                vertical: 0,
               ),
           filled: true,
-          fillColor: AppColors.white,
-          border: _buildBorder(color: AppColors.grey100),
-          enabledBorder: _buildBorder(color: AppColors.grey100),
+          fillColor: fillColor ?? AppColors.white,
+          border: _buildBorder(color: borderColor ?? AppColors.borderColor),
+          enabledBorder: _buildBorder(color: borderColor ?? AppColors.borderColor),
           focusedBorder: _buildBorder(color: AppColors.primary),
           errorBorder: _buildBorder(color: AppColors.red),
           focusedErrorBorder: _buildBorder(color: AppColors.red),
+          isDense: true,
         ),
       ),
     );
   }
 
-  Widget _buildMultiSelect(BuildContext context) {
-    final String displayValue = (selectedValues == null || selectedValues!.isEmpty)
-        ? hintText
-        : selectedValues!.length == 1 
-            ? options?.firstWhere((opt) => opt.value == selectedValues!.first).label ?? hintText
-            : '${selectedValues!.length} items selected';
+  Widget _buildPageSelect(BuildContext context) {
+    final String displayValue;
+    if (isMultiSelect) {
+      displayValue = (selectedValues == null || selectedValues!.isEmpty)
+          ? hintText
+          : selectedValues!.length == 1 
+              ? options?.firstWhere((opt) => opt.value == selectedValues!.first).label ?? hintText
+              : '${selectedValues!.length} selected';
+    } else {
+      displayValue = (value == null)
+          ? hintText
+          : options?.firstWhere((opt) => opt.value == value).label ?? hintText;
+    }
 
     return GestureDetector(
       onTap: () async {
@@ -130,38 +149,82 @@ class AppCommonDropdown<T> extends StatelessWidget {
           context,
           title: title ?? hintText,
           options: options!,
-          isMultiSelect: true,
-          initialSelection: options!.where((opt) => selectedValues?.contains(opt.value) ?? false).toList(),
+          isMultiSelect: isMultiSelect,
+          initialSelection: isMultiSelect 
+            ? options!.where((opt) => selectedValues?.contains(opt.value) ?? false).toList()
+            : value != null ? [options!.firstWhere((opt) => opt.value == value)] : null,
         );
 
-        if (result != null && onMultiSelectChanged != null) {
-          onMultiSelectChanged!(result.map((e) => e.value).toList());
+        if (result != null) {
+          if (isMultiSelect) {
+            if (onMultiSelectChanged != null) {
+              onMultiSelectChanged!(result.map((e) => e.value).toList());
+            }
+          } else {
+            if (onChanged != null) {
+              onChanged!(result.first.value);
+            }
+          }
         }
       },
       child: Container(
-        height: height ?? 44.h,
-        padding: contentPadding ?? EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        constraints: BoxConstraints(minHeight: height ?? 32.h),
+        padding: contentPadding ?? EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.grey100, width: 1.5),
+          color: fillColor ?? AppColors.white,
+          borderRadius: BorderRadius.circular(4.r),
+          border: Border.all(color: borderColor ?? AppColors.borderColor, width: 1.0),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Text(
-                displayValue,
-                style: (selectedValues == null || selectedValues!.isEmpty)
-                    ? (hintStyle ?? AppTextStyle.style_12_400(color: AppColors.grey100))
-                    : (style ?? AppTextStyle.style_14_400(color: AppColors.black1)),
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: isMultiSelect && selectedValues != null && selectedValues!.isNotEmpty && showChips
+                  ? Wrap(
+                      spacing: 4.w,
+                      runSpacing: 4.h,
+                      children: selectedValues!.map((val) {
+                        final label = options?.firstWhereOrNull((opt) => opt.value == val)?.label ?? '';
+                        if (label.isEmpty) return const SizedBox.shrink();
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                label,
+                                style: AppTextStyle.style_10_600(color: AppColors.primary),
+                              ),
+                              SizedBox(width: 2.w),
+                              GestureDetector(
+                                onTap: () {
+                                  final newList = List<T>.from(selectedValues!)..remove(val);
+                                  if (onMultiSelectChanged != null) {
+                                    onMultiSelectChanged!(newList);
+                                  }
+                                },
+                                child: Icon(Icons.close, size: 10.r, color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    )
+                  : Text(
+                      displayValue,
+                      style: style ?? AppTextStyle.style_11_600(color: AppColors.black),
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: textAlign,
+                    ),
             ),
+            SizedBox(width: 4.w),
             Icon(
               Icons.keyboard_arrow_down_rounded,
               color: AppColors.grey300,
-              size: 20.r,
+              size: 16.r,
             ),
           ],
         ),
@@ -175,8 +238,8 @@ class AppCommonDropdown<T> extends StatelessWidget {
   OutlineInputBorder _buildBorder({Color color = AppColors.primary}) {
     // region _buildBorder
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8.r),
-      borderSide: BorderSide(color: color, width: 1.5),
+      borderRadius: BorderRadius.circular(4.r),
+      borderSide: BorderSide(color: color, width: 1.0),
     );
     // endregion
   }
@@ -185,13 +248,3 @@ class AppCommonDropdown<T> extends StatelessWidget {
 }
 
 // endregion
-
-
-
-
-
-
-
-
-
-

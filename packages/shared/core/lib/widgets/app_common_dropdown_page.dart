@@ -1,6 +1,5 @@
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 // region DropdownOption
 class DropdownOption<T> {
@@ -21,20 +20,20 @@ class DropdownOption<T> {
 // endregion
 
 // region AppCommonDropdownPage
-class AppCommonDropdownPage<T> extends StatelessWidget {
-  // region Constructor
-  AppCommonDropdownPage({
+class AppCommonDropdownPage<T> extends StatefulWidget {
+  final String title;
+  final List<DropdownOption<T>> options;
+  final bool isMultiSelect;
+  final List<DropdownOption<T>>? initialSelection;
+
+  const AppCommonDropdownPage({
     required this.title,
     required this.options,
     this.isMultiSelect = false,
-    List<DropdownOption<T>>? initialSelection,
+    this.initialSelection,
     super.key,
-  }) {
-    selectedOptions.value = initialSelection ?? [];
-    filteredOptions.value = options;
-  }
+  });
 
-  /// Helper route method to navigate to this page
   static Future<List<DropdownOption<T>>?> show<T>(
     BuildContext context, {
     required String title,
@@ -54,67 +53,70 @@ class AppCommonDropdownPage<T> extends StatelessWidget {
     );
   }
 
-  // endregion
+  @override
+  State<AppCommonDropdownPage<T>> createState() => _AppCommonDropdownPageState<T>();
+}
 
-  // region Properties
-  final String title;
-  final List<DropdownOption<T>> options;
-  final bool isMultiSelect;
-  // endregion
+class _AppCommonDropdownPageState<T> extends State<AppCommonDropdownPage<T>> {
+  late List<DropdownOption<T>> _filteredOptions;
+  late List<DropdownOption<T>> _selectedOptions;
+  final TextEditingController _searchController = TextEditingController();
 
-  // region Reactive State
-  final RxList<DropdownOption<T>> filteredOptions = <DropdownOption<T>>[].obs;
-  final RxList<DropdownOption<T>> selectedOptions = <DropdownOption<T>>[].obs;
-  final _searchController = TextEditingController();
-  // endregion
+  @override
+  void initState() {
+    super.initState();
+    _filteredOptions = widget.options;
+    _selectedOptions = List.from(widget.initialSelection ?? []);
+  }
 
-  // region Helpers
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _filterList(String query) {
-    if (query.isEmpty) {
-      filteredOptions.value = options;
-    } else {
-      filteredOptions.value = options.where((option) {
-        return option.label.toLowerCase().contains(query.toLowerCase());
-      }).toList();
-    }
-  }
-
-  void _onToggle(BuildContext context, DropdownOption<T> option) {
-    if (isMultiSelect) {
-      // Multi-select logic
-      if (selectedOptions.contains(option)) {
-        selectedOptions.remove(option);
+    setState(() {
+      if (query.isEmpty) {
+        _filteredOptions = widget.options;
       } else {
-        selectedOptions.add(option);
+        _filteredOptions = widget.options.where((option) {
+          return option.label.toLowerCase().contains(query.toLowerCase());
+        }).toList();
       }
-    } else {
-      // Single-select logic
-      selectedOptions.value = [option];
-      // For single-select, pop immediately after selection
-      Navigator.of(context).pop(selectedOptions.toList());
-    }
+    });
   }
 
-  // endregion
+  void _onToggle(DropdownOption<T> option) {
+    setState(() {
+      if (widget.isMultiSelect) {
+        if (_selectedOptions.any((element) => element.value == option.value)) {
+          _selectedOptions.removeWhere((element) => element.value == option.value);
+        } else {
+          _selectedOptions.add(option);
+        }
+      } else {
+        _selectedOptions = [option];
+        Navigator.of(context).pop(_selectedOptions);
+      }
+    });
+  }
 
-  // region Build
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppCommonAppBar(
-        title: Text(title),
-        // Only show 'Done' button for multi-select
+        title: Text(widget.title),
         actions: [
-          if (isMultiSelect)
+          if (widget.isMultiSelect)
             TextButton(
-              onPressed: () => Navigator.of(context).pop(selectedOptions.toList()),
+              onPressed: () => Navigator.of(context).pop(_selectedOptions),
               child: const Text('Done'),
             ),
         ],
       ),
       body: Column(
         children: [
-          // region Search Bar
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
@@ -129,39 +131,59 @@ class AppCommonDropdownPage<T> extends StatelessWidget {
               ),
             ),
           ),
+          // region Select All
+          if (widget.isMultiSelect)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Select All', style: TextStyle(fontWeight: FontWeight.bold)),
+                value: _selectedOptions.length == widget.options.length,
+                onChanged: (bool? value) {
+                  setState(() {
+                    if (value == true) {
+                      _selectedOptions = List.from(widget.options);
+                    } else {
+                      _selectedOptions.clear();
+                    }
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                activeColor: Theme.of(context).primaryColor,
+              ),
+            ),
           // endregion
 
-          // region List
           Expanded(
-            child: Obx(() => ListView.builder(
-                  itemCount: filteredOptions.length,
-                  itemBuilder: (context, index) {
-                    final option = filteredOptions[index];
-                    final isSelected = selectedOptions.contains(option);
+            child: ListView.builder(
+              itemCount: _filteredOptions.length,
+              itemBuilder: (context, index) {
+                final option = _filteredOptions[index];
+                final isSelected = _selectedOptions.any((element) => element.value == option.value);
 
-                    return CheckboxListTile(
-                      title: Text(option.label),
-                      value: isSelected,
-                      onChanged: (bool? value) => _onToggle(context, option),
-                      // Use Checkbox for multi-select, Radio for single-select
-                      controlAffinity: isMultiSelect
-                          ? ListTileControlAffinity.leading
-                          : ListTileControlAffinity.trailing,
-                      secondary: isMultiSelect
-                          ? null
-                          : (isSelected ? const Icon(Icons.check) : null),
-                      activeColor: Theme.of(context).primaryColor,
-                    );
-                  },
-                )),
+                if (widget.isMultiSelect) {
+                  return CheckboxListTile(
+                    title: Text(option.label),
+                    value: isSelected,
+                    onChanged: (bool? value) => _onToggle(option),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: Theme.of(context).primaryColor,
+                  );
+                } else {
+                  return ListTile(
+                    title: Text(option.label),
+                    trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).primaryColor) : null,
+                    onTap: () => _onToggle(option),
+                  );
+                }
+              },
+            ),
           ),
-          // endregion
         ],
       ),
     );
   }
 }
-
 // endregion
 
 

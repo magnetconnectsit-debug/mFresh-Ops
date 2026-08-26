@@ -22,7 +22,7 @@ class CustomAppLoader extends StatelessWidget {
         children: [
           ClipOval(
             child: Image.asset(
-              AppImages.appLogo,
+              AppImages.logo,
               width: size * 0.8,
               height: size * 0.8,
               fit: BoxFit.cover,

@@ -1,499 +1,157 @@
+// region SupportTicketsScreen
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:core/widgets/app_common_drop_down.dart';
-import 'package:models/models.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
+import 'package:core/widgets/custom_app_loader.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+
+import 'widgets/support_tickets_header.dart';
+import 'widgets/support_filter_section.dart';
+import 'widgets/support_action_buttons.dart';
+import 'widgets/support_tickets_table.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class SupportTicketsScreen extends StatelessWidget {
   const SupportTicketsScreen({super.key});
 
+  // region build
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SupportTicketsController());
+    final controller = Get.find<SupportTicketsController>();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xffF5F7FA),
+      resizeToAvoidBottomInset: false,
       appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
+        backgroundColor: Colors.white,
+        elevation: 1,
         showAppDrawer: true,
         hasBackButton: false,
+        topHeader: const CommonShortcutHeader(),
+        toolbarHeight: 45.h,
         title: Obx(
           () => controller.isSearching.value
-              ? TextField(
-                  controller: controller.searchController,
-                  autofocus: true,
-                  style: AppTextStyle.style_14_400(color: AppColors.black),
-                  decoration: InputDecoration(
-                    hintText: 'Search tickets...',
-                    hintStyle: AppTextStyle.style_14_400(
-                      color: AppColors.grey300,
-                    ),
-                    border: InputBorder.none,
+              ? Padding(
+                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
+                  child: AppCommonSearchBar(
+                    controller: controller.searchController,
+                    focusNode: controller.searchFocusNode,
+                    hintText: 'Search tickets locally...',
+                    onChanged: (v) => controller.searchQuery.value = v,
+                    autofocus: true,
+                    onClose: () {
+                      controller.searchController.clear();
+                      controller.searchQuery.value = '';
+                      controller.toggleSearch();
+                    },
                   ),
                 )
-              : Text(
-                  'Support Tickets',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
+              : Row(
+                  children: [
+                    Text(
+                      "All Support Tickets",
+                      style: AppTextStyle.style_18_700(color: Colors.black),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.search, color: Colors.black, size: 26.sp),
+                      onPressed: () {
+                        if (!controller.isSearching.value) {
+                          controller.toggleSearch();
+                        }
+                      },
+                    ),
+                  ],
                 ),
         ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 24.r,
-              ),
-            ),
-          ),
-        ],
       ),
       drawer: const CommonSidebar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSummaryRow(),
-              SizedBox(height: 12.h),
-              _buildFiltersSection(controller),
-              SizedBox(height: 12.h),
-              _buildActionButtons(context, controller),
-              SizedBox(height: 12.h),
-              Obx(() => _buildTicketsTable(controller)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+        child: Obx(() {
+          final authRepo = Get.find<AuthRepository>();
+          final userPermissions = authRepo.rxUserPermissions;
 
-  Widget _buildSummaryRow() {
-    final controller = Get.find<SupportTicketsController>();
-    return Obx(
-      () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Total: ${controller.totalTickets.value}',
-            style: AppTextStyle.style_11_700(color: AppColors.black),
-          ),
-          SizedBox(height: 6.h),
-          SizedBox(
-            height: 24.h,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              shrinkWrap: true,
-              itemCount: controller.unitCounts.length,
-              separatorBuilder: (context, index) => SizedBox(width: 6.w),
-              itemBuilder: (context, index) {
-                final unit = controller.unitCounts[index];
-                return _buildSummaryItem(
-                  '${unit.unit ?? 'N/A'} - ${unit.totalTickets}',
-                  AppColors.orange,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          final canViewTable = userPermissions.contains('maintenance_table');
+          final canViewFilter = userPermissions.contains('maintenance_filter');
 
-  Widget _buildSummaryItem(String label, Color color) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(4.r),
-        border: Border.all(color: color),
-      ),
-      child: Center(
-        child: Text(label, style: AppTextStyle.style_10_600(color: color)),
-      ),
-    );
-  }
+          // Use skeletonizer for initial loading
+          final showSkeleton =
+              controller.isLoading.value && controller.tickets.isEmpty;
 
-  Widget _buildFiltersSection(SupportTicketsController controller) {
-    return Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.blue50,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.blue100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFilterGrid(controller),
-          SizedBox(height: 12.h),
-          Center(
-            child: Wrap(
-              spacing: 10.w,
-              runSpacing: 8.h,
+          return RefreshIndicator(
+            onRefresh: () => controller.refreshAll(),
+            displacement: 40,
+            // Listen to any vertical inner scroll view (depth > 0) so the ListView inside the horizontal scroller can trigger it
+            notificationPredicate: (notification) => 
+                notification.depth >= 1 && notification.metrics.axis == Axis.vertical,
+            child: Stack(
               children: [
-                _buildFilterButton('Reset', AppColors.secondary, onTap: () => controller.resetFilters()),
-                _buildFilterButton('Apply', AppColors.info, onTap: () => controller.applyFilters()),
-                _buildFilterButton('Save Filter', AppColors.success, onTap: () {}),
+                NestedScrollView(
+                  headerSliverBuilder: (context, innerBoxIsScrolled) {
+                    return [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SupportTicketsHeader(
+                                controller: controller,
+                                showSkeleton: showSkeleton,
+                                canViewFilter: canViewFilter,
+                              ),
+                              SizedBox(height: 6.h),
+                              if (canViewFilter) ...[
+                                Skeletonizer(
+                                  enabled: showSkeleton,
+                                  child: SupportFilterSection(
+                                    controller: controller,
+                                  ),
+                                ),
+                                SizedBox(height: 6.h),
+                              ],
+                              Skeletonizer(
+                                enabled: showSkeleton,
+                                child: SupportActionButtons(
+                                  controller: controller,
+                                ),
+                              ),
+                              SizedBox(height: 6.h),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
+                  body: canViewTable
+                      ? Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            10.w,
+                            controller.isSearching.value ? 10.h : 0,
+                            10.w,
+                            0,
+                          ),
+                          child: SupportTicketsTable(controller: controller),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                // Show custom app loader overlay only if not refreshing
+                if (controller.isLoading.value &&
+                    !controller.isRefreshing.value)
+                  const CustomAppLoader(),
               ],
             ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }
-
-  Widget _buildFilterGrid(SupportTicketsController controller) {
-    return Obx(() => GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 8.h,
-      crossAxisSpacing: 10.w,
-      childAspectRatio: 2.2, // Adjusted for dropdown height
-      children: [
-        AppCommonDropdown<AssigneeModel>(
-          title: 'Assignee',
-          hintText: 'Select',
-          value: controller.selectedAssignee.value,
-          items: controller.assignees.map((e) => DropdownMenuItem(value: e, child: Text(e.name))).toList(),
-          onChanged: (v) => controller.selectedAssignee.value = v,
-          height: 32.h,
-        ),
-        AppCommonDropdown<String>(
-          title: 'Priority',
-          hintText: 'Select',
-          value: controller.selectedPriority.value,
-          items: controller.priorities.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (v) => controller.selectedPriority.value = v,
-          height: 32.h,
-        ),
-        AppCommonDropdown<SupportCategory>(
-          title: 'Category',
-          hintText: 'Select',
-          value: controller.selectedCategory.value,
-          items: controller.categories.map((e) => DropdownMenuItem(value: e, child: Text(e.categoryName))).toList(),
-          onChanged: (v) {
-            controller.selectedCategory.value = v;
-            if (v != null) controller.fetchSubCategories(v.categoryId);
-          },
-          height: 32.h,
-        ),
-        AppCommonDropdown<SupportSubCategory>(
-          title: 'Sub Cat',
-          hintText: 'Select',
-          value: controller.selectedSubCategory.value,
-          items: controller.subCategories.map((e) => DropdownMenuItem(value: e, child: Text(e.subCategoryName))).toList(),
-          onChanged: (v) => controller.selectedSubCategory.value = v,
-          height: 32.h,
-        ),
-        AppCommonDropdown<SupportUnit>(
-          title: 'Unit',
-          hintText: 'Select',
-          value: controller.selectedUnit.value,
-          items: controller.units.map((e) => DropdownMenuItem(value: e, child: Text(e.unitName))).toList(),
-          onChanged: (v) => controller.selectedUnit.value = v,
-          height: 32.h,
-        ),
-        AppCommonDropdown<String>(
-          title: 'Status',
-          hintText: 'Select',
-          value: controller.selectedStatus.value,
-          items: controller.statuses.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (v) => controller.selectedStatus.value = v,
-          height: 32.h,
-        ),
-        AppCommonDropdown<SupportProject>(
-          title: 'Project',
-          hintText: 'Select',
-          value: controller.selectedProject.value,
-          items: controller.projects.map((e) => DropdownMenuItem(value: e, child: Text(e.projectName))).toList(),
-          onChanged: (v) => controller.selectedProject.value = v,
-          height: 32.h,
-        ),
-      ],
-    ));
-  }
-
-  Widget _buildFilterButton(String label, Color color, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(6.r),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyle.style_11_600(color: AppColors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context, SupportTicketsController controller) {
-    return Wrap(
-      spacing: 10.w,
-      runSpacing: 10.h,
-      children: [
-        _buildMainActionButton(
-          'Create Ticket',
-          AppColors.info,
-          () => Get.toNamed(AppRoutes.createSupportTicket),
-        ),
-        _buildMainActionButton(
-          'Export',
-          AppColors.success,
-          () => _showExportOptions(context, controller),
-        ),
-      ],
-    );
-  }
-
-  void _showExportOptions(BuildContext context, SupportTicketsController controller) {
-    Get.bottomSheet(
-      Container(
-        padding: EdgeInsets.all(20.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.grey100,
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-            SizedBox(height: 20.h),
-            Text(
-              'Export Tickets',
-              style: AppTextStyle.style_16_700(color: AppColors.black),
-            ),
-            SizedBox(height: 20.h),
-            ListTile(
-              leading: const Icon(Icons.table_view_rounded, color: AppColors.success),
-              title: Text('Export to Excel', style: AppTextStyle.style_14_500(color: AppColors.black)),
-              onTap: () {
-                Get.back();
-                controller.exportTickets(isPdf: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.red),
-              title: Text('Export to PDF', style: AppTextStyle.style_14_500(color: AppColors.black)),
-              onTap: () {
-                Get.back();
-                controller.exportTickets(isPdf: true);
-              },
-            ),
-            SizedBox(height: 20.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainActionButton(String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(6.r),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyle.style_12_600(color: AppColors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTicketsTable(SupportTicketsController controller) {
-    if (controller.isLoading.value && controller.tickets.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (controller.tickets.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Text(
-            'No tickets found',
-            style: AppTextStyle.style_14_400(color: AppColors.grey400),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.grey50),
-      ),
-      child: Theme(
-        data: Theme.of(Get.context!).copyWith(dividerColor: AppColors.grey50),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: DataTable(
-            showCheckboxColumn: false,
-            horizontalMargin: 12.w,
-            headingRowHeight: 36.h,
-            dataRowMinHeight: 44.h,
-            dataRowMaxHeight: 44.h,
-            columnSpacing: 20.w,
-            headingRowColor: WidgetStateProperty.all(AppColors.blue50),
-            columns: [
-              _buildTableHeader('Ticket'),
-              _buildTableHeader('Unit No.'),
-              _buildTableHeader('Subject'),
-              _buildTableHeader('Project'),
-              _buildTableHeader('Category'),
-              _buildTableHeader('Sub-Catgry'),
-              _buildTableHeader('Status'),
-              _buildTableHeader('Priority'),
-              _buildTableHeader('Assignee'),
-              _buildTableHeader('Posted Date'),
-            ],
-            rows: controller.tickets.map((ticket) {
-              return DataRow(
-                onSelectChanged: (_) => Get.toNamed(
-                  AppRoutes.ticketDetails,
-                  arguments: ticket.id,
-                ),
-                cells: [
-                  DataCell(
-                    Text(
-                      ticket.id.toString(),
-                      style: AppTextStyle.style_11_600(color: AppColors.info),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      ticket.unitNo ?? '',
-                      style: AppTextStyle.style_11_400(color: AppColors.black),
-                    ),
-                  ),
-                  DataCell(
-                    SizedBox(
-                      width: 150.w,
-                      child: Text(
-                        ticket.subject ?? '',
-                        style: AppTextStyle.style_11_400(
-                          color: AppColors.black,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      ticket.project ?? '',
-                      style: AppTextStyle.style_11_400(color: AppColors.black),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      ticket.mCategory ?? '',
-                      style: AppTextStyle.style_11_400(color: AppColors.black),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      ticket.subCat ?? '',
-                      style: AppTextStyle.style_11_400(color: AppColors.black),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      ticket.statusLabel ?? '',
-                      style: AppTextStyle.style_11_700(
-                        color: _parseColor(ticket.statusTextColor) ??
-                            AppColors.red,
-                      ),
-                    ),
-                  ),
-                  DataCell(_buildPriorityBadge(
-                    ticket.priorityLabel ?? '',
-                    _parseColor(ticket.priorityBgColor),
-                  )),
-                  DataCell(
-                    Text(
-                      ticket.assignedTo ?? '',
-                      style: AppTextStyle.style_11_400(color: AppColors.black),
-                    ),
-                  ),
-                  DataCell(
-                    Text(
-                      ticket.postedDate ?? '',
-                      style: AppTextStyle.style_10_400(color: AppColors.black),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color? _parseColor(String? colorStr) {
-    if (colorStr == null || colorStr.isEmpty) return null;
-    if (colorStr.startsWith('#')) {
-      final buffer = StringBuffer();
-      if (colorStr.length == 7) buffer.write('ff');
-      buffer.write(colorStr.replaceFirst('#', ''));
-      return Color(int.parse(buffer.toString(), radix: 16));
-    }
-    // Handle standard color names if any, otherwise return null
-    return null;
-  }
-
-  DataColumn _buildTableHeader(String label) {
-    return DataColumn(
-      label: Text(
-        label,
-        style: AppTextStyle.style_11_700(color: AppColors.black),
-      ),
-    );
-  }
-
-  Widget _buildPriorityBadge(String priority, Color? bgColor) {
-    Color color = bgColor ?? AppColors.grey300;
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4.r),
-      ),
-      child: Text(
-        priority,
-        style: AppTextStyle.style_9_400(
-          color: color.computeLuminance() > 0.5 ? AppColors.black : AppColors.white,
-        ),
-      ),
-    );
-  }
+  // endregion
 }
+// endregion

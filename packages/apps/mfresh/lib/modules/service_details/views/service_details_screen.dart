@@ -1,11 +1,14 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:mfresh/modules/service_details/controllers/service_details_controller.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/modules/service_details/views/widgets/service_card.dart';
+import 'package:mfresh/routes/app_routes.dart';
 
 class ServiceDetailsScreen extends StatelessWidget {
   const ServiceDetailsScreen({super.key});
@@ -16,522 +19,691 @@ class ServiceDetailsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top Banner
-            Container(
-              width: double.infinity,
-              height: 80.h,
-              color: AppColors.grey50,
-              child: Stack(
-                children: [
-                  // Placeholder image
-                  Center(
-                    child: Icon(Icons.image, size: 40.sp, color: AppColors.grey200),
-                  ),
-                  // Dark overlay
-                  Container(color: AppColors.black.withValues(alpha: 0.5)),
-                  // Unit info
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Obx(() => Text(
-                              controller.unitNo.value,
-                              style: AppTextStyle.style_18_600(color: AppColors.white),
-                            )),
-                        SizedBox(height: 2.h),
-                        Obx(() => Text(
-                              controller.location.value,
-                              style: AppTextStyle.style_10_400(color: AppColors.white),
-                            )),
-                      ],
-                    ),
-                  ),
-                  // Back button
-                  Positioned(
-                    left: 8.w,
-                    top: 0,
-                    bottom: 0,
-                    child: GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Icon(Icons.arrow_back_ios, size: 18.sp, color: AppColors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        child: RefreshIndicator(
+          onRefresh: () => controller.refreshData(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                // Top Banner
+                Builder(
+                  builder: (context) {
+                    final bool isDesktop =
+                        MediaQuery.of(context).size.width > 1000;
+                    final double bannerHeight = isDesktop ? 150.h : 120.h;
 
-            // Customer / Membership toggle + Online toggle
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              child: Row(
-                children: [
-                  const Spacer(),
-                  // Customer radio
-                  Obx(() => GestureDetector(
-                        onTap: () => controller.toggleCustomerType(true),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              controller.isCustomer.value
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_off,
-                              size: 16.sp,
-                              color: AppColors.primaryVariant,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              'Customer',
-                              style: AppTextStyle.style_12_600(color: AppColors.black),
-                            ),
-                          ],
+                    return Container(
+                      width: double.infinity,
+                      height: bannerHeight,
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(AppImages.unitCard),
+                          fit: BoxFit.cover,
                         ),
-                      )),
-                  SizedBox(width: 20.w),
-                  // Membership radio
-                  Obx(() => GestureDetector(
-                        onTap: () => controller.toggleCustomerType(false),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              !controller.isCustomer.value
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_off,
-                              size: 16.sp,
-                              color: AppColors.primaryVariant,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              'Membership',
-                              style: AppTextStyle.style_12_600(color: AppColors.black),
-                            ),
-                          ],
-                        ),
-                      )),
-                  const Spacer(),
-                  // Online toggle
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Online',
-                        style: AppTextStyle.style_10_600(color: AppColors.black),
                       ),
-                      SizedBox(height: 2.h),
-                      Obx(() => GestureDetector(
-                            onTap: controller.toggleOnline,
-                            child: Container(
-                              width: 36.w,
-                              height: 18.h,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(9.r),
-                                color: controller.isOnline.value ? AppColors.red : AppColors.grey200,
+                      child: Stack(
+                        children: [
+                          // Unit Image (Overlays the fallback decoration)
+                          Obx(
+                            () => controller.unitImage.value.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: controller.unitImage.value,
+                                    width: double.infinity,
+                                    height: bannerHeight,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(),
+                                    // Falls back to decoration
+                                    errorWidget: (context, url, error) =>
+                                        Container(), // Falls back to decoration
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                          // Dark overlay
+                          Container(
+                            color: AppColors.black.withValues(alpha: 0.5),
+                          ),
+                          // Unit info
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Obx(
+                                  () => Text(
+                                    controller.unitNo.value,
+                                    style: AppTextStyle.style_32_700(
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 6.h),
+                                Obx(
+                                  () => Text(
+                                    controller.location.value,
+                                    style: AppTextStyle.style_20_400(
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Back button
+                          Positioned(
+                            left: 8.w,
+                            top: 0,
+                            bottom: 0,
+                            child: GestureDetector(
+                              onTap: () => Get.back(),
+                              child: Container(
+                                padding: EdgeInsets.all(8.w),
+                                color: Colors.transparent,
+                                child: Icon(
+                                  Icons.arrow_back_ios,
+                                  size: 18.sp,
+                                  color: AppColors.white,
+                                ),
                               ),
-                              child: AnimatedAlign(
-                                duration: const Duration(milliseconds: 200),
-                                alignment: controller.isOnline.value
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  width: 14.w,
-                                  height: 14.h,
-                                  margin: EdgeInsets.symmetric(horizontal: 2.w),
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.white,
+                            ),
+                          ),
+                          // History button
+                          Positioned(
+                            right: 8.w,
+                            top: 0,
+                            bottom: 0,
+                            child: GestureDetector(
+                              onTap: () =>
+                                  Get.toNamed(AppRoutes.bookingHistory),
+                              child: Container(
+                                padding: EdgeInsets.all(8.w),
+                                color: Colors.transparent,
+                                child: Icon(
+                                  Icons.history,
+                                  size: 22.sp,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                // Customer / Membership toggle + Online toggle
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 3.h,
+                  ),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      // Customer / Membership radio toggle
+                      Obx(() {
+                        final canToggle =
+                            controller.appPermissions?.customerMemberRadio ??
+                            false;
+                        if (!canToggle) return const SizedBox.shrink();
+
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => controller.toggleCustomerType(true),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    controller.isCustomer.value
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                    size: 16.sp,
+                                    color: AppColors.primaryVariant,
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Customer',
+                                    style: AppTextStyle.style_12_600(
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: 20.w),
+                            GestureDetector(
+                              onTap: () => controller.toggleCustomerType(false),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    !controller.isCustomer.value
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                    size: 16.sp,
+                                    color: AppColors.primaryVariant,
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Membership',
+                                    style: AppTextStyle.style_12_600(
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: 20.w),
+                          ],
+                        );
+                      }),
+                      const Spacer(),
+                      // Online toggle
+                      Obx(() {
+                        final canToggle =
+                            controller.appPermissions?.onlineOfflineToggle ??
+                            false;
+                        if (!canToggle) return const SizedBox.shrink();
+
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              controller.isOnline.value ? 'Online' : 'Offline',
+                              style: AppTextStyle.style_14_600(
+                                color: controller.isOnline.value
+                                    ? AppColors.green
+                                    : AppColors.red,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            GestureDetector(
+                              onTap: () => controller.toggleOnline(),
+                              child: Container(
+                                width: 50.w,
+                                height: 25.h,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12.5.r),
+                                  color: controller.isOnline.value
+                                      ? AppColors.green
+                                      : AppColors.red,
+                                ),
+                                child: AnimatedAlign(
+                                  duration: const Duration(milliseconds: 200),
+                                  alignment: controller.isOnline.value
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    width: 20.w,
+                                    height: 20.h,
+                                    margin: EdgeInsets.symmetric(
+                                      horizontal: 2.w,
+                                    ),
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.white,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          )),
+                          ],
+                        );
+                      }),
                     ],
                   ),
-                ],
-              ),
-            ),
-
-            // Scrollable content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Services Grid
-                    Obx(() => GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: controller.services.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12.w,
-                            mainAxisSpacing: 12.h,
-                            childAspectRatio: 1.5,
-                          ),
-                          itemBuilder: (context, index) {
-                            return _ServiceCard(
-                              controller: controller,
-                              index: index,
-                            );
-                          },
-                        )),
-                  ],
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Obx(() => controller.total > 0
-          ? Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20.r),
-                  topRight: Radius.circular(20.r),
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Contact Details
-                  Text(
-                    'Contact Details',
-                    style: AppTextStyle.style_12_600(color: AppColors.primary),
-                  ),
-                  SizedBox(height: 6.h),
 
-                  // Mobile + Name fields
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: AppColors.appCardDecoration(
-                            borderColor: AppColors.grey50,
-                            containerColor: AppColors.white,
-                            borderRadius: 4,
-                            isShadow: false,
-                          ),
-                          child: TextField(
-                            onChanged: (val) => controller.mobileController.value = val,
-                            keyboardType: TextInputType.phone,
-                            style: AppTextStyle.style_12_400(color: AppColors.black),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              hintText: 'Mobile Number*',
-                              hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 8.h,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Container(
-                          decoration: AppColors.appCardDecoration(
-                            borderColor: AppColors.grey50,
-                            containerColor: AppColors.white,
-                            borderRadius: 4,
-                            isShadow: false,
-                          ),
-                          child: TextField(
-                            onChanged: (val) => controller.nameController.value = val,
-                            style: AppTextStyle.style_12_400(color: AppColors.black),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              hintText: 'Full Name',
-                              hintStyle: AppTextStyle.style_10_400(color: AppColors.grey200),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 8.h,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 12.h),
-
-                  // Total
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'TOTAL',
-                        style: AppTextStyle.style_14_600(color: AppColors.primary),
-                      ),
-                      Text(
-                        '₹ ${controller.total}',
-                        style: AppTextStyle.style_18_600(color: AppColors.primary),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 12.h),
-
-                  // Payment Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blue.withValues(alpha: 0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.blue,
-                              foregroundColor: AppColors.white,
-                              padding: EdgeInsets.symmetric(vertical: 10.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'Pay via PhonePe',
-                              textAlign: TextAlign.center,
-                              style: AppTextStyle.style_12_600(color: AppColors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.black.withValues(alpha: 0.2),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final result = await Get.toNamed(AppRoutes.qrScanner);
-                              if (result != null) {
-                                String scanData = result.toString().trim();
-                                debugPrint("RAW SCAN RESULT: '$scanData'");
-                                
-                                Uri? uri = Uri.tryParse(scanData);
-
-                                if (uri != null && uri.scheme.isEmpty && scanData.contains('@')) {
-                                  scanData = 'upi://pay?pa=$scanData';
-                                  uri = Uri.tryParse(scanData);
-                                }
-
-                                if (uri != null && (uri.scheme == 'upi' || scanData.startsWith('upi://'))) {
-                                  try {
-                                    // Try with externalNonBrowserApplication first as it's more specific
-                                    bool launched = await launchUrl(
-                                      uri,
-                                      mode: LaunchMode.externalNonBrowserApplication,
-                                    );
-                                    
-                                    if (!launched) {
-                                      // Fallback to externalApplication if the specific mode fails
-                                      launched = await launchUrl(
-                                        uri,
-                                        mode: LaunchMode.externalApplication,
-                                      );
-                                    }
-
-                                    if (!launched) {
-                                      Get.snackbar(
-                                        'Payment Error',
-                                        'No payment apps found. Please ensure PhonePe, GPay, or Paytm is installed.',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor: AppColors.red.withValues(alpha: 0.8),
-                                        colorText: AppColors.white,
-                                        duration: const Duration(seconds: 5),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    Get.snackbar(
-                                      'Launch Error',
-                                      'Error opening payment app: $e',
-                                      snackPosition: SnackPosition.BOTTOM,
-                                    );
-                                  }
-                                } else {
-                                  Get.defaultDialog(
-                                    title: 'Invalid QR',
-                                    middleText: 'Scanned data is not a valid UPI payment link:\n\n$scanData',
-                                    textConfirm: 'OK',
-                                    onConfirm: () => Get.back(),
-                                  );
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.grey300,
-                              foregroundColor: AppColors.white,
-                              padding: EdgeInsets.symmetric(vertical: 10.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'External QR Payment',
-                              textAlign: TextAlign.center,
-                              style: AppTextStyle.style_12_600(color: AppColors.white),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            )
-          : const SizedBox.shrink()),
-    );
-  }
-}
-
-/// Individual service card with icon placeholder, name, price, and qty counter
-class _ServiceCard extends StatelessWidget {
-  final ServiceDetailsController controller;
-  final int index;
-
-  const _ServiceCard({required this.controller, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    final service = controller.services[index];
-
-    return Container(
-      padding: EdgeInsets.all(8.w),
-      decoration: AppColors.appCardDecoration(
-        borderColor: AppColors.grey50,
-        containerColor: AppColors.white,
-        borderRadius: 12,
-        isShadow: true,
-      ),
-      child: Row(
-        children: [
-          // Icon Box
-          Container(
-            width: 50.w,
-            height: 50.w,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Center(
-              child: Icon(Icons.wc, size: 28.sp, color: AppColors.white),
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      service.name,
-                      style: AppTextStyle.style_10_600(color: AppColors.black),
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          '₹ ${service.price}',
-                          style: AppTextStyle.style_10_600(color: AppColors.black),
-                        ),
-                        Text(
-                          ' / use',
-                          style: AppTextStyle.style_8_400(color: AppColors.black),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                // Counter at the bottom right
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Obx(() => Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.primaryVariant, width: 1),
-                          borderRadius: BorderRadius.circular(6.r),
-                          color: service.quantity.value > 0
-                              ? AppColors.primaryVariant
-                              : AppColors.white,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                // Services List / Grid
+                Obx(() {
+                  if (controller.isLoading.value) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40.h),
+                      child: const Center(child: CustomAppLoader(size: 60)),
+                    );
+                  }
+                  if (controller.services.isEmpty) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40.h),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => controller.decrement(index),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                                child: Text('-',
-                                    style: AppTextStyle.style_14_600(
-                                        color: service.quantity.value > 0
-                                            ? AppColors.white
-                                            : AppColors.primaryVariant)),
-                              ),
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 48.sp,
+                              color: AppColors.grey200,
                             ),
+                            SizedBox(height: 12.h),
                             Text(
-                              '${service.quantity.value}',
-                              style: AppTextStyle.style_10_600(
-                                  color: service.quantity.value > 0
-                                      ? AppColors.white
-                                      : AppColors.primaryVariant),
-                            ),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => controller.increment(index),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                                child: Text('+',
-                                    style: AppTextStyle.style_14_600(
-                                        color: service.quantity.value > 0
-                                            ? AppColors.white
-                                            : AppColors.primaryVariant)),
+                              'No services available for this unit',
+                              style: AppTextStyle.style_14_600(
+                                color: AppColors.grey300,
                               ),
                             ),
                           ],
                         ),
-                      )),
-                ),
+                      ),
+                    );
+                  }
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Services Grid
+                        Builder(
+                          builder: (context) {
+                            final bool isDesktop =
+                                MediaQuery.of(context).size.width > 1000;
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: controller.services.length,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: isDesktop ? 4 : 2,
+                                    crossAxisSpacing: 10.w,
+                                    mainAxisSpacing: 10.h,
+                                    childAspectRatio: isDesktop ? 2.4 : 1.7,
+                                  ),
+                              itemBuilder: (context, index) {
+                                return ServiceCard(
+                                  controller: controller,
+                                  index: index,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: 20.h),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),
-        ],
+        ),
+      ),
+      bottomNavigationBar: Obx(
+        () => controller.total > 0
+            ? Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 10.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20.r),
+                      topRight: Radius.circular(20.r),
+                    ),
+                  ),
+                  child: SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Contact Details Section
+                        Text(
+                          'Contact Details',
+                          style: AppTextStyle.style_12_600(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey50.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: TextField(
+                                  controller: controller.mobileController,
+                                  keyboardType: TextInputType.phone,
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.black,
+                                  ),
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    hintText: 'Mobile Number*',
+                                    hintStyle: AppTextStyle.style_12_400(
+                                      color: AppColors.grey200,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey50.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: TextField(
+                                  controller: controller.nameController,
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.black,
+                                  ),
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    hintText: 'Full Name',
+                                    hintStyle: AppTextStyle.style_12_400(
+                                      color: AppColors.grey200,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Obx(() {
+                          final canShowAddPhone =
+                              controller.appPermissions?.additionalPhoneNo ??
+                              false;
+                          if (!canShowAddPhone) return const SizedBox.shrink();
+
+                          return Column(
+                            children: [
+                              SizedBox(height: 6.h),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey50.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: TextField(
+                                  controller: controller.addPhoneController,
+                                  keyboardType: TextInputType.phone,
+                                  maxLength: 10,
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.black,
+                                  ),
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    counterText: "",
+                                    hintText: 'Additional Phone',
+                                    hintStyle: AppTextStyle.style_12_400(
+                                      color: AppColors.grey200,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+
+                        // Membership Verification (Restored from old project)
+                        Obx(
+                          () => !controller.isCustomer.value
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(height: 8.h),
+                                    Text(
+                                      'Membership Details',
+                                      style: AppTextStyle.style_12_600(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12.w,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.grey50
+                                                  .withValues(alpha: 0.5),
+                                              borderRadius:
+                                                  BorderRadius.circular(8.r),
+                                            ),
+                                            child: TextField(
+                                              controller: controller
+                                                  .memberMobileController,
+                                              keyboardType: TextInputType.phone,
+                                              maxLength: 10,
+                                              style: AppTextStyle.style_12_400(
+                                                color: AppColors.black,
+                                              ),
+                                              decoration: InputDecoration(
+                                                border: InputBorder.none,
+                                                isDense: true,
+                                                counterText: "",
+                                                hintText:
+                                                    'Member Mobile Number',
+                                                hintStyle:
+                                                    AppTextStyle.style_12_400(
+                                                      color: AppColors.grey200,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        SizedBox(height: 8.h),
+
+                        // Dashed Divider
+                        Row(
+                          children: List.generate(
+                            150,
+                            (index) => Expanded(
+                              child: Container(
+                                color: index % 2 == 0
+                                    ? Colors.transparent
+                                    : AppColors.grey100,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 6.h),
+
+                        // Total Amount Display
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'TOTAL',
+                              style: AppTextStyle.style_12_600(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            Text(
+                              '₹ ${controller.total}',
+                              style: AppTextStyle.style_14_700(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 6.h),
+
+                        // Payment Buttons
+                        Obx(
+                          () => !controller.isOnline.value
+                              ? SizedBox(
+                                  width: double.infinity,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: () => controller
+                                          .initiateBooking(isExternalQr: false),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.green,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 8.h,
+                                        ),
+                                        // Decreased size further
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10.r,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'PAY CASH',
+                                        style: AppTextStyle.style_14_700(
+                                          color: AppColors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.blue.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ElevatedButton(
+                                          onPressed: () =>
+                                              controller.initiateBooking(
+                                                isExternalQr: false,
+                                              ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.blue,
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 12.h,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10.r),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'PAY',
+                                            style: AppTextStyle.style_14_700(
+                                              color: AppColors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Obx(() {
+                                      final canShowExternalQr =
+                                          (controller
+                                                  .appPermissions
+                                                  ?.externalQr ??
+                                              false) &&
+                                          controller.isOnline.value;
+                                       if (!canShowExternalQr) {
+                                         return const SizedBox.shrink();
+                                       }
+
+                                      return Expanded(
+                                        child: Container(
+                                          margin: EdgeInsets.only(left: 12.w),
+                                          decoration: BoxDecoration(
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.black
+                                                    .withValues(alpha: 0.1),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: () =>
+                                                controller.initiateBooking(
+                                                  isExternalQr: true,
+                                                ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  AppColors.grey400,
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 12.h,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10.r),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'External QR Payment',
+                                              style: AppTextStyle.style_12_600(
+                                                color: AppColors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : const SizedBox.shrink(),
       ),
     );
   }

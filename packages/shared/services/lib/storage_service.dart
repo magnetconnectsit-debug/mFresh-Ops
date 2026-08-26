@@ -1,10 +1,8 @@
 // region Imports
-import 'package:core/constants/app_constants.dart';
-import 'package:models/auth/user.dart';
-import 'package:models/notification/app_notification.dart';
+import 'package:core/models/app_notification.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 // endregion
 
@@ -17,16 +15,26 @@ class StorageService extends GetxService {
   static const String _notificationBoxName = 'notifications_box';
 
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'current_user';
   static const String _baseUrlKey = 'base_url';
   static const String _showLoggerKey = 'show_logger';
+  static const String _isDevModeKey = 'is_dev_mode';
   static const String _hasShownOnboardingKey =
       'has_shown_dashboard_tutorial_v2';
+  static const String _lastPrinterAddressKey = 'last_printer_address';
+  static const String _lastPrinterNameKey = 'last_printer_name';
+  static const String _defaultPrinterAddressKey = 'default_printer_address';
+  static const String _defaultPrinterNameKey = 'default_printer_name';
+  static const String _homeGridOrderKey = 'home_grid_order';
 
   late final Box<dynamic> _authBox;
-  late final Box<User> _userBox;
+  late final Box<dynamic> _userBox;
   late final Box<dynamic> _settingsBox;
   late final Box<dynamic> _notificationBox;
+
+  final rxIsLoggedIn = false.obs;
+
 
   // endregion
 
@@ -40,14 +48,14 @@ class StorageService extends GetxService {
       await Hive.initFlutter();
     }
 
-    if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
-      Hive.registerAdapter(UserAdapter());
-    }
+    // Register UserAdapter in each app's main() before calling initServices()
 
     _authBox = await _safeOpenBox<dynamic>(_authBoxName);
-    _userBox = await _safeOpenBox<User>(_userBoxName);
+    _userBox = await _safeOpenBox<dynamic>(_userBoxName);
     _settingsBox = await _safeOpenBox<dynamic>(_settingsBoxName);
     _notificationBox = await _safeOpenBox<dynamic>(_notificationBoxName);
+
+    rxIsLoggedIn.value = getToken() != null;
 
     debugPrint('StorageService: Hive initialized and boxes opened.');
     return this;
@@ -59,14 +67,24 @@ class StorageService extends GetxService {
     } catch (e) {
       debugPrint('StorageService: Error opening box $boxName: $e. Re-initializing...');
       try {
+        // Attempt to close if open
         if (Hive.isBoxOpen(boxName)) {
           await Hive.box<T>(boxName).close();
         }
+        // Force delete the box from disk
         await Hive.deleteBoxFromDisk(boxName);
+        debugPrint('StorageService: Box $boxName deleted successfully.');
       } catch (err) {
-        debugPrint('StorageService: Failed to delete box $boxName from disk: $err');
+        debugPrint('StorageService: Failed to delete box $boxName: $err');
       }
-      return await Hive.openBox<T>(boxName);
+      
+      // Try opening again (should create a new empty box)
+      try {
+        return await Hive.openBox<T>(boxName);
+      } catch (retryError) {
+        debugPrint('StorageService: Critical error - failed to re-open box $boxName: $retryError');
+        rethrow;
+      }
     }
   }
 
@@ -76,6 +94,7 @@ class StorageService extends GetxService {
   Future<void> saveToken(String token) async {
     debugPrint('StorageService: Saving token.');
     await _authBox.put(_tokenKey, token);
+    rxIsLoggedIn.value = true;
   }
 
   String? getToken() {
@@ -83,20 +102,35 @@ class StorageService extends GetxService {
     return token;
   }
 
+  Future<void> saveRefreshToken(String token) async {
+    debugPrint('StorageService: Saving refresh token.');
+    await _authBox.put(_refreshTokenKey, token);
+  }
+
+  String? getRefreshToken() {
+    return _authBox.get(_refreshTokenKey) as String?;
+  }
+
   Future<void> clearToken() async {
     debugPrint('StorageService: Clearing token.');
     await _authBox.delete(_tokenKey);
+    rxIsLoggedIn.value = false;
+  }
+
+  Future<void> clearRefreshToken() async {
+    debugPrint('StorageService: Clearing refresh token.');
+    await _authBox.delete(_refreshTokenKey);
   }
 
   // endregion
 
   // region User Methods
-  Future<void> saveUser(User user) async {
+  Future<void> saveUser(dynamic user) async {
     debugPrint('StorageService: Saving user: ${user.toJson()}');
     await _userBox.put(_userKey, user);
   }
 
-  User? getUser() {
+  dynamic getUser() {
     final user = _userBox.get(_userKey);
     return user;
   }
@@ -106,16 +140,65 @@ class StorageService extends GetxService {
     await _userBox.delete(_userKey);
   }
 
+  Future<void> saveHasShownAutoStartPrompt(bool shown) async {
+    await _settingsBox.put('has_shown_auto_start_prompt', shown);
+  }
+
+  bool getHasShownAutoStartPrompt() {
+    return _settingsBox.get('has_shown_auto_start_prompt', defaultValue: false);
+  }
+
   // endregion
 
   // region Settings Methods
+  Future<void> saveHomeGridOrder(List<String> order) async {
+    await _settingsBox.put('home_grid_order', order);
+  }
+
+  List<String>? getHomeGridOrder() {
+    final list = _settingsBox.get('home_grid_order') as List?;
+    return list?.cast<String>();
+  }
+
+  Future<void> saveHomeGridConfig(Map<String, dynamic> config) async {
+    await _settingsBox.put('home_grid_config', config);
+  }
+
+  Map<String, dynamic>? getHomeGridConfig() {
+    final map = _settingsBox.get('home_grid_config');
+    if (map != null && map is Map) {
+      return Map<String, dynamic>.from(map);
+    }
+    return null;
+  }
+
   Future<void> saveBaseUrl(String url) async {
     await _settingsBox.put(_baseUrlKey, url);
   }
 
 
   String getBaseUrl() {
-    return _settingsBox.get(_baseUrlKey, defaultValue: AppConstants.baseUrl);
+    return _settingsBox.get(_baseUrlKey, defaultValue: '');
+  }
+
+  Future<void> saveIntendedTrackingStatus(bool isTracking) async {
+    await _settingsBox.put('intended_tracking_status', isTracking);
+  }
+
+  bool? getIntendedTrackingStatus() {
+    return _settingsBox.get('intended_tracking_status') as bool?;
+  }
+
+  Future<void> saveTrackingSessionId(int sessionId) async {
+    await _settingsBox.put('tracking_session_id', sessionId);
+  }
+
+  int? getTrackingSessionId() {
+    return _settingsBox.get('tracking_session_id') as int?;
+  }
+
+  Future<void> clearTrackingSessionId() async {
+    await _settingsBox.delete('tracking_session_id');
   }
 
   Future<void> saveShowLogger(bool show) async {
@@ -124,6 +207,14 @@ class StorageService extends GetxService {
 
   bool getShowLogger() {
     return _settingsBox.get(_showLoggerKey, defaultValue: false);
+  }
+
+  Future<void> saveIsDevMode(bool isDev) async {
+    await _settingsBox.put(_isDevModeKey, isDev);
+  }
+
+  bool getIsDevMode() {
+    return _settingsBox.get(_isDevModeKey, defaultValue: false);
   }
 
   Future<void> saveRememberMe(bool remember) async {
@@ -243,6 +334,41 @@ class StorageService extends GetxService {
     await clearNotifications();
   }
 
+  // endregion
+
+  // region Printer Methods
+  Future<void> saveLastPrinter(String address, String name) async {
+    debugPrint('StorageService: Saving last printer: $name ($address)');
+    await _settingsBox.put(_lastPrinterAddressKey, address);
+    await _settingsBox.put(_lastPrinterNameKey, name);
+  }
+
+  String? getLastPrinterAddress() {
+    return _settingsBox.get(_lastPrinterAddressKey) as String?;
+  }
+
+  String? getLastPrinterName() {
+    return _settingsBox.get(_lastPrinterNameKey) as String?;
+  }
+
+  Future<void> saveDefaultPrinter(String address, String name) async {
+    debugPrint('StorageService: Saving default printer: $name ($address)');
+    await _settingsBox.put(_defaultPrinterAddressKey, address);
+    await _settingsBox.put(_defaultPrinterNameKey, name);
+  }
+
+  String? getDefaultPrinterAddress() {
+    return _settingsBox.get(_defaultPrinterAddressKey) as String?;
+  }
+
+  String? getDefaultPrinterName() {
+    return _settingsBox.get(_defaultPrinterNameKey) as String?;
+  }
+
+  Future<void> clearDefaultPrinter() async {
+    await _settingsBox.delete(_defaultPrinterAddressKey);
+    await _settingsBox.delete(_defaultPrinterNameKey);
+  }
   // endregion
 }
 

@@ -1,6 +1,6 @@
 name: mfresh
 description: "Magnet Connects Customer App (mfresh)."
-version: 1.0.0+1
+version: 1.0.4+8
 publish_to: 'none'
 
 environment:
@@ -15,8 +15,8 @@ dependencies:
     path: ../../shared/core
   services:
     path: ../../shared/services
-  models:
-    path: ../../shared/models
+  dev:
+    path: ../../shared/dev
 
   # External Dependencies
   get: ^4.7.3
@@ -28,21 +28,43 @@ dependencies:
   flutter_svg: ^2.2.4
   dio: ^5.9.2
   flutter_local_notifications: ^20.1.0
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
+  hive_ce: ^2.19.3
+  hive_ce_flutter: ^2.3.4
   lottie: ^3.3.3
   webview_flutter: ^4.13.1
   webview_flutter_android: ^4.11.0
+  phonepe_payment_sdk: ^2.0.3
   chewie: ^1.13.1
   video_player: ^2.10.1
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.2
   mobile_scanner: ^6.0.4
+  intl: ^0.20.2
+  qr_flutter: ^4.1.0
+  google_fonts: ^8.0.2
+  envied: ^1.3.4
+  crypto: ^3.0.7
+  printing: ^5.14.3
+  pdf: ^3.12.0
+  flutter_thermal_printer: ^2.0.1
+  esc_pos_utils_plus: ^2.0.4
+  permission_handler: ^11.3.1
+  pinput: ^5.0.2
+  image: ^4.5.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  envied_generator: ^1.3.4
+  build_runner: ^2.4.15
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

@@ -14,6 +14,9 @@ class AppCommonSearchBar extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Color? borderColor;
   final Color? fillColor;
+  final bool autofocus;
+  final VoidCallback? onClose;
+  final FocusNode? focusNode;
 
   // endregion
 
@@ -26,6 +29,9 @@ class AppCommonSearchBar extends StatelessWidget {
     this.onSubmitted,
     this.borderColor,
     this.fillColor,
+    this.autofocus = false,
+    this.onClose,
+    this.focusNode,
   });
 
   // endregion
@@ -48,6 +54,8 @@ class AppCommonSearchBar extends StatelessWidget {
         ],
       ),
       child: TextFormField(
+        focusNode: focusNode,
+        autofocus: autofocus,
         controller: controller,
         onChanged: onChanged,
         cursorColor: AppColors.primary,
@@ -62,11 +70,19 @@ class AppCommonSearchBar extends StatelessWidget {
             color: AppColors.grey300,
             size: 20.r,
           ),
+          suffixIcon: onClose != null
+              ? IconButton(
+                  icon: Icon(Icons.close, color: AppColors.grey300, size: 20.r),
+                  onPressed: onClose,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                )
+              : null,
           isDense: true,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         ),
       ),
     );
