@@ -173,29 +173,33 @@ class MyTaskHandler extends TaskHandler {
     _positionStream =
         Geolocator.getPositionStream(
           locationSettings: _streamLocationSettings(),
-        ).listen((Position position) async {
-          _latestPosition = position;
-          _latestPositionAt = position.timestamp;
+        ).listen(
+          (Position position) async {
+            _latestPosition = position;
+            _latestPositionAt = position.timestamp;
 
-          if (position.accuracy >
-              TrackingConstants.maxAcceptableAccuracyMeters) {
-            unawaited(
-              _cacheLocationSafely(await _createLocationData(position)),
-            );
-            return;
-          }
+            if (position.accuracy >
+                TrackingConstants.maxAcceptableAccuracyMeters) {
+              unawaited(
+                _cacheLocationSafely(await _createLocationData(position)),
+              );
+              return;
+            }
 
-          if (TrackingConstants.shouldSyncMovement(
-            lastProcessedPosition: _lastQueuedPosition,
-            currentPosition: position,
-          )) {
-            _enqueueLocation(position);
-          }
-        }, onError: (error) {
-          debugPrint('Background location stream error: $error');
-          // Automatically restart stream if it crashes (e.g. network switch on Android)
-          Future.delayed(const Duration(seconds: 5), _startLocationStream);
-        }, cancelOnError: false);
+            if (TrackingConstants.shouldSyncMovement(
+              lastProcessedPosition: _lastQueuedPosition,
+              currentPosition: position,
+            )) {
+              _enqueueLocation(position);
+            }
+          },
+          onError: (error) {
+            debugPrint('Background location stream error: $error');
+            // Automatically restart stream if it crashes (e.g. network switch on Android)
+            Future.delayed(const Duration(seconds: 5), _startLocationStream);
+          },
+          cancelOnError: false,
+        );
   }
 
   @override

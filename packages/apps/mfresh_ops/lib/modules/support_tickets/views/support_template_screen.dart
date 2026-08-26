@@ -273,7 +273,7 @@ class SupportTemplateScreen extends StatelessWidget {
             controller: controller.descriptionController,
             titleText: 'Description',
             hintText: 'Enter Description',
-            maxLines: 12,
+            maxLines: 4,
             isRequired: true,
           ),
           SizedBox(height: 16.h),
@@ -416,12 +416,42 @@ class SupportTemplateScreen extends StatelessWidget {
         ),
         title: Text(template.templateName, style: AppTextStyle.style_16_700()),
         content: Container(
-          width: 400.w,
-          constraints: BoxConstraints(maxHeight: 300.h),
+          width: 250.w,
+          constraints: BoxConstraints(maxHeight: 250.h),
           child: SingleChildScrollView(
-            child: Text(
-              template.description,
-              style: AppTextStyle.style_14_400(color: AppColors.black),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (template.description.isNotEmpty) ...[
+                  Text(
+                    'Description:',
+                    style: AppTextStyle.style_14_600(color: AppColors.black),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    template.description,
+                    style: AppTextStyle.style_14_400(color: AppColors.black),
+                  ),
+                  if (template.subtasks.isNotEmpty) SizedBox(height: 12.h),
+                ],
+                if (template.subtasks.isNotEmpty) ...[
+                  Text(
+                    'Subtasks:',
+                    style: AppTextStyle.style_14_600(color: AppColors.black),
+                  ),
+                  SizedBox(height: 8.h),
+                  ...template.subtasks.asMap().entries.map(
+                    (entry) => Padding(
+                      padding: EdgeInsets.only(bottom: 4.h),
+                      child: Text(
+                        '${entry.key + 1}. ${entry.value}',
+                        style: AppTextStyle.style_14_400(color: AppColors.black),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

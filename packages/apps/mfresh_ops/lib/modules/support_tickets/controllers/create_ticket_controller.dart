@@ -122,7 +122,15 @@ class CreateTicketController extends GetxController {
     selectedTemplate.value = template;
     if (template != null) {
       subjectController.text = template.templateName;
-      descriptionController.text = template.description;
+      
+      String desc = template.description;
+      if (template.subtasks.isNotEmpty) {
+        if (desc.isNotEmpty) desc += '\n\n';
+        for (int i = 0; i < template.subtasks.length; i++) {
+          desc += '${i + 1}. ${template.subtasks[i]}\n';
+        }
+      }
+      descriptionController.text = desc.trim();
     }
   }
 
@@ -202,6 +210,26 @@ class CreateTicketController extends GetxController {
     if (picked != null && picked != occurredDate.value) {
       occurredDate.value = picked;
     }
+  }
+
+  Future<void> selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: reminderTime.value ?? TimeOfDay.now(),
+    );
+    if (picked != null) {
+      reminderTime.value = picked;
+    }
+  }
+
+  String getFormattedReminderTime() {
+    if (reminderTime.value == null) return '10:30-AM'; // fallback
+    final t = reminderTime.value!;
+    final int h = t.hour;
+    final int m = t.minute;
+    final String period = h >= 12 ? 'PM' : 'AM';
+    final int displayHour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+    return '${displayHour.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}-$period';
   }
 
   Future<void> pickImages() async {
@@ -331,12 +359,15 @@ class CreateTicketController extends GetxController {
         'assigned_to': selectedAssignee.value?.id.toString() ?? '',
         'reminder_date':
             '${occurredDate.value.year}-${occurredDate.value.month}-${occurredDate.value.day}',
-        'reminder_time':
-            '10:30-AM', // Hardcoded as placeholder or add time picker
-        'whatsapp_notification': '1',
-        'app_notification': '1',
+        'reminder_time': getFormattedReminderTime(),
+        'whatsapp_notification': whatsappNotification.value ? '1' : '0',
+        'app_notification': appNotification.value ? '1' : '0',
         'folder_path': 'images/maintenance',
       };
+
+      if (selectedTemplate.value != null) {
+        data['template_id'] = selectedTemplate.value!.id.toString();
+      }
 
       final formData = dio.FormData.fromMap(data);
 
