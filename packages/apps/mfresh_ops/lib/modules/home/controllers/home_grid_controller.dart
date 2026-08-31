@@ -200,12 +200,7 @@ class HomeGridController extends GetxController {
       route: AppRoutes.staffTracking,
       permissionKey: 'tracking_panel',
       subActions: [
-        GridSubAction(
-          title: 'Attendance',
-          icon: Icons.location_on,
-          route: AppRoutes.staffTracking,
-          permissionKey: 'tracking_panel',
-        ),
+
         GridSubAction(
           title: 'Log',
           icon: Icons.assignment_rounded,
@@ -497,7 +492,7 @@ class HomeGridController extends GetxController {
           final found = originalSubs.firstWhereOrNull(
             (s) => s.title == savedTitle,
           );
-          if (found != null) {
+          if (found != null && !filteredSubs.any((s) => s.title == found.title)) {
             filteredSubs.add(found);
           }
         }
