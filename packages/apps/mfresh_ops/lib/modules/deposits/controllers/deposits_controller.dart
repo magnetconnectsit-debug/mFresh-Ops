@@ -214,7 +214,7 @@ class DepositsController extends GetxController {
     }
 
     try {
-      final List<String> headers = ['Date', 'Deposit Amount', 'For Month', 'Remark'];
+      final List<String> headers = ['Date', 'Deposit', 'Month', 'Remark'];
 
       final List<List<dynamic>> rows = filteredDeposits.map((item) {
         String friendlyMonth = item.month;

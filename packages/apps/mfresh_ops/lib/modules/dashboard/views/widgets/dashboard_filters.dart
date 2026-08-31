@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
-import 'package:core/widgets/month_year_picker_field.dart';
+import 'package:mfresh_ops/widgets/month_range_picker.dart';
 
 class DashboardFilters extends GetView<DashboardController> {
   const DashboardFilters({super.key});
@@ -18,10 +18,12 @@ class DashboardFilters extends GetView<DashboardController> {
       ),
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
       child: Obx(
-        () => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        () => Stack(
           children: [
-            IntrinsicHeight(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -188,6 +190,20 @@ class DashboardFilters extends GetView<DashboardController> {
             ),
           ],
         ),
+        if (controller.rxIsLoading.value)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(150),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: const Center(
+                    child: CustomAppLoader(),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -323,143 +339,13 @@ class DashboardFilters extends GetView<DashboardController> {
     );
   }
 
-  void _showCustomMonthRangeDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => _CustomMonthRangeDialog(
-        initialFrom: controller.rxFromMonth.value,
-        initialTo: controller.rxToMonth.value,
-        onApply: (from, to) {
-          if (from != null) controller.setCustomFromMonth(from);
-          if (to != null) controller.setCustomToMonth(to);
-        },
-      ),
-    );
-  }
-}
-
-class _CustomMonthRangeDialog extends StatefulWidget {
-  const _CustomMonthRangeDialog({
-    this.initialFrom,
-    this.initialTo,
-    required this.onApply,
-  });
-
-  final String? initialFrom;
-  final String? initialTo;
-  final void Function(String? from, String? to) onApply;
-
-  @override
-  State<_CustomMonthRangeDialog> createState() =>
-      _CustomMonthRangeDialogState();
-}
-
-class _CustomMonthRangeDialogState extends State<_CustomMonthRangeDialog> {
-  String? _fromMonth;
-  String? _toMonth;
-
-  @override
-  void initState() {
-    super.initState();
-    _fromMonth = widget.initialFrom;
-    _toMonth = widget.initialTo;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.all(20.r),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_month_outlined,
-                  size: 16.r,
-                  color: AppColors.primary,
-                ),
-                SizedBox(width: 6.w),
-                Text(
-                  'Select Month Range',
-                  style: AppTextStyle.style_16_700(color: AppColors.primary),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Icon(
-                    Icons.close,
-                    size: 16.r,
-                    color: AppColors.grey300,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            Divider(height: 1, color: AppColors.borderColor),
-            SizedBox(height: 16.h),
-
-            // From Month
-            Text(
-              'From Month',
-              style: AppTextStyle.style_12_500(color: AppColors.grey700),
-            ),
-            SizedBox(height: 8.h),
-            MonthYearPickerField(
-              value: _fromMonth,
-              label: 'Select start month',
-              showFloatingLabel: false,
-              onChanged: (v) => setState(() => _fromMonth = v),
-            ),
-
-            SizedBox(height: 16.h),
-
-            // To Month
-            Text(
-              'To Month',
-              style: AppTextStyle.style_12_500(color: AppColors.grey700),
-            ),
-            SizedBox(height: 8.h),
-            MonthYearPickerField(
-              value: _toMonth,
-              label: 'Select end month',
-              showFloatingLabel: false,
-              onChanged: (v) => setState(() => _toMonth = v),
-            ),
-
-            SizedBox(height: 24.h),
-
-            // Apply Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: (_fromMonth != null || _toMonth != null)
-                    ? () {
-                        widget.onApply(_fromMonth, _toMonth);
-                        Navigator.of(context).pop();
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
-                child: Text(
-                  'Apply',
-                  style: AppTextStyle.style_14_600(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _showCustomMonthRangeDialog(BuildContext context) async {
+    final DateTimeRange? picked = await showMonthRangePicker(context);
+    if (picked != null) {
+      final from = "${picked.start.year}-${picked.start.month.toString().padLeft(2, '0')}";
+      final to = "${picked.end.year}-${picked.end.month.toString().padLeft(2, '0')}";
+      controller.setCustomFromMonth(from);
+      controller.setCustomToMonth(to);
+    }
   }
 }

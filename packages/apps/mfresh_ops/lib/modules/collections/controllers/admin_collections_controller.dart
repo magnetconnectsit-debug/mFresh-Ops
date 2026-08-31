@@ -40,7 +40,7 @@ class AdminCollectionsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    
+
     fetchStates();
     fetchCollections();
   }
@@ -69,10 +69,16 @@ class AdminCollectionsController extends GetxController {
       final response = await repo.getStates();
       if (response != null && response['status'] == 'success') {
         final List data = response['data'] ?? [];
-        stateOptions.assignAll(data.map((e) => DropdownOption(
-          value: e['id'].toString(), 
-          label: e['state_name']?.toString() ?? '',
-        )).toList());
+        stateOptions.assignAll(
+          data
+              .map(
+                (e) => DropdownOption(
+                  value: e['id'].toString(),
+                  label: e['state_name']?.toString() ?? '',
+                ),
+              )
+              .toList(),
+        );
       }
     } catch (e) {
       debugPrint('Error fetching states: $e');
@@ -85,10 +91,16 @@ class AdminCollectionsController extends GetxController {
       final response = await repo.getDistricts(stateId);
       if (response != null && response['status'] == 'success') {
         final List data = response['data'] ?? [];
-        districtOptions.assignAll(data.map((e) => DropdownOption(
-          value: e['district_id'].toString(), 
-          label: e['district_name']?.toString() ?? '',
-        )).toList());
+        districtOptions.assignAll(
+          data
+              .map(
+                (e) => DropdownOption(
+                  value: e['district_id'].toString(),
+                  label: e['district_name']?.toString() ?? '',
+                ),
+              )
+              .toList(),
+        );
       }
     } catch (e) {
       debugPrint('Error fetching districts: $e');
@@ -121,7 +133,7 @@ class AdminCollectionsController extends GetxController {
     try {
       isLoading.value = true;
       final repo = Get.find<CollectionRepository>();
-      
+
       final response = await repo.getAdminCollections(
         month: _formatMonthForApi(selectedMonth.value),
         date: _formatDateForApi(selectedDate.value),
@@ -133,11 +145,21 @@ class AdminCollectionsController extends GetxController {
         if (response['units'] != null) {
           final List dynamicUnits = response['units'];
           // Filter out 'Other' as we handle it separately
-          storeNames.assignAll(dynamicUnits.where((e) => e.toString() != 'Other').map((e) => e.toString()).toList());
+          storeNames.assignAll(
+            dynamicUnits
+                .where((e) => e.toString() != 'Other')
+                .map((e) => e.toString())
+                .toList(),
+          );
         }
 
         final List dataList = response['data'] ?? [];
-        final parsedData = dataList.map((e) => AdminCollectionRowModel.fromJson(e as Map<String, dynamic>)).toList();
+        final parsedData = dataList
+            .map(
+              (e) =>
+                  AdminCollectionRowModel.fromJson(e as Map<String, dynamic>),
+            )
+            .toList();
 
         allCollections.assignAll(parsedData);
         filteredCollections.assignAll(parsedData);
@@ -173,25 +195,26 @@ class AdminCollectionsController extends GetxController {
   Future<void> exportToExcel() async {
     try {
       if (filteredCollections.isEmpty) {
-        AppCommonToastMessage.show(message: 'No collections to export', type: ToastType.info);
+        AppCommonToastMessage.show(
+          message: 'No collections to export',
+          type: ToastType.info,
+        );
         return;
       }
 
-      final List<String> columns = [
-        'Month',
-        'Date',
-      ];
+      final List<String> columns = ['Month', 'Date'];
       for (final store in storeNames) {
-        columns.addAll(['$store (Actual)', '$store (Dashboard)', '$store (Diff)']);
+        columns.addAll([
+          '$store (Actual)',
+          '$store (Revenue Report)',
+          '$store (Diff)',
+        ]);
       }
-      columns.addAll(['Other (Actual)', 'Other (Dashboard)', 'Other (Diff)']);
-      columns.addAll(['Total (Actual)', 'Total (Dashboard)', 'Total (Diff)']);
+      columns.addAll(['Other (Actual)', 'Other (Revenue Report)', 'Other (Diff)']);
+      columns.addAll(['Total (Actual)', 'Total (Revenue Report)', 'Total (Diff)']);
 
       final List<List<dynamic>> rows = filteredCollections.map((row) {
-        final List<dynamic> rowData = [
-          row.month,
-          row.date,
-        ];
+        final List<dynamic> rowData = [row.month, row.date];
 
         for (final store in storeNames) {
           final metric = row.storeMetrics[store];
@@ -221,10 +244,14 @@ class AdminCollectionsController extends GetxController {
         title: 'Admin Collections Report',
         columns: columns,
         rows: rows,
-        fileName: 'Admin_Collections_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+        fileName:
+            'Admin_Collections_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}',
       );
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to export collections: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to export collections: $e',
+        type: ToastType.error,
+      );
     }
   }
 
@@ -236,15 +263,15 @@ class AdminCollectionsController extends GetxController {
     try {
       isLoading.value = true;
       final repo = Get.find<CollectionRepository>();
-      
+
       final apiDate = _formatDateForApi(date) ?? date;
-      
+
       final response = await repo.updateAdminActual(
         date: apiDate,
         unitId: unitId,
         actual: actual,
       );
-      
+
       if (response != null && response['success'] == true) {
         AppCommonToastMessage.show(
           message: response['message'] ?? 'Value saved successfully!',

@@ -285,6 +285,7 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                           fitInsideVertically: true,
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
                             if (rod.toY == 0) return null;
+                            if (groupIndex < 0 || groupIndex >= visibleData.length) return null;
                             
                             // Get the unit color
                             String unitNo = visibleData[groupIndex].unitNo;

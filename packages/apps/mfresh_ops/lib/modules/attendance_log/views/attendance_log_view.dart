@@ -56,9 +56,11 @@ class AttendanceLogView extends GetView<AttendanceLogController> {
                       final name = emp['name']?.toString() ?? 'Unknown';
 
                       return Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6.w,
-                          vertical: 3.h,
+                        padding: EdgeInsets.only(
+                          left: 6.w,
+                          right: 2.w,
+                          top: 1.h,
+                          bottom: 1.h,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
@@ -82,10 +84,13 @@ class AttendanceLogView extends GetView<AttendanceLogController> {
                                 controller.selectedEmployeeIds.remove(id);
                                 controller.fetchAttendanceLog();
                               },
-                              child: Icon(
-                                Icons.close,
-                                size: 10.r,
-                                color: AppColors.primary,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 10.r,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                           ],

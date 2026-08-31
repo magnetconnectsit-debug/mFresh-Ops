@@ -36,7 +36,7 @@ class AllotmentItemModel {
       destination: json['destination_name']?.toString() ?? '',
       quantity: (json['final_qty'] ?? json['quantity'])?.toString() ?? '',
       unit: json['measurement_name']?.toString() ?? '',
-      allotmentBy: json['created_by']?.toString() ?? '',
+      allotmentBy: json['created_by_name']?.toString() ?? json['created_by']?.toString() ?? '',
       isReversed: (json['is_reversed'] == 1 ||
               json['is_reversed'] == true ||
               json['is_reversed']?.toString() == '1')

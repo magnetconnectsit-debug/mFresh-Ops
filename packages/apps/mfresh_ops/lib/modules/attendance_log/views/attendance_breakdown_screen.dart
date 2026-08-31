@@ -8,7 +8,6 @@ import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/attendance_log/controllers/attendance_log_controller.dart';
 import 'package:mfresh_ops/data/models/tracking/attendance_breakdown_model.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
-import 'package:mfresh_ops/core/utils/geocoding_service.dart';
 
 class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
   final String employeeName;
@@ -253,11 +252,21 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
     final pillColor =
         isOnline ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
     final isEven = index % 2 == 0;
+    
+    bool isExpanded = false;
 
-    return Container(
-      color: isEven ? Colors.white : const Color(0xFFFAFAFA),
-      child: Row(
-        children: [
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              isExpanded = !isExpanded;
+            });
+          },
+          child: Container(
+            color: isEven ? Colors.white : const Color(0xFFFAFAFA),
+            child: Row(
+              children: [
           // Type pill
           SizedBox(
             width: 80.w,
@@ -296,22 +305,19 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
             width: 200.w,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
-              child: FutureBuilder<String>(
-                future: GeocodingService.instance.resolve(row.location),
-                builder: (context, snapshot) {
-                  final text = snapshot.data ?? row.location;
-                  return Text(
-                    text.isEmpty ? 'Unknown' : text,
-                    style: AppTextStyle.style_12_400(color: AppColors.grey700),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  );
-                },
+              child: Text(
+                row.location.isEmpty ? 'Location not tracked' : row.location,
+                style: AppTextStyle.style_12_400(color: AppColors.grey700),
+                maxLines: isExpanded ? null : 1,
+                overflow: isExpanded ? null : TextOverflow.ellipsis,
               ),
             ),
           ),
         ],
       ),
+    ),
+        );
+      },
     );
   }
 
