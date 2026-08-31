@@ -50,6 +50,13 @@ class TasksController extends GetxController {
   final selectedGroups = <TaskGroup>[].obs;
   final selectedUnits = <SupportUnit>[].obs;
   final selectedAssignees = <AssigneeModel>[].obs;
+
+  void clearFilters() {
+    selectedProjects.clear();
+    selectedGroups.clear();
+    selectedUnits.clear();
+    selectedAssignees.clear();
+  }
   // endregion
 
   // region Pagination

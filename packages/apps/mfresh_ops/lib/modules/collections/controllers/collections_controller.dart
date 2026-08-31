@@ -168,6 +168,11 @@ class CollectionsController extends GetxController {
           type: ToastType.success,
         );
         await fetchCollections(); // reload table data
+        
+        final shortage = response['shortage_amount'];
+        if (shortage != null && shortage > 0) {
+          _showShortageDialog(shortage);
+        }
       } else {
         AppCommonToastMessage.show(
           message: response?['message'] ?? 'Failed to update value',
@@ -183,5 +188,59 @@ class CollectionsController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _showShortageDialog(num amount) {
+    final formattedAmount = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(amount);
+    Get.dialog(
+      Dialog(
+        backgroundColor: const Color(0xFFEAEEF1),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFFDC15F), width: 2),
+                ),
+                child: const Center(
+                  child: Text('!', style: TextStyle(color: Color(0xFFFDC15F), fontSize: 40, fontWeight: FontWeight.w400)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Cash Shortage',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black87),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Shortage: $formattedAmount',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFE53935)),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: 120,
+                child: ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53935),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('OK', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
   }
 }

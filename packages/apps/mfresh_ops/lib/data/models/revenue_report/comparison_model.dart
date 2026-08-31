@@ -7,7 +7,7 @@ class ComparisonSlot extends ChangeNotifier {
   Set<String> selectedUnitNames = {};
   Set<String> selectedUnitIds = {};
 
-  bool get isComplete => fromDate != null && toDate != null && selectedUnitNames.isNotEmpty;
+  bool get isComplete => fromDate != null && toDate != null;
 
   void clear() {
     fromDate = null;
@@ -17,11 +17,16 @@ class ComparisonSlot extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map<String, dynamic> toPayload() => {
-    'unit': selectedUnitNames.toList(),
-    'from_date': '${fromDate!.year}-${fromDate!.month.toString().padLeft(2,'0')}-${fromDate!.day.toString().padLeft(2,'0')}',
-    'to_date': '${toDate!.year}-${toDate!.month.toString().padLeft(2,'0')}-${toDate!.day.toString().padLeft(2,'0')}',
-  };
+  Map<String, dynamic> toPayload() {
+    final payload = <String, dynamic>{
+      'from_date': '${fromDate!.year}-${fromDate!.month.toString().padLeft(2,'0')}-${fromDate!.day.toString().padLeft(2,'0')}',
+      'to_date': '${toDate!.year}-${toDate!.month.toString().padLeft(2,'0')}-${toDate!.day.toString().padLeft(2,'0')}',
+    };
+    if (selectedUnitNames.isNotEmpty) {
+      payload['unit'] = selectedUnitNames.toList();
+    }
+    return payload;
+  }
 }
 
 

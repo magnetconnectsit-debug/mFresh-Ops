@@ -53,6 +53,10 @@ import 'package:mfresh_ops/modules/map/views/map_view.dart';
 import 'package:mfresh_ops/modules/map/views/history_view.dart';
 import 'package:mfresh_ops/modules/staff_tracking/bindings/staff_tracking_binding.dart';
 import 'package:mfresh_ops/modules/staff_tracking/views/staff_tracking_screen.dart';
+import 'package:mfresh_ops/modules/attendance_log/views/attendance_log_view.dart';
+import 'package:mfresh_ops/modules/attendance_log/bindings/attendance_log_binding.dart';
+import 'package:mfresh_ops/modules/attendance_log/views/attendance_breakdown_screen.dart';
+import 'package:mfresh_ops/modules/service_details/views/service_details_screen.dart';
 import 'package:mfresh_ops/modules/map/bindings/location_binding.dart';
 import 'package:mfresh_ops/modules/map/controllers/history_controller.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
@@ -235,6 +239,18 @@ class AppPages {
       name: AppRoutes.staffTracking,
       page: () => const StaffTrackingScreen(),
       binding: StaffTrackingBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.attendanceLog,
+      page: () => const AttendanceLogView(),
+      binding: AttendanceLogBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.attendanceBreakdown,
+      page: () => AttendanceBreakdownScreen(
+        employeeName: Get.arguments['employeeName'],
+        date: Get.arguments['date'],
+      ),
     ),
     GetPage(
       name: AppRoutes.adminCollections,

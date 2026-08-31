@@ -41,6 +41,7 @@ class _AllTasksScreenState extends State<AllTasksScreen> {
     super.initState();
     controller = Get.put(TasksController());
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.clearFilters();
       controller.refreshData();
     });
   }

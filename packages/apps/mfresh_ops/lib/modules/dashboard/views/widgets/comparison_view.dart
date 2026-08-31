@@ -362,12 +362,10 @@ class _SlotRowState extends State<_SlotRow> {
                           selected: slot.selectedUnitNames,
                           onChanged: (v) => setState(() {
                             slot.selectedUnitNames = v;
-                            // the original code sent unitId as the string name (which seems wrong, but just mapping to string id now)
                             slot.selectedUnitIds = v.map((name) {
                               final u = units.firstWhere(
                                   (element) => element.unitName == name,
                                   orElse: () => SupportUnit(unitId: 0, unitName: name));
-                              // We use the ID, but fallback to name if ID was 0 because original logic was slot.unitId = v (the name).
                               return u.unitId == 0 ? name : u.unitId.toString();
                             }).toSet();
                           }),
@@ -455,7 +453,7 @@ class _CompactUnit extends StatelessWidget {
       customChild: _CompactField(
         label: 'Unit',
         value: selected.isEmpty 
-            ? 'Select' 
+            ? 'All Units' 
             : selected.length == 1 
                 ? selected.first 
                 : '${selected.length} Units',
@@ -465,7 +463,6 @@ class _CompactUnit extends StatelessWidget {
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // _ChartCard — legend + multi-series line chart
 // ─────────────────────────────────────────────────────────────────────────────

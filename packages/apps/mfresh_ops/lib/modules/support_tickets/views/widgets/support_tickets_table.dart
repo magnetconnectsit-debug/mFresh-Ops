@@ -11,7 +11,7 @@ import 'package:mfresh_ops/data/models/support/support_ticket_model.dart';
 
 // Column definitions: [label, width, isLast]
 const List<(String, double)> _kColumns = [
-  ('', 32),        // 0 Checkbox
+  ('', 32), // 0 Checkbox
   ('Ticket', 60),
   ('Unit No.', 80),
   ('Subject', 200),
@@ -25,9 +25,9 @@ const List<(String, double)> _kColumns = [
   ('Follow-up-on', 110),
   ('Tkt Age', 70),
   ('Date/Time Open', 130),
-  ('Date/Time Close', 130),
+  ('Date/Time Resolved', 150),
   ('District', 90),
-  ('Created By', 140),  // 16 last col
+  ('Created By', 140), // 16 last col
 ];
 
 class SupportTicketsTable extends StatelessWidget {
@@ -54,13 +54,14 @@ class SupportTicketsTable extends StatelessWidget {
     for (int i = 0; i < _kColumns.length; i++) {
       width += _getColumnWidth(controller, i);
     }
-    return width + 4.0; // Account for the 2.0 left and 2.0 right border on the rows
+    return width +
+        4.0; // Account for the 2.0 left and 2.0 right border on the rows
   }
 
   Widget _buildTicketsTable(SupportTicketsController controller) {
     return Obx(() {
       final filteredList = controller.filteredTickets;
-      
+
       if (controller.isLoading.value && controller.tickets.isEmpty) {
         return _buildSkeletonTable();
       }
@@ -108,7 +109,10 @@ class SupportTicketsTable extends StatelessWidget {
   }
 
   // ── Header row ──────────────────────────────────────────────────────────
-  Widget _buildHeaderRow(SupportTicketsController controller, List<SupportTicketListItem> filteredList) {
+  Widget _buildHeaderRow(
+    SupportTicketsController controller,
+    List<SupportTicketListItem> filteredList,
+  ) {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFC5D5F0),
@@ -126,9 +130,7 @@ class SupportTicketsTable extends StatelessWidget {
             child: Container(
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: Colors.grey.shade300),
-                ),
+                border: Border(right: BorderSide(color: Colors.grey.shade300)),
               ),
               child: Transform.scale(
                 scale: 0.85,
@@ -136,7 +138,8 @@ class SupportTicketsTable extends StatelessWidget {
                   height: 20,
                   width: 20,
                   child: Checkbox(
-                    value: filteredList.isNotEmpty &&
+                    value:
+                        filteredList.isNotEmpty &&
                         filteredList.every(
                           (t) => controller.selectedTickets.contains(t.id),
                         ),
@@ -174,7 +177,9 @@ class SupportTicketsTable extends StatelessWidget {
                       Flexible(
                         child: Text(
                           _kColumns[i].$1,
-                          style: AppTextStyle.style_12_700(color: AppColors.grey900),
+                          style: AppTextStyle.style_12_700(
+                            color: AppColors.grey900,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -245,10 +250,8 @@ class SupportTicketsTable extends StatelessWidget {
               isExpanded: isExpanded,
               onTap: null,
               child: InkWell(
-                onTap: () => Get.toNamed(
-                  AppRoutes.ticketDetails,
-                  arguments: ticket.id,
-                ),
+                onTap: () =>
+                    Get.toNamed(AppRoutes.ticketDetails, arguments: ticket.id),
                 child: Align(
                   alignment: Alignment.center,
                   child: Text(
@@ -263,60 +266,92 @@ class SupportTicketsTable extends StatelessWidget {
 
             // 2 Unit No.
             _buildTextCell(
-              width: _getColumnWidth(controller, 2), text: ticket.unitNo ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 2),
+              text: ticket.unitNo ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 3 Subject
             _buildTextCell(
-              width: _getColumnWidth(controller, 3), text: ticket.subject ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 3),
+              text: ticket.subject ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 4 Project
             _buildTextCell(
-              width: _getColumnWidth(controller, 4), text: ticket.project ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 4),
+              text: ticket.project ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 5 Category
             _buildTextCell(
-              width: _getColumnWidth(controller, 5), text: ticket.mCategory ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 5),
+              text: ticket.mCategory ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 6 Sub-Category
             _buildTextCell(
-              width: _getColumnWidth(controller, 6), text: ticket.subCat ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 6),
+              text: ticket.subCat ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
 
             // 7 Status
-            _buildStatusCell(controller, ticket, isTopPriority, isExpanded, toggleRow),
+            _buildStatusCell(
+              controller,
+              ticket,
+              isTopPriority,
+              isExpanded,
+              toggleRow,
+            ),
 
             // 8 Priority
-            _buildPriorityCell(controller, ticket, isTopPriority, isExpanded, toggleRow),
+            _buildPriorityCell(
+              controller,
+              ticket,
+              isTopPriority,
+              isExpanded,
+              toggleRow,
+            ),
 
             // 9 Assignee
             _buildTextCell(
               width: _getColumnWidth(controller, 9),
               text: controller.getAssigneeName(ticket.assignedTo),
-              isLast: false, isLeft: true,
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 10 Latest Comment
             _buildTextCell(
-              width: _getColumnWidth(controller, 10), text: ticket.latestComment ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 10),
+              text: ticket.latestComment ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 11 Follow-up
             _buildTextCell(
@@ -324,8 +359,10 @@ class SupportTicketsTable extends StatelessWidget {
               text: _formatDateTime(ticket.followUp),
               isLast: false,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
-              bgColor: (ticket.followUp != null &&
+              isExpanded: isExpanded,
+              onTap: toggleRow,
+              bgColor:
+                  (ticket.followUp != null &&
                       ticket.followUp!.isNotEmpty &&
                       ticket.followUp != '-')
                   ? const Color(0xFFFFF9C4)
@@ -337,7 +374,8 @@ class SupportTicketsTable extends StatelessWidget {
               text: _calculateTicketAge(ticket.postedDate, ticket.resolvedOn),
               isLast: false,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 13 Date/Time Open
             _buildTextCell(
@@ -345,29 +383,37 @@ class SupportTicketsTable extends StatelessWidget {
               text: _formatDateTime(ticket.postedDate),
               isLast: false,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
-            // 14 Date/Time Close
+            // 14 Date/Time Resolved
             _buildTextCell(
               width: _getColumnWidth(controller, 14),
-              text: _formatDateTime(ticket.resolvedOn),
+              text: _getDateTimeClose(ticket),
               isLast: false,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 15 District
             _buildTextCell(
-              width: _getColumnWidth(controller, 15), text: ticket.district ?? '',
-              isLast: false, isLeft: true,
+              width: _getColumnWidth(controller, 15),
+              text: ticket.district ?? '',
+              isLast: false,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
             // 16 Created By
             _buildTextCell(
-              width: _getColumnWidth(controller, 16), text: ticket.createdBy ?? '',
-              isLast: true, isLeft: true,
+              width: _getColumnWidth(controller, 16),
+              text: ticket.createdBy ?? '',
+              isLast: true,
+              isLeft: true,
               isTopPriority: isTopPriority,
-              isExpanded: isExpanded, onTap: toggleRow,
+              isExpanded: isExpanded,
+              onTap: toggleRow,
             ),
           ],
         ),
@@ -390,9 +436,7 @@ class SupportTicketsTable extends StatelessWidget {
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border(
-              right: BorderSide(color: Colors.grey.shade300),
-            ),
+            border: Border(right: BorderSide(color: Colors.grey.shade300)),
           ),
           child: IgnorePointer(
             child: Transform.scale(
@@ -486,7 +530,10 @@ class SupportTicketsTable extends StatelessWidget {
     VoidCallback onTap,
   ) {
     final bgColor = _parseColor(ticket.statusBgColor, fallback: Colors.white);
-    final textColor = _parseColor(ticket.statusTextColor, fallback: Colors.black);
+    final textColor = _parseColor(
+      ticket.statusTextColor,
+      fallback: Colors.black,
+    );
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -495,9 +542,7 @@ class SupportTicketsTable extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 28),
         decoration: BoxDecoration(
           color: bgColor,
-          border: Border(
-            right: BorderSide(color: Colors.grey.shade300),
-          ),
+          border: Border(right: BorderSide(color: Colors.grey.shade300)),
         ),
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -521,7 +566,10 @@ class SupportTicketsTable extends StatelessWidget {
     VoidCallback onTap,
   ) {
     final bgColor = _parseColor(ticket.priorityBgColor, fallback: Colors.white);
-    final textColor = _parseColor(ticket.priorityTextColor, fallback: Colors.black);
+    final textColor = _parseColor(
+      ticket.priorityTextColor,
+      fallback: Colors.black,
+    );
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -530,9 +578,7 @@ class SupportTicketsTable extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 28),
         decoration: BoxDecoration(
           color: bgColor,
-          border: Border(
-            right: BorderSide(color: Colors.grey.shade300),
-          ),
+          border: Border(right: BorderSide(color: Colors.grey.shade300)),
         ),
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -591,14 +637,26 @@ class SupportTicketsTable extends StatelessWidget {
     }
   }
 
+  String _getDateTimeClose(SupportTicketListItem ticket) {
+    final status = ticket.resolvedStatus ?? '';
+    if (status != '0' && status != '1' && status != '4' && status != '5') {
+      return _formatDateTime(ticket.updatedAt);
+    } else {
+      return '-';
+    }
+  }
+
   String _calculateTicketAge(String? openDateStr, String? closeDateStr) {
-    if (openDateStr == null || openDateStr.isEmpty || openDateStr == '-') return '-';
+    if (openDateStr == null || openDateStr.isEmpty || openDateStr == '-')
+      return '-';
     try {
       final openDate = DateTime.parse(openDateStr);
       final closeDate =
-          (closeDateStr != null && closeDateStr.isNotEmpty && closeDateStr != '-')
-              ? DateTime.parse(closeDateStr)
-              : DateTime.now();
+          (closeDateStr != null &&
+              closeDateStr.isNotEmpty &&
+              closeDateStr != '-')
+          ? DateTime.parse(closeDateStr)
+          : DateTime.now();
       final duration = closeDate.difference(openDate);
       if (duration.inMinutes < 0) return '-';
       final days = duration.inDays;
@@ -616,13 +674,20 @@ class SupportTicketsTable extends StatelessWidget {
     if (colorStr == null || colorStr.isEmpty) return fallback;
     final s = colorStr.trim().toLowerCase();
     switch (s) {
-      case 'white':  return Colors.white;
-      case 'black':  return Colors.black;
-      case 'red':    return Colors.red;
-      case 'green':  return Colors.green;
-      case 'blue':   return Colors.blue;
-      case 'yellow': return Colors.yellow;
-      case 'orange': return Colors.orange;
+      case 'white':
+        return Colors.white;
+      case 'black':
+        return Colors.black;
+      case 'red':
+        return Colors.red;
+      case 'green':
+        return Colors.green;
+      case 'blue':
+        return Colors.blue;
+      case 'yellow':
+        return Colors.yellow;
+      case 'orange':
+        return Colors.orange;
       default:
         try {
           final hex = s.replaceFirst('#', '');

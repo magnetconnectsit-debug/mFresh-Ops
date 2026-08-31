@@ -218,12 +218,14 @@ class CommonSidebar extends StatelessWidget {
                     ),
 
                   // Tracking Section
-                  if (kDebugMode || userPermissions.contains('tracking_panel'))
-                    _buildMenuItem(
+                  if (userPermissions.contains('tracking_panel') || userPermissions.contains('Attendance_Log'))
+                    _buildExpandableMenuItem(
                       icon: Icons.location_on_outlined,
-                      activeIcon: Icons.location_on,
                       title: 'Attendance',
-                      route: AppRoutes.staffTracking,
+                      subItems: [
+                        if (userPermissions.contains('tracking_panel')) 'Attendance',
+                        if (userPermissions.contains('Attendance_Log')) 'Log',
+                      ],
                       currentRoute: currentRoute,
                     ),
 
@@ -417,6 +419,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.liveTracking);
                   } else if (item == 'Attendance') {
                     Get.toNamed(AppRoutes.staffTracking);
+                  } else if (item == 'Log') {
+                    Get.toNamed(AppRoutes.attendanceLog);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);
                   } else if (item == 'Unit Inventory') {

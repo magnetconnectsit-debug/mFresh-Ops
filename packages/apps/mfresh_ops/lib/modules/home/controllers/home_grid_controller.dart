@@ -200,7 +200,18 @@ class HomeGridController extends GetxController {
       route: AppRoutes.staffTracking,
       permissionKey: 'tracking_panel',
       subActions: [
-        GridSubAction(title: 'Tracking', icon: Icons.format_list_bulleted),
+        GridSubAction(
+          title: 'Attendance',
+          icon: Icons.location_on,
+          route: AppRoutes.staffTracking,
+          permissionKey: 'tracking_panel',
+        ),
+        GridSubAction(
+          title: 'Log',
+          icon: Icons.assignment_rounded,
+          route: AppRoutes.attendanceLog,
+          permissionKey: 'Attendance_Log',
+        ),
       ],
     ),
     GridItemData(
@@ -324,10 +335,28 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        }
+        } 
       } else if (item.title == 'Attendance') {
         if (userPermissions.contains('tracking_panel')) {
-          availableItems.add(item);
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
+          availableItems.add(item.copyWith(subActions: sub));
+        } else if (userPermissions.contains('Attendance_Log')) { 
+          availableItems.add(
+            GridItemData(
+              title: 'Attendance Log',
+              subtitle: 'View attendance records',
+              icon: Icons.assignment_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.attendanceLog,
+              subActions: [],
+            ),
+          );
         }
       } else if (item.title == 'Collection') {
         if (userPermissions.contains('collection_panel')) {
@@ -440,10 +469,11 @@ class HomeGridController extends GetxController {
     for (int i = 0; i < orderedItems.length; i++) {
       final item = orderedItems[i];
       String? savedHeaderTitle = item.headerTitle;
-      if (savedHeaderTitles != null && savedHeaderTitles.containsKey(item.title)) {
-         savedHeaderTitle = savedHeaderTitles[item.title] as String;
+      if (savedHeaderTitles != null &&
+          savedHeaderTitles.containsKey(item.title)) {
+        savedHeaderTitle = savedHeaderTitles[item.title] as String;
       }
-      
+
       final originalSubs = [
         GridSubAction(
           title: item.title,
@@ -457,11 +487,11 @@ class HomeGridController extends GetxController {
       if (savedSubActions != null && savedSubActions.containsKey(item.title)) {
         final savedSubs = (savedSubActions[item.title] as List<dynamic>)
             .cast<String>();
-            
+
         if (!savedSubs.contains(item.title)) {
           savedSubs.insert(0, item.title);
         }
-        
+
         final filteredSubs = <GridSubAction>[];
         for (final savedTitle in savedSubs) {
           final found = originalSubs.firstWhereOrNull(
@@ -474,12 +504,18 @@ class HomeGridController extends GetxController {
         if (filteredSubs.length > 4) {
           filteredSubs.removeRange(4, filteredSubs.length);
         }
-        orderedItems[i] = item.copyWith(subActions: filteredSubs, headerTitle: savedHeaderTitle);
+        orderedItems[i] = item.copyWith(
+          subActions: filteredSubs,
+          headerTitle: savedHeaderTitle,
+        );
       } else {
         if (originalSubs.length > 4) {
           originalSubs.removeRange(4, originalSubs.length);
         }
-        orderedItems[i] = item.copyWith(subActions: originalSubs, headerTitle: savedHeaderTitle);
+        orderedItems[i] = item.copyWith(
+          subActions: originalSubs,
+          headerTitle: savedHeaderTitle,
+        );
       }
     }
 
@@ -503,7 +539,11 @@ class HomeGridController extends GetxController {
         headerTitles[item.title] = item.headerTitle!;
       }
     }
-    _storage.saveHomeGridConfig({'order': order, 'subActions': subActions, 'headerTitles': headerTitles});
+    _storage.saveHomeGridConfig({
+      'order': order,
+      'subActions': subActions,
+      'headerTitles': headerTitles,
+    });
   }
 
   List<GridSubAction> getAvailableSubActionsFor(String cardTitle) {
@@ -517,7 +557,8 @@ class HomeGridController extends GetxController {
       title: originalItem.title,
       icon: originalItem.icon,
       route: originalItem.route,
-      permissionKey: originalItem.actionPermissionKey ?? originalItem.permissionKey,
+      permissionKey:
+          originalItem.actionPermissionKey ?? originalItem.permissionKey,
     );
 
     final subs = originalItem.subActions
@@ -527,18 +568,26 @@ class HomeGridController extends GetxController {
               userPermissions.contains(s.permissionKey),
         )
         .toList();
-        
+
     return [
-      if (mainAction.permissionKey == null || userPermissions.contains(mainAction.permissionKey))
+      if (mainAction.permissionKey == null ||
+          userPermissions.contains(mainAction.permissionKey))
         mainAction,
       ...subs,
     ];
   }
 
-  void updateCardConfig(String cardTitle, List<GridSubAction> newSubs, String? newHeaderTitle) {
+  void updateCardConfig(
+    String cardTitle,
+    List<GridSubAction> newSubs,
+    String? newHeaderTitle,
+  ) {
     final index = gridItems.indexWhere((e) => e.title == cardTitle);
     if (index != -1) {
-      gridItems[index] = gridItems[index].copyWith(subActions: newSubs, headerTitle: newHeaderTitle);
+      gridItems[index] = gridItems[index].copyWith(
+        subActions: newSubs,
+        headerTitle: newHeaderTitle,
+      );
       saveCurrentConfig();
     }
   }
