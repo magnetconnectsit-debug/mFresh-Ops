@@ -201,12 +201,6 @@ class HomeGridController extends GetxController {
       permissionKey: 'tracking_panel',
       subActions: [
         GridSubAction(
-          title: 'Attendance',
-          icon: Icons.location_on,
-          route: AppRoutes.staffTracking,
-          permissionKey: 'tracking_panel',
-        ),
-        GridSubAction(
           title: 'Log',
           icon: Icons.assignment_rounded,
           route: AppRoutes.attendanceLog,
