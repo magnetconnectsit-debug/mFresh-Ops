@@ -492,7 +492,7 @@ class HomeGridController extends GetxController {
           final found = originalSubs.firstWhereOrNull(
             (s) => s.title == savedTitle,
           );
-          if (found != null && !filteredSubs.any((s) => s.title == found.title)) {
+          if (found != null) {
             filteredSubs.add(found);
           }
         }
