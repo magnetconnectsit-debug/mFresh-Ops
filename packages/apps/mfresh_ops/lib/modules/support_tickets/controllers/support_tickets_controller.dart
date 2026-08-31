@@ -131,7 +131,7 @@ class SupportTicketsController extends GetxController {
           case 'Date/Time Open':
             cmp = _compareDates(a.postedDate, b.postedDate);
             break;
-          case 'Date/Time Close':
+          case 'Date/Time Resolved':
             cmp = _compareDates(a.resolvedOn, b.resolvedOn);
             break;
           case 'District':

@@ -54,6 +54,20 @@ class TrackingRepository {
     return await _apiService.post(AppConstants.trackingDutyOff);
   }
 
+  Future<dynamic> getAttendanceLog(Map<String, dynamic> request) async {
+    return await _apiService.post(
+      AppConstants.trackingAttendanceLog,
+      data: request,
+    );
+  }
+
+  Future<dynamic> getAttendanceBreakdown(Map<String, dynamic> request) async {
+    return await _apiService.post(
+      AppConstants.trackingAttendanceBreakdown,
+      data: request,
+    );
+  }
+
   Future<dynamic> getRouteHistory({String? date}) async {
     return await _apiService.get(
       AppConstants.trackingMyRouteHistory,

@@ -5,6 +5,8 @@ abstract class AppRoutes {
   static const dashboard = '/dashboard';
   static const allTasks = '/all-tasks';
   static const dailyTasks = '/daily-tasks';
+  static const attendanceLog = '/attendance-log';
+  static const attendanceBreakdown = '/attendance-breakdown';
   static const supportTickets = '/support-tickets';
   static const supportDashboard = '/support-dashboard';
   static const supportCategory = '/support-category';

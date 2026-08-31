@@ -75,6 +75,15 @@ class StaffTrackingScreen extends GetView<StaffTrackingController> {
                 );
               }),
               IconButton(
+                icon: const Icon(
+                  Icons.assignment_rounded,
+                  color: AppColors.black,
+                ),
+                onPressed: () {
+                  Get.toNamed('/attendance-log');
+                },
+              ),
+              IconButton(
                 icon: Icon(
                   controller.isSearching.value
                       ? Icons.close_rounded

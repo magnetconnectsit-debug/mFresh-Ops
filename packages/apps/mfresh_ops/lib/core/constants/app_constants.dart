@@ -134,6 +134,8 @@ class AppConstants {
   static const String trackingDutyOn = 'tracking/duty-on';
   static const String trackingDutyOff = 'tracking/duty-off';
   static const String trackingCurrentStatus = 'tracking/current-status';
+  static const String trackingAttendanceLog = 'tracking/Attendencelog';
+  static const String trackingAttendanceBreakdown = 'tracking/attendance/day-breakdown';
   static const String trackingMyRouteHistory = 'tracking/my-route-history';
   static const String trackingMyStoppages = 'tracking/my-stoppages';
   static const String trackingSegments = 'tracking/segments';

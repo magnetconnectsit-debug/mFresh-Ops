@@ -111,112 +111,124 @@ class TaskSubmissionDialog extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               Obx(
-                () => Wrap(
-                  spacing: 12.w,
-                  runSpacing: 12.h,
-                  children: [
-                    ...controller.attachments.asMap().entries.map((entry) {
-                      return Stack(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Get.dialog(
-                                Dialog(
-                                  backgroundColor: Colors.transparent,
-                                  surfaceTintColor: Colors.transparent,
-                                  insetPadding: EdgeInsets.zero,
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () => Get.back(),
-                                        child: Container(color: Colors.black87),
-                                      ),
-                                      InteractiveViewer(
-                                        child: Center(
-                                          child: entry.value is String
-                                              ? AppImageView(
-                                                  imageUrl: entry.value,
-                                                  fit: BoxFit.contain,
-                                                )
-                                              : Image.file(
-                                                  entry.value is File ? entry.value : File(entry.value.path),
-                                                  fit: BoxFit.contain,
-                                                ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 40.h,
-                                        right: 20.w,
-                                        child: GestureDetector(
-                                          onTap: () => Get.back(),
-                                          child: CircleAvatar(
-                                            backgroundColor: Colors.black45,
-                                            child: Icon(Icons.close, color: Colors.white, size: 24.r),
+                () => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ...controller.attachments.asMap().entries.map((entry) {
+                        return Padding(
+                          padding: EdgeInsets.only(right: 12.w),
+                          child: Stack(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  final pageController = PageController(initialPage: entry.key);
+                                  Get.dialog(
+                                    Dialog(
+                                      backgroundColor: Colors.transparent,
+                                      surfaceTintColor: Colors.transparent,
+                                      insetPadding: EdgeInsets.zero,
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => Get.back(),
+                                            child: Container(color: Colors.black87),
                                           ),
-                                        ),
+                                          PageView.builder(
+                                            controller: pageController,
+                                            itemCount: controller.attachments.length,
+                                            itemBuilder: (context, index) {
+                                              final attachment = controller.attachments[index];
+                                              return InteractiveViewer(
+                                                child: Center(
+                                                  child: attachment is String
+                                                      ? AppImageView(
+                                                          imageUrl: attachment,
+                                                          fit: BoxFit.contain,
+                                                        )
+                                                      : Image.file(
+                                                          attachment is File ? attachment : File(attachment.path),
+                                                          fit: BoxFit.contain,
+                                                        ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          Positioned(
+                                            top: 40.h,
+                                            right: 20.w,
+                                            child: GestureDetector(
+                                              onTap: () => Get.back(),
+                                              child: CircleAvatar(
+                                                backgroundColor: Colors.black45,
+                                                child: Icon(Icons.close, color: Colors.white, size: 24.r),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 55.w,
+                                  height: 65.h,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey50.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(4.r),
+                                    border: Border.all(
+                                      color: AppColors.borderColor,
+                                      style: BorderStyle.solid,
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4.r),
+                                    child: entry.value is String
+                                        ? AppImageView(
+                                            imageUrl: entry.value,
+                                            width: 55.w,
+                                            height: 65.h,
+                                            fit: BoxFit.cover,
+                                            borderRadius: 4.r,
+                                          )
+                                        : Image.file(
+                                            entry.value is File ? entry.value : File(entry.value.path),
+                                            width: 55.w,
+                                            height: 65.h,
+                                            fit: BoxFit.cover,
+                                          ),
                                   ),
                                 ),
-                              );
-                            },
-                            child: Container(
-                              width: 55.w,
-                              height: 65.h,
-                              decoration: BoxDecoration(
-                                color: AppColors.grey50.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(4.r),
-                                border: Border.all(
-                                  color: AppColors.borderColor,
-                                  style: BorderStyle.solid,
-                                ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4.r),
-                                child: entry.value is String
-                                    ? AppImageView(
-                                        imageUrl: entry.value,
-                                        width: 55.w,
-                                        height: 65.h,
-                                        fit: BoxFit.cover,
-                                        borderRadius: 4.r,
-                                      )
-                                    : Image.file(
-                                        entry.value is File ? entry.value : File(entry.value.path),
-                                        width: 55.w,
-                                        height: 65.h,
-                                        fit: BoxFit.cover,
+                              if (!isReview && !isReadOnly)
+                                Positioned(
+                                  top: 2,
+                                  right: 2,
+                                  child: GestureDetector(
+                                    onTap: () => controller.removeAttachment(entry.key),
+                                    child: CircleAvatar(
+                                      radius: 9.r,
+                                      backgroundColor: AppColors.error,
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 10.r,
+                                        color: AppColors.white,
                                       ),
-                              ),
-                            ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          if (!isReview && !isReadOnly)
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: GestureDetector(
-                                onTap: () => controller.removeAttachment(entry.key),
-                                child: CircleAvatar(
-                                  radius: 9.r,
-                                  backgroundColor: AppColors.error,
-                                  child: Icon(
-                                    Icons.close,
-                                    size: 10.r,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    }),
-                    if (!isReview && !isReadOnly)
-                      GestureDetector(
-                        onTap: () => controller.pickImage(),
-                        child: _buildUploadPlaceholder(),
-                      ),
-                  ],
+                        );
+                      }),
+                      if (!isReview && !isReadOnly)
+                        GestureDetector(
+                          onTap: () => controller.pickImage(),
+                          child: _buildUploadPlaceholder(),
+                        ),
+                    ],
+                  ),
                 ),
               ),
 

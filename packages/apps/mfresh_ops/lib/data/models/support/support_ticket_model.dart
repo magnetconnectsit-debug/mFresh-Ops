@@ -25,6 +25,8 @@ class SupportTicketListItem {
   final String? district;
   final String? tktAge;
   final String? resolvedOn;
+  final String? resolvedStatus;
+  final String? updatedAt;
 
   SupportTicketListItem({
     required this.id,
@@ -53,6 +55,8 @@ class SupportTicketListItem {
     this.district,
     this.tktAge,
     this.resolvedOn,
+    this.resolvedStatus,
+    this.updatedAt,
   });
 
   factory SupportTicketListItem.fromJson(Map<String, dynamic> json) {
@@ -83,6 +87,8 @@ class SupportTicketListItem {
       district: json['district'],
       tktAge: json['tkt_age'],
       resolvedOn: json['resolved_on'],
+      resolvedStatus: json['resolved_status']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
     );
   }
 }
