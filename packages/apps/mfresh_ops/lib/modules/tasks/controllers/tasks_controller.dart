@@ -962,6 +962,36 @@ class TasksController extends GetxController {
     }
   }
 
+  String _sanitize(String text) {
+    return text.replaceAll('_', ' ');
+  }
+
+  String _formatDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty || dateStr == 'NA') return 'NA';
+    try {
+      DateTime dt = DateTime.parse(dateStr).toLocal();
+      List<String> months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      String day = dt.day.toString().padLeft(2, '0');
+      String month = months[dt.month - 1];
+      String year = dt.year.toString();
+
+      int hour = dt.hour;
+      String ampm = 'AM';
+      if (hour >= 12) {
+        ampm = 'PM';
+        if (hour > 12) hour -= 12;
+      }
+      if (hour == 0) hour = 12;
+
+      String minute = dt.minute.toString().padLeft(2, '0');
+      return "$day $month $year, ${hour.toString().padLeft(2, '0')}:$minute $ampm";
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
   Future<void> exportTasks({bool isPdf = false}) async {
     try {
       if (tasks.isEmpty) {
@@ -970,23 +1000,33 @@ class TasksController extends GetxController {
       }
 
       final List<String> columns = [
-        'Date',
-        'Code',
-        'Title',
+        'Task ID',
         'Project',
+        'Task',
+        'Created On',
+        'Created By',
+        'Task Type',
         'Assignee',
+        'Started From',
+        'Completed By',
         'Status',
+        'Approver Name',
       ];
 
       final List<List<dynamic>> rows = tasks
           .map(
             (task) => [
-              task.scheduleDateTime.split(' ').first,
-              task.instanceCode ?? task.taskCode,
+              "${task.taskCode}_${task.taskInstanceId}",
+              task.project ?? '',
               task.title,
-              task.project ?? 'N/A',
-              task.assigneeName ?? 'Unassigned',
-              task.status.toUpperCase(),
+              _formatDateTime(task.createdAt),
+              _sanitize(task.createdByName ?? task.approverName ?? 'NA'),
+              _sanitize(task.taskType.capitalizeFirst ?? 'NA'),
+              _sanitize((task.assigneeName ?? '').replaceAll('_', ' ')),
+              _formatDateTime(task.scheduleDateTime),
+              _sanitize(task.completedByName ?? ''),
+              task.status,
+              _sanitize(task.approverName ?? ''),
             ],
           )
           .toList();

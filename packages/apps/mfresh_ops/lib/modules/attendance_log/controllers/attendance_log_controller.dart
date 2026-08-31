@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:mfresh_ops/core/utils/geocoding_service.dart';
 import 'package:mfresh_ops/data/models/tracking/attendance_log_model.dart';
 import 'package:mfresh_ops/data/models/tracking/attendance_breakdown_model.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
@@ -26,9 +25,6 @@ class AttendanceLogController extends GetxController {
   final RxBool isLoadingData = false.obs;
   final Rx<AttendanceLogResponse?> responseData = Rx<AttendanceLogResponse?>(null);
 
-  /// Reverse-geocoded names: key = raw "lat, lng" string → value = place name.
-  /// Populated asynchronously after rows load; each new entry triggers Obx rebuild.
-  final RxMap<String, String> locationNames = <String, String>{}.obs;
 
   // Breakdown Dialog State
   final RxBool isLoadingBreakdown = false.obs;
@@ -83,6 +79,7 @@ class AttendanceLogController extends GetxController {
 
   Future<void> fetchAttendanceLog() async {
     if (selectedEmployeeIds.isEmpty) {
+      responseData.value = null;
       AppCommonToastMessage.show(
         message: 'Please select at least one employee',
         type: ToastType.error,
@@ -104,7 +101,6 @@ class AttendanceLogController extends GetxController {
 
       if (result != null && result['status'] == true) {
         responseData.value = AttendanceLogResponse.fromJson(result);
-        _resolveLocationNames(responseData.value!.rows);
       } else {
         AppCommonToastMessage.show(
           message: result['message'] ?? 'Failed to fetch attendance log',
@@ -119,22 +115,6 @@ class AttendanceLogController extends GetxController {
       );
     } finally {
       isLoadingData.value = false;
-    }
-  }
-
-  /// Reverse-geocode all unique location strings in the rows.
-  /// Results are stored in [locationNames] reactively — Obx cells rebuild as
-  /// each resolves.
-  void _resolveLocationNames(List<AttendanceRow> rows) {
-    locationNames.clear();
-    final seen = <String>{};
-    for (final row in rows) {
-      for (final loc in [row.shiftLocation, row.actualLocation]) {
-        if (loc == '-' || loc.isEmpty || !seen.add(loc)) continue;
-        GeocodingService.instance.resolve(loc).then((name) {
-          locationNames[loc] = name;
-        });
-      }
     }
   }
 
@@ -157,14 +137,22 @@ class AttendanceLogController extends GetxController {
     final sorted = [...rows];
     sorted.sort((a, b) {
       switch (col) {
-        case 'Date':        return compare(a.rawDate, b.rawDate);
-        case 'Day':         return compare(a.day, b.day);
-        case 'Shift Start': return compare(a.shiftStart, b.shiftStart);
-        case 'Shift End':   return compare(a.shiftEnd, b.shiftEnd);
-        case 'Live In':     return compare(a.liveIn, b.liveIn);
-        case 'Live Out':    return compare(a.liveOut, b.liveOut);
-        case 'Live Total':  return compare(a.liveTotal, b.liveTotal);
-        case 'Status':      return compare(a.attendanceStatus, b.attendanceStatus);
+        case 'Date':                  return compare(a.rawDate, b.rawDate);
+        case 'Day':                   return compare(a.day, b.day);
+        case 'Employee Name':         return compare(a.employeeName, b.employeeName);
+        case 'Shift Start':           return compare(a.shiftStart, b.shiftStart);
+        case 'Shift End':             return compare(a.shiftEnd, b.shiftEnd);
+        case 'Duration':              return compare(a.shiftDuration, b.shiftDuration);
+        case 'Shift Location':        return compare(a.shiftLocation, b.shiftLocation);
+        case 'Live In (First)':       return compare(a.liveIn, b.liveIn);
+        case 'Live Out (Last)':       return compare(a.liveOut, b.liveOut);
+        case 'Live (Total)':          return compare(a.liveTotal, b.liveTotal);
+        case 'Live (Shift)':          return compare(a.liveShift, b.liveShift);
+        case 'Duty Shortage':         return compare(a.dutyShortage, b.dutyShortage);
+        case 'Late For (Duration)':   return compare(a.lateDuration, b.lateDuration);
+        case 'Actual Location':       return compare(a.actualLocation, b.actualLocation);
+        case 'Location\nmismatch':    return compare(a.locationMismatch, b.locationMismatch);
+        case 'Status':                return compare(a.attendanceStatus, b.attendanceStatus);
         default: return 0;
       }
     });
@@ -173,7 +161,12 @@ class AttendanceLogController extends GetxController {
 
   void sortBy(String column) {
     if (sortColumn.value == column) {
-      sortAscending.value = !sortAscending.value;
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
     } else {
       sortColumn.value = column;
       sortAscending.value = true;

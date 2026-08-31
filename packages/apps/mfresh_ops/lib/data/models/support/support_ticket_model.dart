@@ -27,6 +27,7 @@ class SupportTicketListItem {
   final String? resolvedOn;
   final String? resolvedStatus;
   final String? updatedAt;
+  final String? createdAt;
 
   SupportTicketListItem({
     required this.id,
@@ -57,6 +58,7 @@ class SupportTicketListItem {
     this.resolvedOn,
     this.resolvedStatus,
     this.updatedAt,
+    this.createdAt,
   });
 
   factory SupportTicketListItem.fromJson(Map<String, dynamic> json) {
@@ -89,6 +91,7 @@ class SupportTicketListItem {
       resolvedOn: json['resolved_on'],
       resolvedStatus: json['resolved_status']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      createdAt: json['created_at']?.toString(),
     );
   }
 }

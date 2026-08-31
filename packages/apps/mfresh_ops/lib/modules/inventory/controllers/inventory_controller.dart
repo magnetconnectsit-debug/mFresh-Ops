@@ -331,9 +331,8 @@ class InventoryController extends GetxController {
         'Store',
         'Item',
         'Category',
-        'Quantity',
+        'Qty',
         'Unit',
-        'Low Stock',
       ],
       rows: inventoryItems.map((item) => [
         item.store,
@@ -341,7 +340,6 @@ class InventoryController extends GetxController {
         item.category,
         item.quantity,
         item.unit,
-        item.isLowStock ? 'Yes' : 'No',
       ]).toList(),
       fileName: 'Inventory_Stock_Report',
     );

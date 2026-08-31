@@ -130,7 +130,7 @@ class ItemController extends GetxController {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
       title: 'Items Report',
-      columns: const ["SI No", "Item Name", "Item Id", "Measurement", "Category"],
+      columns: const ["Sl No", "Item Name", "Item ID", "Measurement"],
       rows: filteredItems.asMap().entries
           .map(
             (entry) => [
@@ -138,7 +138,6 @@ class ItemController extends GetxController {
               entry.value.itemName,
               entry.value.itemId,
               getMeasurementName(entry.value.measurementUnitId),
-              getCategoryName(entry.value.categoryInv),
             ],
           )
           .toList(),
@@ -150,7 +149,7 @@ class ItemController extends GetxController {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
       title: 'Items Report',
-      columns: const ["SI No", "Item Name", "Item Id", "Measurement", "Category"],
+      columns: const ["Sl No", "Item Name", "Item ID", "Measurement"],
       rows: filteredItems.asMap().entries
           .map(
             (entry) => [
@@ -158,7 +157,6 @@ class ItemController extends GetxController {
               entry.value.itemName,
               entry.value.itemId,
               getMeasurementName(entry.value.measurementUnitId),
-              getCategoryName(entry.value.categoryInv),
             ],
           )
           .toList(),

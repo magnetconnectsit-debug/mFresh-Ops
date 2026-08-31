@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
-import 'package:mfresh_ops/core/utils/geocoding_service.dart';
 import 'package:mfresh_ops/data/models/tracking/attendance_log_model.dart';
 import 'package:mfresh_ops/modules/attendance_log/controllers/attendance_log_controller.dart';
 
@@ -26,7 +25,7 @@ const List<(String, double)> _kColumns = [
   ('Late For (Duration)', 100),
   ('Location ', 100), // Actual Location (trailing space = unique key)
   ('Location mismatch', 70),
-  ('Action', 50),
+  ('Action', 55),
 ];
 
 class AttendanceLogTable extends GetView<AttendanceLogController> {
@@ -102,12 +101,14 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
       String label,
       double width, {
       bool sortable = false,
+      String? sortKey,
       bool isLast = false,
       bool hasBottom = false,
     }) {
-      final sorted = controller.sortColumn.value == label;
+      final key = sortKey ?? label;
+      final sorted = controller.sortColumn.value == key;
       return GestureDetector(
-        onTap: sortable ? () => controller.sortBy(label) : null,
+        onTap: sortable ? () => controller.sortBy(key) : null,
         child: Container(
           width: width,
           constraints: const BoxConstraints(minHeight: 21),
@@ -171,11 +172,13 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
       String label,
       double width, {
       bool sortable = false,
+      String? sortKey,
       bool isLast = false,
     }) {
-      final sorted = controller.sortColumn.value == label;
+      final key = sortKey ?? label;
+      final sorted = controller.sortColumn.value == key;
       return GestureDetector(
-        onTap: sortable ? () => controller.sortBy(label) : null,
+        onTap: sortable ? () => controller.sortBy(key) : null,
         child: Container(
           width: width,
           height: 21,
@@ -239,13 +242,13 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               children: [
                 topCell('Date', 80, sortable: true),
                 topCell('Day', 55, sortable: true),
-                topCell('Employee Name', 120),
+                topCell('Employee Name', 120, sortable: true),
                 // Shift Schedule: Shift Start(75)+Shift End(75)+Duration(80)+Location(110) = 340
                 groupTitle('Shift Schedule', 75 + 75 + 80.0 + 110),
                 // Actual: Live In(85)+Live Out(85)+Live Total(85)+Live Shift(85)+Duty(85)+Late(100)+Loc(100) = 625
                 groupTitle('Actual', 85 + 85 + 85 + 85 + 85 + 100.0 + 100),
-                topCell('Location\nmismatch', 70),
-                topCell('Action', 50, isLast: true),
+                topCell('Location\nmismatch', 70, sortable: true),
+                topCell('Action', 55, isLast: true),
               ],
             ),
           ),
@@ -258,18 +261,18 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               // Shift Schedule sub-cols
               subCell('Shift Start', 75, sortable: true),
               subCell('Shift End', 75, sortable: true),
-              subCell('Duration', 80),
-              subCell('Location', 110),
+              subCell('Duration', 80, sortable: true),
+              subCell('Location', 110, sortable: true, sortKey: 'Shift Location'),
               // Actual sub-cols
               subCell('Live In (First)', 85, sortable: true),
               subCell('Live Out (Last)', 85, sortable: true),
               subCell('Live (Total)', 85, sortable: true),
-              subCell('Live (Shift)', 85),
-              subCell('Duty Shortage', 85),
-              subCell('Late For (Duration)', 100),
-              subCell('Location', 100),
+              subCell('Live (Shift)', 85, sortable: true),
+              subCell('Duty Shortage', 85, sortable: true),
+              subCell('Late For (Duration)', 100, sortable: true),
+              subCell('Location', 100, sortable: true, sortKey: 'Actual Location'),
               emptySubCell(70), // Location mismatch
-              emptySubCell(50, isLast: true), // Action
+              emptySubCell(55, isLast: true), // Action
             ],
           ),
         ],
@@ -278,35 +281,26 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
   }
 
   Widget _buildDataRow(AttendanceRow row, int index) {
-    // Touch this so Obx re-renders on change
-    controller.expandedRows.length;
-    final isExpanded = controller.expandedRows.contains(index);
+    return Obx(() {
+      final isExpanded = controller.expandedRows.contains(index);
 
-    void toggleRow() {
-      if (isExpanded) {
-        controller.expandedRows.remove(index);
-      } else {
-        controller.expandedRows.add(index);
+      void toggleRow() {
+        if (isExpanded) {
+          controller.expandedRows.remove(index);
+        } else {
+          controller.expandedRows.add(index);
+        }
       }
-    }
 
-    final statusColor = row.attendanceStatus.toLowerCase() == 'present'
-        ? Colors.green
-        : row.attendanceStatus.toLowerCase() == 'absent'
-        ? Colors.red
-        : row.attendanceStatus.toLowerCase() == 'late'
-        ? Colors.orange
-        : AppColors.grey800;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300, width: 1.0),
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade300, width: 1.0),
+          ),
         ),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
+        child: IntrinsicHeight(
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Date: formatted via AppDateUtils
@@ -350,7 +344,7 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               isExpanded: isExpanded,
               onTap: toggleRow,
             ),
-            _buildLocationCell(
+            _buildCell(
               row.shiftLocation,
               _kColumns[6].$2,
               isExpanded: isExpanded,
@@ -373,7 +367,6 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               _kColumns[9].$2,
               isExpanded: isExpanded,
               onTap: toggleRow,
-              color: statusColor,
             ),
             _buildCell(
               row.liveShift,
@@ -381,7 +374,6 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               isExpanded: isExpanded,
               onTap: toggleRow,
               bgColor: Colors.red.withValues(alpha: 0.1),
-              color: Colors.red.shade700,
             ),
             _buildCell(
               row.dutyShortage,
@@ -397,7 +389,7 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               onTap: toggleRow,
               color: Colors.red.shade700,
             ),
-            _buildLocationCell(
+            _buildCell(
               row.actualLocation,
               _kColumns[13].$2,
               isExpanded: isExpanded,
@@ -454,6 +446,7 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
         ),
       ),
     );
+    });
   }
 
   Widget _buildCell(
@@ -487,45 +480,6 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
           style: AppTextStyle.style_12_400(color: color ?? AppColors.grey900),
           maxLines: isExpanded ? null : 1,
           overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocationCell(
-    String rawLocation,
-    double width, {
-    bool isLast = false,
-    bool isExpanded = false,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: width,
-        constraints: const BoxConstraints(minHeight: 28),
-        padding: EdgeInsets.symmetric(
-          horizontal: 4.w,
-          vertical: isExpanded ? 6.h : 4.h,
-        ),
-        alignment: Alignment.centerLeft,
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(right: BorderSide(color: Colors.grey.shade300)),
-        ),
-        child: FutureBuilder<String>(
-          future: GeocodingService.instance.resolve(rawLocation),
-          builder: (context, snapshot) {
-            final text = snapshot.data ?? rawLocation;
-            return Text(
-              text.isEmpty ? 'Unknown' : text,
-              style: AppTextStyle.style_12_400(color: AppColors.grey900),
-              maxLines: isExpanded ? null : 1,
-              overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-            );
-          },
         ),
       ),
     );

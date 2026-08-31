@@ -90,7 +90,27 @@ class DashboardController extends GetxController {
   }
 
   Future<void> pullToRefresh() async {
-    // A swipe-to-refresh should reload the dashboard but keep current filters applied.
+    // Reset filters to today
+    rxDateFilter.value = 'today';
+    rxStartDate.value = null;
+    rxEndDate.value = null;
+    rxPaymentMode.value = null;
+    rxSelectedUnitIds.clear();
+    rxMonthFilter.value = null;
+    rxFromMonth.value = null;
+    rxToMonth.value = null;
+    rxGrowthFilter.value = null;
+
+    rxDateFilter.refresh();
+    rxStartDate.refresh();
+    rxEndDate.refresh();
+    rxPaymentMode.refresh();
+    rxSelectedUnitIds.refresh();
+    rxMonthFilter.refresh();
+    rxFromMonth.refresh();
+    rxToMonth.refresh();
+    rxGrowthFilter.refresh();
+
     await fetchDashboardData();
   }
 
@@ -249,12 +269,6 @@ class DashboardController extends GetxController {
     } else {
       rxGrowthFilter.value = filter;
     }
-    rxDateFilter.value = null;
-    rxStartDate.value = null;
-    rxEndDate.value = null;
-    rxMonthFilter.value = null;
-    rxFromMonth.value = null;
-    rxToMonth.value = null;
     fetchDashboardData();
   }
 

@@ -371,7 +371,7 @@ class SupportTicketsTable extends StatelessWidget {
             // 12 Tkt Age
             _buildTextCell(
               width: _getColumnWidth(controller, 12),
-              text: _calculateTicketAge(ticket.postedDate, ticket.resolvedOn),
+              text: _calculateTicketAge(ticket.createdAt ?? ticket.postedDate, ticket.resolvedOn),
               isLast: false,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded,
@@ -380,7 +380,7 @@ class SupportTicketsTable extends StatelessWidget {
             // 13 Date/Time Open
             _buildTextCell(
               width: _getColumnWidth(controller, 13),
-              text: _formatDateTime(ticket.postedDate),
+              text: _formatDateTime(ticket.createdAt ?? ticket.postedDate),
               isLast: false,
               isTopPriority: isTopPriority,
               isExpanded: isExpanded,

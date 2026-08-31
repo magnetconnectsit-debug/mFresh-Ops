@@ -27,6 +27,10 @@ class ConsumptionController extends GetxController {
   final totalEntries = 0.obs;
   final perPage = 20.obs;
 
+  // Sorting states
+  final RxString sortColumn = ''.obs;
+  final RxBool sortAscending = true.obs;
+
   // Date filters
   final fromDateController = TextEditingController();
   final toDateController = TextEditingController();
@@ -42,6 +46,62 @@ class ConsumptionController extends GetxController {
   final storeOptions = <DropdownOption<String>>[].obs;
 
   final consumptionItems = <ConsumptionItemModel>[].obs;
+
+  List<ConsumptionItemModel> get sortedItems {
+    if (sortColumn.value.isEmpty) return consumptionItems;
+
+    final items = List<ConsumptionItemModel>.from(consumptionItems);
+    items.sort((a, b) {
+      int compare(String v1, String v2) {
+        final double? d1 = double.tryParse(v1);
+        final double? d2 = double.tryParse(v2);
+        if (d1 != null && d2 != null) return d1.compareTo(d2);
+        return v1.compareTo(v2);
+      }
+
+      int result = 0;
+      switch (sortColumn.value) {
+        case 'Consumed On': result = compare(a.consumedOn, b.consumedOn); break;
+        case 'State': result = compare(a.state, b.state); break;
+        case 'District': result = compare(a.district, b.district); break;
+        case 'Source Type': result = compare(a.sourceType, b.sourceType); break;
+        case 'Source': result = compare(a.source, b.source); break;
+        case 'Category': result = compare(a.category, b.category); break;
+        case 'Item': result = compare(a.item, b.item); break;
+        case 'Consumed Qty': result = compare(a.consumedQty, b.consumedQty); break;
+        case 'M_Unit': result = compare(a.mUnit, b.mUnit); break;
+        case 'Created By': result = compare(a.createdBy, b.createdBy); break;
+      }
+      return sortAscending.value ? result : -result;
+    });
+    return items;
+  }
+
+  void sortBy(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+  }
+
+  void resetFilters() {
+    fromDateController.clear();
+    toDateController.clear();
+    selectedUnits.clear();
+    selectedItems.clear();
+    selectedStores.clear();
+    searchController.clear();
+    isSearching.value = false;
+    sortColumn.value = '';
+    applyFilters();
+  }
 
   @override
   void onInit() {
@@ -401,13 +461,9 @@ class ConsumptionController extends GetxController {
     isExportingPdf.value = false;
   }
 
-  Future<void> selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> selectDateRange(BuildContext context) async {
+    final DateTimeRange? picked = await showDateRangePicker(
       context: context,
-      initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2101),
       builder: (context, child) {
@@ -424,8 +480,10 @@ class ConsumptionController extends GetxController {
       },
     );
     if (picked != null) {
-      controller.text =
-          "${picked.day.toString().padLeft(2, '0')}-${_getMonthName(picked.month)}-${picked.year}";
+      fromDateController.text =
+          "${picked.start.day.toString().padLeft(2, '0')}-${_getMonthName(picked.start.month)}-${picked.start.year}";
+      toDateController.text =
+          "${picked.end.day.toString().padLeft(2, '0')}-${_getMonthName(picked.end.month)}-${picked.end.year}";
       applyFilters();
     }
   }

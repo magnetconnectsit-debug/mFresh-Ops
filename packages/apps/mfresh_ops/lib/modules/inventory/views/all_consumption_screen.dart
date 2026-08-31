@@ -119,7 +119,7 @@ class AllConsumptionScreen extends StatelessWidget {
               isReversed: 0,
             ),
           )
-        : controller.consumptionItems;
+        : controller.sortedItems;
 
     if (items.isEmpty && !controller.isSearching.value) {
       return Padding(
@@ -188,17 +188,17 @@ class AllConsumptionScreen extends StatelessWidget {
                       TableRow(
                         decoration: const BoxDecoration(color: AppColors.white),
                         children: [
-                          if (hasReverse) _buildHeaderCell('Action'),
-                          _buildHeaderCell('Consumed On'),
-                          _buildHeaderCell('State'),
-                          _buildHeaderCell('District'),
-                          _buildHeaderCell('Source Type'),
-                          _buildHeaderCell('Source'),
-                          _buildHeaderCell('Category'),
-                          _buildHeaderCell('Item'),
-                          _buildHeaderCell('Consumed Qty'),
-                          _buildHeaderCell('M_Unit'),
-                          _buildHeaderCell('Created By'),
+                          if (hasReverse) _buildHeaderCell('Action', controller, sortable: false),
+                          _buildHeaderCell('Consumed On', controller),
+                          _buildHeaderCell('State', controller),
+                          _buildHeaderCell('District', controller),
+                          _buildHeaderCell('Source Type', controller),
+                          _buildHeaderCell('Source', controller),
+                          _buildHeaderCell('Category', controller),
+                          _buildHeaderCell('Item', controller),
+                          _buildHeaderCell('Consumed Qty', controller),
+                          _buildHeaderCell('M_Unit', controller),
+                          _buildHeaderCell('Created By', controller),
                         ],
                       ),
                       ...items.map((item) {
@@ -339,12 +339,35 @@ class AllConsumptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_700(color: AppColors.black),
+  Widget _buildHeaderCell(String text, ConsumptionController controller, {bool sortable = true}) {
+    return GestureDetector(
+      onTap: sortable ? () => controller.sortBy(text) : null,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Obx(() {
+          final isSorted = controller.sortColumn.value == text;
+          final isAsc = controller.sortAscending.value;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                text,
+                style: AppTextStyle.style_12_700(
+                  color: isSorted ? AppColors.primary : AppColors.black,
+                ),
+              ),
+              if (isSorted) ...[
+                SizedBox(width: 2.w),
+                Icon(
+                  isAsc ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 12.r,
+                  color: AppColors.primary,
+                ),
+              ],
+            ],
+          );
+        }),
       ),
     );
   }
@@ -407,18 +430,12 @@ class AllConsumptionScreen extends StatelessWidget {
                   _buildDatePickerField(
                     'From Date',
                     controller.fromDateController,
-                    () => controller.selectDate(
-                      context,
-                      controller.fromDateController,
-                    ),
+                    () => controller.selectDateRange(context),
                   ),
                   _buildDatePickerField(
                     'To Date',
                     controller.toDateController,
-                    () => controller.selectDate(
-                      context,
-                      controller.toDateController,
-                    ),
+                    () => controller.selectDateRange(context),
                   ),
                   Obx(
                     () => MultiSelectDropdownWidget<String>(
@@ -489,6 +506,30 @@ class AllConsumptionScreen extends StatelessWidget {
                       },
                     ),
                   ),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 22.h,
+                      child: ElevatedButton.icon(
+                        onPressed: () => controller.resetFilters(),
+                        icon: Icon(Icons.refresh, size: 14.r, color: Colors.white),
+                        label: Text(
+                          'Reset',
+                          style: AppTextStyle.style_12_600(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size.zero,
+                          backgroundColor: Colors.red.shade400,
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                        ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],

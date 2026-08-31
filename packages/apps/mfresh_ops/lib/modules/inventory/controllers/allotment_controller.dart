@@ -3,6 +3,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/widgets/month_range_picker.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/allotment_item_model.dart';
 
@@ -22,12 +23,66 @@ class AllotmentController extends GetxController {
   final totalEntries = 0.obs;
   final perPage = 10.obs;
 
+  // Sorting states
+  final RxString sortColumn = ''.obs;
+  final RxBool sortAscending = true.obs;
+
   // Date filters (Year-Month format YYYY-MM)
   final fromDateController = TextEditingController();
   final toDateController = TextEditingController();
 
   final allAllotmentItems = <AllotmentItemModel>[];
   final allotmentItems = <AllotmentItemModel>[].obs;
+
+  List<AllotmentItemModel> get sortedItems {
+    if (sortColumn.value.isEmpty) return allotmentItems;
+
+    final items = List<AllotmentItemModel>.from(allotmentItems);
+    items.sort((a, b) {
+      int compare(String v1, String v2) {
+        final double? d1 = double.tryParse(v1);
+        final double? d2 = double.tryParse(v2);
+        if (d1 != null && d2 != null) return d1.compareTo(d2);
+        return v1.compareTo(v2);
+      }
+
+      int result = 0;
+      switch (sortColumn.value) {
+        case 'Date Of Allotment': result = compare(a.dateOfAllotment, b.dateOfAllotment); break;
+        case 'Item Name': result = compare(a.itemName, b.itemName); break;
+        case 'Source': result = compare(a.source, b.source); break;
+        case 'Destination': result = compare(a.destination, b.destination); break;
+        case 'Quantity': result = compare(a.quantity, b.quantity); break;
+        case 'M_Unit': result = compare(a.unit, b.unit); break;
+        case 'Allotment By': result = compare(a.allotmentBy, b.allotmentBy); break;
+      }
+      return sortAscending.value ? result : -result;
+    });
+    return items;
+  }
+
+  void sortBy(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+  }
+
+  void resetFilters() {
+    fromDateController.clear();
+    toDateController.clear();
+    searchController.clear();
+    isSearching.value = false;
+    sortColumn.value = '';
+    applyFilters();
+  }
 
   @override
   void onInit() {
@@ -157,30 +212,12 @@ class AllotmentController extends GetxController {
     }
   }
 
-  Future<void> selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: AppColors.white,
-              onSurface: AppColors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+  Future<void> selectDateRange(BuildContext context) async {
+    final DateTimeRange? picked = await showMonthRangePicker(context);
+    
     if (picked != null) {
-      controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}";
+      fromDateController.text = "${picked.start.year}-${picked.start.month.toString().padLeft(2, '0')}";
+      toDateController.text = "${picked.end.year}-${picked.end.month.toString().padLeft(2, '0')}";
       applyFilters();
     }
   }

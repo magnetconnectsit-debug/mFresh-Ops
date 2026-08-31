@@ -185,7 +185,7 @@ class MeasurementController extends GetxController {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
       title: 'Measurements Report',
-      columns: const ["SI No", "Measurement Name"],
+      columns: const ["Sl No", "Measurement"],
       rows: measurements
           .asMap()
           .entries
@@ -199,7 +199,7 @@ class MeasurementController extends GetxController {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
       title: 'Measurements Report',
-      columns: const ["SI No", "Measurement Name"],
+      columns: const ["Sl No", "Measurement"],
       rows: measurements
           .asMap()
           .entries

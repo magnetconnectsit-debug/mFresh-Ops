@@ -1,6 +1,7 @@
 // region SupportTicketsController
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
@@ -323,6 +324,7 @@ class SupportTicketsController extends GetxController {
     selectedUnits.clear();
     selectedAssignees.clear();
     selectedPriorities.clear(); // Updated
+    selectedQuickFilter.value = null;
     selectedStatuses.clear();
     subCategories.clear();
 
@@ -597,11 +599,51 @@ class SupportTicketsController extends GetxController {
   // endregion
 
   // region exportTickets
+  String _formatDateTime(String? dateString) {
+    if (dateString == null || dateString.isEmpty || dateString == '-') {
+      return dateString ?? '-';
+    }
+    try {
+      final parsed = DateTime.parse(dateString);
+      return DateFormat('dd MMM yyyy, hh:mm a').format(parsed);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  String _getDateTimeClose(SupportTicketListItem ticket) {
+    final status = ticket.resolvedStatus ?? '';
+    if (status != '0' && status != '1' && status != '4' && status != '5') {
+      return _formatDateTime(ticket.updatedAt);
+    } else {
+      return '-';
+    }
+  }
+
+  String _calculateTicketAge(String? openDateStr, String? closeDateStr) {
+    if (openDateStr == null || openDateStr.isEmpty || openDateStr == '-') return '-';
+    try {
+      final openDate = DateTime.parse(openDateStr);
+      final closeDate = (closeDateStr != null && closeDateStr.isNotEmpty && closeDateStr != '-')
+          ? DateTime.parse(closeDateStr)
+          : DateTime.now();
+      final duration = closeDate.difference(openDate);
+      if (duration.inMinutes < 0) return '-';
+      final days = duration.inDays;
+      final hours = duration.inHours % 24;
+      if (days == 0 && hours == 0) return '< 1h';
+      if (days == 0) return '${hours}h';
+      return '${days}d, ${hours}h';
+    } catch (e) {
+      return '-';
+    }
+  }
+
   Future<void> exportTickets({bool isPdf = false}) async {
     try {
       // Prepare Data
       List<String> columns = [
-        "Ticket ID",
+        "Ticket",
         "Unit No.",
         "Subject",
         "Project",
@@ -610,7 +652,13 @@ class SupportTicketsController extends GetxController {
         "Status",
         "Priority",
         "Assignee",
-        "Posted Date",
+        "Latest Comment",
+        "Follow-up-on",
+        "Tkt Age",
+        "Date/Time Open",
+        "Date/Time Resolved",
+        "District",
+        "Created By",
       ];
 
       List<List<dynamic>> rows = filteredTickets
@@ -624,8 +672,14 @@ class SupportTicketsController extends GetxController {
           ticket.subCat ?? '',
           ticket.statusLabel ?? '',
           ticket.priorityLabel ?? '',
-          ticket.assignedTo ?? '',
-          ticket.postedDate ?? '',
+          getAssigneeName(ticket.assignedTo),
+          ticket.latestComment ?? '',
+          _formatDateTime(ticket.followUp),
+          _calculateTicketAge(ticket.createdAt ?? ticket.postedDate, ticket.resolvedOn),
+          _formatDateTime(ticket.createdAt ?? ticket.postedDate),
+          _getDateTimeClose(ticket),
+          ticket.district ?? '',
+          ticket.createdBy ?? '',
         ],
       )
           .toList();

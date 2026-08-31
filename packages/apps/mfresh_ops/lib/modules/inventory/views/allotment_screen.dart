@@ -122,9 +122,9 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                           allotmentBy: 'Loading...',
                           isReversed: 0,
                           reverseStatus: 'Active',
-                        )
+                        ),
                       )
-                    : controller.allotmentItems;
+                    : controller.sortedItems;
 
                   if (items.isEmpty) {
                     return Padding(
@@ -202,14 +202,14 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                       TableRow(
                         decoration: const BoxDecoration(color: AppColors.white),
                         children: [
-                          if (hasReverse) _buildHeaderCell('Action'),
-                          _buildHeaderCell('Date Of Allotment'),
-                          _buildHeaderCell('Item Name'),
-                          _buildHeaderCell('Source'),
-                          _buildHeaderCell('Destination'),
-                          _buildHeaderCell('Quantity'),
-                          _buildHeaderCell('M_Unit'),
-                          _buildHeaderCell('Allotment By'),
+                          if (hasReverse) _buildHeaderCell('Action', controller, sortable: false),
+                          _buildHeaderCell('Date Of Allotment', controller),
+                          _buildHeaderCell('Item Name', controller),
+                          _buildHeaderCell('Source', controller),
+                          _buildHeaderCell('Destination', controller),
+                          _buildHeaderCell('Quantity', controller),
+                          _buildHeaderCell('M_Unit', controller),
+                          _buildHeaderCell('Allotment By', controller),
                         ],
                       ),
                       ...items.asMap().entries.map((entry) {
@@ -429,12 +429,35 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
     );
   }
 
-  Widget _buildHeaderCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_700(color: AppColors.black).copyWith(fontSize: 11.sp),
+  Widget _buildHeaderCell(String text, AllotmentController controller, {bool sortable = true}) {
+    return GestureDetector(
+      onTap: sortable ? () => controller.sortBy(text) : null,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Obx(() {
+          final isSorted = controller.sortColumn.value == text;
+          final isAsc = controller.sortAscending.value;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                text,
+                style: AppTextStyle.style_12_700(
+                  color: isSorted ? AppColors.primary : AppColors.black,
+                ).copyWith(fontSize: 11.sp),
+              ),
+              if (isSorted) ...[
+                SizedBox(width: 2.w),
+                Icon(
+                  isAsc ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 12.r,
+                  color: AppColors.primary,
+                ),
+              ],
+            ],
+          );
+        }),
       ),
     );
   }
@@ -494,7 +517,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxis,
                   crossAxisSpacing: 8.w,
-                  mainAxisSpacing: 8.h,
+                  mainAxisSpacing: 2.h,
                   mainAxisExtent: 32.h,
                 ),
                 shrinkWrap: true,
@@ -503,17 +526,35 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                   _buildDatePickerField(
                     'From Month',
                     controller.fromDateController,
-                    () => controller.selectDate(
-                      context,
-                      controller.fromDateController,
-                    ),
+                    () => controller.selectDateRange(context),
                   ),
                   _buildDatePickerField(
                     'To Month',
                     controller.toDateController,
-                    () => controller.selectDate(
-                      context,
-                      controller.toDateController,
+                    () => controller.selectDateRange(context),
+                  ),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 22.h,
+                      child: ElevatedButton.icon(
+                        onPressed: () => controller.resetFilters(),
+                        icon: Icon(Icons.refresh, size: 14.r, color: Colors.white),
+                        label: Text(
+                          'Reset',
+                          style: AppTextStyle.style_12_600(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size.zero,
+                          backgroundColor: Colors.red.shade400,
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
