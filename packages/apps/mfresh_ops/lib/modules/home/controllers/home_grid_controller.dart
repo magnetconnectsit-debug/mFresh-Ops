@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 
 class GridSubAction {
   final String title;
@@ -161,8 +159,13 @@ class HomeGridController extends GetxController {
           permissionKey: 'store_inventory_stock',
         ),
         GridSubAction(
+          title: 'Orders',
+          icon: Icons.shopping_cart_outlined,
+          route: AppRoutes.inventoryOrders,
+        ),
+        GridSubAction(
           title: 'Consumption',
-          icon: Icons.restaurant,
+          icon: Icons.pie_chart_rounded,
           route: AppRoutes.allConsumption,
           permissionKey: 'consumption_report',
         ),
@@ -201,7 +204,7 @@ class HomeGridController extends GetxController {
       permissionKey: 'tracking_panel',
       subActions: [
         GridSubAction(
-          title: 'Log',
+          title: 'Report',
           icon: Icons.assignment_rounded,
           route: AppRoutes.attendanceLog,
           permissionKey: 'Attendance_Log',
@@ -343,7 +346,7 @@ class HomeGridController extends GetxController {
         } else if (userPermissions.contains('Attendance_Log')) { 
           availableItems.add(
             GridItemData(
-              title: 'Attendance Log',
+              title: 'Attendance Report',
               subtitle: 'View attendance records',
               icon: Icons.assignment_rounded,
               gradient: item.gradient,

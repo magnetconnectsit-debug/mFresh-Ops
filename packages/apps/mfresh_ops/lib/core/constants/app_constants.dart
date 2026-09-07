@@ -124,6 +124,7 @@ class AppConstants {
   static const String measurementCreate = 'measurement/create';
   static const String measurementUpdate = 'measurement/update';
   static const String measurementDelete = 'measurement/delete';
+  static const String inventoryOrders = 'inventory/orders';
   static const String measurementList = 'measurement/list';
 
   // Tracking

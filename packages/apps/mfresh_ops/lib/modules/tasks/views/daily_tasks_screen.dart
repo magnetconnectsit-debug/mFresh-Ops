@@ -227,14 +227,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       ),
                       SizedBox(height: 12.h),
                       TaskFilterCard(controller: controller),
-                      SizedBox(height: 6.h),
-                      Text(
-                        'My Tasks',
-                        style: AppTextStyle.style_14_600(
-                          color: AppColors.black,
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
+                      SizedBox(height: 4.h),
                       TaskTabs(controller: controller),
                       SizedBox(height: 12.h),
                     ]),

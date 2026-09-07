@@ -83,11 +83,8 @@ class UnitInventoryScreen extends StatelessWidget {
               children: [
                 const UnitInventoryFilters(),
                 _buildActionButtons(context),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: UnitInventoryTable(),
-                ),
-                SizedBox(height: 20.h),
+                const UnitInventoryTable(),
+                SizedBox(height: 40.h),
               ],
             ),
           ),
@@ -125,6 +122,34 @@ class UnitInventoryScreen extends StatelessWidget {
             ),
           ],
           const Spacer(),
+          Container(
+            height: 24.h,
+            padding: EdgeInsets.symmetric(horizontal: 6.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: controller.itemsPerPage.value,
+                icon: Icon(Icons.arrow_drop_down, size: 16.r),
+                isDense: true,
+                style: AppTextStyle.style_12_500(color: AppColors.black),
+                items: const [10, 25, 50, 100].map((int val) {
+                  return DropdownMenuItem<int>(
+                    value: val,
+                    child: Text('$val per page'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.setItemsPerPage(val);
+                  }
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );

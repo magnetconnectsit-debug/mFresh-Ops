@@ -83,6 +83,8 @@ class UnitInventoryController extends GetxController {
     }
   }
 
+  final consumptionSubtitle = ''.obs;
+
   Future<void> fetchUnitInventory() async {
     isLoading.value = true;
     try {
@@ -95,19 +97,26 @@ class UnitInventoryController extends GetxController {
       );
 
       if (response != null && response['status'] == true) {
+        final period = response['consumption_period'];
+        if (period != null && period is Map) {
+          final days = period['days']?.toString();
+          if (days != null && days.isNotEmpty) {
+            consumptionSubtitle.value = '($days Days)';
+          }
+        }
+
         final List data = response['data'] ?? [];
         final items = data.map((e) => UnitInventoryModel.fromJson(e)).toList();
-        final reversedItems = items.reversed.toList();
 
         final query = searchController.text.toLowerCase();
         if (query.isNotEmpty) {
-          unitInventoryItems.assignAll(reversedItems.where((item) => 
+          unitInventoryItems.assignAll(items.where((item) => 
             item.itemName.toLowerCase().contains(query) ||
             item.unitName.toLowerCase().contains(query) ||
             item.categoryName.toLowerCase().contains(query)
           ).toList());
         } else {
-          unitInventoryItems.assignAll(reversedItems);
+          unitInventoryItems.assignAll(items);
         }
       } else {
         unitInventoryItems.clear();
@@ -122,18 +131,80 @@ class UnitInventoryController extends GetxController {
 
   final unitInventoryItems = <UnitInventoryModel>[].obs;
 
+  // Sorting logic
+  final sortColumn = ''.obs;
+  final sortAscending = true.obs;
+
+  void sortBy(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+  }
+
+  List<UnitInventoryModel> get sortedItems {
+    final list = [...unitInventoryItems];
+    if (sortColumn.value.isEmpty) return list;
+
+    final col = sortColumn.value;
+    final asc = sortAscending.value;
+
+    int compareStr(String a, String b) {
+      return asc ? a.toLowerCase().compareTo(b.toLowerCase()) : b.toLowerCase().compareTo(a.toLowerCase());
+    }
+
+    int compareNum(num a, num b) {
+      return asc ? a.compareTo(b) : b.compareTo(a);
+    }
+
+    list.sort((a, b) {
+      switch (col) {
+        case 'Unit':
+          return compareStr(a.unitName, b.unitName);
+        case 'Item':
+          return compareStr(a.itemName, b.itemName);
+        case 'Category':
+          return compareStr(a.categoryName, b.categoryName);
+        case 'Quantity':
+          return compareNum(double.tryParse(a.quantity) ?? 0, double.tryParse(b.quantity) ?? 0);
+        case 'M_Unit':
+          return compareStr(a.mUnit, b.mUnit);
+        case 'Consumption':
+          return compareNum(a.last8DaysConsumption, b.last8DaysConsumption);
+        case 'Order':
+          return compareStr(a.currentOrderStatusName ?? '', b.currentOrderStatusName ?? '');
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }
+
   // Pagination
   final currentPage = 1.obs;
-  final itemsPerPage = 10.obs;
+  final itemsPerPage = 50.obs;
+
+  void setItemsPerPage(int count) {
+    itemsPerPage.value = count;
+    currentPage.value = 1;
+  }
 
   int get totalPages => (unitInventoryItems.length / itemsPerPage.value).ceil();
 
   List<UnitInventoryModel> get paginatedItems {
+    final items = unitInventoryItems;
     final startIndex = (currentPage.value - 1) * itemsPerPage.value;
     final endIndex = startIndex + itemsPerPage.value;
-    if (startIndex >= unitInventoryItems.length) return [];
-    return unitInventoryItems.sublist(
-        startIndex, endIndex > unitInventoryItems.length ? unitInventoryItems.length : endIndex);
+    if (startIndex >= items.length) return [];
+    return items.sublist(
+        startIndex, endIndex > items.length ? items.length : endIndex);
   }
 
 

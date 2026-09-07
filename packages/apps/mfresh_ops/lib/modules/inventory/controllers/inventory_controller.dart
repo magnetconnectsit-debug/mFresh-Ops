@@ -278,6 +278,8 @@ class InventoryController extends GetxController {
     return measurementsMap[id.toString()] ?? '';
   }
 
+  final consumptionSubtitle = ''.obs;
+
   Future<void> fetchInventoryStock() async {
     isLoading.value = true;
     try {
@@ -295,22 +297,27 @@ class InventoryController extends GetxController {
       );
       
       if (response != null && response['status'] == true) {
+        final period = response['consumption_period'];
+        if (period != null && period is Map) {
+          final days = period['days']?.toString();
+          if (days != null && days.isNotEmpty) {
+            consumptionSubtitle.value = '($days Days)';
+          }
+        }
+
         final List data = response['data'] ?? [];
         final items = data.map((e) => InventoryItemModel.fromJson(e)).toList();
-        
-        // Reverse items to show in opposite order (newest first)
-        final reversedItems = items.reversed.toList();
         
         // Apply client-side search filtering if active
         final query = searchController.text.toLowerCase();
         if (query.isNotEmpty) {
-          inventoryItems.assignAll(reversedItems.where((item) => 
+          inventoryItems.assignAll(items.where((item) => 
             item.item.toLowerCase().contains(query) ||
             item.store.toLowerCase().contains(query) ||
             item.category.toLowerCase().contains(query)
           ).toList());
         } else {
-          inventoryItems.assignAll(reversedItems);
+          inventoryItems.assignAll(items);
         }
       } else {
         inventoryItems.clear();
@@ -371,18 +378,80 @@ class InventoryController extends GetxController {
     isExportingPdf.value = false;
   }
 
+  // Sorting logic
+  final sortColumn = ''.obs;
+  final sortAscending = true.obs;
+
+  void sortBy(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+  }
+
+  List<InventoryItemModel> get sortedItems {
+    final list = [...inventoryItems];
+    if (sortColumn.value.isEmpty) return list;
+
+    final col = sortColumn.value;
+    final asc = sortAscending.value;
+
+    int compareStr(String a, String b) {
+      return asc ? a.toLowerCase().compareTo(b.toLowerCase()) : b.toLowerCase().compareTo(a.toLowerCase());
+    }
+
+    int compareNum(num a, num b) {
+      return asc ? a.compareTo(b) : b.compareTo(a);
+    }
+
+    list.sort((a, b) {
+      switch (col) {
+        case 'Store':
+          return compareStr(a.store, b.store);
+        case 'Item':
+          return compareStr(a.item, b.item);
+        case 'Category':
+          return compareStr(a.category, b.category);
+        case 'Qty':
+          return compareNum(double.tryParse(a.quantity) ?? 0, double.tryParse(b.quantity) ?? 0);
+        case 'Unit':
+          return compareStr(a.unit, b.unit);
+        case 'Consumption':
+          return compareNum(a.last30DaysConsumption, b.last30DaysConsumption);
+        case 'Order':
+          return compareStr(a.currentOrderStatusName ?? '', b.currentOrderStatusName ?? '');
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }
+
   // Pagination and UI logic
   final currentPage = 1.obs;
-  final itemsPerPage = 10.obs;
+  final itemsPerPage = 50.obs;
+
+  void setItemsPerPage(int count) {
+    itemsPerPage.value = count;
+    currentPage.value = 1;
+  }
 
   int get totalPages => (inventoryItems.length / itemsPerPage.value).ceil();
 
   List<InventoryItemModel> get paginatedItems {
+    final items = sortedItems;
     final startIndex = (currentPage.value - 1) * itemsPerPage.value;
     final endIndex = startIndex + itemsPerPage.value;
-    if (startIndex >= inventoryItems.length) return [];
-    return inventoryItems.sublist(
-        startIndex, endIndex > inventoryItems.length ? inventoryItems.length : endIndex);
+    if (startIndex >= items.length) return [];
+    return items.sublist(
+        startIndex, endIndex > items.length ? items.length : endIndex);
   }
 
   void nextPage() {

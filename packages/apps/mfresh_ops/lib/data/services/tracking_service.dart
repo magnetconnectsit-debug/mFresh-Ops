@@ -22,6 +22,7 @@ import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
+import 'package:mfresh_ops/data/services/duty_overlay_service.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
@@ -100,6 +101,12 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         isTracking.value = false;
         sessionId.value = null;
         await _flushQueueAndStop();
+      }
+    });
+
+    ever(isTracking, (bool tracking) {
+      if (!tracking) {
+        DutyOverlayService.to.hideOverlay();
       }
     });
   }
@@ -303,8 +310,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
   Future<void> startAutoTracking() async {
     if (_isStartingTracking) return;
-    if (isTracking.value && sessionId.value != null && sessionId.value! > 0)
+    if (isTracking.value && sessionId.value != null && sessionId.value! > 0) {
       return;
+    }
 
     // Offline-first startup rescue: check if user was active before app kill
     final savedSessionId = _storageService.getTrackingSessionId();
@@ -357,8 +365,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
 
   Future<void> startTracking() async {
     if (_isStartingTracking) return;
-    if (isTracking.value || (sessionId.value != null && sessionId.value! > 0))
-      return;
+    if (isTracking.value) return;
 
     _isStartingTracking = true;
 
@@ -480,6 +487,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         return true;
       } else {
         await _repository.dutyOn();
+        isTracking.value = true;
+        await _storageService.saveIntendedTrackingStatus(true);
         await startTracking();
         try {
           await Get.find<AuthRepository>().fetchProfile();
@@ -509,16 +518,22 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         );
 
         if (emp != null) {
-          active = emp['is_on_duty'] == 1 || emp['is_on_duty'] == true;
+          final dynamic dutyRaw = emp['is_on_duty'] ?? emp['is_duty_on'] ?? emp['duty_status'];
+          active = dutyRaw == 1 || dutyRaw == '1' || dutyRaw == true || dutyRaw == 'true';
           newSessionId = emp['session_id'] != null
               ? int.tryParse(emp['session_id'].toString())
               : null;
         }
 
-        isTracking.value = active;
-        sessionId.value = newSessionId;
+        final intendedStatus = _storageService.getIntendedTrackingStatus();
+        if (intendedStatus == true && (sessionId.value != null && sessionId.value! > 0)) {
+          // Local active session takes priority to prevent accidental stop on resume
+          active = true;
+        }
 
+        isTracking.value = active;
         if (newSessionId != null && newSessionId > 0) {
+          sessionId.value = newSessionId;
           await _storageService.saveTrackingSessionId(newSessionId);
           await FlutterForegroundTask.saveData(
             key: 'session_id',
@@ -801,8 +816,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   }
 
   Future<void> syncOfflineData() async {
-    if (isSyncing.value || sessionId.value == null || sessionId.value! <= 0)
+    if (isSyncing.value || sessionId.value == null || sessionId.value! <= 0) {
       return;
+    }
 
     try {
       final box = await Hive.openBox<LocationData>('location_cache_box');
@@ -857,18 +873,19 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'tracking_service',
-        channelName: 'Tracking Service',
-        channelDescription: 'Maintains location tracking in background',
-        channelImportance: NotificationChannelImportance.DEFAULT,
-        priority: NotificationPriority.DEFAULT,
+        channelId: 'tracking_service_v5',
+        channelName: 'Duty Tracking Service',
+        channelDescription: 'Maintains location tracking active during duty hours',
+        channelImportance: NotificationChannelImportance.MIN,
+        priority: NotificationPriority.MIN,
+        isSticky: true,
       ),
       iosNotificationOptions: const IOSNotificationOptions(
         showNotification: false,
         playSound: false,
       ),
       foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 60000,
+        interval: 30000,
         isOnceEvent: false,
         autoRunOnBoot: true,
         allowWakeLock: true,
@@ -891,8 +908,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         );
       }
       final token = _storageService.getToken();
-      if (token != null)
+      if (token != null) {
         await FlutterForegroundTask.saveData(key: 'token', value: token);
+      }
       await FlutterForegroundTask.saveData(
         key: 'device_id',
         value: _cachedDeviceId ?? 'unknown',
@@ -911,13 +929,19 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
                 !_storageService.getHasShownAutoStartPrompt()) {
               await _storageService.saveHasShownAutoStartPrompt(true);
               Future.delayed(const Duration(seconds: 2), () {
-                if (Get.context != null)
+                if (Get.context != null) {
                   showDialog(
                     context: Get.context!,
                     barrierDismissible: false,
                     builder: (context) => const AutoStartDialog(),
                   );
+                }
               });
+            }
+          } catch (_) {}
+          try {
+            if (Get.isRegistered<DutyOverlayService>()) {
+              await DutyOverlayService.to.requestPermissionWithRationale();
             }
           } catch (_) {}
         }
@@ -999,8 +1023,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   }
 
   String _networkTypeFromConnectivity(List<ConnectivityResult> results) {
-    if (results.isEmpty || results.contains(ConnectivityResult.none))
+    if (results.isEmpty || results.contains(ConnectivityResult.none)) {
       return 'offline';
+    }
     if (results.contains(ConnectivityResult.wifi)) return 'wifi';
     if (results.contains(ConnectivityResult.mobile)) return 'mobile';
     return results.first.name;
@@ -1017,40 +1042,15 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       );
     }
 
-    if (isTracking.value) {
-      final lastTimeStr = await FlutterForegroundTask.getData<String>(
-        key: 'last_time',
-      );
-      final lastLocTime = lastTimeStr != null
-          ? DateTime.tryParse(lastTimeStr)
-          : null;
-
-      // Fallback to local in-memory timestamp if persistent time is null
-      final actualLastLocTime = lastLocTime ?? _lastProcessedLocationTime;
-
-      if (actualLastLocTime != null &&
-          DateTime.now().difference(actualLastLocTime) >
-              const Duration(hours: 1)) {
-        final lastShown = _lastNotificationShownTime;
-        if (lastShown == null ||
-            DateTime.now().difference(lastShown) > const Duration(hours: 1)) {
-          _lastNotificationShownTime = DateTime.now();
-          try {
-            Get.find<PushNotificationService>().showNotification(
-              title: 'Off Duty',
-              body: 'You are now Off Duty. Click to change the duty status.',
-            );
-          } catch (_) {}
-        }
-      }
-    }
+    // Inactivity check removed as requested
   }
 
   Future<String> _getDeviceId() async {
     bool isDev = kDebugMode;
     try {
-      if (Get.isRegistered<SettingsService>())
+      if (Get.isRegistered<SettingsService>()) {
         isDev = isDev || AppConfig.isDevToggle;
+      }
     } catch (_) {}
     if (isDev) return 'BP2A.250605.031.A3';
 
@@ -1060,8 +1060,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       final androidId = await androidIdPlugin.getId();
       return androidId ?? (await deviceInfo.androidInfo).id;
     }
-    if (Platform.isIOS)
+    if (Platform.isIOS) {
       return (await deviceInfo.iosInfo).identifierForVendor ?? 'ios_device';
+    }
     return 'unknown_device';
   }
 

@@ -362,11 +362,9 @@ class SupportTicketsTable extends StatelessWidget {
               isExpanded: isExpanded,
               onTap: toggleRow,
               bgColor:
-                  (ticket.followUp != null &&
-                      ticket.followUp!.isNotEmpty &&
-                      ticket.followUp != '-')
-                  ? const Color(0xFFFFF9C4)
-                  : null,
+                  _isFollowUpOverdue(ticket.followUp)
+                      ? const Color(0xFFFFF9C4)
+                      : null,
             ),
             // 12 Tkt Age
             _buildTextCell(
@@ -625,6 +623,20 @@ class SupportTicketsTable extends StatelessWidget {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+  bool _isFollowUpOverdue(String? followUpStr) {
+    if (followUpStr == null || followUpStr.isEmpty || followUpStr == '-') {
+      return false;
+    }
+    try {
+      final followUpDate = DateTime.parse(followUpStr);
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      return followUpDate.isBefore(todayStart);
+    } catch (_) {
+      return false;
+    }
+  }
+
   String _formatDateTime(String? dateString) {
     if (dateString == null || dateString.isEmpty || dateString == '-') {
       return dateString ?? '-';

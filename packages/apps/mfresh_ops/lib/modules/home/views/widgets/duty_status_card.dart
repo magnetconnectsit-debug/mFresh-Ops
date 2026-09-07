@@ -27,10 +27,10 @@ class DutyStatusCard extends StatelessWidget {
           : Colors.black.withOpacity(0.02);
 
       return Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isTracking ? AppColors.primaryGreen : AppColors.red,
             width: 1.2.r,
@@ -38,9 +38,9 @@ class DutyStatusCard extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: cardGlowColor,
-              blurRadius: 12,
+              blurRadius: 10,
               spreadRadius: 1,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -48,8 +48,8 @@ class DutyStatusCard extends StatelessWidget {
           children: [
             // Left icon placeholder
             Container(
-              width: 42.r,
-              height: 42.r,
+              width: 34.r,
+              height: 34.r,
               decoration: BoxDecoration(
                 color: innerBgColor,
                 shape: BoxShape.circle,
@@ -60,11 +60,11 @@ class DutyStatusCard extends StatelessWidget {
                       ? Icons.radar_rounded
                       : Icons.power_settings_new_rounded,
                   color: activeColor,
-                  size: 20.r,
+                  size: 18.r,
                 ),
               ),
             ),
-            SizedBox(width: 16.w),
+            SizedBox(width: 12.w),
 
             // Middle state details
             Expanded(
@@ -94,8 +94,8 @@ class DutyStatusCard extends StatelessWidget {
                 ? Padding(
                     padding: EdgeInsets.only(right: 12.w),
                     child: SizedBox(
-                      width: 24.r,
-                      height: 24.r,
+                      width: 20.r,
+                      height: 20.r,
                       child: const CustomAppLoader(),
                     ),
                   )
@@ -159,11 +159,11 @@ class _CustomLiquidSwitchState extends State<CustomLiquidSwitch> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
-          width: 52,
-          height: 32,
+          width: 44,
+          height: 26,
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             color: widget.value ? widget.activeColor : widget.inactiveColor,
           ),
           child: AnimatedAlign(
@@ -173,10 +173,10 @@ class _CustomLiquidSwitchState extends State<CustomLiquidSwitch> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutBack,
-              width: _isAnimating ? 46 : (_isPressed ? 34 : 28), // Huge stretch across the track
-              height: 28,
+              width: _isAnimating ? 38 : (_isPressed ? 28 : 22), // Stretch across track
+              height: 22,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(11),
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(

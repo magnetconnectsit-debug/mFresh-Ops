@@ -92,6 +92,7 @@ class StoreInventoryScreen extends StatelessWidget {
                 const StoreInventoryActionButtons(),
                 SizedBox(height: 8.h),
                 const StoreInventoryTable(),
+                SizedBox(height: 40.h),
               ],
             ),
           ),

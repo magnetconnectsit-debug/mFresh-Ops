@@ -155,6 +155,7 @@ class CommonSidebar extends StatelessWidget {
                   'Store Inventory',
                 if (userPermissions.contains('unit_inventory_stock'))
                   'Unit Inventory',
+                'Inventory Orders',
                 if (userPermissions.contains('consumption_report'))
                   'Consumption',
                 if (userPermissions.contains('allotments_report')) 'Allotments',
@@ -224,7 +225,7 @@ class CommonSidebar extends StatelessWidget {
                       title: 'Attendance',
                       subItems: [
                         if (userPermissions.contains('tracking_panel')) 'Attendance',
-                        if (userPermissions.contains('Attendance_Log')) 'Log',
+                        if (userPermissions.contains('Attendance_Log')) 'Report',
                       ],
                       currentRoute: currentRoute,
                     ),
@@ -419,12 +420,14 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.liveTracking);
                   } else if (item == 'Attendance') {
                     Get.toNamed(AppRoutes.staffTracking);
-                  } else if (item == 'Log') {
+                  } else if (item == 'Log' || item == 'Report') {
                     Get.toNamed(AppRoutes.attendanceLog);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);
                   } else if (item == 'Unit Inventory') {
                     Get.toNamed(AppRoutes.unitInventory);
+                  } else if (item == 'Inventory Orders') {
+                    Get.toNamed(AppRoutes.inventoryOrders);
                   } else if (item == 'Consumption') {
                     Get.toNamed(AppRoutes.allConsumption);
                   } else if (item == 'Allotments') {

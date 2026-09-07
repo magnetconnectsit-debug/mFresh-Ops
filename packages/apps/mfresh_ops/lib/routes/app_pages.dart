@@ -43,6 +43,7 @@ import 'package:mfresh_ops/modules/support_tickets/views/edit_ticket_screen.dart
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_inventory_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/unit_inventory_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/inventory_orders_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/all_consumption_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/allotment_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/measurement_screen.dart';
@@ -201,6 +202,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.unitInventory,
       page: () => const UnitInventoryScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.inventoryOrders,
+      page: () => const InventoryOrdersScreen(),
     ),
     GetPage(
       name: AppRoutes.allConsumption,

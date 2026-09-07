@@ -27,7 +27,7 @@ class AttendanceLogView extends GetView<AttendanceLogController> {
         topHeader: const CommonShortcutHeader(),
         toolbarHeight: 45.h,
         title: Text(
-          "Attendance Log",
+          "Attendance Report",
           style: AppTextStyle.style_18_700(color: Colors.black),
         ),
       ),
@@ -45,58 +45,61 @@ class AttendanceLogView extends GetView<AttendanceLogController> {
 
                 return Padding(
                   padding: EdgeInsets.only(bottom: 8.h),
-                  child: Wrap(
-                    spacing: 6.w,
-                    runSpacing: 6.h,
-                    children: controller.selectedEmployeeIds.map((id) {
-                      final emp = controller.allEmployees.firstWhere(
-                        (e) => e['id'] == id,
-                        orElse: () => <String, dynamic>{},
-                      );
-                      final name = emp['name']?.toString() ?? 'Unknown';
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: controller.selectedEmployeeIds.map((id) {
+                        final emp = controller.allEmployees.firstWhere(
+                          (e) => e['id'] == id,
+                          orElse: () => <String, dynamic>{},
+                        );
+                        final name = emp['name']?.toString() ?? 'Unknown';
 
-                      return Container(
-                        padding: EdgeInsets.only(
-                          left: 6.w,
-                          right: 2.w,
-                          top: 1.h,
-                          bottom: 1.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4.r),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
+                        return Container(
+                          margin: EdgeInsets.only(right: 6.w),
+                          padding: EdgeInsets.only(
+                            left: 6.w,
+                            right: 2.w,
+                            top: 1.h,
+                            bottom: 1.h,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              name,
-                              style: AppTextStyle.style_10_500(
-                                color: AppColors.primary,
-                              ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.r),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.3),
                             ),
-                            SizedBox(width: 4.w),
-                            InkWell(
-                              onTap: () {
-                                controller.selectedEmployeeIds.remove(id);
-                                controller.fetchAttendanceLog();
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
-                                child: Icon(
-                                  Icons.close,
-                                  size: 10.r,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                name,
+                                style: AppTextStyle.style_10_500(
                                   color: AppColors.primary,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                              SizedBox(width: 4.w),
+                              InkWell(
+                                onTap: () {
+                                  controller.selectedEmployeeIds.remove(id);
+                                  controller.fetchAttendanceLog();
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 6.w, vertical: 4.h),
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 10.r,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 );
               }),

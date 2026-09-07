@@ -1,3 +1,4 @@
+import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -57,6 +58,35 @@ class StoreInventoryActionButtons extends StatelessWidget {
               ),
             ),
           ],
+          const Spacer(),
+          Container(
+            height: 24.h,
+            padding: EdgeInsets.symmetric(horizontal: 6.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: controller.itemsPerPage.value,
+                icon: Icon(Icons.arrow_drop_down, size: 16.r),
+                isDense: true,
+                style: AppTextStyle.style_12_500(color: AppColors.black),
+                items: const [10, 25, 50, 100].map((int val) {
+                  return DropdownMenuItem<int>(
+                    value: val,
+                    child: Text('$val per page'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.setItemsPerPage(val);
+                  }
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );

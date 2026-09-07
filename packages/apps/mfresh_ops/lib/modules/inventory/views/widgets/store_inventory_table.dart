@@ -1,3 +1,4 @@
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -84,22 +85,27 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                         inside: BorderSide(color: Colors.grey.shade300),
                       ),
                       columnWidths: {
-                        0: FixedColumnWidth(150.w),
-                        1: FixedColumnWidth(110.w),
+                        0: FixedColumnWidth(120.w),
+                        1: FixedColumnWidth(80.w),
                         2: FixedColumnWidth(120.w),
                         3: FixedColumnWidth(110.w),
                         4: FixedColumnWidth(60.w),
-                        5: FixedColumnWidth(60.w),
+                        5: FixedColumnWidth(150.w),
+                        6: FixedColumnWidth(150.w),
+                        7: FixedColumnWidth(100.w),
                       },
                       children: [
                         TableRow(
+                          decoration: const BoxDecoration(color: Color(0xFFE8F1F8)),
                           children: [
-                            _buildHeaderCell('Action'),
-                            _buildHeaderCell('Store'),
-                            _buildHeaderCell('Item'),
-                            _buildHeaderCell('Category'),
-                            _buildHeaderCell('Qty'),
-                            _buildHeaderCell('Unit'),
+                            _buildHeaderCell(controller, 'Action'),
+                            _buildHeaderCell(controller, 'Store'),
+                            _buildHeaderCell(controller, 'Item'),
+                            _buildHeaderCell(controller, 'Category'),
+                            _buildHeaderCell(controller, 'Quantity'),
+                            _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Consumption ${controller.consumptionSubtitle.value}' : 'Consumption', sortKey: 'Consumption'),
+                            _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Required Qty ${controller.consumptionSubtitle.value}' : 'Required Qty', sortKey: 'Required Qty'),
+                            _buildHeaderCell(controller, 'Request Order', sortKey: 'Order'),
                           ],
                         ),
                         ...itemsToRender.asMap().entries.map((entry) {
@@ -157,8 +163,10 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                               _buildDataCell(item.store, isExpanded, () => _toggleRow(key)),
                               _buildDataCell(item.item, isExpanded, () => _toggleRow(key)),
                               _buildDataCell(item.category, isExpanded, () => _toggleRow(key)),
-                              _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key), textColor: item.isQntyLow ? Colors.red : null),
-                              _buildDataCell(item.unit, isExpanded, () => _toggleRow(key), textColor: item.isUnitLow ? Colors.red : null),
+                              _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key), textColor: (item.isLowStock || item.isQntyLow) ? Colors.red : null, bgColor: const Color(0xFFFFF8E7)),
+                              _buildDataCell(item.formattedConsumption, isExpanded, () => _toggleRow(key)),
+                              _buildDataCell(item.formattedRequiredQuantity, isExpanded, () => _toggleRow(key)),
+                              _buildOrderCell(item),
                             ],
                           );
                         }),
@@ -217,22 +225,135 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
     });
   }
 
-  Widget _buildHeaderCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_700(color: AppColors.black),
+  Widget _buildHeaderCell(InventoryController controller, String text, {String? sortKey}) {
+    final key = sortKey ?? text;
+    final isSorted = controller.sortColumn.value == key;
+    final isAsc = controller.sortAscending.value;
+
+    return InkWell(
+      onTap: key.isNotEmpty && key != 'Action' ? () => controller.sortBy(key) : null,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: AppTextStyle.style_11_700(color: AppColors.black),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (isSorted) ...[
+              SizedBox(width: 2.w),
+              Icon(
+                isAsc ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 11.r,
+                color: AppColors.black,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDataCell(String text, bool isExpanded, VoidCallback onTap, {Color? textColor}) {
+  Widget _buildHeaderCellWithSubtitle(InventoryController controller, String text, String subtitle, {String? sortKey}) {
+    final key = sortKey ?? text;
+    final isSorted = controller.sortColumn.value == key;
+    final isAsc = controller.sortAscending.value;
+
+    return InkWell(
+      onTap: () => controller.sortBy(key),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    text,
+                    style: AppTextStyle.style_11_700(color: AppColors.black),
+                  ),
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: AppTextStyle.style_10_400(color: AppColors.grey500),
+                    ),
+                ],
+              ),
+            ),
+            if (isSorted) ...[
+              SizedBox(width: 2.w),
+              Icon(
+                isAsc ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 11.r,
+                color: AppColors.black,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderCell(InventoryItemModel item) {
+    if (item.currentOrderStatusName != null && item.currentOrderStatusName!.isNotEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(4.r),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Text(
+            item.currentOrderStatusName!,
+            style: AppTextStyle.style_11_500(color: Colors.blue.shade700),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+      child: SizedBox(
+        height: 20.h,
+        child: ElevatedButton(
+          onPressed: () {
+            AppCommonToastMessage.show(
+              message: 'Request order for ${item.item}',
+              type: ToastType.info,
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF59E0B),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(horizontal: 6.w),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+            elevation: 0,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text('Request Order', style: AppTextStyle.style_10_600(color: Colors.white)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text, bool isExpanded, VoidCallback onTap, {Color? textColor, Color? bgColor}) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+      child: Container(
+        color: bgColor,
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
         child: Text(
           text,
           style: AppTextStyle.style_12_400(color: textColor ?? AppColors.black),

@@ -20,6 +20,7 @@ abstract class AppRoutes {
   static const editTicket = '/edit-ticket';
   static const storeInventory = '/store-inventory';
   static const unitInventory = '/unit-inventory';
+  static const inventoryOrders = '/inventory-orders';
   static const allConsumption = '/all-consumption';
   static const allotments = '/allotments';
   static const measurements = '/measurements';

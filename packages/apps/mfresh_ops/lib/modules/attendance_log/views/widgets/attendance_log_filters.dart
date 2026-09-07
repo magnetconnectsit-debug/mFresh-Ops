@@ -22,6 +22,7 @@ class AttendanceLogFilters extends GetView<AttendanceLogController> {
               child: Obx(() {
                 return MultiSelectDropdownWidget<int>(
                   isSingleSelect: false,
+                  showSelectAll: true,
                   label: 'Employee',
                   selectedValues: controller.selectedEmployeeIds.toSet(),
                   items: controller.allEmployees

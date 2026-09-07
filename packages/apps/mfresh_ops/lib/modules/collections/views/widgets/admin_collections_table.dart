@@ -167,9 +167,8 @@ class AdminCollectionsTable extends StatelessWidget {
       diffText = currencyFormat.format(metric.differenceNum);
     }
 
-    final bool isCurrentMonthVal = date != null && _isCurrentMonth(date);
     // Allow clicking even if isEmpty is true
-    final bool isClickable = !isTotal && isCurrentMonthVal && context != null && unitId != null;
+    final bool isClickable = !isTotal && date != null && context != null && unitId != null;
 
     Widget actualCell = _buildDataCell(actualText, width: width, color: actualBg);
     if (isClickable) {
@@ -217,21 +216,7 @@ class AdminCollectionsTable extends StatelessWidget {
     );
   }
 
-  bool _isCurrentMonth(String dateStr) {
-    try {
-      DateTime parsedDate;
-      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateStr)) {
-        parsedDate = DateFormat('yyyy-MM-dd').parse(dateStr);
-      } else {
-        parsedDate = DateFormat('dd-MMM-yyyy').parse(dateStr);
-      }
-      final now = DateTime.now();
-      return parsedDate.year == now.year && parsedDate.month == now.month;
-    } catch (e) {
-      debugPrint('Error parsing date in _isCurrentMonth: $e');
-      return false;
-    }
-  }
+
 
   void _showUpdateDialog(BuildContext context, String date, String unitId, {num? currentValue}) {
     final TextEditingController actualController = TextEditingController(

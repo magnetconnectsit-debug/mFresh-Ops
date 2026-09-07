@@ -18,13 +18,13 @@ class AttendanceLogController extends GetxController {
 
   final RxString sortColumn = ''.obs;
   final RxBool sortAscending = true.obs;
+  final RxString selectedStatusFilter = ''.obs;
 
   final RxString startDate = ''.obs;
   final RxString endDate = ''.obs;
 
   final RxBool isLoadingData = false.obs;
   final Rx<AttendanceLogResponse?> responseData = Rx<AttendanceLogResponse?>(null);
-
 
   // Breakdown Dialog State
   final RxBool isLoadingBreakdown = false.obs;
@@ -46,10 +46,9 @@ class AttendanceLogController extends GetxController {
 
   void _setDefaultDates() {
     final now = DateTime.now();
-    final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final DateFormat formatter = DateFormat('yyyy-MM-dd');
     
-    startDate.value = formatter.format(firstDayOfMonth);
+    startDate.value = formatter.format(now);
     endDate.value = formatter.format(now);
   }
 
@@ -60,6 +59,10 @@ class AttendanceLogController extends GetxController {
       if (response != null && response['status'] == true) {
         final List emps = response['employees'] ?? [];
         allEmployees.value = emps.map((e) => Map<String, dynamic>.from(e)).toList();
+        final ids = allEmployees
+            .map((e) => e['id'] != null ? int.tryParse(e['id'].toString()) : null)
+            .whereType<int>();
+        selectedEmployeeIds.assignAll(ids);
       } else {
         AppCommonToastMessage.show(
           message: response['message'] ?? 'Failed to load staff',
@@ -74,19 +77,11 @@ class AttendanceLogController extends GetxController {
       );
     } finally {
       isLoadingEmployees.value = false;
+      fetchAttendanceLog();
     }
   }
 
   Future<void> fetchAttendanceLog() async {
-    if (selectedEmployeeIds.isEmpty) {
-      responseData.value = null;
-      AppCommonToastMessage.show(
-        message: 'Please select at least one employee',
-        type: ToastType.error,
-      );
-      return;
-    }
-
     isLoadingData.value = true;
     responseData.value = null;
 
@@ -118,8 +113,44 @@ class AttendanceLogController extends GetxController {
     }
   }
 
-  List<AttendanceRow> get sortedRows {
+  void toggleStatusFilter(String filter) {
+    if (selectedStatusFilter.value.toLowerCase() == filter.toLowerCase()) {
+      selectedStatusFilter.value = '';
+    } else {
+      selectedStatusFilter.value = filter;
+    }
+  }
+
+  List<AttendanceRow> get filteredRows {
     final rows = responseData.value?.rows ?? [];
+    if (selectedStatusFilter.value.isEmpty) return rows;
+
+    final filter = selectedStatusFilter.value.toLowerCase();
+    return rows.where((row) {
+      final status = row.attendanceStatus.toLowerCase();
+      if (filter == 'present') {
+        return status.contains('present') || status == 'p';
+      } else if (filter == 'absent') {
+        return status.contains('absent') || status == 'a';
+      } else if (filter == 'late') {
+        return (row.lateDuration != '-' &&
+                row.lateDuration != '0' &&
+                row.lateDuration != '00:00' &&
+                row.lateDuration.isNotEmpty) ||
+            status.contains('late');
+      } else if (filter == 'shortage') {
+        return (row.dutyShortage != '-' &&
+                row.dutyShortage != '0' &&
+                row.dutyShortage != '00:00' &&
+                row.dutyShortage.isNotEmpty) ||
+            status.contains('shortage');
+      }
+      return true;
+    }).toList();
+  }
+
+  List<AttendanceRow> get sortedRows {
+    final rows = filteredRows;
     if (sortColumn.value.isEmpty) return rows;
 
     final col = sortColumn.value;

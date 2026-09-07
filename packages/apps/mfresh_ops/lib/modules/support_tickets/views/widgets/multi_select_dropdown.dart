@@ -12,6 +12,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
   final String? hint;
   final bool showSearch;
   final bool isSingleSelect;
+  final bool showSelectAll;
   final double? height;
   final bool hasError;
   final TextStyle? selectedTextStyle;
@@ -27,6 +28,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
     this.hint,
     this.showSearch = true,
     this.isSingleSelect = false,
+    this.showSelectAll = false,
     this.height,
     this.hasError = false,
     this.selectedTextStyle,
@@ -66,6 +68,7 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                 onChanged: onChanged,
                 showSearch: showSearch,
                 isSingleSelect: isSingleSelect,
+                showSelectAll: !isSingleSelect && showSelectAll,
                 width: size.width,
               ),
             ),
@@ -94,9 +97,14 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                         : isSingleSelect
                             ? (() {
                                 if (items.isEmpty) return hint ?? 'Select';
-                                final matches = items.where(
-                                  (item) => item.value == selectedValues.first,
-                                );
+                                final matches = items.where((item) {
+                                  if (item.value == selectedValues.first) return true;
+                                  if (item.value is String || item.value is num) {
+                                    return item.value.toString().trim().toLowerCase() ==
+                                        selectedValues.first.toString().trim().toLowerCase();
+                                  }
+                                  return false;
+                                });
                                 if (matches.isEmpty) return hint ?? 'Select';
                                 final item = matches.first;
                                 if (item.child is Text) {
@@ -168,9 +176,14 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                   : isSingleSelect
                       ? (() {
                           if (items.isEmpty) return hint ?? 'Select';
-                          final matches = items.where(
-                            (item) => item.value == selectedValues.first,
-                          );
+                          final matches = items.where((item) {
+                            if (item.value == selectedValues.first) return true;
+                            if (item.value is String || item.value is num) {
+                              return item.value.toString().trim().toLowerCase() ==
+                                  selectedValues.first.toString().trim().toLowerCase();
+                            }
+                            return false;
+                          });
                           if (matches.isEmpty) return hint ?? 'Select';
                           final item = matches.first;
                           if (item.child is Text) {
@@ -215,6 +228,7 @@ class _MultiSelectMenuContent<T> extends StatefulWidget {
   final Function(Set<T>) onChanged;
   final bool showSearch;
   final bool isSingleSelect;
+  final bool showSelectAll;
   final double width;
 
   const _MultiSelectMenuContent({
@@ -226,6 +240,7 @@ class _MultiSelectMenuContent<T> extends StatefulWidget {
     required this.onChanged,
     required this.showSearch,
     required this.isSingleSelect,
+    required this.showSelectAll,
     required this.width,
   });
 
@@ -244,6 +259,20 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
     _searchController = TextEditingController();
     _scrollController = ScrollController();
     _tempSelected = Set<T>.from(widget.selectedValues);
+  }
+
+  bool _isItemSelected(T? value) {
+    if (value == null) return false;
+    if (_tempSelected.contains(value)) return true;
+    if (value is String || value is num) {
+      return _tempSelected.any(
+        (sel) =>
+            sel != null &&
+            sel.toString().trim().toLowerCase() ==
+                value.toString().trim().toLowerCase(),
+      );
+    }
+    return false;
   }
 
   @override
@@ -266,6 +295,14 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
         );
       }).toList();
     }
+
+    final allItemValues = widget.items
+        .map((e) => e.value)
+        .where((val) => val != null)
+        .cast<T>()
+        .toSet();
+    final bool isAllSelected =
+        allItemValues.isNotEmpty && _tempSelected.containsAll(allItemValues);
 
     return Container(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -306,34 +343,103 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: displayedItems.map((item) {
+                  children: [
+                    if (widget.showSelectAll &&
+                        !widget.isSingleSelect &&
+                        widget.items.isNotEmpty) ...[
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (isAllSelected) {
+                              _tempSelected.removeAll(allItemValues);
+                            } else {
+                              _tempSelected.addAll(allItemValues);
+                            }
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: Checkbox(
+                                  value: isAllSelected,
+                                  onChanged: (checked) {
+                                    setState(() {
+                                      if (checked == true) {
+                                        _tempSelected.addAll(allItemValues);
+                                      } else {
+                                        _tempSelected.removeAll(allItemValues);
+                                      }
+                                    });
+                                  },
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  'Select All',
+                                  style: AppTextStyle.style_12_600(
+                                    color: AppColors.grey900,
+                                  ).copyWith(fontSize: 13.sp),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1, thickness: 1),
+                    ],
+                    ...displayedItems.map((item) {
                     final value = item.value;
+                    final isSelected = _isItemSelected(value);
                     if (widget.isSingleSelect) {
                       return InkWell(
                         onTap: () {
-                          if (_tempSelected.contains(value)) {
-                            _tempSelected.remove(value);
-                          } else {
-                            _tempSelected.clear();
+                          _tempSelected.clear();
+                          if (value != null) {
                             _tempSelected.add(value as T);
                           }
-                          widget.onChanged(Set<T>.from(_tempSelected));
-                          Navigator.pop(context);
+                          final selectedSet = Set<T>.from(_tempSelected);
+                          Navigator.of(context).pop();
+                          widget.onChanged(selectedSet);
                         },
                         child: Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          color: _tempSelected.contains(value)
-                              ? Colors.grey.withOpacity(0.1)
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          color: isSelected
+                              ? const Color(0xFFFFF3E0)
                               : Colors.transparent,
-                          child: item.child is Text
-                              ? Text(
-                                  (item.child as Text).data ?? '',
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey900,
-                                  ).copyWith(fontSize: 13.sp),
-                                )
-                              : item.child,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: item.child is Text
+                                    ? Text(
+                                        (item.child as Text).data ?? '',
+                                        style: isSelected
+                                            ? AppTextStyle.style_12_600(
+                                                color: AppColors.primaryOrange,
+                                              ).copyWith(fontSize: 13.sp)
+                                            : AppTextStyle.style_12_400(
+                                                color: AppColors.grey900,
+                                              ).copyWith(fontSize: 13.sp),
+                                      )
+                                    : item.child,
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppColors.primaryOrange,
+                                  size: 16.r,
+                                ),
+                            ],
+                          ),
                         ),
                       );
                     }
@@ -383,12 +489,13 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
                         ),
                       ),
                     );
-                  }).toList(),
-                ),
+                  }),
+                ],
               ),
             ),
           ),
-          if (!widget.isSingleSelect)
+        ),
+        if (!widget.isSingleSelect)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               child: ElevatedButton(

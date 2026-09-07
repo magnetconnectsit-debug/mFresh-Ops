@@ -25,12 +25,14 @@ class AttendanceSummary {
   final int present;
   final int absent;
   final int late;
+  final int shortage;
   final int totalScheduledDays;
 
   AttendanceSummary({
     required this.present,
     required this.absent,
     required this.late,
+    required this.shortage,
     required this.totalScheduledDays,
   });
 
@@ -39,6 +41,9 @@ class AttendanceSummary {
       present: int.tryParse(json['present']?.toString() ?? '0') ?? 0,
       absent: int.tryParse(json['absent']?.toString() ?? '0') ?? 0,
       late: int.tryParse(json['late']?.toString() ?? '0') ?? 0,
+      shortage: int.tryParse(
+              (json['shortage'] ?? json['duty_shortage'] ?? json['short_duty'] ?? json['shortage_count'] ?? '0').toString()) ??
+          0,
       totalScheduledDays: int.tryParse(json['total_scheduled_days']?.toString() ?? '0') ?? 0,
     );
   }

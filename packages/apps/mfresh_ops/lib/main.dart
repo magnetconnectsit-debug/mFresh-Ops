@@ -37,6 +37,8 @@ import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
+import 'package:mfresh_ops/core/widgets/duty_overlay_widget.dart';
+import 'package:mfresh_ops/data/services/duty_overlay_service.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
@@ -55,6 +57,24 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 @pragma('vm:entry-point')
 void startCallback() {
   FlutterForegroundTask.setTaskHandler(MyTaskHandler());
+}
+
+@pragma('vm:entry-point')
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      color: Colors.transparent,
+      home: Material(
+        color: Colors.transparent,
+        type: MaterialType.transparency,
+        child: Center(
+          child: DutyOverlayWidget(),
+        ),
+      ),
+    ),
+  );
 }
 // endregion
 
@@ -168,11 +188,15 @@ class MyTaskHandler extends TaskHandler {
     _startLocationStream();
   }
 
+  bool _useLocationManagerFallback = false;
+
   void _startLocationStream() {
     _positionStream?.cancel();
     _positionStream =
         Geolocator.getPositionStream(
-          locationSettings: _streamLocationSettings(),
+          locationSettings: _streamLocationSettings(
+            forceLocationManager: _useLocationManagerFallback,
+          ),
         ).listen(
           (Position position) async {
             _latestPosition = position;
@@ -195,6 +219,7 @@ class MyTaskHandler extends TaskHandler {
           },
           onError: (error) {
             debugPrint('Background location stream error: $error');
+            _useLocationManagerFallback = !_useLocationManagerFallback;
             // Automatically restart stream if it crashes (e.g. network switch on Android)
             Future.delayed(const Duration(seconds: 5), _startLocationStream);
           },
@@ -220,6 +245,15 @@ class MyTaskHandler extends TaskHandler {
     if (!await Geolocator.isLocationServiceEnabled()) {
       debugPrint('Repeat: Location services disabled.');
       return;
+    }
+
+    // Check if location stream stalled or was paused by OS
+    if (_lastProcessedLocationTime == null ||
+        DateTime.now().difference(_lastProcessedLocationTime!) >
+            const Duration(seconds: 40)) {
+      debugPrint('Location stream appears stalled. Restarting location stream...');
+      _useLocationManagerFallback = !_useLocationManagerFallback;
+      _startLocationStream();
     }
 
     final pos = await _resolvePosition();
@@ -545,56 +579,27 @@ class MyTaskHandler extends TaskHandler {
     }
   }
 
+  bool _hasUpdatedNotificationOnce = false;
+
   Future<void> _updateNotificationSafely() async {
-    final String syncedText = _lastSyncedAt != null
-        ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
-        : 'Never';
+    if (_hasUpdatedNotificationOnce || _lastSyncedAt == null) return;
+    
+    _hasUpdatedNotificationOnce = true;
+    final String syncedText = DateFormat('hh:mm:ss a').format(_lastSyncedAt!);
+    
     FlutterForegroundTask.updateService(
       notificationTitle: 'Duty Active',
       notificationText: 'Duty Active | Last Synced: $syncedText',
     );
-
-    final lastLocTime = _lastProcessedLocationTime;
-    if (lastLocTime != null &&
-        DateTime.now().difference(lastLocTime) > const Duration(hours: 1)) {
-      final lastShown = _lastNotificationShownTime;
-      if (lastShown == null ||
-          DateTime.now().difference(lastShown) > const Duration(hours: 1)) {
-        _lastNotificationShownTime = DateTime.now();
-        await _localNotificationsPlugin.show(
-          id: 999,
-          title: 'Off Duty',
-          body: 'You are now Off Duty. Click to change the duty status.',
-          notificationDetails: const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'duty_status_channel',
-              'Duty Status Alerts',
-              channelDescription:
-                  'Shows popup notifications when starting or stopping duty.',
-              icon: '@mipmap/ic_launcher',
-              importance: Importance.max,
-              priority: Priority.high,
-              playSound: true,
-              enableVibration: true,
-            ),
-            iOS: DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
-          ),
-        );
-      }
-    }
   }
 
-  LocationSettings _streamLocationSettings() {
+  LocationSettings _streamLocationSettings({bool forceLocationManager = false}) {
     if (Platform.isAndroid) {
       return AndroidSettings(
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 10),
-        foregroundNotificationConfig: null,
+        intervalDuration: const Duration(seconds: 5),
+        forceLocationManager: forceLocationManager,
       );
     }
 
@@ -732,7 +737,6 @@ Future<void> initServices() async {
   final storageService = await Get.putAsync(() => StorageService().init());
   Get.put(SettingsService());
 
-  final String envName = AppConfig.envName;
   final String activeUrl = AppConfig.baseUrl;
 
   await storageService.saveBaseUrl(activeUrl);
@@ -753,6 +757,7 @@ Future<void> initServices() async {
   Get.put(InventoryRepository());
   Get.put(TrackingRepository());
   Get.put(TrackingService());
+  Get.put(DutyOverlayService());
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
   Get.put(ContactRepository());

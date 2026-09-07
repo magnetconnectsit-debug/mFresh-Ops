@@ -34,29 +34,6 @@ class EmployeeTrackingCard extends StatelessWidget {
         employee['is_on_duty'] == true ||
         employee['is_on_duty'] == '1';
 
-    Color statusColor = AppColors.red;
-    String statusText = 'Offline';
-
-    if (status == 'moving') {
-      statusColor = AppColors.green;
-      statusText = 'Moving';
-    } else if (status == 'stopped') {
-      statusColor = AppColors.orange;
-      statusText = 'Stopped';
-    } else if (status == 'offline') {
-      statusColor = AppColors.red;
-      statusText = 'Offline';
-    } else if (status == 'duty on' ||
-        status == 'on duty' ||
-        status == 'onduty' ||
-        isOnDuty) {
-      statusColor = AppColors.blue500;
-      statusText = 'On Duty';
-    } else {
-      statusColor = AppColors.grey500;
-      statusText = 'Off Duty';
-    }
-
     String formattedLastSeen = AppDateUtils.formatToRelativeTimeOrDateTimeAmPm(
       lastSeen?.toString(),
     );
@@ -69,6 +46,12 @@ class EmployeeTrackingCard extends StatelessWidget {
       lastSeen?.toString(),
       10,
     );
+
+    final bool isLive =
+        !isStale10Min && lastSeen != null && status != 'offline';
+
+    final Color statusColor = isLive ? AppColors.green : AppColors.red;
+    final String statusText = isLive ? 'Live' : 'Not Live';
 
     return Container(
       decoration: BoxDecoration(
@@ -250,42 +233,6 @@ class EmployeeTrackingCard extends StatelessWidget {
                                 ),
                               ],
                             ),
-                          if (hideBottomRow) ...[
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    (isStale10Min
-                                            ? AppColors.orange
-                                            : AppColors.green)
-                                        .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.access_time_rounded,
-                                    size: 10,
-                                    color: isStale10Min
-                                        ? AppColors.orange
-                                        : AppColors.green,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Last Seen: $formattedLastSeen',
-                                    style: AppTextStyle.style_10_600(
-                                      color: AppColors.black,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -318,115 +265,138 @@ class EmployeeTrackingCard extends StatelessWidget {
                   ],
                 ),
 
-                if (canViewMap && !hideBottomRow) ...[
-                  const SizedBox(height: 6),
-                  Divider(color: AppColors.grey50, height: 1, thickness: 1),
-                  const SizedBox(height: 6),
+                if (canViewMap) ...[
+                  if (!hideBottomRow) ...[
+                    const SizedBox(height: 6),
+                    Divider(color: AppColors.grey50, height: 1, thickness: 1),
+                    const SizedBox(height: 6),
+                  ] else ...[
+                    const SizedBox(height: 4),
+                  ],
 
                   // Bottom Section (Stats)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Status
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: statusColor.withValues(alpha: 0.4),
-                                  blurRadius: 4,
-                                  spreadRadius: 1,
-                                ),
-                              ],
+                  if (!hideBottomRow)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Status
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: statusColor.withValues(alpha: 0.4),
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            statusText,
-                            style: AppTextStyle.style_10_600(
-                              color: statusColor,
+                            const SizedBox(width: 4),
+                            Text(
+                              statusText,
+                              style: AppTextStyle.style_10_600(
+                                color: statusColor,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      Container(width: 1, height: 12, color: AppColors.grey300),
+                        Container(width: 1, height: 12, color: AppColors.grey300),
 
-                      // Speed
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.speed_rounded,
-                            size: 12,
-                            color: AppColors.blue500,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            speed != null
-                                ? '${double.tryParse(speed.toString())?.toStringAsFixed(0) ?? 0} km/h'
-                                : 'N/A',
-                            style: AppTextStyle.style_10_500(
-                              color: AppColors.grey600,
+                        // Speed
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.speed_rounded,
+                              size: 12,
+                              color: AppColors.blue500,
                             ),
-                          ),
-                        ],
-                      ),
-
-                      Container(width: 1, height: 12, color: AppColors.grey300),
-
-                      // Battery
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.battery_std_rounded,
-                            size: 12,
-                            color:
-                                (battery != null &&
-                                    int.tryParse(battery.toString()) != null &&
-                                    int.parse(battery.toString()) <= 20)
-                                ? AppColors.red
-                                : AppColors.green,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            battery != null ? '$battery%' : 'N/A',
-                            style: AppTextStyle.style_10_500(
-                              color: AppColors.grey600,
+                            const SizedBox(width: 4),
+                            Text(
+                              speed != null
+                                  ? '${double.tryParse(speed.toString())?.toStringAsFixed(0) ?? 0} km/h'
+                                  : 'N/A',
+                              style: AppTextStyle.style_10_500(
+                                color: AppColors.grey600,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                      Container(width: 1, height: 12, color: AppColors.grey300),
+                        Container(width: 1, height: 12, color: AppColors.grey300),
 
-                      // Last Seen
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 12,
-                            color: AppColors.grey500,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            formattedLastSeen,
-                            style: AppTextStyle.style_10_500(
-                              color: AppColors.grey600,
+                        // Battery
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.battery_std_rounded,
+                              size: 12,
+                              color:
+                                  (battery != null &&
+                                      int.tryParse(battery.toString()) != null &&
+                                      int.parse(battery.toString()) <= 20)
+                                  ? AppColors.red
+                                  : AppColors.green,
                             ),
+                            const SizedBox(width: 4),
+                            Text(
+                              battery != null ? '$battery%' : 'N/A',
+                              style: AppTextStyle.style_10_500(
+                                color: AppColors.grey600,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        Container(width: 1, height: 12, color: AppColors.grey300),
+
+                        // Last Seen
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 12,
+                              color: AppColors.grey500,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              formattedLastSeen,
+                              style: AppTextStyle.style_10_500(
+                                color: AppColors.grey600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 12,
+                          color: AppColors.grey500,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Last Seen: $formattedLastSeen',
+                          style: AppTextStyle.style_10_500(
+                            color: AppColors.grey600,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
                 ],
               ],
             ),
