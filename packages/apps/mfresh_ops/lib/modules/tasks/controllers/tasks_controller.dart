@@ -26,6 +26,17 @@ class TasksController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
 
   final activeTab = 0.obs; // 0 for Active, 1 for Completed
+  final isListView = false.obs; // false: detailed view (default), true: list view (compact)
+  final expandedTaskId = Rxn<String>(); // Track currently expanded task key in List View
+
+  void toggleExpandedTask(String taskKey) {
+    if (expandedTaskId.value == taskKey) {
+      expandedTaskId.value = null;
+    } else {
+      expandedTaskId.value = taskKey;
+    }
+  }
+
   final isLoading = false.obs;
   final isRefreshing = false.obs; // Silent background refresh (no full-screen loader)
 
@@ -51,11 +62,19 @@ class TasksController extends GetxController {
   final selectedUnits = <SupportUnit>[].obs;
   final selectedAssignees = <AssigneeModel>[].obs;
 
+  final selectedYear = Rxn<int>();
+  final selectedFromMonth = Rxn<int>();
+  final selectedToMonth = Rxn<int>();
+  final filterMonths = <Map<String, dynamic>>[].obs;
+
   void clearFilters() {
     selectedProjects.clear();
     selectedGroups.clear();
     selectedUnits.clear();
     selectedAssignees.clear();
+    selectedYear.value = null;
+    selectedFromMonth.value = null;
+    selectedToMonth.value = null;
   }
   // endregion
 
@@ -210,7 +229,10 @@ class TasksController extends GetxController {
       selectedProjects.isNotEmpty ||
       selectedGroups.isNotEmpty ||
       selectedUnits.isNotEmpty ||
-      selectedAssignees.isNotEmpty;
+      selectedAssignees.isNotEmpty ||
+      selectedYear.value != null ||
+      selectedFromMonth.value != null ||
+      selectedToMonth.value != null;
 
   Future<void> refreshData() async {
     await fetchAllData();
@@ -402,7 +424,7 @@ class TasksController extends GetxController {
           final assigneeIds = selectedAssignees.map((a) => a.id.toString()).toSet();
           filteredTasks = filteredTasks.where((task) => assigneeIds.contains(task.assignTo.toString())).toList();
         }
-        
+
         // Sort in order of Active -> Overdue -> Upcoming
         filteredTasks.sort((a, b) {
           final orderA = _getTaskSortOrder(a);
@@ -1165,6 +1187,7 @@ class TasksController extends GetxController {
 
   void changeTab(int index) {
     activeTab.value = index;
+    expandedTaskId.value = null;
   }
 
   // Form states for Create/Edit Task

@@ -140,6 +140,11 @@ class HomeGridController extends GetxController {
           route: AppRoutes.allTasks,
           permissionKey: 'All_Task',
         ),
+        GridSubAction(
+          title: 'Filter',
+          icon: Icons.filter_alt_outlined,
+          route: AppRoutes.dailyTaskFilter,
+        ),
       ],
     ),
     GridItemData(

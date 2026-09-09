@@ -25,7 +25,7 @@ class TaskFilterCard extends StatelessWidget {
     if (!canFilter) return const SizedBox.shrink();
 
     return Container(
-      padding: EdgeInsets.all(8.w),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(6.r),
@@ -80,7 +80,7 @@ class TaskFilterCard extends StatelessWidget {
 
             Widget buildChip(String label, VoidCallback onDeleted) {
               return Padding(
-                padding: EdgeInsets.only(top: 8.h, right: 6.w),
+                padding: EdgeInsets.only(top: 4.h, right: 4.w),
                 child: InkWell(
                   onTap: onDeleted,
                   borderRadius: BorderRadius.circular(6.r),
@@ -99,7 +99,11 @@ class TaskFilterCard extends StatelessWidget {
                           style: AppTextStyle.style_10_500(color: AppColors.blue500),
                         ),
                         SizedBox(width: 4.w),
-                        Icon(Icons.close, size: 14.r, color: AppColors.blue500),
+                        Icon(
+                          Icons.close,
+                          size: 12.r,
+                          color: AppColors.blue500,
+                        ),
                       ],
                     ),
                   ),
@@ -140,7 +144,7 @@ class TaskFilterCard extends StatelessWidget {
               ),
             );
           }),
-          SizedBox(height: 8.h),
+          SizedBox(height: 4.h),
           if (canFilterProject || canFilterUnit)
             Row(
               children: [
@@ -200,7 +204,7 @@ class TaskFilterCard extends StatelessWidget {
               ],
             ),
           if ((canFilterProject || canFilterUnit) && (canFilterGroup || canFilterAssignee))
-            SizedBox(height: 8.h),
+            SizedBox(height: 4.h),
           if (canFilterGroup || canFilterAssignee)
             Row(
               children: [

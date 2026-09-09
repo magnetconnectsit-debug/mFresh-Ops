@@ -287,4 +287,75 @@ class InventoryRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<dynamic> receiveStoreOrder(int orderId, int receivedQty) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryOrdersReceive(orderId),
+        data: {'received_qty': receivedQty},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> requestStoreOrder({
+    required int storeId,
+    required int itemId,
+    required num qty,
+  }) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryOrdersStoreRequest,
+        data: {
+          'store_id': storeId,
+          'item_id': itemId,
+          'qty': qty,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> requestUnitOrder({
+    required int unitId,
+    required int itemId,
+    required num qty,
+  }) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryOrdersUnitRequest,
+        data: {
+          'unit_id': unitId,
+          'item_id': itemId,
+          'qty': qty,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createBulkStoreOrder() async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryStoreOrdersBulkStore,
+        data: {},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createBulkUnitOrder() async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryUnitOrdersBulkStore,
+        data: {},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

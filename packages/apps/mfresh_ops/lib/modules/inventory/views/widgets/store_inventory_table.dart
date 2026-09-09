@@ -8,6 +8,8 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
+import 'receive_store_order_dialog.dart';
+import 'request_store_order_dialog.dart';
 import 'store_inventory_dialogs.dart';
 
 class StoreInventoryTable extends StatefulWidget {
@@ -92,7 +94,7 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                         4: FixedColumnWidth(60.w),
                         5: FixedColumnWidth(150.w),
                         6: FixedColumnWidth(150.w),
-                        7: FixedColumnWidth(100.w),
+                        7: FixedColumnWidth(110.w),
                       },
                       children: [
                         TableRow(
@@ -258,93 +260,102 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
     );
   }
 
-  Widget _buildHeaderCellWithSubtitle(InventoryController controller, String text, String subtitle, {String? sortKey}) {
-    final key = sortKey ?? text;
-    final isSorted = controller.sortColumn.value == key;
-    final isAsc = controller.sortAscending.value;
-
-    return InkWell(
-      onTap: () => controller.sortBy(key),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    text,
-                    style: AppTextStyle.style_11_700(color: AppColors.black),
-                  ),
-                  if (subtitle.isNotEmpty)
-                    Text(
-                      subtitle,
-                      style: AppTextStyle.style_10_400(color: AppColors.grey500),
-                    ),
-                ],
-              ),
-            ),
-            if (isSorted) ...[
-              SizedBox(width: 2.w),
-              Icon(
-                isAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 11.r,
-                color: AppColors.black,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildOrderCell(InventoryItemModel item) {
-    if (item.currentOrderStatusName != null && item.currentOrderStatusName!.isNotEmpty) {
+    if (item.canRequestOrder && !item.canReceiveOrder) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(4.r),
-            border: Border.all(color: Colors.blue.shade200),
-          ),
-          child: Text(
-            item.currentOrderStatusName!,
-            style: AppTextStyle.style_11_500(color: Colors.blue.shade700),
+        child: SizedBox(
+          height: 20.h,
+          child: ElevatedButton(
+            onPressed: () {
+              final storeId = int.tryParse(item.sourceId) ?? 0;
+              final itemId = int.tryParse(item.itemId) ?? 0;
+              RequestStoreOrderDialog.show(
+                context: context,
+                storeId: storeId,
+                itemId: itemId,
+                storeName: item.store,
+                itemName: item.item,
+                orderQty: item.orderQty,
+                displayUnit: item.unit,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFC107),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 6.w),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+              elevation: 1,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text('Request Order', style: AppTextStyle.style_10_600(color: Colors.white)),
           ),
         ),
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-      child: SizedBox(
-        height: 20.h,
-        child: ElevatedButton(
-          onPressed: () {
-            AppCommonToastMessage.show(
-              message: 'Request order for ${item.item}',
-              type: ToastType.info,
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF59E0B),
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 6.w),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-            elevation: 0,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    if (!item.canRequestOrder && !item.canReceiveOrder) {
+      if (item.currentOrderId == null) {
+        return const SizedBox.shrink();
+      }
+      final rawStatus = item.currentOrderStatusName?.trim();
+      final statusDisplay = (rawStatus == null || rawStatus.isEmpty || rawStatus.toLowerCase() == 'pending')
+          ? 'Order Pending'
+          : rawStatus;
+
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Container(
+          height: 20.h,
+          alignment: Alignment.center,
+          padding: EdgeInsets.symmetric(horizontal: 6.w),
+          decoration: BoxDecoration(
+            color: const Color(0xFF9E9E9E),
+            borderRadius: BorderRadius.circular(4.r),
           ),
-          child: Text('Request Order', style: AppTextStyle.style_10_600(color: Colors.white)),
+          child: Text(
+            statusDisplay,
+            style: AppTextStyle.style_10_500(color: Colors.white),
+          ),
         ),
-      ),
-    );
+      );
+    }
+
+    if (!item.canRequestOrder && item.canReceiveOrder) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: SizedBox(
+          height: 20.h,
+          child: ElevatedButton(
+            onPressed: () {
+              final orderId = int.tryParse(item.currentOrderId?.toString() ?? '') ?? 0;
+              ReceiveStoreOrderDialog.show(
+                context: context,
+                orderId: orderId,
+                storeOrUnitName: item.store,
+                itemName: item.item,
+                requestedQty: item.currentOrderQty ?? item.orderQty.toString(),
+                displayUnit: item.unit,
+                isStoreOrder: true,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00875A),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+              elevation: 1,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text('Order Receive', style: AppTextStyle.style_10_600(color: Colors.white)),
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildDataCell(String text, bool isExpanded, VoidCallback onTap, {Color? textColor, Color? bgColor}) {

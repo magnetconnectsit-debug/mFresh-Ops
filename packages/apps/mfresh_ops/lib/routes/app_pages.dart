@@ -29,6 +29,7 @@ import 'package:mfresh_ops/modules/deposits/views/deposits_screen.dart';
 import 'package:mfresh_ops/modules/deposits/views/create_deposit_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/all_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_tasks_screen.dart';
+import 'package:mfresh_ops/modules/tasks/views/daily_task_filter_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/create_task_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/task_review_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_tickets_screen.dart';
@@ -75,7 +76,6 @@ import 'package:mfresh_ops/modules/booking/views/booking_confirmed_screen.dart';
 import 'package:mfresh_ops/modules/booking/views/booking_history_screen.dart';
 import 'package:mfresh_ops/modules/booking/views/print_receipt_screen.dart';
 import 'package:mfresh_ops/modules/booking/views/booking_unit_selection_screen.dart';
-import 'package:mfresh_ops/modules/service_details/views/service_details_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/assets_products_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
@@ -118,6 +118,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.dailyTasks,
       page: () => const DailyTasksScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
+    GetPage(
+      name: AppRoutes.dailyTaskFilter,
+      page: () => const DailyTaskFilterScreen(),
       binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
     ),
     GetPage(

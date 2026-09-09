@@ -25,6 +25,8 @@ class UnitInventoryController extends GetxController {
   final unitOptions = <DropdownOption>[].obs;
   final itemOptions = <DropdownOption>[].obs;
   final categoryOptions = <DropdownOption>[].obs;
+  final consumptionDays = '8'.obs;
+  final consumptionToDate = ''.obs;
 
   @override
   void onInit() {
@@ -101,7 +103,11 @@ class UnitInventoryController extends GetxController {
         if (period != null && period is Map) {
           final days = period['days']?.toString();
           if (days != null && days.isNotEmpty) {
-            consumptionSubtitle.value = '($days Days)';
+            consumptionDays.value = days;
+          }
+          final toDate = period['to']?.toString();
+          if (toDate != null && toDate.isNotEmpty) {
+            consumptionToDate.value = toDate;
           }
         }
 
@@ -189,7 +195,7 @@ class UnitInventoryController extends GetxController {
 
   // Pagination
   final currentPage = 1.obs;
-  final itemsPerPage = 50.obs;
+  final itemsPerPage = 100.obs;
 
   void setItemsPerPage(int count) {
     itemsPerPage.value = count;
@@ -266,10 +272,27 @@ class UnitInventoryController extends GetxController {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
       title: 'Unit Inventory Report',
-      columns: const ["Unit", "Item", "Category", "Quantity", "M_Unit"],
+      columns: const [
+        "Unit",
+        "Item",
+        "Category",
+        "Quantity",
+        "M_Unit",
+        "Consumption Qty",
+        "Required Qty"
+      ],
       rows: unitInventoryItems
-          .map((item) => [item.unitName, item.itemName, item.categoryName, item.quantity, item.mUnit])
+          .map((item) => [
+                item.unitName,
+                item.itemName,
+                item.categoryName,
+                item.quantity,
+                item.displayUnit.isNotEmpty ? item.displayUnit : item.mUnit,
+                item.formattedConsumption,
+                item.formattedRequiredQuantity,
+              ])
           .toList(),
+      fileName: 'Unit_Inventory_Report',
     );
     isExporting.value = false;
   }

@@ -22,7 +22,6 @@ import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/core/widgets/auto_start_dialog.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
-import 'package:mfresh_ops/data/services/duty_overlay_service.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
@@ -105,9 +104,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     });
 
     ever(isTracking, (bool tracking) {
-      if (!tracking) {
-        DutyOverlayService.to.hideOverlay();
-      }
+      // Background tracking status update
     });
   }
 
@@ -937,11 +934,6 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
                   );
                 }
               });
-            }
-          } catch (_) {}
-          try {
-            if (Get.isRegistered<DutyOverlayService>()) {
-              await DutyOverlayService.to.requestPermissionWithRationale();
             }
           } catch (_) {}
         }

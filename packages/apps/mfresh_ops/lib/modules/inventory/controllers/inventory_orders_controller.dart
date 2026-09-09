@@ -25,7 +25,7 @@ class InventoryOrdersController extends GetxController {
 
   // Pagination
   final RxInt currentPage = 1.obs;
-  final RxInt itemsPerPage = 10.obs;
+  final RxInt itemsPerPage = 100.obs;
 
   @override
   void onInit() {

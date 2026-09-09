@@ -148,6 +148,7 @@ class CommonSidebar extends StatelessWidget {
               final taskSubItems = [
                 if (userPermissions.contains('All_Task')) 'All Task',
                 if (userPermissions.contains('Daily_Task')) 'Daily Task',
+                'Daily Task Filter',
               ];
 
               final inventorySubItems = [
@@ -416,6 +417,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.allTasks);
                   } else if (item == 'Daily Task') {
                     Get.toNamed(AppRoutes.dailyTasks);
+                  } else if (item == 'Daily Task Filter') {
+                    Get.toNamed(AppRoutes.dailyTaskFilter);
                   } else if (item == 'My Routes') {
                     Get.toNamed(AppRoutes.liveTracking);
                   } else if (item == 'Attendance') {

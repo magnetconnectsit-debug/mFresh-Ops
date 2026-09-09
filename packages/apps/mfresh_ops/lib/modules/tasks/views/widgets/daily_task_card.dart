@@ -207,7 +207,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
       statusBg = const Color(0xFFE25C5C);
       statusText = 'Overdue';
     } else if (isActive) {
-      statusBg = const Color(0xFF28A745); // Green color matching screenshot
+      statusBg = const Color(0xFF28A745);
       statusText = 'Active';
     } else {
       statusText = task.status;
@@ -253,274 +253,361 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     final isRecurring =
         task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isExpanded = !_isExpanded;
-        });
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: const Color(0xFFE5E5E5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+    final controller = Get.find<TasksController>();
+
+    return Obx(() {
+      final isCompactList = controller.isListView.value;
+      final taskKey = '${task.id}_${task.taskInstanceId ?? ''}_${task.scheduleDateTime}';
+      final isExpandedInListView = controller.expandedTaskId.value == taskKey;
+
+      if (isCompactList && !isExpandedInListView) {
+        return GestureDetector(
+          onTap: () => controller.toggleExpandedTask(taskKey),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Leading Icon
-              Padding(
-                padding: EdgeInsets.only(top: 2.h),
-                child: Icon(
+            child: Row(
+              children: [
+                Icon(
                   isRecurring ? Icons.sync : Icons.person,
-                  size: 18.r,
+                  size: 16.r,
                   color: isRecurring
                       ? const Color(0xFFFF3B30)
                       : const Color(0xFF212529),
                 ),
-              ),
-              SizedBox(width: 8.w),
-              // Middle Content Column
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      maxLines: _isExpanded ? null : 1,
-                      overflow: _isExpanded
-                          ? TextOverflow.visible
-                          : TextOverflow.ellipsis,
-                      style: AppTextStyle.style_14_700(color: AppColors.black),
-                    ),
-                    SizedBox(height: 4.h),
-                    // Metadata Row 1: Time and Date
-                    Wrap(
-                      spacing: 8.w,
-                      runSpacing: 4.h,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (task.instStartTime != null && task.instEndTime != null)
-                          _buildIconText(
-                            Icons.access_time_outlined,
-                            '${task.instStartTime} - ${task.instEndTime}',
-                          ),
-                        _buildIconText(
-                          Icons.calendar_today_outlined,
-                          _formatCardDate(task.scheduleDateTime),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4.h),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                (task.assigneeName != null &&
-                                        task.assigneeName!.isNotEmpty)
-                                    ? Icons.person_outline
-                                    : (task.groupNames != null &&
-                                          task.groupNames!.isNotEmpty)
-                                    ? Icons.people_outline
-                                    : Icons.person_outline,
-                                size: 12.r,
-                                color: const Color(0xFF6C757D),
-                              ),
-                              SizedBox(width: 4.w),
-                              Flexible(
-                                child: Text(
-                                  ((task.assigneeName != null &&
-                                              task.assigneeName!.isNotEmpty)
-                                          ? task.assigneeName!
-                                          : (task.groupNames != null &&
-                                                task.groupNames!.isNotEmpty)
-                                          ? task.groupNames!
-                                          : 'Unassigned')
-                                      .replaceAll('_', ' '),
-                                  style: TextStyle(
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF6C757D),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        if (!isCompletedOrApproved && !isReviewOrUnderReview)
-                          if (Get.find<AuthRepository>().rxUserPermissions
-                              .contains('Task_Edit')) ...[
-                            GestureDetector(
-                              onTap: () {
-                                Get.find<TasksController>().editTaskDetails(task);
-                              },
-                              child: Icon(
-                                Icons.edit,
-                                size: 14.r,
-                                color: const Color(0xFF0D6EFD),
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                          ],
-                        if (!isCompletedOrApproved && !isReviewOrUnderReview)
-                          if (Get.find<AuthRepository>().rxUserPermissions
-                              .contains('Task_Delete'))
-                            GestureDetector(
-                              onTap: () {
-                                Get.dialog(DeleteTaskDialog(task: task));
-                              },
-                              child: Icon(
-                                Icons.delete_outline,
-                                size: 14.r,
-                                color: const Color(0xFF6C757D),
-                              ),
-                            ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 8.w),
-              // Right Badge Column
-              Align(
-                alignment: Alignment.center,
-                child: GestureDetector(
-                  onTap: () {
-                    if (task.canStatusBtnClicked != true) {
-                      AppCommonToastMessage.show(
-                        message:
-                            'You do not have permission to perform this action.',
-                        type: ToastType.warning,
-                      );
-                      return;
-                    }
-                    final status = task.status.toLowerCase();
-                    final controller = Get.find<TasksController>();
-                    if (status == 'review' || status == 'under_review') {
-                      final user = Get.find<StorageService>().getUser();
-                      final isApprover =
-                          task.approverId == user?.id?.toString();
-                      if (isApprover) {
-                        controller.fetchTaskSubmissionDetails(
-                          task,
-                          isReview: true,
-                        );
-                      } else {
-                        controller.fetchTaskSubmissionDetails(
-                          task,
-                          isReview: true,
-                          readOnly: true,
-                        );
-                      }
-                    } else if (status == 'due' ||
-                        status == 'overdue' ||
-                        status == 'pending' ||
-                        status == 'rejected' ||
-                        isOverdue) {
-                      controller.fetchTaskSubmissionDetails(
-                        task,
-                        isReview: false,
-                      );
-                    } else if (status == 'completed' || status == 'approved') {
-                      controller.fetchTaskSubmissionDetails(
-                        task,
-                        isReview: true,
-                        readOnly: true,
-                      );
-                    } else {
-                      if (Get.find<AuthRepository>().rxUserPermissions.contains(
-                        'Task_Edit',
-                      )) {
-                        controller.editTaskDetails(task);
-                      }
-                    }
-                  },
-                  child: Column(
-                    crossAxisAlignment: isRejected
-                        ? CrossAxisAlignment.center
-                        : CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        constraints: BoxConstraints(minWidth: 75.w),
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: statusBg,
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        child: Center(
-                          widthFactor: 1.0,
-                          heightFactor: 1.0,
-                          child: Text(
-                            statusText,
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w700,
-                              color: statusTextColor,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      if ((isOverdue || statusLower == 'overdue') &&
-                          !isRejected) ...[
-                        SizedBox(height: 4.h),
-                        Text(
-                          'Overdue by',
-                          style: AppTextStyle.style_8_400(
-                            color: const Color(0xFF6C757D),
-                          ),
-                        ),
-                        Obx(() {
-                          // Trigger Obx refresh by accessing centralized currentTime value
-                          final _ =
-                              Get.find<TasksController>().currentTime.value;
-                          return Text(
-                            _getOverdueDuration(task.scheduleDateTime),
-                            style: AppTextStyle.style_10_700(
-                              color: AppColors.black,
-                            ),
-                          );
-                        }),
-                      ],
-                      if ((isUpcoming || statusLower == 'upcoming') &&
-                          !isRejected) ...[
-                        SizedBox(height: 4.h),
-                        Obx(() {
-                          // Trigger Obx refresh by accessing centralized currentTime value
-                          final _ =
-                              Get.find<TasksController>().currentTime.value;
-                          return Text(
-                            'Starts in ${_getStartsInDuration(task.scheduleDateTime)}',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF212529),
-                            ),
-                          );
-                        }),
-                      ],
-                    ],
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyle.style_13_600(color: AppColors.black),
                   ),
                 ),
+                SizedBox(width: 8.w),
+                _buildStatusBadge(
+                  statusText: statusText,
+                  statusBg: statusBg,
+                  statusTextColor: statusTextColor,
+                  isRejected: isRejected,
+                  isOverdue: isOverdue,
+                  isUpcoming: isUpcoming,
+                  statusLower: statusLower,
+                  task: task,
+                  showTimer: false,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return GestureDetector(
+        onTap: () {
+          if (isCompactList) {
+            controller.toggleExpandedTask(taskKey);
+          } else {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          }
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: const Color(0xFFE5E5E5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Leading Icon
+                Padding(
+                  padding: EdgeInsets.only(top: 2.h),
+                  child: Icon(
+                    isRecurring ? Icons.sync : Icons.person,
+                    size: 18.r,
+                    color: isRecurring
+                        ? const Color(0xFFFF3B30)
+                        : const Color(0xFF212529),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                // Middle Content Column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        task.title,
+                        maxLines: _isExpanded ? null : 1,
+                        overflow: _isExpanded
+                            ? TextOverflow.visible
+                            : TextOverflow.ellipsis,
+                        style: AppTextStyle.style_14_700(color: AppColors.black),
+                      ),
+                      SizedBox(height: 4.h),
+                      // Metadata Row 1: Time and Date
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 4.h,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (task.instStartTime != null &&
+                              task.instEndTime != null)
+                            _buildIconText(
+                              Icons.access_time_outlined,
+                              '${task.instStartTime} - ${task.instEndTime}',
+                            ),
+                          _buildIconText(
+                            Icons.calendar_today_outlined,
+                            _formatCardDate(task.scheduleDateTime),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4.h),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  (task.assigneeName != null &&
+                                          task.assigneeName!.isNotEmpty)
+                                      ? Icons.person_outline
+                                      : (task.groupNames != null &&
+                                            task.groupNames!.isNotEmpty)
+                                      ? Icons.people_outline
+                                      : Icons.person_outline,
+                                  size: 12.r,
+                                  color: const Color(0xFF6C757D),
+                                ),
+                                SizedBox(width: 4.w),
+                                Flexible(
+                                  child: Text(
+                                    ((task.assigneeName != null &&
+                                                task.assigneeName!.isNotEmpty)
+                                            ? task.assigneeName!
+                                            : (task.groupNames != null &&
+                                                  task.groupNames!.isNotEmpty)
+                                            ? task.groupNames!
+                                            : 'Unassigned')
+                                        .replaceAll('_', ' '),
+                                    style: TextStyle(
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF6C757D),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          if (!isCompletedOrApproved && !isReviewOrUnderReview)
+                            if (Get.find<AuthRepository>().rxUserPermissions
+                                .contains('Task_Edit')) ...[
+                              GestureDetector(
+                                onTap: () {
+                                  Get.find<TasksController>().editTaskDetails(
+                                    task,
+                                  );
+                                },
+                                child: Icon(
+                                  Icons.edit,
+                                  size: 14.r,
+                                  color: const Color(0xFF0D6EFD),
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                            ],
+                          if (!isCompletedOrApproved && !isReviewOrUnderReview)
+                            if (Get.find<AuthRepository>().rxUserPermissions
+                                .contains('Task_Delete'))
+                              GestureDetector(
+                                onTap: () {
+                                  Get.dialog(DeleteTaskDialog(task: task));
+                                },
+                                child: Icon(
+                                  Icons.delete_outline,
+                                  size: 14.r,
+                                  color: const Color(0xFF6C757D),
+                                ),
+                              ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                // Right Badge Column
+                Align(
+                  alignment: Alignment.center,
+                  child: _buildStatusBadge(
+                    statusText: statusText,
+                    statusBg: statusBg,
+                    statusTextColor: statusTextColor,
+                    isRejected: isRejected,
+                    isOverdue: isOverdue,
+                    isUpcoming: isUpcoming,
+                    statusLower: statusLower,
+                    task: task,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+      );
+    });
+  }
+
+  Widget _buildStatusBadge({
+    required String statusText,
+    required Color statusBg,
+    required Color statusTextColor,
+    required bool isRejected,
+    required bool isOverdue,
+    required bool isUpcoming,
+    required String statusLower,
+    required TaskItem task,
+    bool showTimer = true,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        if (task.canStatusBtnClicked != true) {
+          AppCommonToastMessage.show(
+            message: 'You do not have permission to perform this action.',
+            type: ToastType.warning,
+          );
+          return;
+        }
+        final status = task.status.toLowerCase();
+        final controller = Get.find<TasksController>();
+        if (status == 'review' || status == 'under_review') {
+          final user = Get.find<StorageService>().getUser();
+          final isApprover = task.approverId == user?.id?.toString();
+          if (isApprover) {
+            controller.fetchTaskSubmissionDetails(
+              task,
+              isReview: true,
+            );
+          } else {
+            controller.fetchTaskSubmissionDetails(
+              task,
+              isReview: true,
+              readOnly: true,
+            );
+          }
+        } else if (status == 'due' ||
+            status == 'overdue' ||
+            status == 'pending' ||
+            status == 'rejected' ||
+            isOverdue) {
+          controller.fetchTaskSubmissionDetails(
+            task,
+            isReview: false,
+          );
+        } else if (status == 'completed' || status == 'approved') {
+          controller.fetchTaskSubmissionDetails(
+            task,
+            isReview: true,
+            readOnly: true,
+          );
+        } else {
+          if (Get.find<AuthRepository>().rxUserPermissions.contains(
+            'Task_Edit',
+          )) {
+            controller.editTaskDetails(task);
+          }
+        }
+      },
+      child: Column(
+        crossAxisAlignment:
+            isRejected ? CrossAxisAlignment.center : CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            constraints: BoxConstraints(minWidth: 70.w),
+            padding: EdgeInsets.symmetric(
+              horizontal: 8.w,
+              vertical: 4.h,
+            ),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: Center(
+              widthFactor: 1.0,
+              heightFactor: 1.0,
+              child: Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700,
+                  color: statusTextColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          if (showTimer) ...[
+            if ((isOverdue || statusLower == 'overdue') && !isRejected) ...[
+              SizedBox(height: 3.h),
+              Text(
+                'Overdue by',
+                style: AppTextStyle.style_8_400(
+                  color: const Color(0xFF6C757D),
+                ),
+              ),
+              Obx(() {
+                final _ = Get.find<TasksController>().currentTime.value;
+                return Text(
+                  _getOverdueDuration(task.scheduleDateTime),
+                  style: AppTextStyle.style_10_700(
+                    color: AppColors.black,
+                  ),
+                );
+              }),
+            ],
+            if ((isUpcoming || statusLower == 'upcoming') && !isRejected) ...[
+              SizedBox(height: 3.h),
+              Obx(() {
+                final _ = Get.find<TasksController>().currentTime.value;
+                return Text(
+                  'Starts in ${_getStartsInDuration(task.scheduleDateTime)}',
+                  style: TextStyle(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF212529),
+                  ),
+                );
+              }),
+            ],
+          ],
+        ],
       ),
     );
   }

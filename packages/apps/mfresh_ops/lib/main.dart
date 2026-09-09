@@ -37,8 +37,6 @@ import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
-import 'package:mfresh_ops/core/widgets/duty_overlay_widget.dart';
-import 'package:mfresh_ops/data/services/duty_overlay_service.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
@@ -57,24 +55,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 @pragma('vm:entry-point')
 void startCallback() {
   FlutterForegroundTask.setTaskHandler(MyTaskHandler());
-}
-
-@pragma('vm:entry-point')
-void overlayMain() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      color: Colors.transparent,
-      home: Material(
-        color: Colors.transparent,
-        type: MaterialType.transparency,
-        child: Center(
-          child: DutyOverlayWidget(),
-        ),
-      ),
-    ),
-  );
 }
 // endregion
 
@@ -757,7 +737,6 @@ Future<void> initServices() async {
   Get.put(InventoryRepository());
   Get.put(TrackingRepository());
   Get.put(TrackingService());
-  Get.put(DutyOverlayService());
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
   Get.put(ContactRepository());

@@ -38,6 +38,8 @@ class InventoryController extends GetxController {
 
   final inventoryItems = <InventoryItemModel>[].obs;
   final isLoading = false.obs;
+  final consumptionDays = '40'.obs;
+  final consumptionToDate = ''.obs;
 
   @override
   void onInit() {
@@ -301,7 +303,11 @@ class InventoryController extends GetxController {
         if (period != null && period is Map) {
           final days = period['days']?.toString();
           if (days != null && days.isNotEmpty) {
-            consumptionSubtitle.value = '($days Days)';
+            consumptionDays.value = days;
+          }
+          final toDate = period['to']?.toString();
+          if (toDate != null && toDate.isNotEmpty) {
+            consumptionToDate.value = toDate;
           }
         }
 
@@ -340,6 +346,8 @@ class InventoryController extends GetxController {
         'Category',
         'Qty',
         'Unit',
+        'Consumption Qty',
+        'Required Qty',
       ],
       rows: inventoryItems.map((item) => [
         item.store,
@@ -347,6 +355,8 @@ class InventoryController extends GetxController {
         item.category,
         item.quantity,
         item.unit,
+        item.formattedConsumption,
+        item.formattedRequiredQuantity,
       ]).toList(),
       fileName: 'Inventory_Stock_Report',
     );
@@ -436,7 +446,7 @@ class InventoryController extends GetxController {
 
   // Pagination and UI logic
   final currentPage = 1.obs;
-  final itemsPerPage = 50.obs;
+  final itemsPerPage = 100.obs;
 
   void setItemsPerPage(int count) {
     itemsPerPage.value = count;
