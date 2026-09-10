@@ -484,6 +484,17 @@ class AppTextStyle {
 
   //endregion
 
+  //region style_9_400
+  static TextStyle style_9_500({Color? color}) {
+    return GoogleFonts.poppins(
+      fontSize: 9.sp,
+      fontWeight: FontWeight.w500,
+      color: color ?? AppColors.grey500,
+    );
+  }
+
+  //endregion
+
   //region style_10_500
   static TextStyle style_10_500({Color? color}) {
     return GoogleFonts.poppins(

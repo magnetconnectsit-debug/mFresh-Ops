@@ -310,6 +310,9 @@ class InventoryController extends GetxController {
             consumptionToDate.value = toDate;
           }
         }
+        if (consumptionDays.value.isNotEmpty) {
+          consumptionSubtitle.value = '(${consumptionDays.value} Days)';
+        }
 
         final List data = response['data'] ?? [];
         final items = data.map((e) => InventoryItemModel.fromJson(e)).toList();

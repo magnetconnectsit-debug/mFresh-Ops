@@ -131,6 +131,7 @@ class AppConstants {
   static const String inventoryStoreOrdersBulkStore = 'inventory/store-orders/bulk-store';
   static const String inventoryUnitOrdersBulkStore = 'inventory/unit-orders/bulk-store';
   static String inventoryOrdersReceive(dynamic orderId) => 'inventory/orders/$orderId/receive';
+  static String inventoryOrdersComplete(dynamic orderId) => 'inventory/orders/$orderId/complete';
   static const String measurementList = 'measurement/list';
 
   // Tracking

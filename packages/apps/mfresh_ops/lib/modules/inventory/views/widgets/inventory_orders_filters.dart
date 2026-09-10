@@ -13,51 +13,56 @@ class InventoryOrdersFilters extends StatelessWidget {
     final controller = Get.find<InventoryOrdersController>();
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       child: Obx(() {
         final summary = controller.summary.value;
         final selected = controller.selectedFilter.value;
+        final activeCount = controller.allActiveCount;
 
         return Row(
           children: [
             Expanded(
               child: _buildFilterBtn(
+                label: 'All',
+                count: activeCount,
+                isSelected: selected == InventoryOrderStatusFilter.allActive,
+                onTap: () =>
+                    controller.setFilter(InventoryOrderStatusFilter.allActive),
+                color: const Color(0xFF6B7280),
+              ),
+            ),
+            SizedBox(width: 4.w),
+            Expanded(
+              child: _buildFilterBtn(
                 label: 'Pending',
                 count: summary.pending,
                 isSelected: selected == InventoryOrderStatusFilter.pending,
-                onTap: () => controller.setFilter(
-                  selected == InventoryOrderStatusFilter.pending
-                      ? InventoryOrderStatusFilter.all
-                      : InventoryOrderStatusFilter.pending,
-                ),
+                onTap: () =>
+                    controller.setFilter(InventoryOrderStatusFilter.pending),
                 color: const Color(0xFFF59E0B),
               ),
             ),
-            SizedBox(width: 6.w),
+            SizedBox(width: 4.w),
             Expanded(
               child: _buildFilterBtn(
                 label: 'Waiting',
                 count: summary.waitingForReceive,
-                isSelected: selected == InventoryOrderStatusFilter.waitingForReceive,
+                isSelected:
+                    selected == InventoryOrderStatusFilter.waitingForReceive,
                 onTap: () => controller.setFilter(
-                  selected == InventoryOrderStatusFilter.waitingForReceive
-                      ? InventoryOrderStatusFilter.all
-                      : InventoryOrderStatusFilter.waitingForReceive,
+                  InventoryOrderStatusFilter.waitingForReceive,
                 ),
                 color: Colors.purple.shade600,
               ),
             ),
-            SizedBox(width: 6.w),
+            SizedBox(width: 4.w),
             Expanded(
               child: _buildFilterBtn(
                 label: 'Completed',
                 count: summary.completed,
                 isSelected: selected == InventoryOrderStatusFilter.completed,
-                onTap: () => controller.setFilter(
-                  selected == InventoryOrderStatusFilter.completed
-                      ? InventoryOrderStatusFilter.all
-                      : InventoryOrderStatusFilter.completed,
-                ),
+                onTap: () =>
+                    controller.setFilter(InventoryOrderStatusFilter.completed),
                 color: const Color(0xFF10B981),
               ),
             ),
@@ -76,13 +81,13 @@ class InventoryOrdersFilters extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12.r),
+      borderRadius: BorderRadius.circular(4.r),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 4.h),
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 5.h),
         decoration: BoxDecoration(
           color: isSelected ? color : color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(4.r),
           border: Border.all(
             color: isSelected ? color : color.withValues(alpha: 0.3),
             width: 1,
@@ -95,26 +100,26 @@ class InventoryOrdersFilters extends StatelessWidget {
               child: Text(
                 label,
                 maxLines: 1,
-                overflow: TextOverflow.clip,
-                style: AppTextStyle.style_10_600(
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyle.style_9_500(
                   color: isSelected ? Colors.white : AppColors.black,
-                ).copyWith(fontSize: 9.sp),
+                ),
               ),
             ),
-            SizedBox(width: 2.w),
+            SizedBox(width: 3.w),
             Container(
-              width: 16.r,
-              height: 16.r,
-              alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withValues(alpha: 0.25) : color,
-                shape: BoxShape.circle,
+                color: isSelected
+                    ? Colors.white.withValues(alpha: 0.25)
+                    : color,
+                borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
                 '$count',
                 style: AppTextStyle.style_10_700(
                   color: Colors.white,
-                ).copyWith(fontSize: 9.sp, height: 1),
+                ).copyWith(fontSize: 9.5.sp, height: 1),
               ),
             ),
           ],

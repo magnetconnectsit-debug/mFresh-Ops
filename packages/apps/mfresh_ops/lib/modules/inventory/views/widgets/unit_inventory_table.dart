@@ -85,36 +85,64 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
 
                   return Skeletonizer(
                     enabled: isTableLoading,
-                    child: Table(
-                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                      border: TableBorder.symmetric(
-                        inside: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      columnWidths: {
-                        0: FixedColumnWidth(120.w),
-                        1: FixedColumnWidth(80.w),
-                        2: FixedColumnWidth(120.w),
-                        3: FixedColumnWidth(110.w),
-                        4: FixedColumnWidth(60.w),
-                        5: FixedColumnWidth(150.w),
-                        6: FixedColumnWidth(150.w),
-                        7: FixedColumnWidth(110.w),
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TableRow(
-                          decoration: const BoxDecoration(color: Color(0xFFE8F1F8)),
+                        // Sticky Header Row
+                        Table(
+                          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                          border: TableBorder.symmetric(
+                            inside: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          columnWidths: {
+                            0: FixedColumnWidth(120.w),
+                            1: FixedColumnWidth(80.w),
+                            2: FixedColumnWidth(120.w),
+                            3: FixedColumnWidth(110.w),
+                            4: FixedColumnWidth(60.w),
+                            5: FixedColumnWidth(150.w),
+                            6: FixedColumnWidth(150.w),
+                            7: FixedColumnWidth(110.w),
+                          },
                           children: [
-                            _buildHeaderCell(controller, 'Action'),
-                            _buildHeaderCell(controller, 'Unit'),
-                            _buildHeaderCell(controller, 'Item'),
-                            _buildHeaderCell(controller, 'Category'),
-                            _buildHeaderCell(controller, 'Quantity'),
-                            _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Consumption ${controller.consumptionSubtitle.value}' : 'Consumption', sortKey: 'Consumption'),
-                            _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Required Qty ${controller.consumptionSubtitle.value}' : 'Required Qty', sortKey: 'Required Qty'),
-                            _buildHeaderCell(controller, 'Request Order', sortKey: 'Order'),
+                            TableRow(
+                              decoration: const BoxDecoration(color: Color(0xFFE8F1F8)),
+                              children: [
+                                _buildHeaderCell(controller, 'Action'),
+                                _buildHeaderCell(controller, 'Unit'),
+                                _buildHeaderCell(controller, 'Item'),
+                                _buildHeaderCell(controller, 'Category'),
+                                _buildHeaderCell(controller, 'Quantity'),
+                                _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Consumption ${controller.consumptionSubtitle.value}' : 'Consumption', sortKey: 'Consumption'),
+                                _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Required Qty ${controller.consumptionSubtitle.value}' : 'Required Qty', sortKey: 'Required Qty'),
+                                _buildHeaderCell(controller, 'Request Order', sortKey: 'Order'),
+                              ],
+                            ),
                           ],
                         ),
-                        ...List.generate(items.length, (index) {
+                        const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
+                        // Scrollable Data Rows
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxHeight: 340.h),
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Table(
+                              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                              border: TableBorder.symmetric(
+                                inside: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              columnWidths: {
+                                0: FixedColumnWidth(120.w),
+                                1: FixedColumnWidth(80.w),
+                                2: FixedColumnWidth(120.w),
+                                3: FixedColumnWidth(110.w),
+                                4: FixedColumnWidth(60.w),
+                                5: FixedColumnWidth(150.w),
+                                6: FixedColumnWidth(150.w),
+                                7: FixedColumnWidth(110.w),
+                              },
+                              children: [
+                                ...List.generate(items.length, (index) {
                           final item = items[index];
                           final key = '${item.unitName}_${item.itemName}_${item.categoryName}_$index';
                           final isExpanded = _expandedRows.contains(key);
@@ -181,8 +209,12 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
                         }),
                       ],
                     ),
-                  );
-                }),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
               ),
             ),
           ),

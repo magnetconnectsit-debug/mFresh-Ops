@@ -32,7 +32,7 @@ class InventoryOrdersScreen extends StatelessWidget {
               ? AppCommonSearchBar(
                   controller: controller.searchController,
                   hintText: 'Search order or item...',
-                  onChanged: (v) => controller.applyFilters(),
+                  onChanged: (v) => controller.allOrders.refresh(),
                 )
               : Text(
                   'Inventory Orders',
@@ -56,53 +56,12 @@ class InventoryOrdersScreen extends StatelessWidget {
           child: Column(
             children: [
               const InventoryOrdersFilters(),
-              _buildPaginationControls(context),
+              SizedBox(height: 8.h),
               const InventoryOrdersTable(),
               SizedBox(height: 40.h),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationControls(BuildContext context) {
-    final controller = Get.find<InventoryOrdersController>();
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 5.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Container(
-            height: 24.h,
-            padding: EdgeInsets.symmetric(horizontal: 6.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-            child: Obx(() => DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: controller.itemsPerPage.value,
-                    icon: Icon(Icons.arrow_drop_down, size: 16.r),
-                    isDense: true,
-                    style: AppTextStyle.style_12_500(color: AppColors.black),
-                    items: const [10, 25, 50, 100].map((int val) {
-                      return DropdownMenuItem<int>(
-                        value: val,
-                        child: Text('$val per page'),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        controller.setItemsPerPage(val);
-                      }
-                    },
-                  ),
-                )),
-          ),
-        ],
       ),
     );
   }

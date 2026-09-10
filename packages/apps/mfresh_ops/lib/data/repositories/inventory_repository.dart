@@ -299,6 +299,34 @@ class InventoryRepository extends GetxService {
     }
   }
 
+  Future<dynamic> completeOrder({
+    required int orderId,
+    int? unitId,
+    int? storeId,
+    required int itemId,
+    required num qty,
+  }) async {
+    try {
+      final Map<String, dynamic> data = {
+        'item_id': itemId,
+        'qty': qty,
+      };
+      if (unitId != null) {
+        data['unit_id'] = unitId;
+      }
+      if (storeId != null) {
+        data['store_id'] = storeId;
+      }
+
+      return await _apiService.post(
+        AppConstants.inventoryOrdersComplete(orderId),
+        data: data,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<dynamic> requestStoreOrder({
     required int storeId,
     required int itemId,
