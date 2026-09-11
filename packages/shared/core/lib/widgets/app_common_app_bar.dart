@@ -16,6 +16,7 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onBackButtonPressed,
     this.toolbarHeight,
     this.titleSpacing,
+    this.topHeader,
   });
 
   final Widget? title;
@@ -28,16 +29,18 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBackButtonPressed;
   final double? toolbarHeight;
   final double? titleSpacing;
+  final PreferredSizeWidget? topHeader;
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
+    final appBar = AppBar(
       title: title,
+      primary: topHeader == null,
       backgroundColor: backgroundColor,
       elevation: elevation,
       centerTitle: false,
       scrolledUnderElevation: 0,
-      toolbarHeight: toolbarHeight,
+      toolbarHeight: toolbarHeight ?? 35.h,
       titleSpacing: titleSpacing,
       titleTextStyle:
           AppTextStyle.style_18_600(color: iconColor ?? AppColors.black),
@@ -47,7 +50,7 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed:
                   onBackButtonPressed ?? () => Navigator.of(context).pop(),
             )
-          : (showAppDrawer
+          : (showAppDrawer && topHeader == null
               ? Builder(
                   builder: (context) => IconButton(
                     icon: Icon(Icons.menu, color: iconColor),
@@ -58,10 +61,31 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: actions,
       automaticallyImplyLeading: false,
     );
+
+    if (topHeader == null) {
+      return appBar;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          color: AppColors.white,
+          child: SafeArea(
+            bottom: false,
+            child: topHeader!,
+          ),
+        ),
+        appBar,
+      ],
+    );
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(toolbarHeight ?? kToolbarHeight);
+  Size get preferredSize {
+    final topHeight = topHeader?.preferredSize.height ?? 0.0;
+    return Size.fromHeight((toolbarHeight ?? 35.h) + topHeight);
+  }
 }
 
 

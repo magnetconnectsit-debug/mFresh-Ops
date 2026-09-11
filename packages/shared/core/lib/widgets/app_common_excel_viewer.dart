@@ -22,9 +22,18 @@ class AppCommonExcelViewer extends StatelessWidget {
     required this.filePath,
   });
 
-  Future<void> _shareFile() async {
+  Future<void> _shareFile(BuildContext context) async {
     try {
-      await Share.shareXFiles([XFile(filePath)], text: 'Check out this $title');
+      final box = context.findRenderObject() as RenderBox?;
+      final rect = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, MediaQuery.of(context).size.height / 2);
+
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Check out this $title',
+        sharePositionOrigin: rect,
+      );
     } catch (e) {
       AppCommonToastMessage.show(
         message: 'Failed to share file: $e',
@@ -40,19 +49,21 @@ class AppCommonExcelViewer extends StatelessWidget {
       appBar: AppCommonAppBar(
         title: Text(title.sanitize),
         actions: [
-          IconButton(
-            onPressed: _shareFile,
-            icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
+          Builder(
+            builder: (ctx) => IconButton(
+              onPressed: () => _shareFile(ctx),
+              icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
+            ),
           ),
-          IconButton(
-            onPressed: () {
-              AppCommonToastMessage.show(
-                message: 'File already saved at: $filePath',
-                type: ToastType.success,
-              );
-            },
-            icon: Icon(Icons.download_rounded, color: AppColors.primary, size: 24.sp),
-          ),
+          // IconButton(
+          //   onPressed: () {
+          //     AppCommonToastMessage.show(
+          //       message: 'File already saved at: $filePath',
+          //       type: ToastType.success,
+          //     );
+          //   },
+          //   icon: Icon(Icons.download_rounded, color: AppColors.primary, size: 24.sp),
+          // ),
           SizedBox(width: 8.w),
         ],
       ),

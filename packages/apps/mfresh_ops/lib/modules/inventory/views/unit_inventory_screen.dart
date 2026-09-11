@@ -3,11 +3,17 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_drop_down.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
-import 'package:core/widgets/app_common_export_button.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:core/widgets/app_common_app_bar.dart';
 import '../controllers/unit_inventory_controller.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'widgets/unit_inventory_filters.dart';
+import 'widgets/unit_inventory_table.dart';
+import 'widgets/unit_required_orders_dialog.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class UnitInventoryScreen extends StatelessWidget {
   const UnitInventoryScreen({super.key});
@@ -15,41 +21,171 @@ class UnitInventoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(UnitInventoryController());
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Obx(() => controller.isSearching.value
-            ? AppCommonSearchBar(
-                controller: controller.searchController,
-                hintText: 'Search Unit or Item...',
-                onChanged: (v) => controller.applyFilters(),
-              )
-            : Text(
-                'All Unit Inventory',
-                style: AppTextStyle.style_18_700(color: AppColors.black),
-              )),
-        actions: [
-          Obx(() => IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Icon(controller.isSearching.value
-                    ? Icons.close
-                    : Icons.search),
-              )),
-        ],
-      ),
-      drawer: const CommonSidebar(),
-      body: Column(
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      if (!userPermissions.contains('unit_inventory_stock')) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppCommonAppBar(
+            backgroundColor: AppColors.white,
+            elevation: 0,
+            showAppDrawer: true,
+            hasBackButton: false,
+            topHeader: const CommonShortcutHeader(),
+            title: Text(
+              'Unit Inventory',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
+          ),
+          drawer: const CommonSidebar(),
+          body: Center(
+            child: Text(
+              'You do not have permission to view this page.',
+              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+            ),
+          ),
+        );
+      }
+
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppCommonAppBar(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          showAppDrawer: true,
+          hasBackButton: false,
+          topHeader: const CommonShortcutHeader(),
+          title: controller.isSearching.value
+              ? AppCommonSearchBar(
+                  controller: controller.searchController,
+                  hintText: 'Search Unit or Item...',
+                  onChanged: (v) => controller.applyFilters(),
+                )
+              : Text(
+                  'Unit Inventory',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
+          actions: [
+            IconButton(
+              onPressed: () => controller.toggleSearch(),
+              icon: Icon(
+                controller.isSearching.value ? Icons.close : Icons.search,
+              ),
+            ),
+          ],
+        ),
+        drawer: const CommonSidebar(),
+        body: AppRefreshIndicator(
+          onRefresh: controller.onRefresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const UnitInventoryFilters(),
+                _buildActionButtons(context),
+                const UnitInventoryTable(),
+                SizedBox(height: 40.h),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    final controller = Get.find<UnitInventoryController>();
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final userPermissions = authRepo.rxUserPermissions;
+
+      final canExport = userPermissions.contains('U_Inv_export');
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 5.h),
+      child: Row(
         children: [
-          _buildFiltersSection(),
-          _buildActionButtons(context),
-          Expanded(
-            child: Obx(
-              () => ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                itemCount: controller.unitInventoryItems.length,
-                itemBuilder: (context, index) {
-                  final item = controller.unitInventoryItems[index];
-                  return _buildUnitCard(item);
+          if (canExport) ...[
+            SizedBox(
+              height: 24.h,
+              child: ElevatedButton(
+                onPressed: controller.isExporting.value
+                    ? null
+                    : () => controller.exportToExcel(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF389D6A),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                  elevation: 1,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: controller.isExporting.value
+                    ? SizedBox(
+                        width: 12.r,
+                        height: 12.r,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.file_download_outlined, size: 13.r, color: Colors.white),
+                          SizedBox(width: 2.w),
+                          Text('Excel', style: AppTextStyle.style_10_600(color: Colors.white)),
+                        ],
+                      ),
+              ),
+            ),
+            SizedBox(width: 4.w),
+          ],
+          SizedBox(
+            height: 24.h,
+            child: ElevatedButton(
+              onPressed: () => UnitRequiredOrdersDialog.show(context: context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6F42C1),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                elevation: 1,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text('Request Orders', style: AppTextStyle.style_10_600(color: Colors.white)),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            height: 24.h,
+            padding: EdgeInsets.symmetric(horizontal: 3.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: controller.itemsPerPage.value,
+                icon: Icon(Icons.arrow_drop_down, size: 14.r),
+                isDense: true,
+                padding: EdgeInsets.zero,
+                style: AppTextStyle.style_10_500(color: AppColors.black),
+                items: const [10, 25, 50, 100].map((int val) {
+                  return DropdownMenuItem<int>(
+                    value: val,
+                    child: Text('$val / page'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.setItemsPerPage(val);
+                  }
                 },
               ),
             ),
@@ -57,189 +193,6 @@ class UnitInventoryScreen extends StatelessWidget {
         ],
       ),
     );
+    });
   }
-
-  Widget _buildUnitCard(UnitInventoryModel item) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                item.unitName,
-                style: AppTextStyle.style_12_700(color: AppColors.primary),
-              ),
-              Text(
-                item.itemName,
-                style: AppTextStyle.style_14_700(color: AppColors.black),
-              ),
-            ],
-          ),
-          Divider(height: 20.h, color: AppColors.grey50),
-          Row(
-            children: [
-              _buildBalanceInfo('Opening', item.openingBalance, AppColors.grey300),
-              _buildBalanceInfo('Receipt', item.receipt, AppColors.info),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              _buildBalanceInfo('Consumption', item.consumption, AppColors.red),
-              _buildBalanceInfo('Closing', item.closingBalance, AppColors.primary),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBalanceInfo(String label, String value, Color color) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: AppTextStyle.style_10_600(color: AppColors.grey300),
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            value,
-            style: AppTextStyle.style_12_700(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-
-
-  Widget _buildFiltersSection() {
-    final controller = Get.find<UnitInventoryController>();
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.grey50),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Filters',
-            style: AppTextStyle.style_14_700(color: AppColors.black),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                child: Obx(() => AppCommonDropdown<String>(
-                  title: 'Unit(s)',
-                  hintText: 'Select Unit',
-                  isMultiSelect: true,
-                  options: controller.unitOptions,
-                  selectedValues: controller.selectedUnits.toList(),
-                  onMultiSelectChanged: (values) {
-                    controller.selectedUnits.assignAll(values);
-                    controller.applyFilters();
-                  },
-                  height: 32.h,
-                )),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Obx(() => AppCommonDropdown<String>(
-                  title: 'Item(s)',
-                  hintText: 'Select Item',
-                  isMultiSelect: true,
-                  options: controller.itemOptions,
-                  selectedValues: controller.selectedItems.toList(),
-                  onMultiSelectChanged: (values) {
-                    controller.selectedItems.assignAll(values);
-                    controller.applyFilters();
-                  },
-                  height: 32.h,
-                )),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    final controller = Get.find<UnitInventoryController>();
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildActionButton(
-              'Add Item',
-              AppColors.primary,
-              Icons.add,
-              () => _showAddInventorySheet(context),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: AppCommonExportButton(
-              onExportExcel: () => controller.exportToExcel(),
-              onExportPdf: () => controller.exportToPdf(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-      String label, Color color, IconData icon, VoidCallback onTap) {
-    return SizedBox(
-      height: 36.h,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 16.r),
-        label: Text(
-          label,
-          style: AppTextStyle.style_12_600(color: AppColors.white),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: AppColors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-        ),
-      ),
-    );
-  }
-
-  void _showAddInventorySheet(BuildContext context) {
-    // Add item logic
-  }
-
-
 }

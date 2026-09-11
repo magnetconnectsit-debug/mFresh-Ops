@@ -1,28 +1,37 @@
-// region Imports
 import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_constants.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:core/routes/app_routes.dart';
-import 'package:mfresh/routes/app_pages.dart';
-import 'package:services/api_services.dart';
-import 'package:services/app_update_service.dart';
-import 'package:services/dio_client.dart';
-import 'package:services/error_handler.dart';
-import 'package:mfresh/services/notification_service.dart';
-import 'package:services/remote_config_service.dart';
-import 'package:services/settings_service.dart';
-import 'package:services/storage_service.dart';
-import 'package:services/connectivity_service.dart';
-import 'package:services/log_service.dart';
-import 'package:services/repositories/auth_repository.dart';
+import 'package:dev/views/widgets/floating_logger_button.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:pdfrx/pdfrx.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:mfresh/core/config/app_config.dart';
+import 'package:mfresh/core/constants/app_constants.dart';
+import 'package:mfresh/data/models/user.dart';
+import 'package:mfresh/data/repositories/auth_repository.dart';
+import 'package:mfresh/data/repositories/common_repository.dart';
+import 'package:mfresh/data/repositories/user_repository.dart';
+import 'package:mfresh/routes/app_pages.dart';
+import 'package:mfresh/routes/app_routes.dart';
+import 'package:mfresh/services/notification_service.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'package:services/api_services.dart';
+import 'package:services/app_update_service.dart';
+import 'package:services/connectivity_service.dart';
+import 'package:services/dio_client.dart';
+import 'package:services/error_handler.dart';
+import 'package:services/log_service.dart';
+import 'package:services/phonepe_service.dart';
+import 'package:services/plutus_service.dart';
+import 'package:services/remote_config_service.dart';
+import 'package:services/settings_service.dart';
+import 'package:services/storage_service.dart';
 // endregion
 
 // region Background Handler
@@ -42,54 +51,74 @@ Future<void> initServices() async {
   debugPrint('Initializing services...');
 
   try {
-    await Firebase.initializeApp();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    String? token = await FirebaseMessaging.instance.getToken();
-    debugPrint("========================================");
-    debugPrint("FCM TOKEN: $token");
-    debugPrint("========================================");
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+      String? token = await FirebaseMessaging.instance.getToken();
+      debugPrint("FCM TOKEN: $token");
+    } catch (e) {
+      debugPrint("Firebase/Messaging not available: $e");
+    }
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
-    debugPrint("Ensure google-services.json is present in android/app/ and plugins are configured.");
+    debugPrint(
+      "Ensure google-services.json is present in android/app/ and plugins are configured.",
+    );
   }
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
 
   await Get.putAsync(() => StorageService().init());
+  Get.put(SettingsService());
   final StorageService storageService = Get.find<StorageService>();
 
-  final RemoteConfigService remoteConfigService = await Get.putAsync(() => RemoteConfigService().init());
+  final String envName = AppConfig.envName;
+  final String activeUrl = AppConfig.baseUrl;
+  debugPrint('🚀 [mfresh] Initializing in $envName mode');
+  debugPrint('🔗 [mfresh] Active API: $activeUrl');
 
-  final String fetchedBaseUrl = AppConstants.isDevBuild 
-      ? AppConstants.devBaseUrl 
+  final RemoteConfigService remoteConfigService = await Get.putAsync(
+    () => RemoteConfigService().init(defaultBaseUrl: activeUrl),
+  );
+
+  final String fetchedBaseUrl = AppConfig.isDev
+      ? AppConfig.baseUrl
       : remoteConfigService.getBaseUrl();
 
   await storageService.saveBaseUrl(fetchedBaseUrl);
 
   Get.put(LoggerService());
-  Get.put(SettingsService());
   Get.put(ErrorHandler());
   Get.put(ConnectivityService());
 
-  await Get.putAsync(() => DioClient().init());
+  await Get.putAsync(
+    () => DioClient().init(
+      publicPaths: [
+        AppConstants.login,
+        AppConstants.sendOtp,
+        AppConstants.verifyOtp,
+      ],
+    ),
+  );
 
   Get.put(ApiService());
   Get.put(AuthRepository());
+  Get.put(UserRepository());
+  Get.put(CommonRepository());
+  Get.put(PlutusService());
+  PhonePeService.init(isProduction: AppConfig.isPhonePeProduction);
+  Get.put(PhonePeService());
   await Get.putAsync(() => NotificationService().init());
   Get.put(AppUpdateService());
 
-  try {
-    Pdfrx.getCacheDirectory = () async {
-      final dir = await getTemporaryDirectory();
-      return '${dir.path}/pdfrx_cache';
-    };
-  } catch (e) {
-    debugPrint("Error initializing Pdfrx: $e");
-  }
+
 
   debugPrint('All services initialized.');
 }
@@ -99,6 +128,16 @@ Future<void> initServices() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Preload fonts to prevent flashing and layout shifts
+  try {
+    await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
+  } catch (e) {
+    debugPrint('Failed to preload fonts: $e');
+  }
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserAdapter());
+  Hive.registerAdapter(UserPermissionsAdapter());
   await initServices();
 
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -115,61 +154,63 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 690),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        final SettingsService settings = Get.find<SettingsService>();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Set design size based on screen width
+        // For large POS/Desktop screens (width > 600), use a tablet-optimized design size
+        final Size designSize = constraints.maxWidth > 600
+            ? const Size(1024, 768)
+            : const Size(360, 690);
 
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: Obx(
-            () => Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                GetMaterialApp(
-                  title: 'mFresh',
-                  debugShowCheckedModeBanner: false,
-                  theme: ThemeData(
-                    primaryColor: AppColors.primary,
-                    scaffoldBackgroundColor: AppColors.white,
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: AppColors.primary,
-                      brightness: Brightness.light,
-                    ),
-                    appBarTheme: AppBarTheme(
-                      elevation: 0,
-                      backgroundColor: AppColors.white,
-                      surfaceTintColor: AppColors.transparent,
-                      iconTheme: const IconThemeData(color: AppColors.black1),
-                      titleTextStyle: AppTextStyle.style_18_600(
-                        color: AppColors.black1,
+        return ScreenUtilInit(
+          designSize: designSize,
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            final SettingsService settings = Get.find<SettingsService>();
+
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Obx(
+                () => Stack(
+                  children: [
+                    GetMaterialApp(
+                      title: 'mFresh',
+                      debugShowCheckedModeBanner: false,
+                      theme: ThemeData(
+                        primaryColor: AppColors.primary,
+                        scaffoldBackgroundColor: AppColors.white,
+                        colorScheme: ColorScheme.fromSeed(
+                          seedColor: AppColors.primary,
+                          brightness: Brightness.light,
+                        ),
+                        appBarTheme: AppBarTheme(
+                          elevation: 0,
+                          backgroundColor: AppColors.white,
+                          surfaceTintColor: AppColors.transparent,
+                          iconTheme: const IconThemeData(
+                            color: AppColors.black1,
+                          ),
+                          titleTextStyle: AppTextStyle.style_18_600(
+                            color: AppColors.black1,
+                          ),
+                        ),
                       ),
+                      initialRoute: AppRoutes.initial,
+                      getPages: AppPages.routes,
+                      defaultTransition: Transition.cupertino,
                     ),
-                  ),
-                  initialRoute: AppRoutes.initial,
-                  getPages: AppPages.routes,
-                  defaultTransition: Transition.cupertino,
+                    if (settings.showLogger.value ||
+                        settings.isDevMode.value ||
+                        kDebugMode)
+                      const FloatingLoggerButton(),
+                  ],
                 ),
-
-                if (settings.showLogger.value) _buildLoggerButton(),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
-    );
-  }
-
-  Widget _buildLoggerButton() {
-    return Padding(
-      padding: EdgeInsets.only(right: 30.w, bottom: 150.h),
-      child: FloatingActionButton(
-        onPressed: () => Get.toNamed(AppRoutes.logViewer),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.bug_report_rounded, color: AppColors.white),
-      ),
     );
   }
 }
@@ -178,19 +219,13 @@ class MyApp extends StatelessWidget {
 // region Stubs for missing classes
 class AppCommonErrorWidget extends StatelessWidget {
   final FlutterErrorDetails details;
+
   const AppCommonErrorWidget({super.key, required this.details});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: Center(child: Text('Error: ${details.exception}')));
   }
 }
+
 // endregion
-
-
-
-
-
-
-
-
-
