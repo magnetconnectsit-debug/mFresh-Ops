@@ -170,7 +170,7 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
                                               minimumSize: Size.zero,
                                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                             ),
-                                            child: Text('Allocate', style: AppTextStyle.style_10_500(color: Colors.white)),
+                                            child: Text('Transfer', style: AppTextStyle.style_10_500(color: Colors.white)),
                                           ),
                                         ),
                                         SizedBox(width: 4.w),
@@ -189,7 +189,7 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
                                               minimumSize: Size.zero,
                                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                             ),
-                                            child: Text('Consume', style: AppTextStyle.style_10_500(color: Colors.white)),
+                                            child: Text('Use', style: AppTextStyle.style_10_500(color: Colors.white)),
                                           ),
                                         ),
                                       ],
@@ -267,19 +267,36 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
   }
 
   Widget _buildHeaderCell(UnitInventoryController controller, String text, {String? sortKey}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Text(
-              text,
-              style: AppTextStyle.style_11_700(color: AppColors.black),
-              overflow: TextOverflow.ellipsis,
+    final key = sortKey ?? text;
+    final isSorted = controller.sortColumn.value == key;
+    final isAsc = controller.sortAscending.value;
+
+    return InkWell(
+      onTap: key.isNotEmpty && key != 'Action'
+          ? () => controller.sortBy(key)
+          : null,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: AppTextStyle.style_11_700(color: AppColors.black),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+            if (isSorted) ...[
+              SizedBox(width: 2.w),
+              Icon(
+                isAsc ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 11.r,
+                color: AppColors.black,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

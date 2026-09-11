@@ -54,8 +54,14 @@ class SplashController extends GetxController {
     if (token != null && token.isNotEmpty) {
       _trackingService.startAutoTracking();
       // Proactively fetch latest profile and permissions on startup
-      await Get.find<AuthRepository>().fetchProfile();
-      Get.offAllNamed(AppRoutes.home);
+      final user = await Get.find<AuthRepository>().fetchProfile();
+      
+      final roleId = user?.role ?? _storageService.getUser()?.role;
+      if (roleId == '1' || roleId == 1) {
+        Get.offAllNamed(AppRoutes.home);
+      } else {
+        Get.offAllNamed(AppRoutes.dailyTasks);
+      }
       
       // Trigger the global GPS & permission check on cold start
       Future.delayed(const Duration(milliseconds: 500), () {

@@ -182,7 +182,10 @@ class UnitInventoryController extends GetxController {
         case 'Category':
           return compareStr(a.categoryName, b.categoryName);
         case 'Quantity':
-          return compareNum(double.tryParse(a.quantity) ?? 0, double.tryParse(b.quantity) ?? 0);
+          return compareNum(
+            double.tryParse(a.quantity.replaceAll(RegExp(r'[^0-9.-]'), '')) ?? 0,
+            double.tryParse(b.quantity.replaceAll(RegExp(r'[^0-9.-]'), '')) ?? 0,
+          );
         case 'M_Unit':
           return compareStr(a.mUnit, b.mUnit);
         case 'Consumption':
@@ -208,7 +211,7 @@ class UnitInventoryController extends GetxController {
   int get totalPages => (unitInventoryItems.length / itemsPerPage.value).ceil();
 
   List<UnitInventoryModel> get paginatedItems {
-    final items = unitInventoryItems;
+    final items = sortedItems;
     final startIndex = (currentPage.value - 1) * itemsPerPage.value;
     final endIndex = startIndex + itemsPerPage.value;
     if (startIndex >= items.length) return [];

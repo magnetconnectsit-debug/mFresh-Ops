@@ -157,6 +157,7 @@ class CommonSidebar extends StatelessWidget {
                 if (userPermissions.contains('unit_inventory_stock'))
                   'Unit Inventory',
                 'Inventory Orders',
+                'Order Logs',
                 if (userPermissions.contains('consumption_report'))
                   'Consumption',
                 if (userPermissions.contains('allotments_report')) 'Allotments',
@@ -431,6 +432,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.unitInventory);
                   } else if (item == 'Inventory Orders') {
                     Get.toNamed(AppRoutes.inventoryOrders);
+                  } else if (item == 'Order Logs') {
+                    Get.toNamed(AppRoutes.orderReceiveLogs);
                   } else if (item == 'Consumption') {
                     Get.toNamed(AppRoutes.allConsumption);
                   } else if (item == 'Allotments') {

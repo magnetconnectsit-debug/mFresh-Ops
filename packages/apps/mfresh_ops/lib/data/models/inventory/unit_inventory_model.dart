@@ -15,9 +15,11 @@ class UnitInventoryModel {
   final String measurementUnitId;
   final String unitId;
 
-  // New consumption & order fields
+  // Consumption & order fields
   final num last8DaysConsumption;
+  final String rawConsumptionStr;
   final num orderQty;
+  final String rawOrderQtyStr;
   final String consumptionFrom;
   final String consumptionTo;
   final String displayUnit;
@@ -45,7 +47,9 @@ class UnitInventoryModel {
     this.measurementUnitId = '',
     this.unitId = '',
     this.last8DaysConsumption = 0,
+    this.rawConsumptionStr = '',
     this.orderQty = 0,
+    this.rawOrderQtyStr = '',
     this.consumptionFrom = '',
     this.consumptionTo = '',
     this.displayUnit = '',
@@ -61,17 +65,21 @@ class UnitInventoryModel {
 
   bool get isQntyLow {
     if (lowQntyUnit == 'NA') return false;
-    final q = double.tryParse(quantity) ?? 0;
-    final lq = double.tryParse(lowQntyUnit) ?? 0;
+    final qClean = quantity.replaceAll(RegExp(r'[^0-9.-]'), '');
+    final lqClean = lowQntyUnit.replaceAll(RegExp(r'[^0-9.-]'), '');
+    final q = double.tryParse(qClean) ?? 0;
+    final lq = double.tryParse(lqClean) ?? 0;
     return q < lq;
   }
 
   String get formattedConsumption {
+    if (rawConsumptionStr.isNotEmpty) return rawConsumptionStr;
     final formatter = NumberFormat('#,##0');
     return formatter.format(last8DaysConsumption);
   }
 
   String get formattedRequiredQuantity {
+    if (rawOrderQtyStr.isNotEmpty) return rawOrderQtyStr;
     final formatter = NumberFormat('#,##0');
     return formatter.format(orderQty);
   }
@@ -90,21 +98,23 @@ class UnitInventoryModel {
 
   factory UnitInventoryModel.fromJson(Map<String, dynamic> json) {
     final rawConsumption = json['last_10_days_consumption'] ?? json['last_8_days_consumption'] ?? json['last_30_days_consumption'] ?? json['last_40_days_consumption'];
+    final rawConsumptionStr = rawConsumption?.toString() ?? '';
     final parsedConsumption = rawConsumption is num
         ? rawConsumption
-        : (num.tryParse(rawConsumption?.toString() ?? '0') ?? 0);
+        : (num.tryParse(rawConsumptionStr.replaceAll(RegExp(r'[^0-9.-]'), '')) ?? 0);
 
     final rawOrderQty = json['order_qty'] ?? json['required_qty'];
+    final rawOrderQtyStr = rawOrderQty?.toString() ?? '';
     final parsedOrderQty = rawOrderQty is num
         ? rawOrderQty
-        : (num.tryParse(rawOrderQty?.toString() ?? '0') ?? 0);
+        : (num.tryParse(rawOrderQtyStr.replaceAll(RegExp(r'[^0-9.-]'), '')) ?? 0);
 
     return UnitInventoryModel(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       unitName: json['unit_name']?.toString() ?? '',
       itemName: json['item_name']?.toString() ?? '',
       categoryName: json['invcatgeoryname']?.toString() ?? '',
-      quantity: json['allotment_qty']?.toString() ?? '0',
+      quantity: json['allotment_qty']?.toString() ?? json['quantity']?.toString() ?? '0',
       lowQntyUnit: json['low_qnty_unit']?.toString() ?? '0',
       mUnit: json['m_unit']?.toString() ?? json['measurement_unit_name']?.toString() ?? _mapMeasurementUnit(json['measurement_unit_id']),
       stateId: json['state_id']?.toString() ?? '',
@@ -112,9 +122,11 @@ class UnitInventoryModel {
       categoryId: json['categoryID']?.toString() ?? '',
       itemId: json['item_id']?.toString() ?? '',
       measurementUnitId: json['measurement_unit_id']?.toString() ?? '',
-      unitId: json['destination_id']?.toString() ?? '',
+      unitId: json['destination_id']?.toString() ?? json['unit_id']?.toString() ?? '',
       last8DaysConsumption: parsedConsumption,
+      rawConsumptionStr: rawConsumptionStr,
       orderQty: parsedOrderQty,
+      rawOrderQtyStr: rawOrderQtyStr,
       consumptionFrom: json['consumption_from']?.toString() ?? '',
       consumptionTo: json['consumption_to']?.toString() ?? '',
       displayUnit: json['display_unit']?.toString() ?? '',

@@ -386,4 +386,12 @@ class InventoryRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<dynamic> getOrderReceiveLogs() async {
+    try {
+      return await _apiService.get(AppConstants.inventoryOrderReceiveLogs);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

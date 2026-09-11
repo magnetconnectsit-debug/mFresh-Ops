@@ -177,7 +177,13 @@ class LoginController extends GetxController {
         }
 
         Get.find<TrackingService>().startAutoTracking();
-        Get.offAllNamed(AppRoutes.home);
+        final updatedUser = await _authRepository.fetchProfile() ?? user;
+        final roleId = updatedUser.role;
+        if (roleId == '1' || roleId == 1) {
+          Get.offAllNamed(AppRoutes.home);
+        } else {
+          Get.offAllNamed(AppRoutes.dailyTasks);
+        }
       } else {
         AppCommonToastMessage.show(
           message: 'Login failed. Please check your credentials.',
@@ -331,7 +337,13 @@ class LoginController extends GetxController {
         }
 
         Get.find<TrackingService>().startAutoTracking();
-        Get.offAllNamed(AppRoutes.home);
+        final updatedUser = await _authRepository.fetchProfile() ?? user;
+        final roleId = updatedUser.role;
+        if (roleId == '1' || roleId == 1) {
+          Get.offAllNamed(AppRoutes.home);
+        } else {
+          Get.offAllNamed(AppRoutes.dailyTasks);
+        }
       } else {
         AppCommonToastMessage.show(
           message: 'OTP Verification failed.',

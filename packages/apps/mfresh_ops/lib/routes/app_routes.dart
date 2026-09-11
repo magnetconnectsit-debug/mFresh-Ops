@@ -22,6 +22,7 @@ abstract class AppRoutes {
   static const storeInventory = '/store-inventory';
   static const unitInventory = '/unit-inventory';
   static const inventoryOrders = '/inventory-orders';
+  static const orderReceiveLogs = '/order-receive-logs';
   static const allConsumption = '/all-consumption';
   static const allotments = '/allotments';
   static const measurements = '/measurements';
