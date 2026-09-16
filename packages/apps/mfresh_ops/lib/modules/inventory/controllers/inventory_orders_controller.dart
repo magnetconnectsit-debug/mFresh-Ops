@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import '../../../data/models/inventory/inventory_order_model.dart';
+import 'package:mfresh_ops/data/models/inventory/inventory_order_model.dart';
 
 enum InventoryOrderStatusFilter {
   allActive,
@@ -11,22 +11,67 @@ enum InventoryOrderStatusFilter {
   completed,
 }
 
+enum InventoryOrderTab {
+  unit,
+  store,
+}
+
 class InventoryOrdersController extends GetxController {
   final InventoryRepository _repository = Get.find<InventoryRepository>();
 
   final RxList<InventoryOrderModel> allOrders = <InventoryOrderModel>[].obs;
   final Rx<InventoryOrderSummary> summary = InventoryOrderSummary().obs;
+  final Rx<BulkPreviewData> bulkPreview = BulkPreviewData().obs;
 
   final RxBool isLoading = false.obs;
   final RxBool isSearching = false.obs;
   final TextEditingController searchController = TextEditingController();
 
   final Rx<InventoryOrderStatusFilter> selectedFilter = InventoryOrderStatusFilter.allActive.obs;
+  final Rx<InventoryOrderTab> selectedTab = InventoryOrderTab.unit.obs;
+
+  void setTab(InventoryOrderTab tab) {
+    selectedTab.value = tab;
+  }
+
+  final RxList<String> allSystemUnits = <String>[].obs;
+  final RxList<String> allSystemStores = <String>[].obs;
 
   @override
   void onInit() {
     super.onInit();
+    fetchUnitsAndStores();
     fetchOrders();
+  }
+
+  Future<void> fetchUnitsAndStores() async {
+    try {
+      final unitRes = await _repository.getSupportUnits();
+      if (unitRes != null && unitRes['status'] == true) {
+        final List data = unitRes['data'] ?? [];
+        final names = data
+            .map((e) => (e['unitname'] ?? e['unit_name'] ?? e['name'] ?? e['title'])?.toString() ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList();
+        allSystemUnits.assignAll(names);
+      }
+    } catch (e) {
+      debugPrint('Error fetching support units: $e');
+    }
+
+    try {
+      final storeRes = await _repository.getStores('', '');
+      if (storeRes != null && (storeRes['status'] == true || storeRes['status'] == 'success')) {
+        final List data = storeRes['data'] ?? [];
+        final names = data
+            .map((e) => (e['store_name'] ?? e['storename'] ?? e['name'] ?? e['store_room'])?.toString() ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList();
+        allSystemStores.assignAll(names);
+      }
+    } catch (e) {
+      debugPrint('Error fetching stores: $e');
+    }
   }
 
   @override
@@ -38,6 +83,7 @@ class InventoryOrdersController extends GetxController {
   Future<void> fetchOrders() async {
     isLoading.value = true;
     try {
+      await fetchUnitsAndStores();
       final response = await _repository.getInventoryOrders();
       if (response != null && response['status'] == true) {
         if (response['summary'] != null) {
@@ -48,6 +94,9 @@ class InventoryOrdersController extends GetxController {
 
         if (response['data'] != null) {
           final data = response['data'];
+          if (data['bulk_preview'] != null) {
+            bulkPreview.value = BulkPreviewData.fromJson(data['bulk_preview']);
+          }
           if (data['unit_orders'] != null && data['unit_orders'] is List) {
             for (var item in data['unit_orders']) {
               fetchedList.add(InventoryOrderModel.fromJson(item));
@@ -84,24 +133,45 @@ class InventoryOrdersController extends GetxController {
     selectedFilter.value = filter;
   }
 
-  final sortColumn = ''.obs;
-  final sortAscending = true.obs;
+  final unitSortColumn = ''.obs;
+  final unitSortAscending = true.obs;
 
-  void sortBy(String column) {
-    if (sortColumn.value == column) {
-      if (sortAscending.value) {
-        sortAscending.value = false;
+  final storeSortColumn = ''.obs;
+  final storeSortAscending = true.obs;
+
+  void sortByUnit(String column) {
+    if (unitSortColumn.value == column) {
+      if (unitSortAscending.value) {
+        unitSortAscending.value = false;
       } else {
-        sortColumn.value = '';
-        sortAscending.value = true;
+        unitSortColumn.value = '';
+        unitSortAscending.value = true;
       }
     } else {
-      sortColumn.value = column;
-      sortAscending.value = true;
+      unitSortColumn.value = column;
+      unitSortAscending.value = true;
     }
   }
 
-  List<InventoryOrderModel> _filterOrders(List<InventoryOrderModel> sourceList) {
+  void sortByStore(String column) {
+    if (storeSortColumn.value == column) {
+      if (storeSortAscending.value) {
+        storeSortAscending.value = false;
+      } else {
+        storeSortColumn.value = '';
+        storeSortAscending.value = true;
+      }
+    } else {
+      storeSortColumn.value = column;
+      storeSortAscending.value = true;
+    }
+  }
+
+  List<InventoryOrderModel> _filterOrders(
+    List<InventoryOrderModel> sourceList, {
+    required String sortColumn,
+    required bool sortAscending,
+  }) {
     final query = searchController.text.trim().toLowerCase();
 
     final filtered = sourceList.where((order) {
@@ -138,10 +208,10 @@ class InventoryOrdersController extends GetxController {
       return true;
     }).toList();
 
-    if (sortColumn.value.isEmpty) return filtered;
+    if (sortColumn.isEmpty) return filtered;
 
-    final col = sortColumn.value;
-    final asc = sortAscending.value;
+    final col = sortColumn;
+    final asc = sortAscending;
 
     int compareStr(String a, String b) {
       return asc ? a.toLowerCase().compareTo(b.toLowerCase()) : b.toLowerCase().compareTo(a.toLowerCase());
@@ -299,9 +369,61 @@ class InventoryOrdersController extends GetxController {
   List<InventoryOrderModel> get storeOrders =>
       allOrders.where((e) => e.orderType == 'store').toList();
 
-  List<InventoryOrderModel> get filteredUnitOrders => _filterOrders(unitOrders);
+  List<InventoryOrderModel> get filteredUnitOrders => _filterOrders(
+        unitOrders,
+        sortColumn: unitSortColumn.value,
+        sortAscending: unitSortAscending.value,
+      );
 
-  List<InventoryOrderModel> get filteredStoreOrders => _filterOrders(storeOrders);
+  List<InventoryOrderModel> get filteredStoreOrders => _filterOrders(
+        storeOrders,
+        sortColumn: storeSortColumn.value,
+        sortAscending: storeSortAscending.value,
+      );
+
+  List<String> get unitColumnNames {
+    final Set<String> names = {};
+    names.addAll(allSystemUnits);
+    if (bulkPreview.value.unitOrders != null) {
+      for (var col in bulkPreview.value.unitOrders!.columns) {
+        if (col.name.isNotEmpty) {
+          names.add(col.name);
+        }
+      }
+    }
+    for (var order in unitOrders) {
+      if (order.displayName.isNotEmpty && order.displayName != '-') {
+        names.add(order.displayName);
+      }
+    }
+    if (names.isEmpty) {
+      return ['Unit'];
+    }
+    final list = names.toList()..sort();
+    return list;
+  }
+
+  List<String> get storeColumnNames {
+    final Set<String> names = {};
+    names.addAll(allSystemStores);
+    if (bulkPreview.value.storeOrders != null) {
+      for (var col in bulkPreview.value.storeOrders!.columns) {
+        if (col.name.isNotEmpty) {
+          names.add(col.name);
+        }
+      }
+    }
+    for (var order in storeOrders) {
+      if (order.displayName.isNotEmpty && order.displayName != '-') {
+        names.add(order.displayName);
+      }
+    }
+    if (names.isEmpty) {
+      return ['Store'];
+    }
+    final list = names.toList()..sort();
+    return list;
+  }
 
   int get allActiveCount => summary.value.pending + summary.value.waitingForReceive;
 }

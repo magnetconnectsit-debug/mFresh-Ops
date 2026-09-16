@@ -12,13 +12,27 @@ import 'widgets/inventory_orders_filters.dart';
 import 'widgets/inventory_orders_table.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
-class InventoryOrdersScreen extends StatelessWidget {
+class InventoryOrdersScreen extends StatefulWidget {
   const InventoryOrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(InventoryOrdersController());
+  State<InventoryOrdersScreen> createState() => _InventoryOrdersScreenState();
+}
 
+class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
+  late final InventoryOrdersController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(InventoryOrdersController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchOrders();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppCommonAppBar(

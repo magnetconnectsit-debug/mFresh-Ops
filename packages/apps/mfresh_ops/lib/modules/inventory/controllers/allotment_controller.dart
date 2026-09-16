@@ -21,7 +21,7 @@ class AllotmentController extends GetxController {
   final currentPage = 1.obs;
   final totalPages = 1.obs;
   final totalEntries = 0.obs;
-  final perPage = 10.obs;
+  final perPage = 50.obs;
 
   // Sorting states
   final RxString sortColumn = ''.obs;
@@ -48,13 +48,13 @@ class AllotmentController extends GetxController {
 
       int result = 0;
       switch (sortColumn.value) {
-        case 'Date Of Allotment': result = compare(a.dateOfAllotment, b.dateOfAllotment); break;
+        case 'Date Of Transfer': case 'Date Of Allotment': result = compare(a.dateOfAllotment, b.dateOfAllotment); break;
         case 'Item Name': result = compare(a.itemName, b.itemName); break;
         case 'Source': result = compare(a.source, b.source); break;
         case 'Destination': result = compare(a.destination, b.destination); break;
         case 'Quantity': result = compare(a.quantity, b.quantity); break;
         case 'M_Unit': result = compare(a.unit, b.unit); break;
-        case 'Allotment By': result = compare(a.allotmentBy, b.allotmentBy); break;
+        case 'Transferred By': case 'Allotment By': result = compare(a.allotmentBy, b.allotmentBy); break;
       }
       return sortAscending.value ? result : -result;
     });
@@ -213,8 +213,28 @@ class AllotmentController extends GetxController {
   }
 
   Future<void> selectDateRange(BuildContext context) async {
-    final DateTimeRange? picked = await showMonthRangePicker(context);
-    
+    DateTime? initialStart;
+    DateTime? initialEnd;
+
+    if (fromDateController.text.isNotEmpty) {
+      final parts = fromDateController.text.split('-');
+      if (parts.length == 2) {
+        initialStart = DateTime.tryParse("${fromDateController.text}-01");
+      }
+    }
+    if (toDateController.text.isNotEmpty) {
+      final parts = toDateController.text.split('-');
+      if (parts.length == 2) {
+        initialEnd = DateTime.tryParse("${toDateController.text}-01");
+      }
+    }
+
+    final DateTimeRange? picked = await showMonthRangePicker(
+      context,
+      initialStartMonth: initialStart,
+      initialEndMonth: initialEnd,
+    );
+
     if (picked != null) {
       fromDateController.text = "${picked.start.year}-${picked.start.month.toString().padLeft(2, '0')}";
       toDateController.text = "${picked.end.year}-${picked.end.month.toString().padLeft(2, '0')}";
@@ -225,15 +245,15 @@ class AllotmentController extends GetxController {
   Future<void> exportToExcel() async {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
-      title: 'Allotment Report',
+      title: 'Transfer Report',
       columns: const [
-        "Date Of Allotment",
+        "Date Of Transfer",
         "Item Name",
         "Source",
         "Destination",
         "Quantity",
         "M_Unit",
-        "Allotment By",
+        "Transferred By",
       ],
       rows: allotmentItems
           .map(
@@ -255,15 +275,15 @@ class AllotmentController extends GetxController {
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
-      title: 'Allotment Report',
+      title: 'Transfer Report',
       columns: const [
-        "Date Of Allotment",
+        "Date Of Transfer",
         "Item Name",
         "Source",
         "Destination",
         "Quantity",
         "M_Unit",
-        "Allotment By",
+        "Transferred By",
       ],
       rows: allotmentItems
           .map(

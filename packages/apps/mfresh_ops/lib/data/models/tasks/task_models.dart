@@ -109,6 +109,7 @@ class TaskItem {
   final String? ucomment;
   final String? approverComment;
   final String? taskDayStatus;
+  final String? badgeText;
 
   TaskItem({
     required this.id,
@@ -154,6 +155,7 @@ class TaskItem {
     this.ucomment,
     this.approverComment,
     this.taskDayStatus,
+    this.badgeText,
   });
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
@@ -202,6 +204,7 @@ class TaskItem {
       ucomment: json['ucomment'] ?? json['user_comment'],
       approverComment: json['approver_comment'],
       taskDayStatus: json['backend_day_status'] ?? json['ui_state'] ?? json['task_day_status'],
+      badgeText: json['badge_text']?.toString() ?? json['badgeText']?.toString(),
     );
   }
 

@@ -41,7 +41,7 @@ class PaymentReminderScreen extends StatelessWidget {
                   ),
                 )
               : Text(
-                  'Payment Reminder',
+                  'Scheduler',
                   style: AppTextStyle.style_18_700(color: AppColors.black),
                 ),
         ),

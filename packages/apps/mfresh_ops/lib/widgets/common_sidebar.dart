@@ -148,7 +148,7 @@ class CommonSidebar extends StatelessWidget {
               final taskSubItems = [
                 if (userPermissions.contains('All_Task')) 'All Task',
                 if (userPermissions.contains('Daily_Task')) 'Daily Task',
-                'Daily Task Filter',
+                'Daily Task By Month',
               ];
 
               final inventorySubItems = [
@@ -159,8 +159,8 @@ class CommonSidebar extends StatelessWidget {
                 'Inventory Orders',
                 'Order Logs',
                 if (userPermissions.contains('consumption_report'))
-                  'Consumption',
-                if (userPermissions.contains('allotments_report')) 'Allotments',
+                  'Usage',
+                if (userPermissions.contains('allotments_report')) 'Transfer',
                 if (userPermissions.contains('measurements_panel'))
                   'M_Measurements',
                 if (userPermissions.contains('inventory_item')) 'M_Items',
@@ -263,13 +263,12 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  // _buildMenuItem(
-                  //   icon: Icons.payment_outlined,
-                  //   activeIcon: Icons.payment,
-                  //   title: 'Payment Reminder',
-                  //   route: AppRoutes.paymentReminder,
-                  //   currentRoute: currentRoute,
-                  // ),
+                  _buildExpandableMenuItem(
+                    icon: Icons.payment_outlined,
+                    title: 'Payment Scheduler',
+                    subItems: const ['Scheduler', 'Completed Schedulers'],
+                    currentRoute: currentRoute,
+                  ),
 
                   _buildMenuItem(
                     icon: Icons.person_outline,
@@ -418,7 +417,7 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.allTasks);
                   } else if (item == 'Daily Task') {
                     Get.toNamed(AppRoutes.dailyTasks);
-                  } else if (item == 'Daily Task Filter') {
+                  } else if (item == 'Daily Task Filter' || item == 'Daily Task By Month') {
                     Get.toNamed(AppRoutes.dailyTaskFilter);
                   } else if (item == 'My Routes') {
                     Get.toNamed(AppRoutes.liveTracking);
@@ -434,9 +433,9 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.inventoryOrders);
                   } else if (item == 'Order Logs') {
                     Get.toNamed(AppRoutes.orderReceiveLogs);
-                  } else if (item == 'Consumption') {
+                  } else if (item == 'Consumption' || item == 'Usage') {
                     Get.toNamed(AppRoutes.allConsumption);
-                  } else if (item == 'Allotments') {
+                  } else if (item == 'Allotments' || item == 'Transfer') {
                     Get.toNamed(AppRoutes.allotments);
                   } else if (item == 'M_Measurements') {
                     Get.toNamed(AppRoutes.measurements);
@@ -460,6 +459,14 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.contactBrands);
                   } else if (item == 'MContact_Companies') {
                     Get.toNamed(AppRoutes.contactCompanies);
+                  } else if (item == 'Scheduler') {
+                    Get.toNamed(AppRoutes.paymentReminder);
+                  } else if (item == 'Completed Schedulers') {
+                    // Reserved for future dedicated completed schedulers screen
+                    AppCommonToastMessage.show(
+                      message: '$item screen coming soon',
+                      type: ToastType.info,
+                    );
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

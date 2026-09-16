@@ -14,12 +14,27 @@ import 'widgets/store_inventory_table.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
-class StoreInventoryScreen extends StatelessWidget {
+class StoreInventoryScreen extends StatefulWidget {
   const StoreInventoryScreen({super.key});
 
   @override
+  State<StoreInventoryScreen> createState() => _StoreInventoryScreenState();
+}
+
+class _StoreInventoryScreenState extends State<StoreInventoryScreen> {
+  late final InventoryController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(InventoryController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchInventoryStock();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(InventoryController());
     final authRepo = Get.find<AuthRepository>();
 
     return Obx(() {

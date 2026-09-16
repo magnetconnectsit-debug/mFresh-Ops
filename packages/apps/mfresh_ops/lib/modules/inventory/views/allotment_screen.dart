@@ -48,7 +48,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
             hasBackButton: false,
             showAppDrawer: true,
             title: Text(
-              'Allotments',
+              'All Transfers',
               style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
           ),
@@ -76,7 +76,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                     hintText: 'Search by Item, Source...',
                   )
                 : Text(
-                    'Allotments',
+                    'All Transfer',
                     style: AppTextStyle.style_18_700(color: AppColors.black),
                   ),
           ),
@@ -130,7 +130,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                     return Padding(
                       padding: EdgeInsets.all(32.r),
                       child: Center(
-                        child: Text('No allotments found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+                        child: Text('No transfer records found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
                       ),
                     );
                   }
@@ -178,21 +178,21 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                     columnWidths: {
                       if (hasReverse) 0: FixedColumnWidth(95.w), // Action
                       if (hasReverse) ...{
-                        1: FixedColumnWidth(125.w), // Date Of Allotment
+                        1: FixedColumnWidth(125.w), // Date Of Transfer
                         2: FixedColumnWidth(125.w), // Item Name
                         3: FixedColumnWidth(130.w), // Source
                         4: FixedColumnWidth(130.w), // Destination
                         5: FixedColumnWidth(75.w),  // Quantity
                         6: FixedColumnWidth(70.w),  // M_Unit
-                        7: FixedColumnWidth(100.w), // Allotment By
+                        7: FixedColumnWidth(100.w), // Transferred By
                       } else ...{
-                        0: FixedColumnWidth(125.w), // Date Of Allotment
+                        0: FixedColumnWidth(125.w), // Date Of Transfer
                         1: FixedColumnWidth(125.w), // Item Name
                         2: FixedColumnWidth(130.w), // Source
                         3: FixedColumnWidth(130.w), // Destination
                         4: FixedColumnWidth(75.w),  // Quantity
                         5: FixedColumnWidth(70.w),  // M_Unit
-                        6: FixedColumnWidth(100.w), // Allotment By
+                        6: FixedColumnWidth(100.w), // Transferred By
                       }
                     },
                     border: TableBorder.symmetric(
@@ -203,13 +203,13 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                         decoration: const BoxDecoration(color: AppColors.white),
                         children: [
                           if (hasReverse) _buildHeaderCell('Action', controller, sortable: false),
-                          _buildHeaderCell('Date Of Allotment', controller),
+                          _buildHeaderCell('Date Of Transfer', controller),
                           _buildHeaderCell('Item Name', controller),
                           _buildHeaderCell('Source', controller),
                           _buildHeaderCell('Destination', controller),
                           _buildHeaderCell('Quantity', controller),
                           _buildHeaderCell('M_Unit', controller),
-                          _buildHeaderCell('Allotment By', controller),
+                          _buildHeaderCell('Transferred By', controller),
                         ],
                       ),
                       ...items.asMap().entries.map((entry) {
@@ -523,15 +523,28 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _buildDatePickerField(
-                    'From Month',
-                    controller.fromDateController,
-                    () => controller.selectDateRange(context),
-                  ),
-                  _buildDatePickerField(
-                    'To Month',
-                    controller.toDateController,
-                    () => controller.selectDateRange(context),
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      controller.fromDateController,
+                      controller.toDateController,
+                    ]),
+                    builder: (context, _) {
+                      final from = controller.fromDateController.text;
+                      final to = controller.toDateController.text;
+                      String displayVal = '';
+                      if (from.isNotEmpty && to.isNotEmpty) {
+                        displayVal = from == to ? from : '$from - $to';
+                      } else if (from.isNotEmpty) {
+                        displayVal = from;
+                      } else if (to.isNotEmpty) {
+                        displayVal = to;
+                      }
+                      return _buildDatePickerField(
+                        'Month',
+                        displayVal.isNotEmpty ? displayVal : 'Select Month',
+                        () => controller.selectDateRange(context),
+                      );
+                    },
                   ),
                   Align(
                     alignment: Alignment.topCenter,
@@ -645,7 +658,8 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
     );
   }
 
-  Widget _buildDatePickerField(String label, TextEditingController controller, VoidCallback onTap) {
+  Widget _buildDatePickerField(String label, String valueText, VoidCallback onTap) {
+    final hasValue = valueText.isNotEmpty && valueText != label && valueText != 'Select Month';
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
@@ -668,18 +682,15 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: controller,
-                builder: (context, value, child) {
-                  return Text(
-                    value.text.isEmpty ? label : value.text,
-                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                    overflow: TextOverflow.ellipsis,
-                  );
-                },
+              child: Text(
+                hasValue ? valueText : 'Select Month',
+                style: hasValue
+                    ? AppTextStyle.style_12_400(color: AppColors.grey900)
+                    : AppTextStyle.style_12_400(color: AppColors.grey300),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.calendar_today_outlined, size: 14.r, color: AppColors.grey300),
+            Icon(Icons.calendar_month_outlined, size: 14.r, color: AppColors.grey300),
           ],
         ),
       ),

@@ -240,6 +240,26 @@ class HomeGridController extends GetxController {
       ],
     ),
     GridItemData(
+      title: 'Payment Scheduler',
+      headerTitle: 'Reminders',
+      subtitle: 'Payment tracking & alerts',
+      icon: Icons.payment_rounded,
+      gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
+      route: AppRoutes.paymentReminder,
+      subActions: [
+        GridSubAction(
+          title: 'Scheduler',
+          icon: Icons.schedule_rounded,
+          route: AppRoutes.paymentReminder,
+        ),
+        GridSubAction(
+          title: 'Completed',
+          icon: Icons.task_alt_rounded,
+          route: AppRoutes.paymentReminder,
+        ),
+      ],
+    ),
+    GridItemData(
       title: 'Contacts',
       headerTitle: 'Info Directory',
       subtitle: 'Contacts & brands',
@@ -337,7 +357,7 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        } 
+        }
       } else if (item.title == 'Attendance') {
         if (userPermissions.contains('tracking_panel')) {
           final sub = item.subActions
@@ -348,7 +368,7 @@ class HomeGridController extends GetxController {
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('Attendance_Log')) { 
+        } else if (userPermissions.contains('Attendance_Log')) {
           availableItems.add(
             GridItemData(
               title: 'Attendance Report',

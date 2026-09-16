@@ -349,7 +349,7 @@ class InventoryController extends GetxController {
         'Category',
         'Qty',
         'Unit',
-        'Consumption Qty',
+        'Usage Qty',
         'Required Qty',
       ],
       rows: inventoryItems.map((item) => [

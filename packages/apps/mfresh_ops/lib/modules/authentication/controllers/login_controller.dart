@@ -52,12 +52,12 @@ class LoginController extends GetxController {
   void _loadSavedCredentials() {
     if (kDebugMode) {
       ///   [Prod Credential]
-      // usernameController.text = '7873168884';
-      // passwordController.text = 'nayak@1234';
+      usernameController.text = '7873168884';
+      passwordController.text = 'nayak@1234';
 
       ///  [Test Credential]
-      usernameController.text = '9776888070';
-      passwordController.text = '1234567890';
+      // usernameController.text = '9776888070';
+      // passwordController.text = '1234567890';
       rememberMe.value = true;
       return;
     }

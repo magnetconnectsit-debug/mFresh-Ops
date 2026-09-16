@@ -284,7 +284,7 @@ class UnitInventoryController extends GetxController {
         "Category",
         "Quantity",
         "M_Unit",
-        "Consumption Qty",
+        "Usage Qty",
         "Required Qty"
       ],
       rows: unitInventoryItems

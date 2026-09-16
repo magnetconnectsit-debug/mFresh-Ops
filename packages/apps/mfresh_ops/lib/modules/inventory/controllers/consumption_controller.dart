@@ -25,7 +25,7 @@ class ConsumptionController extends GetxController {
   final currentPage = 1.obs;
   final totalPages = 1.obs;
   final totalEntries = 0.obs;
-  final perPage = 20.obs;
+  final perPage = 50.obs;
 
   // Sorting states
   final RxString sortColumn = ''.obs;
@@ -392,16 +392,16 @@ class ConsumptionController extends GetxController {
   Future<void> exportToExcel() async {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
-      title: 'Consumption Report',
+      title: 'Usage Report',
       columns: const [
-        "Consumed On",
+        "Used On",
         "State",
         "District",
         "Source Type",
         "Source",
         "Category",
         "Item",
-        "Consumed Qty",
+        "Used Qty",
         "M_Unit",
         "Created By",
       ],
@@ -428,16 +428,16 @@ class ConsumptionController extends GetxController {
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
-      title: 'Consumption Report',
+      title: 'Usage Report',
       columns: const [
-        "Consumed On",
+        "Used On",
         "State",
         "District",
         "Source Type",
         "Source",
         "Category",
         "Item",
-        "Consumed Qty",
+        "Used Qty",
         "M_Unit",
         "Created By",
       ],

@@ -16,10 +16,10 @@ class DailyTaskFilterController extends GetxController {
   final RxInt overdueCount = 0.obs;
   final RxInt totalCount = 0.obs;
 
-  // Selected filters
-  final Rxn<int> selectedYear = Rxn<int>(2026);
-  final Rxn<int> selectedFromMonth = Rxn<int>();
-  final Rxn<int> selectedToMonth = Rxn<int>();
+  // Selected filters (default to current year and current month)
+  final Rxn<int> selectedYear = Rxn<int>(DateTime.now().year);
+  final Rxn<int> selectedFromMonth = Rxn<int>(DateTime.now().month);
+  final Rxn<int> selectedToMonth = Rxn<int>(DateTime.now().month);
 
   final RxList<SupportUnit> selectedUnits = <SupportUnit>[].obs;
   final RxList<TaskGroup> selectedGroups = <TaskGroup>[].obs;
@@ -33,13 +33,14 @@ class DailyTaskFilterController extends GetxController {
   final RxList<AssigneeModel> assigneesOptions = <AssigneeModel>[].obs;
   final RxList<TaskProject> projectsOptions = <TaskProject>[].obs;
 
-  // Accordion expansion states
-  final RxBool isQuickViewExpanded = true.obs;
+  // Accordion expansion state
   final RxBool isMonthWiseExpanded = true.obs;
 
-  // Task data structure: quick_view & month_wise
-  final RxMap<String, dynamic> quickViewData = <String, dynamic>{}.obs;
+  // Task data structures
   final RxMap<String, dynamic> monthWiseData = <String, dynamic>{}.obs;
+
+  // New API structure: list of month objects each with weeks > tasks
+  final RxList<Map<String, dynamic>> taskDataList = <Map<String, dynamic>>[].obs;
 
   @override
   void onInit() {
@@ -64,6 +65,38 @@ class DailyTaskFilterController extends GetxController {
       final response = await _taskRepository.getDailyTaskFilterData(filterPayload);
       if (response != null && response['status'] == true && response['data'] != null) {
         final data = response['data'] as Map<String, dynamic>;
+
+        // Parse selected_filters & server_date_time from API response
+        if (data['selected_filters'] != null && data['selected_filters'] is Map) {
+          final sf = data['selected_filters'] as Map<String, dynamic>;
+
+          if (sf['filter_year'] is int) {
+            selectedYear.value = sf['filter_year'] as int;
+          }
+          if (sf['from_month'] is int) {
+            selectedFromMonth.value = sf['from_month'] as int;
+          }
+          if (sf['to_month'] is int) {
+            selectedToMonth.value = sf['to_month'] as int;
+          }
+
+          if (selectedFromMonth.value == null && sf['months'] is List && (sf['months'] as List).isNotEmpty) {
+            final monthsList = sf['months'] as List;
+            if (monthsList.first is int) {
+              selectedFromMonth.value = monthsList.first as int;
+              selectedToMonth.value = (monthsList.last is int) ? monthsList.last as int : monthsList.first as int;
+            }
+          }
+        }
+
+        if (data['server_date_time'] != null) {
+          final serverDateTime = DateTime.tryParse(data['server_date_time'].toString());
+          if (serverDateTime != null) {
+            selectedYear.value ??= serverDateTime.year;
+            selectedFromMonth.value ??= serverDateTime.month;
+            selectedToMonth.value ??= serverDateTime.month;
+          }
+        }
 
         // Parse Summary counts
         if (data['summary'] != null) {
@@ -112,18 +145,24 @@ class DailyTaskFilterController extends GetxController {
           }
         }
 
-        // Parse task_data (quick_view and month_wise)
+        // Parse task_data - new API returns a list of month objects with weeks
         if (data['task_data'] != null) {
-          final taskData = data['task_data'] as Map<String, dynamic>;
-          if (taskData['quick_view'] != null) {
-            quickViewData.assignAll(taskData['quick_view'] as Map<String, dynamic>);
-          }
-          if (taskData['month_wise'] != null && taskData['month_wise'] is Map) {
-            monthWiseData.assignAll(Map<String, dynamic>.from(taskData['month_wise'] as Map));
-          } else if (taskData['monthly'] != null && taskData['monthly'] is Map) {
-            monthWiseData.assignAll(Map<String, dynamic>.from(taskData['monthly'] as Map));
-          } else if (taskData['monthwise'] != null && taskData['monthwise'] is Map) {
-            monthWiseData.assignAll(Map<String, dynamic>.from(taskData['monthwise'] as Map));
+          final taskData = data['task_data'];
+          if (taskData is List) {
+            // New format: list of month objects
+            taskDataList.assignAll(
+              taskData.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+            );
+          } else if (taskData is Map) {
+            // Legacy format
+            final taskDataMap = taskData as Map<String, dynamic>;
+            if (taskDataMap['month_wise'] != null && taskDataMap['month_wise'] is Map) {
+              monthWiseData.assignAll(Map<String, dynamic>.from(taskDataMap['month_wise'] as Map));
+            } else if (taskDataMap['monthly'] != null && taskDataMap['monthly'] is Map) {
+              monthWiseData.assignAll(Map<String, dynamic>.from(taskDataMap['monthly'] as Map));
+            } else if (taskDataMap['monthwise'] != null && taskDataMap['monthwise'] is Map) {
+              monthWiseData.assignAll(Map<String, dynamic>.from(taskDataMap['monthwise'] as Map));
+            }
           }
         }
         if (monthWiseData.isEmpty) {
@@ -131,81 +170,6 @@ class DailyTaskFilterController extends GetxController {
             monthWiseData.assignAll(Map<String, dynamic>.from(data['month_wise'] as Map));
           } else if (data['monthly'] != null && data['monthly'] is Map) {
             monthWiseData.assignAll(Map<String, dynamic>.from(data['monthly'] as Map));
-          }
-        }
-
-        // Fallback: Group all available quick_view tasks month-wise if API didn't return month_wise key
-        if (monthWiseData.isEmpty && quickViewData.isNotEmpty) {
-          final Map<String, List<Map<String, dynamic>>> groupedMonths = {};
-          final monthsNames = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ];
-
-          quickViewData.forEach((sectionKey, sectionValue) {
-            if (sectionValue is Map && sectionValue['tasks'] is List) {
-              final tasksList = sectionValue['tasks'] as List;
-              for (var rawTask in tasksList) {
-                if (rawTask is Map) {
-                  final taskMap = Map<String, dynamic>.from(rawTask);
-                  final dtStr = taskMap['schedule_date_time'] ?? taskMap['schedule_date'] ?? taskMap['schedule_date_formatted'] ?? taskMap['start_date_time'];
-                  if (dtStr != null && dtStr.toString().isNotEmpty) {
-                    try {
-                      DateTime? dt;
-                      final s = dtStr.toString().trim();
-                      if (s.contains('-') && s.length >= 10) {
-                        dt = DateTime.tryParse(s.replaceAll(' ', 'T'));
-                      }
-                      if (dt == null) {
-                        final parts = s.replaceAll(',', '').split(RegExp(r'[-\s]+'));
-                        if (parts.length >= 3) {
-                          int? day = int.tryParse(parts[0]);
-                          int? year = int.tryParse(parts[2]);
-                          final monthStr = parts[1].toLowerCase();
-                          int? month;
-                          final monthsList = [
-                            'jan', 'feb', 'mar', 'apr', 'may', 'jun',
-                            'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
-                          ];
-                          for (int i = 0; i < monthsList.length; i++) {
-                            if (monthStr.startsWith(monthsList[i])) {
-                              month = i + 1;
-                              break;
-                            }
-                          }
-                          if (day != null && month != null && year != null) {
-                            dt = DateTime(year, month, day);
-                          }
-                        }
-                      }
-                      if (dt != null) {
-                        final monthGroupKey = "${monthsNames[dt.month - 1]} ${dt.year}";
-                        groupedMonths.putIfAbsent(monthGroupKey, () => []).add(taskMap);
-                      }
-                    } catch (_) {}
-                  }
-                }
-              }
-            }
-          });
-
-          if (groupedMonths.isNotEmpty) {
-            final Map<String, dynamic> generatedMonthWise = {
-              'total_count': quickViewData['total_count'] ?? totalCount.value,
-              'months': <String, dynamic>{},
-            };
-
-            int totalGathered = 0;
-            groupedMonths.forEach((monthTitle, taskList) {
-              totalGathered += taskList.length;
-              (generatedMonthWise['months'] as Map<String, dynamic>)[monthTitle] = {
-                'count': taskList.length,
-                'tasks': taskList,
-              };
-            });
-
-            generatedMonthWise['total_count'] = totalGathered;
-            monthWiseData.assignAll(generatedMonthWise);
           }
         }
       }
@@ -224,9 +188,9 @@ class DailyTaskFilterController extends GetxController {
   }
 
   void resetFilters() {
-    selectedYear.value = 2026;
-    selectedFromMonth.value = null;
-    selectedToMonth.value = null;
+    selectedYear.value = DateTime.now().year;
+    selectedFromMonth.value = DateTime.now().month;
+    selectedToMonth.value = DateTime.now().month;
     selectedUnits.clear();
     selectedGroups.clear();
     selectedAssignees.clear();

@@ -66,7 +66,12 @@ class DailyTaskFilterCard extends StatelessWidget {
 
     if (statusLower == 'review' || statusLower == 'under_review' || dayStatusLower == 'review') {
       statusBg = AppColors.orange900;
-      statusText = task.status;
+      final user = Get.find<StorageService>().getUser();
+      if (task.approverId == user?.id?.toString()) {
+        statusText = 'Review';
+      } else {
+        statusText = 'Under Review';
+      }
     } else if (isRejected) {
       statusBg = const Color(0xFF8B0000);
       statusText = task.status;
@@ -109,6 +114,17 @@ class DailyTaskFilterCard extends StatelessWidget {
           statusBg = AppColors.black2;
       }
     }
+
+    if (task.badgeText != null && task.badgeText!.isNotEmpty) {
+      statusText = task.badgeText!;
+    }
+
+    statusText = statusText
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+        .join(' ');
 
     final isRecurring =
         task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;

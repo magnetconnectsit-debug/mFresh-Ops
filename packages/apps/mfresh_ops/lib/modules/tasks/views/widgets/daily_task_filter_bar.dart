@@ -6,7 +6,6 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/month_range_picker.dart';
-import 'package:mfresh_ops/widgets/year_picker_widget.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import '../../controllers/daily_task_filter_controller.dart';
 
@@ -30,16 +29,36 @@ class DailyTaskFilterBar extends StatelessWidget {
     return '';
   }
 
+  String _getMonthDisplayText(int? year, int? from, int? to) {
+    final fromName = _getMonthName(from);
+    final toName = _getMonthName(to);
+    final yearStr = year != null ? '$year' : '';
+
+    if (fromName.isNotEmpty && toName.isNotEmpty) {
+      if (from == to) {
+        return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
+      }
+      return yearStr.isNotEmpty ? '$fromName - $toName $yearStr' : '$fromName - $toName';
+    } else if (fromName.isNotEmpty) {
+      return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
+    } else if (toName.isNotEmpty) {
+      return yearStr.isNotEmpty ? '$toName $yearStr' : toName;
+    }
+    return yearStr;
+  }
+
   Future<void> _openMonthRangePicker(BuildContext context) async {
     final DateTime? initialStart = controller.selectedFromMonth.value != null
         ? DateTime(
             controller.selectedYear.value ?? DateTime.now().year,
-            controller.selectedFromMonth.value!)
+            controller.selectedFromMonth.value!,
+          )
         : null;
     final DateTime? initialEnd = controller.selectedToMonth.value != null
         ? DateTime(
             controller.selectedYear.value ?? DateTime.now().year,
-            controller.selectedToMonth.value!)
+            controller.selectedToMonth.value!,
+          )
         : null;
 
     final DateTimeRange? picked = await showMonthRangePicker(
@@ -54,40 +73,6 @@ class DailyTaskFilterBar extends StatelessWidget {
       controller.selectedToMonth.value = picked.end.month;
       controller.fetchFilterData();
     }
-  }
-
-  void _showYearPopupMenu(BuildContext context) async {
-    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
-    final Rect buttonRect = offset & size;
-
-    await showMenu(
-      context: context,
-      color: Colors.white,
-      constraints: BoxConstraints(
-        minWidth: 240.w,
-        maxWidth: 240.w,
-      ),
-      position: RelativeRect.fromRect(
-        buttonRect,
-        Offset.zero & MediaQuery.of(context).size,
-      ),
-      items: [
-        PopupMenuItem(
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: YearPickerMenuContent(
-            selectedYear: controller.selectedYear.value,
-            onYearSelected: (year) {
-              controller.selectedYear.value = year;
-              controller.fetchFilterData();
-            },
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _buildMonthSelectorField({
@@ -178,117 +163,29 @@ class DailyTaskFilterBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row 1: Year, From, To (3 equal width fields side-by-side)
+          // Row 1: Month/Year & Assignee
           Row(
             children: [
-              // Year Field opening YearPickerMenuContent inside exact MultiSelectDropdownWidget popup style
+              // Combined Month & Year Field
               Expanded(
                 flex: 1,
                 child: Obx(() {
-                  final yearText = controller.selectedYear.value != null
-                      ? '${controller.selectedYear.value}'
-                      : '';
-                  final selectedValue = yearText.isNotEmpty ? {yearText} : <String>{};
-                  return MultiSelectDropdownWidget<String>(
-                    label: 'Year',
-                    isSingleSelect: true,
-                    showSearch: false,
-                    hint: 'Select',
-                    selectedValues: selectedValue,
-                    items: const [],
-                    onChanged: (_) {},
-                    customChild: Builder(
-                      builder: (fieldContext) => InkWell(
-                        onTap: () => _showYearPopupMenu(fieldContext),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            label: RichText(
-                              text: TextSpan(
-                                text: 'Year',
-                                style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey200),
-                              ),
-                            ),
-                            floatingLabelBehavior: FloatingLabelBehavior.always,
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10.w, vertical: 4.h),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                              borderSide: BorderSide(
-                                  color: AppColors.borderColor, width: 1.0),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                              borderSide: BorderSide(
-                                  color: AppColors.borderColor, width: 1.0),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                              borderSide: BorderSide(
-                                  color: AppColors.borderColor, width: 1.0),
-                            ),
-                            suffixIcon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: AppColors.grey300,
-                              size: 16.r,
-                            ),
-                            suffixIconConstraints: BoxConstraints(
-                                minWidth: 20.w, minHeight: 20.h),
-                          ),
-                          child: Text(
-                            yearText.isNotEmpty ? yearText : 'Select',
-                            style: yearText.isNotEmpty
-                                ? AppTextStyle.style_12_400(
-                                    color: AppColors.grey900)
-                                : AppTextStyle.style_12_400(
-                                        color: AppColors.grey300)
-                                    .copyWith(fontSize: 11.sp),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ),
+                  final monthText = _getMonthDisplayText(
+                    controller.selectedYear.value,
+                    controller.selectedFromMonth.value,
+                    controller.selectedToMonth.value,
                   );
-                }),
-              ),
-              SizedBox(width: 6.w),
-              // From Month Field opening MonthRangePicker dialog on click
-              Expanded(
-                flex: 1,
-                child: Obx(() {
-                  final fromText = _getMonthName(controller.selectedFromMonth.value);
-                  final hasValue = fromText.isNotEmpty;
+                  final hasValue = monthText.isNotEmpty;
                   return _buildMonthSelectorField(
                     context: context,
-                    label: 'From',
-                    valueText: fromText,
+                    label: 'Month',
+                    valueText: monthText,
                     hasValue: hasValue,
                   );
                 }),
               ),
               SizedBox(width: 6.w),
-              // To Month Field opening MonthRangePicker dialog on click
-              Expanded(
-                flex: 1,
-                child: Obx(() {
-                  final toText = _getMonthName(controller.selectedToMonth.value);
-                  final hasValue = toText.isNotEmpty;
-                  return _buildMonthSelectorField(
-                    context: context,
-                    label: 'To',
-                    valueText: toText,
-                    hasValue: hasValue,
-                  );
-                }),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          // Row 2: Assignee, Reset, Create Task (3 equal width fields side-by-side)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
+              // Assignee Field
               Expanded(
                 flex: 1,
                 child: Obx(
@@ -314,12 +211,17 @@ class DailyTaskFilterBar extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 6.w),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          // Row 2: Reset, Create Task
+          Row(
+            children: [
               // Reset Button
               Expanded(
                 flex: 1,
                 child: SizedBox(
-                  height: 21.h,
+                  height: 24.h,
                   child: InkWell(
                     onTap: () => controller.resetFilters(),
                     borderRadius: BorderRadius.circular(4.r),
@@ -349,7 +251,7 @@ class DailyTaskFilterBar extends StatelessWidget {
               Expanded(
                 flex: 1,
                 child: SizedBox(
-                  height: 21.h,
+                  height: 24.h,
                   child: InkWell(
                     onTap: () => Get.toNamed(AppRoutes.createTask),
                     borderRadius: BorderRadius.circular(4.r),

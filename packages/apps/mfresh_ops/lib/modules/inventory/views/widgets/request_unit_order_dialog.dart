@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,8 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_orders_controller.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_order_logs_controller.dart';
 
 class RequestUnitOrderDialog extends StatefulWidget {
   final int? initialUnitId;
@@ -73,7 +76,35 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
   @override
   void initState() {
     super.initState();
-    // By default, no unit is selected until chosen by user.
+    // By default, no unit is pre-selected. User selects from the dropdown.
+  }
+
+  num get _currentCalculatedQty {
+    if (_selectedUnitIds.isEmpty) return 0;
+    final unitController = Get.isRegistered<UnitInventoryController>()
+        ? Get.find<UnitInventoryController>()
+        : null;
+    if (unitController == null) return 0;
+
+    final selectedUnitIdStr = _selectedUnitIds.first.toString();
+    final selectedUnitOption = unitController.unitOptions
+        .firstWhereOrNull((e) => e.value.toString() == selectedUnitIdStr);
+    final selectedUnitName = selectedUnitOption?.label.trim().toLowerCase();
+
+    final match = unitController.unitInventoryItems.firstWhereOrNull((i) {
+      final sameUnit = i.unitId == selectedUnitIdStr ||
+          (selectedUnitName != null &&
+              selectedUnitName.isNotEmpty &&
+              i.unitName.trim().toLowerCase() == selectedUnitName);
+      final sameItem = i.itemId == widget.itemId.toString() ||
+          i.itemName.trim().toLowerCase() == widget.itemName.trim().toLowerCase();
+      return sameUnit && sameItem;
+    });
+
+    if (match != null) {
+      return match.orderQty;
+    }
+    return 0;
   }
 
   Future<void> _submitRequest() async {
@@ -85,20 +116,31 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
       return;
     }
 
+    if (_currentCalculatedQty <= 0) {
+      AppCommonToastMessage.show(
+        message: 'Stock is already available',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
 
     try {
       final repository = Get.find<InventoryRepository>();
+
       int successCount = 0;
       String lastMessage = '';
 
       for (final unitId in _selectedUnitIds) {
+        final targetQty = _currentCalculatedQty;
+
         final response = await repository.requestUnitOrder(
           unitId: unitId,
           itemId: widget.itemId,
-          qty: widget.orderQty,
+          qty: targetQty,
         );
 
         if (response != null &&
@@ -126,6 +168,12 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
         if (Get.isRegistered<InventoryController>()) {
           Get.find<InventoryController>().fetchInventoryStock();
         }
+        if (Get.isRegistered<InventoryOrdersController>()) {
+          Get.find<InventoryOrdersController>().fetchOrders();
+        }
+        if (Get.isRegistered<InventoryOrderLogsController>()) {
+          Get.find<InventoryOrderLogsController>().fetchOrderLogs();
+        }
       } else {
         AppCommonToastMessage.show(
           message: 'Failed to submit unit order request.',
@@ -151,6 +199,8 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
     final unitController = Get.isRegistered<UnitInventoryController>()
         ? Get.find<UnitInventoryController>()
         : Get.put(UnitInventoryController());
+
+    final canSubmit = !_isSubmitting && _selectedUnitIds.isNotEmpty && _currentCalculatedQty > 0;
 
     return Container(
       color: Colors.white,
@@ -202,7 +252,7 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                     final match = unitController.unitOptions
                         .where((e) => e.value.toString() == selectedSet.first)
                         .firstOrNull;
-                    displayText = match?.label ?? widget.initialUnitName ?? 'Select Unit';
+                    displayText = match?.label ?? 'Select Unit';
                   }
 
                   return MultiSelectDropdownWidget<String>(
@@ -226,6 +276,13 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                           }
                         }
                       });
+
+                      if (_selectedUnitIds.isNotEmpty && _currentCalculatedQty <= 0) {
+                        AppCommonToastMessage.show(
+                          message: 'Stock is already available',
+                          type: ToastType.warning,
+                        );
+                      }
                     },
                     customChild: Container(
                       height: 38.h,
@@ -291,49 +348,49 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                 // Order Quantity Field with Suffix Unit Badge
                 _buildFieldLabel('Order Quantity'),
                 SizedBox(height: 6.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 38.h,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F9FA),
-                          border: Border.all(color: const Color(0xFFE9ECEF)),
-                          borderRadius: BorderRadius.circular(6.r),
-                        ),
-                        alignment: Alignment.centerLeft,
-                        child: TextFormField(
-                          initialValue: widget.orderQty.toString(),
-                          readOnly: true,
-                          style: AppTextStyle.style_12_400(color: const Color(0xFF2C3E50)),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
+                Builder(
+                  builder: (context) {
+                    num currentQty = _selectedUnitIds.isEmpty ? 0 : _currentCalculatedQty;
+                    final formatter = NumberFormat('#,##0');
+                    final formattedQtyStr = formatter.format(currentQty);
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 38.h,
+                            padding: EdgeInsets.symmetric(horizontal: 12.w),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8F9FA),
+                              border: Border.all(color: const Color(0xFFE9ECEF)),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              formattedQtyStr,
+                              style: AppTextStyle.style_12_400(color: const Color(0xFF2C3E50)),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    if (widget.displayUnit.isNotEmpty) ...[
-                      SizedBox(width: 8.w),
-                      Container(
-                        height: 38.h,
-                        padding: EdgeInsets.symmetric(horizontal: 14.w),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F9D58),
-                          borderRadius: BorderRadius.circular(6.r),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          widget.displayUnit,
-                          style: AppTextStyle.style_12_600(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ],
+                        if (widget.displayUnit.isNotEmpty) ...[
+                          SizedBox(width: 8.w),
+                          Container(
+                            height: 38.h,
+                            padding: EdgeInsets.symmetric(horizontal: 14.w),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F9D58),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              widget.displayUnit,
+                              style: AppTextStyle.style_12_600(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
                 SizedBox(height: 24.h),
 
@@ -371,9 +428,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                     SizedBox(
                       height: 34.h,
                       child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _submitRequest,
+                        onPressed: canSubmit ? _submitRequest : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF48C78E),
+                          backgroundColor: canSubmit ? const Color(0xFF48C78E) : const Color(0xFFBDBDBD),
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(horizontal: 16.w),
                           shape: RoundedRectangleBorder(

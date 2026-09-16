@@ -253,11 +253,14 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     final isRecurring =
         task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
 
-    final controller = Get.find<TasksController>();
+    final controller = Get.isRegistered<TasksController>()
+        ? Get.find<TasksController>()
+        : Get.put(TasksController());
 
     return Obx(() {
       final isCompactList = controller.isListView.value;
-      final taskKey = '${task.id}_${task.taskInstanceId ?? ''}_${task.scheduleDateTime}';
+      final taskKey =
+          '${task.id}_${task.taskInstanceId ?? ''}_${task.scheduleDateTime}';
       final isExpandedInListView = controller.expandedTaskId.value == taskKey;
 
       if (isCompactList && !isExpandedInListView) {
@@ -364,7 +367,9 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
                         overflow: _isExpanded
                             ? TextOverflow.visible
                             : TextOverflow.ellipsis,
-                        style: AppTextStyle.style_14_700(color: AppColors.black),
+                        style: AppTextStyle.style_14_700(
+                          color: AppColors.black,
+                        ),
                       ),
                       SizedBox(height: 4.h),
                       // Metadata Row 1: Time and Date
@@ -510,10 +515,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
           final user = Get.find<StorageService>().getUser();
           final isApprover = task.approverId == user?.id?.toString();
           if (isApprover) {
-            controller.fetchTaskSubmissionDetails(
-              task,
-              isReview: true,
-            );
+            controller.fetchTaskSubmissionDetails(task, isReview: true);
           } else {
             controller.fetchTaskSubmissionDetails(
               task,
@@ -526,10 +528,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
             status == 'pending' ||
             status == 'rejected' ||
             isOverdue) {
-          controller.fetchTaskSubmissionDetails(
-            task,
-            isReview: false,
-          );
+          controller.fetchTaskSubmissionDetails(task, isReview: false);
         } else if (status == 'completed' || status == 'approved') {
           controller.fetchTaskSubmissionDetails(
             task,
@@ -545,16 +544,14 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
         }
       },
       child: Column(
-        crossAxisAlignment:
-            isRejected ? CrossAxisAlignment.center : CrossAxisAlignment.end,
+        crossAxisAlignment: isRejected
+            ? CrossAxisAlignment.center
+            : CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             constraints: BoxConstraints(minWidth: 70.w),
-            padding: EdgeInsets.symmetric(
-              horizontal: 8.w,
-              vertical: 4.h,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             decoration: BoxDecoration(
               color: statusBg,
               borderRadius: BorderRadius.circular(4.r),
@@ -578,17 +575,13 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
               SizedBox(height: 3.h),
               Text(
                 'Overdue by',
-                style: AppTextStyle.style_8_400(
-                  color: const Color(0xFF6C757D),
-                ),
+                style: AppTextStyle.style_8_400(color: const Color(0xFF6C757D)),
               ),
               Obx(() {
                 final _ = Get.find<TasksController>().currentTime.value;
                 return Text(
                   _getOverdueDuration(task.scheduleDateTime),
-                  style: AppTextStyle.style_10_700(
-                    color: AppColors.black,
-                  ),
+                  style: AppTextStyle.style_10_700(color: AppColors.black),
                 );
               }),
             ],

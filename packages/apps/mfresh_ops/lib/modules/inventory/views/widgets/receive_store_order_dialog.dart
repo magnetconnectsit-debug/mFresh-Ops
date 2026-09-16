@@ -7,6 +7,8 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_orders_controller.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_order_logs_controller.dart';
 
 class ReceiveStoreOrderDialog extends StatefulWidget {
   final int orderId;
@@ -117,6 +119,12 @@ class _ReceiveStoreOrderDialogState extends State<ReceiveStoreOrderDialog> {
         }
         if (Get.isRegistered<UnitInventoryController>()) {
           Get.find<UnitInventoryController>().fetchUnitInventory();
+        }
+        if (Get.isRegistered<InventoryOrdersController>()) {
+          Get.find<InventoryOrdersController>().fetchOrders();
+        }
+        if (Get.isRegistered<InventoryOrderLogsController>()) {
+          Get.find<InventoryOrderLogsController>().fetchOrderLogs();
         }
       } else {
         final errorMessage =

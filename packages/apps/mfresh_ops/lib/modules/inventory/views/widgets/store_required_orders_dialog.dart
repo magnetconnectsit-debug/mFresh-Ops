@@ -13,23 +13,31 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_orders_controller.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:mfresh_ops/data/models/inventory/inventory_order_model.dart';
 
 class StoreRequiredOrdersDialog extends StatefulWidget {
-  const StoreRequiredOrdersDialog({super.key});
+  final BulkPreviewSection? bulkPreviewSection;
+  const StoreRequiredOrdersDialog({super.key, this.bulkPreviewSection});
 
-  static Future<void> show({required BuildContext context}) async {
+  static Future<void> show({
+    required BuildContext context,
+    BulkPreviewSection? bulkPreviewSection,
+  }) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
         return Dialog(
+          insetPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 24.h),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.r),
           ),
           clipBehavior: Clip.antiAlias,
           child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.90,
-            child: const StoreRequiredOrdersDialog(),
+            width: double.infinity,
+            child: StoreRequiredOrdersDialog(bulkPreviewSection: bulkPreviewSection),
           ),
         );
       },
@@ -61,6 +69,40 @@ class _StoreRequiredOrdersDialogState
     extends State<StoreRequiredOrdersDialog> {
   final GlobalKey _tableRepaintKey = GlobalKey();
   bool _isSubmitting = false;
+  bool _isLoadingPreview = false;
+  BulkPreviewSection? _fetchedPreviewSection;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.bulkPreviewSection == null) {
+      _fetchBulkPreview();
+    }
+  }
+
+  Future<void> _fetchBulkPreview() async {
+    setState(() {
+      _isLoadingPreview = true;
+    });
+    try {
+      final repository = Get.find<InventoryRepository>();
+      final response = await repository.getInventoryOrders();
+      if (response != null && response['status'] == true && response['data'] != null) {
+        final bulkData = response['data']['bulk_preview'];
+        if (bulkData != null && bulkData['store_orders'] != null) {
+          _fetchedPreviewSection = BulkPreviewSection.fromJson(bulkData['store_orders']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching bulk preview for store orders: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingPreview = false;
+        });
+      }
+    }
+  }
 
   String _formatQty(num qty) {
     final formatter = NumberFormat('#,##0');
@@ -88,7 +130,7 @@ class _StoreRequiredOrdersDialogState
       final file = File(
           '${tempDir.path}/store_required_orders_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(pngBytes);
-      if (!mounted) return;
+      if (!btnContext.mounted) return;
 
       final box = btnContext.findRenderObject() as RenderBox?;
       final rect = box != null
@@ -123,7 +165,7 @@ class _StoreRequiredOrdersDialogState
         final message =
             response['message']?.toString() ?? 'Store order(s) created successfully.';
 
-        if (mounted) {
+        if (mounted && Navigator.canPop(context)) {
           Navigator.of(context).pop();
         }
 
@@ -137,6 +179,9 @@ class _StoreRequiredOrdersDialogState
         }
         if (Get.isRegistered<UnitInventoryController>()) {
           Get.find<UnitInventoryController>().fetchUnitInventory();
+        }
+        if (Get.isRegistered<InventoryOrdersController>()) {
+          Get.find<InventoryOrdersController>().fetchOrders();
         }
       } else {
         final errorMessage =
@@ -162,50 +207,91 @@ class _StoreRequiredOrdersDialogState
 
   @override
   Widget build(BuildContext context) {
-    final inventoryController = Get.find<InventoryController>();
-    final days = inventoryController.consumptionDays.value.isNotEmpty
-        ? inventoryController.consumptionDays.value
-        : '40';
-    final rawDate = inventoryController.consumptionToDate.value;
-    String dateStr;
-    if (rawDate.isNotEmpty) {
-      try {
-        dateStr = DateFormat('dd-MMM-yyyy').format(DateTime.parse(rawDate));
-      } catch (_) {
+    final bulkSection = widget.bulkPreviewSection ?? _fetchedPreviewSection;
+    final List<String> stores;
+    final List<_RequestOrderItemData> itemsData;
+    final String dialogTitle;
+
+    if (_isLoadingPreview) {
+      dialogTitle = 'Store Required Orders';
+      stores = ['Store_Bbsr', 'Store_Puri'];
+      itemsData = List.generate(
+        6,
+        (index) => _RequestOrderItemData(
+          itemName: 'Loading Item Name ${index + 1}',
+          displayUnit: 'pcs',
+          storeQtyMap: {'Store_Bbsr': 100, 'Store_Puri': 200},
+        ),
+      );
+    } else if (bulkSection != null) {
+      dialogTitle = bulkSection.title.isNotEmpty
+          ? bulkSection.title
+          : 'Store Required Orders';
+      stores = bulkSection.columns.map((c) => c.name).toList();
+
+      final Map<String, _RequestOrderItemData> itemMap = {};
+      for (var row in bulkSection.rows) {
+        final itemName = row.itemName;
+        final unitDisplay = row.measurementUnit;
+        if (!itemMap.containsKey(itemName)) {
+          itemMap[itemName] = _RequestOrderItemData(
+            itemName: itemName,
+            displayUnit: unitDisplay,
+            storeQtyMap: {},
+          );
+        }
+        for (var q in row.quantities) {
+          itemMap[itemName]!.storeQtyMap[q.locationName] = q.orderQty;
+        }
+      }
+      itemsData = itemMap.values.toList()
+        ..sort((a, b) => a.itemName.compareTo(b.itemName));
+    } else {
+      final inventoryController = Get.isRegistered<InventoryController>()
+          ? Get.find<InventoryController>()
+          : null;
+      final days = inventoryController?.consumptionDays.value.isNotEmpty == true
+          ? inventoryController!.consumptionDays.value
+          : '40';
+      final rawDate = inventoryController?.consumptionToDate.value ?? '';
+      String dateStr;
+      if (rawDate.isNotEmpty) {
+        try {
+          dateStr = DateFormat('dd-MMM-yyyy').format(DateTime.parse(rawDate));
+        } catch (_) {
+          dateStr = DateFormat('dd-MMM-yyyy').format(DateTime.now());
+        }
+      } else {
         dateStr = DateFormat('dd-MMM-yyyy').format(DateTime.now());
       }
-    } else {
-      dateStr = DateFormat('dd-MMM-yyyy').format(DateTime.now());
-    }
+      dialogTitle = 'Store Required Orders (for next $days days from $dateStr)';
 
-    // Filter items with canRequestOrder == true && canReceiveOrder == false
-    final filteredItems = inventoryController.inventoryItems
-        .where((i) => i.canRequestOrder && !i.canReceiveOrder)
-        .toList();
+      final filteredItems = (inventoryController?.inventoryItems ?? [])
+          .where((i) => i.canRequestOrder && !i.canReceiveOrder)
+          .toList();
 
-    // Extract unique stores
-    final Set<String> storeSet = {};
-    for (var i in filteredItems) {
-      if (i.store.isNotEmpty) storeSet.add(i.store);
-    }
-    final stores = storeSet.toList()..sort();
-
-    // Map item name -> store name -> qty
-    final Map<String, _RequestOrderItemData> itemMap = {};
-    for (var i in filteredItems) {
-      final itemName = i.item;
-      if (!itemMap.containsKey(itemName)) {
-        itemMap[itemName] = _RequestOrderItemData(
-          itemName: itemName,
-          displayUnit: i.unit,
-          storeQtyMap: {},
-        );
+      final Set<String> storeSet = {};
+      for (var i in filteredItems) {
+        if (i.store.isNotEmpty) storeSet.add(i.store);
       }
-      itemMap[itemName]!.storeQtyMap[i.store] = i.orderQty;
-    }
+      stores = storeSet.toList()..sort();
 
-    final itemsData = itemMap.values.toList()
-      ..sort((a, b) => a.itemName.compareTo(b.itemName));
+      final Map<String, _RequestOrderItemData> itemMap = {};
+      for (var i in filteredItems) {
+        final itemName = i.item;
+        if (!itemMap.containsKey(itemName)) {
+          itemMap[itemName] = _RequestOrderItemData(
+            itemName: itemName,
+            displayUnit: i.unit,
+            storeQtyMap: {},
+          );
+        }
+        itemMap[itemName]!.storeQtyMap[i.store] = i.orderQty;
+      }
+
+      itemsData = itemMap.values.toList()
+        ..sort((a, b) => a.itemName.compareTo(b.itemName));
+    }
 
     return Stack(
       children: [
@@ -223,7 +309,7 @@ class _StoreRequiredOrdersDialogState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Store Required Orders (for next $days days from $dateStr)',
+                    dialogTitle,
                     style: AppTextStyle.style_14_700(color: const Color(0xFF1E3A5F)),
                   ),
                   SizedBox(height: 12.h),
@@ -346,33 +432,15 @@ class _StoreRequiredOrdersDialogState
                   children: [
                     Expanded(
                       child: Text(
-                        'Store Required Orders\n(for next $days days from $dateStr)',
+                        dialogTitle,
                         style: AppTextStyle.style_14_700(color: const Color(0xFF1E3A5F)),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    InkWell(
-                      onTap: () => Navigator.of(context).pop(),
-                      borderRadius: BorderRadius.circular(4.r),
-                      child: Container(
-                        padding: EdgeInsets.all(4.r),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF5A6578),
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          size: 14.r,
-                          color: Colors.white,
-                        ),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              Padding(
-                padding: EdgeInsets.all(12.w),
+              Flexible(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -393,7 +461,7 @@ class _StoreRequiredOrdersDialogState
                     SizedBox(height: 12.h),
 
                     // Data Table Section
-                    if (itemsData.isEmpty)
+                    if (!_isLoadingPreview && itemsData.isEmpty)
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 20.h),
                         child: Center(
@@ -405,13 +473,15 @@ class _StoreRequiredOrdersDialogState
                       )
                     else
                       Flexible(
-                        child: Container(
-                          color: Colors.white,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
+                        child: Skeletonizer(
+                          enabled: _isLoadingPreview,
+                          child: Container(
+                            color: Colors.white,
                             child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Table(
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Table(
                                 defaultColumnWidth: const IntrinsicColumnWidth(),
                                 border: TableBorder.all(
                                   color: const Color(0xFFE0E0E0),
@@ -517,6 +587,7 @@ class _StoreRequiredOrdersDialogState
                           ),
                         ),
                       ),
+                    ),
                     SizedBox(height: 16.h),
 
                     // Action Buttons Row
@@ -603,7 +674,7 @@ class _StoreRequiredOrdersDialogState
             ],
           ),
         ),
-      ],
-    );
-  }
+        ],
+      );
+    }
 }

@@ -301,21 +301,28 @@ class InventoryRepository extends GetxService {
 
   Future<dynamic> completeOrder({
     required int orderId,
-    int? unitId,
-    int? storeId,
+    dynamic unitId,
+    dynamic storeId,
     required int itemId,
-    required num qty,
+    required dynamic qty,
   }) async {
     try {
+      num parsedQty = 0;
+      if (qty is num) {
+        parsedQty = qty;
+      } else if (qty != null) {
+        parsedQty = num.tryParse(qty.toString().replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      }
+
       final Map<String, dynamic> data = {
         'item_id': itemId,
-        'qty': qty,
+        'qty': parsedQty,
       };
       if (unitId != null) {
-        data['unit_id'] = unitId;
+        data['unit_id'] = unitId is int ? unitId : int.tryParse(unitId.toString());
       }
       if (storeId != null) {
-        data['store_id'] = storeId;
+        data['store_id'] = storeId is int ? storeId : int.tryParse(storeId.toString());
       }
 
       return await _apiService.post(
@@ -330,15 +337,22 @@ class InventoryRepository extends GetxService {
   Future<dynamic> requestStoreOrder({
     required int storeId,
     required int itemId,
-    required num qty,
+    required dynamic qty,
   }) async {
     try {
+      num parsedQty = 0;
+      if (qty is num) {
+        parsedQty = qty;
+      } else if (qty != null) {
+        parsedQty = num.tryParse(qty.toString().replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      }
+
       return await _apiService.post(
         AppConstants.inventoryOrdersStoreRequest,
         data: {
           'store_id': storeId,
           'item_id': itemId,
-          'qty': qty,
+          'qty': parsedQty,
         },
       );
     } catch (e) {
@@ -349,15 +363,22 @@ class InventoryRepository extends GetxService {
   Future<dynamic> requestUnitOrder({
     required int unitId,
     required int itemId,
-    required num qty,
+    required dynamic qty,
   }) async {
     try {
+      num parsedQty = 0;
+      if (qty is num) {
+        parsedQty = qty;
+      } else if (qty != null) {
+        parsedQty = num.tryParse(qty.toString().replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      }
+
       return await _apiService.post(
         AppConstants.inventoryOrdersUnitRequest,
         data: {
           'unit_id': unitId,
           'item_id': itemId,
-          'qty': qty,
+          'qty': parsedQty,
         },
       );
     } catch (e) {

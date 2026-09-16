@@ -15,12 +15,27 @@ import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
-class UnitInventoryScreen extends StatelessWidget {
+class UnitInventoryScreen extends StatefulWidget {
   const UnitInventoryScreen({super.key});
 
   @override
+  State<UnitInventoryScreen> createState() => _UnitInventoryScreenState();
+}
+
+class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
+  late final UnitInventoryController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(UnitInventoryController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchUnitInventory();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(UnitInventoryController());
     return Obx(() {
       final authRepo = Get.find<AuthRepository>();
       final userPermissions = authRepo.rxUserPermissions;

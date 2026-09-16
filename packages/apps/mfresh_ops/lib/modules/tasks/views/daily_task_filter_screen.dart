@@ -29,7 +29,7 @@ class DailyTaskFilterScreen extends StatelessWidget {
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
         title: Text(
-          'Daily Task Filter',
+          'Daily Task By Month',
           style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
         actions: [
@@ -65,6 +65,7 @@ class DailyTaskFilterScreen extends StatelessWidget {
       body: AppRefreshIndicator(
         onRefresh: () => controller.fetchFilterData(),
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.all(12.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,13 +83,7 @@ class DailyTaskFilterScreen extends StatelessWidget {
                     ),
                   );
                 }
-                return Column(
-                  children: [
-                    DailyTaskQuickViewSection(controller: controller),
-                    SizedBox(height: 12.h),
-                    DailyTaskMonthWiseSection(controller: controller),
-                  ],
-                );
+                return DailyTaskMonthWiseSection(controller: controller);
               }),
               SizedBox(height: 40.h),
             ],
@@ -191,203 +186,6 @@ class DailyTaskFilterScreen extends StatelessWidget {
   }
 }
 
-class DailyTaskQuickViewSection extends StatefulWidget {
-  final DailyTaskFilterController controller;
-
-  const DailyTaskQuickViewSection({super.key, required this.controller});
-
-  @override
-  State<DailyTaskQuickViewSection> createState() => _DailyTaskQuickViewSectionState();
-}
-
-class _DailyTaskQuickViewSectionState extends State<DailyTaskQuickViewSection> {
-  final Map<String, bool> _expandedCards = {
-    'yesterday': false,
-    'today': false,
-    'tomorrow': false,
-    'last_week': false,
-    'this_week': false,
-    'next_week': false,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      final totalCount =
-          widget.controller.quickViewData['total_count']?.toString() ?? '0';
-
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: const Color(0xFFE5E5E5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: () => widget.controller.isQuickViewExpanded.value =
-                  !widget.controller.isQuickViewExpanded.value,
-              borderRadius: BorderRadius.circular(8.r),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                child: Row(
-                  children: [
-                    Icon(Icons.bolt_rounded,
-                        size: 18.r, color: const Color(0xFF212529)),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Quick View',
-                      style: AppTextStyle.style_14_700(color: AppColors.black),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: Text(
-                        totalCount,
-                        style: AppTextStyle.style_11_600(
-                            color: AppColors.grey800),
-                      ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Icon(
-                      widget.controller.isQuickViewExpanded.value
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 20.r,
-                      color: AppColors.grey500,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (widget.controller.isQuickViewExpanded.value) ...[
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              Padding(
-                padding: EdgeInsets.all(10.w),
-                child: Column(
-                  children: [
-                    _buildSubCard('yesterday', Icons.replay_outlined, 'Yesterday'),
-                    SizedBox(height: 8.h),
-                    _buildSubCard('today', Icons.today_outlined, 'Today'),
-                    SizedBox(height: 8.h),
-                    _buildSubCard('tomorrow', Icons.east_outlined, 'Tomorrow'),
-                    SizedBox(height: 8.h),
-                    _buildSubCard('last_week', Icons.calendar_view_week_outlined, 'Last Week'),
-                    SizedBox(height: 8.h),
-                    _buildSubCard('this_week', Icons.date_range_outlined, 'This Week'),
-                    SizedBox(height: 8.h),
-                    _buildSubCard('next_week', Icons.next_week_outlined, 'Next Week'),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildSubCard(String key, IconData icon, String label) {
-    int count = 0;
-    List<TaskItem> tasks = [];
-    if (widget.controller.quickViewData[key] != null) {
-      count = widget.controller.quickViewData[key]['count'] ?? 0;
-      if (widget.controller.quickViewData[key]['tasks'] is List) {
-        tasks = (widget.controller.quickViewData[key]['tasks'] as List)
-            .map((e) => TaskItem.fromJson(e))
-            .toList();
-      }
-    }
-    final isExpanded = _expandedCards[key] ?? false;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(6.r),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _expandedCards[key] = !isExpanded),
-            borderRadius: BorderRadius.circular(6.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-              child: Row(
-                children: [
-                  Icon(icon, size: 16.r, color: AppColors.grey800),
-                  SizedBox(width: 6.w),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: AppTextStyle.style_12_600(color: AppColors.black),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10.r),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: AppTextStyle.style_10_700(color: AppColors.black),
-                    ),
-                  ),
-                  SizedBox(width: 6.w),
-                  Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    size: 18.r,
-                    color: AppColors.grey500,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isExpanded) ...[
-            const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
-              child: tasks.isEmpty
-                  ? Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      child: Center(
-                        child: Text(
-                          'No tasks',
-                          style: AppTextStyle.style_12_400(color: AppColors.grey400),
-                        ),
-                      ),
-                    )
-                  : Column(
-                      children: tasks
-                          .map((t) => Padding(
-                                padding: EdgeInsets.only(bottom: 6.h),
-                                child: DailyTaskFilterCard(task: t),
-                              ))
-                          .toList(),
-                    ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class DailyTaskMonthWiseSection extends StatefulWidget {
   final DailyTaskFilterController controller;
 
@@ -399,9 +197,314 @@ class DailyTaskMonthWiseSection extends StatefulWidget {
 
 class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
   final Map<String, bool> _expandedMonths = {};
+  final Map<String, bool> _expandedWeeks = {};
 
   @override
   Widget build(BuildContext context) {
+    return Obx(() {
+      final taskDataList = widget.controller.taskDataList;
+
+      // Fallback to legacy monthWiseData if new format is empty
+      if (taskDataList.isEmpty) {
+        return _buildLegacyMonthWise();
+      }
+
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Header
+            InkWell(
+              onTap: () => widget.controller.isMonthWiseExpanded.value =
+                  !widget.controller.isMonthWiseExpanded.value,
+              borderRadius: BorderRadius.circular(8.r),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_outlined,
+                        size: 18.r, color: AppColors.black),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Month Wise',
+                      style: AppTextStyle.style_14_700(color: AppColors.black),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Text(
+                        '${widget.controller.totalCount.value}',
+                        style: AppTextStyle.style_11_600(color: AppColors.grey800),
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                    Icon(
+                      widget.controller.isMonthWiseExpanded.value
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      size: 20.r,
+                      color: AppColors.grey500,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (widget.controller.isMonthWiseExpanded.value) ...[
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                child: taskDataList.isEmpty
+                    ? Padding(
+                        padding: EdgeInsets.all(12.r),
+                        child: Text(
+                          'No month-wise data available',
+                          style: AppTextStyle.style_12_400(color: AppColors.grey500),
+                        ),
+                      )
+                    : Column(
+                        children: taskDataList.asMap().entries.map((monthEntry) {
+                          return _buildMonthBlock(monthEntry.value);
+                        }).toList(),
+                      ),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildMonthBlock(Map<String, dynamic> monthData) {
+    final monthKey = monthData['month_key']?.toString() ?? '';
+    final monthLabel = monthData['month_label'] ?? monthData['month_name'] ?? 'Month';
+    final monthCount = monthData['count'] ?? 0;
+    final isCurrentMonth = monthData['is_current_month'] == true;
+    final defaultOpen = monthData['default_open'] == true;
+    final weeks = (monthData['weeks'] as List? ?? [])
+        .map((w) => Map<String, dynamic>.from(w as Map))
+        .toList();
+
+    _expandedMonths.putIfAbsent(monthKey, () => defaultOpen);
+    final isMonthExpanded = _expandedMonths[monthKey] ?? defaultOpen;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(6.r),
+          border: Border.all(
+            color: isCurrentMonth
+                ? AppColors.primary.withValues(alpha: 0.3)
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Month header
+            InkWell(
+              onTap: () => setState(() => _expandedMonths[monthKey] = !isMonthExpanded),
+              borderRadius: BorderRadius.circular(6.r),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isCurrentMonth
+                      ? AppColors.primary.withValues(alpha: 0.06)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6.r),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 9.h),
+                child: Row(
+                  children: [
+                    Icon(
+                      isMonthExpanded
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_right_rounded,
+                      size: 18.r,
+                      color: isCurrentMonth ? AppColors.primary : AppColors.grey500,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        monthLabel.toString(),
+                        style: AppTextStyle.style_12_700(
+                          color: isCurrentMonth ? AppColors.primary : AppColors.black,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: isCurrentMonth
+                            ? AppColors.primary.withValues(alpha: 0.12)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(
+                          color: isCurrentMonth
+                              ? AppColors.primary.withValues(alpha: 0.3)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        '$monthCount',
+                        style: AppTextStyle.style_10_700(
+                          color: isCurrentMonth ? AppColors.primary : AppColors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Weeks
+            if (isMonthExpanded) ...[
+              Divider(
+                height: 1,
+                color: isCurrentMonth
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : const Color(0xFFE2E8F0),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
+                child: Column(
+                  children: weeks.asMap().entries.map((weekEntry) {
+                    return _buildWeekBlock(monthKey, weekEntry.value);
+                  }).toList(),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeekBlock(String monthKey, Map<String, dynamic> weekData) {
+    final weekNo = weekData['week_no']?.toString() ?? '';
+    final weekKey = '${monthKey}_week$weekNo';
+    final weekLabel = weekData['week_label'] ?? 'Week $weekNo';
+    final weekCount = weekData['count'] ?? 0;
+    final isCurrentWeek = weekData['is_current_week'] == true;
+    final defaultOpen = weekData['default_open'] == true;
+    final rawTasks = weekData['tasks'] as List? ?? [];
+    final tasks = rawTasks
+        .map((t) => TaskItem.fromJson(Map<String, dynamic>.from(t as Map)))
+        .toList();
+
+    _expandedWeeks.putIfAbsent(weekKey, () => defaultOpen);
+    final isWeekExpanded = _expandedWeeks[weekKey] ?? defaultOpen;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6.h),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5.r),
+          border: Border.all(
+            color: isCurrentWeek
+                ? const Color(0xFF0EA5E9).withValues(alpha: 0.35)
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Week header
+            InkWell(
+              onTap: () => setState(() => _expandedWeeks[weekKey] = !isWeekExpanded),
+              borderRadius: BorderRadius.circular(5.r),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+                child: Row(
+                  children: [
+                    Icon(
+                      isWeekExpanded
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_right_rounded,
+                      size: 18.r,
+                      color: isCurrentWeek
+                          ? const Color(0xFF0EA5E9)
+                          : AppColors.grey500,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        weekLabel.toString(),
+                        style: AppTextStyle.style_11_600(
+                          color: isCurrentWeek
+                              ? const Color(0xFF0369A1)
+                              : AppColors.grey800,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                      decoration: BoxDecoration(
+                        color: isCurrentWeek
+                            ? const Color(0xFFE0F2FE)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        '$weekCount',
+                        style: AppTextStyle.style_10_600(
+                          color: isCurrentWeek
+                              ? const Color(0xFF0369A1)
+                              : AppColors.grey600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Tasks
+            if (isWeekExpanded) ...[
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
+                child: tasks.isEmpty
+                    ? Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        child: Center(
+                          child: Text(
+                            'No tasks in this week',
+                            style: AppTextStyle.style_11_400(
+                                color: AppColors.grey400),
+                          ),
+                        ),
+                      )
+                    : Column(
+                        children: tasks
+                            .map((t) => Padding(
+                                  padding: EdgeInsets.only(bottom: 6.h),
+                                  child: DailyTaskFilterCard(task: t),
+                                ))
+                            .toList(),
+                      ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Fallback rendering using legacy monthWiseData map structure
+  Widget _buildLegacyMonthWise() {
     return Obx(() {
       final monthWiseData = widget.controller.monthWiseData;
       final totalCount = monthWiseData['total_count']?.toString() ?? '0';
@@ -409,7 +512,6 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
       Map<String, dynamic> monthsMap = {};
       final rawGroups = monthWiseData['groups'];
       final rawMonths = monthWiseData['months'];
-
       if (rawGroups is List) {
         for (var item in rawGroups) {
           if (item is Map) {
@@ -434,68 +536,6 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
         });
       }
 
-      if (monthsMap.isEmpty && widget.controller.quickViewData.isNotEmpty) {
-        final Map<String, List<Map<String, dynamic>>> groupedMonths = {};
-        final monthsNames = [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-
-        widget.controller.quickViewData.forEach((sectionKey, sectionValue) {
-          if (sectionValue is Map && sectionValue['tasks'] is List) {
-            final tasksList = sectionValue['tasks'] as List;
-            for (var rawTask in tasksList) {
-              if (rawTask is Map) {
-                final taskMap = Map<String, dynamic>.from(rawTask);
-                final dtStr = taskMap['schedule_date_time'] ?? taskMap['schedule_date'] ?? taskMap['schedule_date_formatted'] ?? taskMap['start_date_time'];
-                if (dtStr != null && dtStr.toString().isNotEmpty) {
-                  try {
-                    DateTime? dt;
-                    final s = dtStr.toString().trim();
-                    if (s.contains('-') && s.length >= 10) {
-                      dt = DateTime.tryParse(s.replaceAll(' ', 'T'));
-                    }
-                    if (dt == null) {
-                      final parts = s.replaceAll(',', '').split(RegExp(r'[-\s]+'));
-                      if (parts.length >= 3) {
-                        int? day = int.tryParse(parts[0]);
-                        int? year = int.tryParse(parts[2]);
-                        final monthStr = parts[1].toLowerCase();
-                        int? month;
-                        final monthsList = [
-                          'jan', 'feb', 'mar', 'apr', 'may', 'jun',
-                          'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
-                        ];
-                        for (int i = 0; i < monthsList.length; i++) {
-                          if (monthStr.startsWith(monthsList[i])) {
-                            month = i + 1;
-                            break;
-                          }
-                        }
-                        if (day != null && month != null && year != null) {
-                          dt = DateTime(year, month, day);
-                        }
-                      }
-                    }
-                    if (dt != null) {
-                      final monthGroupKey = "${monthsNames[dt.month - 1]} ${dt.year}";
-                      groupedMonths.putIfAbsent(monthGroupKey, () => []).add(taskMap);
-                    }
-                  } catch (_) {}
-                }
-              }
-            }
-          }
-        });
-
-        groupedMonths.forEach((monthTitle, taskList) {
-          monthsMap[monthTitle] = {
-            'count': taskList.length,
-            'tasks': taskList,
-          };
-        });
-      }
-
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -514,23 +554,17 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                     Icon(Icons.calendar_month_outlined,
                         size: 18.r, color: AppColors.black),
                     SizedBox(width: 6.w),
-                    Text(
-                      'Month Wise',
-                      style: AppTextStyle.style_14_700(color: AppColors.black),
-                    ),
+                    Text('Month Wise',
+                        style: AppTextStyle.style_14_700(color: AppColors.black)),
                     const Spacer(),
                     Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(10.r),
                       ),
-                      child: Text(
-                        totalCount,
-                        style: AppTextStyle.style_11_600(
-                            color: AppColors.grey800),
-                      ),
+                      child: Text(totalCount,
+                          style: AppTextStyle.style_11_600(color: AppColors.grey800)),
                     ),
                     SizedBox(width: 6.w),
                     Icon(
@@ -564,7 +598,8 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                           final count = monthObj['count'] ?? 0;
                           final rawTasks = monthObj['tasks'] as List? ?? [];
                           final tasks = rawTasks
-                              .map((e) => TaskItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                              .map((e) => TaskItem.fromJson(
+                                  Map<String, dynamic>.from(e as Map)))
                               .toList();
                           final isExpanded = _expandedMonths[monthTitle] ?? false;
 
@@ -579,11 +614,9 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                               child: Column(
                                 children: [
                                   InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        _expandedMonths[monthTitle] = !isExpanded;
-                                      });
-                                    },
+                                    onTap: () => setState(() {
+                                      _expandedMonths[monthTitle] = !isExpanded;
+                                    }),
                                     borderRadius: BorderRadius.circular(6.r),
                                     child: Padding(
                                       padding: EdgeInsets.symmetric(
@@ -592,18 +625,16 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                                         children: [
                                           Icon(
                                             isExpanded
-                                                ? Icons.keyboard_arrow_up
-                                                : Icons.keyboard_arrow_down,
+                                                ? Icons.keyboard_arrow_down_rounded
+                                                : Icons.keyboard_arrow_right_rounded,
                                             size: 18.r,
                                             color: AppColors.grey500,
                                           ),
-                                          SizedBox(width: 6.w),
+                                          SizedBox(width: 4.w),
                                           Expanded(
-                                            child: Text(
-                                              monthTitle,
-                                              style: AppTextStyle.style_12_600(
-                                                  color: AppColors.black),
-                                            ),
+                                            child: Text(monthTitle,
+                                                style: AppTextStyle.style_12_600(
+                                                    color: AppColors.black)),
                                           ),
                                           Container(
                                             padding: EdgeInsets.symmetric(
@@ -615,11 +646,9 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                                               border: Border.all(
                                                   color: Colors.grey.shade300),
                                             ),
-                                            child: Text(
-                                              '$count',
-                                              style: AppTextStyle.style_10_700(
-                                                  color: AppColors.black),
-                                            ),
+                                            child: Text('$count',
+                                                style: AppTextStyle.style_10_700(
+                                                    color: AppColors.black)),
                                           ),
                                         ],
                                       ),
@@ -632,10 +661,10 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                                       padding: EdgeInsets.all(8.w),
                                       child: tasks.isEmpty
                                           ? Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                  vertical: 12.h),
+                                              padding:
+                                                  EdgeInsets.symmetric(vertical: 12.h),
                                               child: Text(
-                                                'No tasks available for this month',
+                                                'No tasks available',
                                                 style: AppTextStyle.style_12_400(
                                                     color: AppColors.grey400),
                                               ),
@@ -643,8 +672,8 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                                           : Column(
                                               children: tasks.map((task) {
                                                 return Padding(
-                                                  padding: EdgeInsets.only(
-                                                      bottom: 6.h),
+                                                  padding:
+                                                      EdgeInsets.only(bottom: 6.h),
                                                   child: DailyTaskFilterCard(task: task),
                                                 );
                                               }).toList(),
@@ -665,3 +694,4 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
     });
   }
 }
+

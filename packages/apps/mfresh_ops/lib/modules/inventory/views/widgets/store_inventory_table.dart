@@ -91,12 +91,12 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                             inside: BorderSide(color: Colors.grey.shade300),
                           ),
                           columnWidths: {
-                            0: FixedColumnWidth(120.w),
+                            0: FixedColumnWidth(125.w),
                             1: FixedColumnWidth(80.w),
                             2: FixedColumnWidth(120.w),
                             3: FixedColumnWidth(110.w),
                             4: FixedColumnWidth(60.w),
-                            5: FixedColumnWidth(150.w),
+                            5: FixedColumnWidth(110.w),
                             6: FixedColumnWidth(150.w),
                             7: FixedColumnWidth(110.w),
                           },
@@ -109,7 +109,7 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                                 _buildHeaderCell(controller, 'Item'),
                                 _buildHeaderCell(controller, 'Category'),
                                 _buildHeaderCell(controller, 'Quantity'),
-                                _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Consumption ${controller.consumptionSubtitle.value}' : 'Consumption', sortKey: 'Consumption'),
+                                _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Usage ${controller.consumptionSubtitle.value}' : 'Usage', sortKey: 'Consumption'),
                                 _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Required Qty ${controller.consumptionSubtitle.value}' : 'Required Qty', sortKey: 'Required Qty'),
                                 _buildHeaderCell(controller, 'Request Order', sortKey: 'Order'),
                               ],
@@ -128,19 +128,18 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                                 inside: BorderSide(color: Colors.grey.shade300),
                               ),
                               columnWidths: {
-                                0: FixedColumnWidth(120.w),
+                                0: FixedColumnWidth(125.w),
                                 1: FixedColumnWidth(80.w),
                                 2: FixedColumnWidth(120.w),
                                 3: FixedColumnWidth(110.w),
                                 4: FixedColumnWidth(60.w),
-                                5: FixedColumnWidth(150.w),
+                                5: FixedColumnWidth(110.w),
                                 6: FixedColumnWidth(150.w),
                                 7: FixedColumnWidth(110.w),
                               },
                               children: [
-                                ...itemsToRender.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final item = entry.value;
+                                ...List.generate(itemsToRender.length, (index) {
+                                  final item = itemsToRender[index];
                                   final key = '${item.store}_${item.item}_${item.category}_$index';
                                   final isExpanded = _expandedRows.contains(key);
 
@@ -148,46 +147,52 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                                     children: [
                                       Padding(
                                         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                                        child: Row(
-                                          children: [
-                                            if (canAllocate) ...[
-                                              SizedBox(
-                                                height: 18.h,
-                                                child: ElevatedButton(
-                                                  onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.blue,
-                                                    foregroundColor: Colors.white,
-                                                    padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                                    elevation: 0,
-                                                    minimumSize: Size.zero,
-                                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (canAllocate) ...[
+                                                SizedBox(
+                                                  height: 18.h,
+                                                  width: 56.w,
+                                                  child: ElevatedButton(
+                                                    onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.blue,
+                                                      foregroundColor: Colors.white,
+                                                      padding: EdgeInsets.zero,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                                      elevation: 0,
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    ),
+                                                    child: Center(child: Text('Transfer', style: AppTextStyle.style_10_500(color: Colors.white))),
                                                   ),
-                                                  child: Text('Allocate', style: AppTextStyle.style_10_500(color: Colors.white)),
                                                 ),
-                                              ),
-                                              SizedBox(width: 4.w),
-                                            ],
-                                            if (canConsume) ...[
-                                              SizedBox(
-                                                height: 18.h,
-                                                child: ElevatedButton(
-                                                  onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFFE53935),
-                                                    foregroundColor: Colors.white,
-                                                    padding: EdgeInsets.symmetric(horizontal: 4.w),
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                                                    elevation: 0,
-                                                    minimumSize: Size.zero,
-                                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                SizedBox(width: 4.w),
+                                              ],
+                                              if (canConsume) ...[
+                                                SizedBox(
+                                                  height: 18.h,
+                                                  width: 56.w,
+                                                  child: ElevatedButton(
+                                                    onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: const Color(0xFFE53935),
+                                                      foregroundColor: Colors.white,
+                                                      padding: EdgeInsets.zero,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                                      elevation: 0,
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    ),
+                                                    child: Center(child: Text('Use', style: AppTextStyle.style_10_500(color: Colors.white))),
                                                   ),
-                                                  child: Text('Consume', style: AppTextStyle.style_10_500(color: Colors.white)),
                                                 ),
-                                              ),
+                                              ],
                                             ],
-                                          ],
+                                          ),
                                         ),
                                       ),
                                       _buildDataCell(item.store, isExpanded, () => _toggleRow(key)),

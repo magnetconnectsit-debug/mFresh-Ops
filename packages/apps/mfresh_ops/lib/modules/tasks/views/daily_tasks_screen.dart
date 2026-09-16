@@ -30,7 +30,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
   @override
   void initState() {
     super.initState();
-    controller = Get.put(TasksController());
+    controller = Get.isRegistered<TasksController>()
+        ? Get.find<TasksController>()
+        : Get.put(TasksController());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.clearFilters();
       controller.refreshData();

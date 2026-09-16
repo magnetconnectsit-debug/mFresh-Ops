@@ -263,7 +263,7 @@ class MyTaskHandler extends TaskHandler {
 
   @override
   void onNotificationPressed() {
-    FlutterForegroundTask.launchApp('/live-tracking');
+    FlutterForegroundTask.launchApp();
   }
 
   // endregion

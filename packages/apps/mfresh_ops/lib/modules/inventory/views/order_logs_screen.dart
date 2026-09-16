@@ -11,13 +11,27 @@ import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_order_logs_controller.dart';
 import 'package:mfresh_ops/modules/inventory/views/widgets/order_logs_table.dart';
 
-class OrderLogsScreen extends StatelessWidget {
+class OrderLogsScreen extends StatefulWidget {
   const OrderLogsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(InventoryOrderLogsController());
+  State<OrderLogsScreen> createState() => _OrderLogsScreenState();
+}
 
+class _OrderLogsScreenState extends State<OrderLogsScreen> {
+  late final InventoryOrderLogsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(InventoryOrderLogsController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchOrderLogs();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppCommonAppBar(

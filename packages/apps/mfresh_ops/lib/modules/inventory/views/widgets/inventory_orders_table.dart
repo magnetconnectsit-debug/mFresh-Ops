@@ -5,8 +5,35 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import '../../controllers/inventory_orders_controller.dart';
-import '../../../../data/models/inventory/inventory_order_model.dart';
-import 'receive_store_order_dialog.dart';
+import 'package:mfresh_ops/data/models/inventory/inventory_order_model.dart';
+import 'unit_required_orders_dialog.dart';
+import 'store_required_orders_dialog.dart';
+
+class _GroupedOrderRow {
+  final int orderId;
+  final int itemId;
+  final String itemName;
+  final InventoryOrderUser? requestedBy;
+  final InventoryOrderUser? processedBy;
+  final int status;
+  final String statusName;
+  final bool canProcess;
+  final bool canReceive;
+  final Map<String, InventoryOrderModel> locationOrders;
+
+  _GroupedOrderRow({
+    required this.orderId,
+    required this.itemId,
+    required this.itemName,
+    this.requestedBy,
+    this.processedBy,
+    required this.status,
+    required this.statusName,
+    required this.canProcess,
+    required this.canReceive,
+    required this.locationOrders,
+  });
+}
 
 class InventoryOrdersTable extends StatefulWidget {
   const InventoryOrdersTable({super.key});
@@ -17,6 +44,8 @@ class InventoryOrdersTable extends StatefulWidget {
 
 class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
   final Set<String> _expandedRows = {};
+  bool _isOrderTableExpanded = true;
+  bool _isRequiredOrdersExpanded = true;
 
   void _toggleRow(String key) {
     setState(() {
@@ -39,59 +68,355 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
       final paginatedStoreOrders = controller.paginatedStoreOrders;
       final isLoading = controller.isLoading.value;
 
-      if (!isLoading && unitOrders.isEmpty && storeOrders.isEmpty) {
-        return Container(
-          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-          alignment: Alignment.center,
-          child: Text(
-            'No inventory orders found.',
-            style: AppTextStyle.style_14_400(color: AppColors.grey300),
-          ),
-        );
-      }
+      final bulkPreview = controller.bulkPreview.value;
+
+      final unitColumnNames = controller.unitColumnNames;
+      final storeColumnNames = controller.storeColumnNames;
+
+      final currentTab = controller.selectedTab.value;
+      final isUnitTab = currentTab == InventoryOrderTab.unit;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Unit Order Requests Section
-          if (isLoading || unitOrders.isNotEmpty) ...[
-            _buildSectionHeader(
-              'Unit Order Requests',
-              unitOrders.length,
-              Icons.domain_rounded,
-            ),
-            SizedBox(height: 6.h),
-            _buildOrderTable(
-              controller: controller,
-              orders: paginatedUnitOrders,
-              locationHeaderName: 'Unit',
-              isLoading: isLoading,
-            ),
-            if (!isLoading && unitOrders.isNotEmpty)
-              _buildUnitPagination(controller, unitOrders.length),
-            SizedBox(height: 16.h),
-          ],
+          // Tab Switcher (Unit / Store)
+          _buildTabSwitcher(controller),
+          SizedBox(height: 8.h),
 
-          // Store Order Requests Section
-          if (isLoading || storeOrders.isNotEmpty) ...[
-            _buildSectionHeader(
-              'Store Order Requests',
-              storeOrders.length,
-              Icons.storefront_rounded,
+          // ── Order Requests Expandable Card ──
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            SizedBox(height: 6.h),
-            _buildOrderTable(
-              controller: controller,
-              orders: paginatedStoreOrders,
-              locationHeaderName: 'Store',
-              isLoading: isLoading,
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Expandable header
+                InkWell(
+                  onTap: () => setState(() => _isOrderTableExpanded = !_isOrderTableExpanded),
+                  child: Container(
+                    color: const Color(0xFFEBF3FA),
+                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isUnitTab ? Icons.domain_rounded : Icons.storefront_rounded,
+                          size: 15.r,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 6.w),
+                        Expanded(
+                          child: Text(
+                            isUnitTab ? 'Unit Order Requests' : 'Store Order Requests',
+                            style: AppTextStyle.style_12_600(color: const Color(0xFF1E3A5F)),
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Text(
+                            '${isUnitTab ? unitOrders.length : storeOrders.length}',
+                            style: AppTextStyle.style_10_600(color: AppColors.primary),
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        AnimatedRotation(
+                          turns: _isOrderTableExpanded ? 0 : -0.25,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(Icons.keyboard_arrow_down_rounded,
+                              size: 18.r, color: AppColors.grey600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Animated content
+                AnimatedCrossFade(
+                  firstChild: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 8.h),
+                      _buildOrderTable(
+                        controller: controller,
+                        orders: isUnitTab ? paginatedUnitOrders : paginatedStoreOrders,
+                        locationNames: isUnitTab ? unitColumnNames : storeColumnNames,
+                        isLoading: isLoading,
+                        isUnit: isUnitTab,
+                      ),
+                      if (!isLoading &&
+                          (isUnitTab ? unitOrders.isNotEmpty : storeOrders.isNotEmpty))
+                        isUnitTab
+                            ? _buildUnitPagination(controller, unitOrders.length)
+                            : _buildStorePagination(controller, storeOrders.length),
+                      SizedBox(height: 8.h),
+                    ],
+                  ),
+                  secondChild: const SizedBox.shrink(),
+                  crossFadeState: _isOrderTableExpanded
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  duration: const Duration(milliseconds: 250),
+                  sizeCurve: Curves.easeInOut,
+                ),
+              ],
             ),
-            if (!isLoading && storeOrders.isNotEmpty)
-              _buildStorePagination(controller, storeOrders.length),
-          ],
+          ),
+
+          SizedBox(height: 10.h),
+
+          // ── Required Orders Expandable Card ──
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Expandable header
+                InkWell(
+                  onTap: () => setState(() => _isRequiredOrdersExpanded = !_isRequiredOrdersExpanded),
+                  child: Container(
+                    color: const Color(0xFFEBF3FA),
+                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.assignment_outlined,
+                          size: 15.r,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 6.w),
+                        Expanded(
+                          child: Text(
+                            isUnitTab ? 'Unit Required Orders' : 'Store Required Orders',
+                            style: AppTextStyle.style_12_600(color: const Color(0xFF1E3A5F)),
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _isRequiredOrdersExpanded ? 0 : -0.25,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(Icons.keyboard_arrow_down_rounded,
+                              size: 18.r, color: AppColors.grey600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Animated content
+                AnimatedCrossFade(
+                  firstChild: isUnitTab
+                      ? UnitRequiredOrdersDialog(
+                          bulkPreviewSection: bulkPreview.unitOrders,
+                        )
+                      : StoreRequiredOrdersDialog(
+                          bulkPreviewSection: bulkPreview.storeOrders,
+                        ),
+                  secondChild: const SizedBox.shrink(),
+                  crossFadeState: _isRequiredOrdersExpanded
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  duration: const Duration(milliseconds: 250),
+                  sizeCurve: Curves.easeInOut,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16.h),
         ],
       );
     });
+  }
+
+  Widget _buildTabSwitcher(InventoryOrdersController controller) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      padding: EdgeInsets.all(3.r),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabItem(
+              title: 'Unit Orders',
+              count: controller.filteredUnitOrders.length,
+              icon: Icons.domain_rounded,
+              isSelected: controller.selectedTab.value == InventoryOrderTab.unit,
+              onTap: () => controller.setTab(InventoryOrderTab.unit),
+            ),
+          ),
+          SizedBox(width: 4.w),
+          Expanded(
+            child: _buildTabItem(
+              title: 'Store Orders',
+              count: controller.filteredStoreOrders.length,
+              icon: Icons.storefront_rounded,
+              isSelected: controller.selectedTab.value == InventoryOrderTab.store,
+              onTap: () => controller.setTab(InventoryOrderTab.store),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem({
+    required String title,
+    required int count,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6.r),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(6.r),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? Colors.black.withValues(alpha: 0.05)
+                  : Colors.transparent,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16.r,
+              color: isSelected ? AppColors.primary : AppColors.grey600,
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              title,
+              style: isSelected
+                  ? AppTextStyle.style_12_700(color: AppColors.primary)
+                  : AppTextStyle.style_12_500(color: AppColors.grey600),
+            ),
+            SizedBox(width: 6.w),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.1)
+                    : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Text(
+                '$count',
+                style: AppTextStyle.style_10_600(
+                  color: isSelected ? AppColors.primary : AppColors.grey700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<_GroupedOrderRow> _groupOrders(List<InventoryOrderModel> rawOrders) {
+    final Map<String, _GroupedOrderRow> groupedMap = {};
+
+    for (var order in rawOrders) {
+      final key = '${order.orderId}_${order.itemId}';
+      final locName = order.displayName;
+
+      if (!groupedMap.containsKey(key)) {
+        groupedMap[key] = _GroupedOrderRow(
+          orderId: order.orderId,
+          itemId: order.itemId,
+          itemName: order.itemName,
+          requestedBy: order.requestedBy,
+          processedBy: order.processedBy,
+          status: order.status,
+          statusName: order.statusName,
+          canProcess: order.canProcess,
+          canReceive: order.canReceive,
+          locationOrders: {locName: order},
+        );
+      } else {
+        final existing = groupedMap[key]!;
+        existing.locationOrders[locName] = order;
+      }
+    }
+
+    return groupedMap.values.toList();
+  }
+
+  Widget _buildSectionHeader(
+    String title,
+    int count,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(icon, size: 16.r, color: AppColors.primary),
+                SizedBox(width: 6.w),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: AppTextStyle.style_12_700(color: AppColors.black),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(width: 6.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: AppTextStyle.style_11_600(color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildUnitPagination(
@@ -234,36 +559,12 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     );
   }
 
-  Widget _buildSectionHeader(String title, int count, IconData icon) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Row(
-        children: [
-          Icon(icon, size: 16.r, color: AppColors.primary),
-          SizedBox(width: 6.w),
-          Text(title, style: AppTextStyle.style_14_700(color: AppColors.black)),
-          SizedBox(width: 6.w),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-            child: Text(
-              '$count',
-              style: AppTextStyle.style_11_600(color: AppColors.primary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildOrderTable({
     required InventoryOrdersController controller,
     required List<InventoryOrderModel> orders,
-    required String locationHeaderName,
+    required List<String> locationNames,
     required bool isLoading,
+    required bool isUnit,
   }) {
     final ordersToRender = isLoading
         ? List.generate(
@@ -271,7 +572,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
             (index) => InventoryOrderModel(
               id: index,
               orderId: index,
-              orderType: locationHeaderName.toLowerCase(),
+              orderType: isUnit ? 'unit' : 'store',
               locationName: 'Loading',
               unitName: 'Loading',
               storeName: 'Loading',
@@ -289,6 +590,22 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
             ),
           )
         : orders;
+
+    final groupedRows = _groupOrders(ordersToRender);
+
+    final Map<int, TableColumnWidth> colWidths = {
+      0: FixedColumnWidth(70.w),  // Order ID
+      1: FixedColumnWidth(110.w), // Item
+    };
+
+    int colIdx = 2;
+    for (int i = 0; i < locationNames.length; i++) {
+      colWidths[colIdx++] = FixedColumnWidth(75.w);
+    }
+    colWidths[colIdx++] = FixedColumnWidth(120.w); // Requested By
+    colWidths[colIdx++] = FixedColumnWidth(110.w); // Status
+    colWidths[colIdx++] = FixedColumnWidth(120.w); // Processed By
+    colWidths[colIdx++] = FixedColumnWidth(135.w); // Action
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -309,79 +626,78 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
               border: TableBorder.symmetric(
                 inside: BorderSide(color: Colors.grey.shade300),
               ),
-              columnWidths: {
-                0: FixedColumnWidth(70.w), // Order ID
-                1: FixedColumnWidth(100.w), // Location (Unit/Store)
-                2: FixedColumnWidth(140.w), // Item
-                3: FixedColumnWidth(100.w), // Quantity
-                4: FixedColumnWidth(120.w), // Requested By
-                5: FixedColumnWidth(110.w), // Status
-                6: FixedColumnWidth(120.w), // Processed By
-                7: FixedColumnWidth(135.w), // Action
-              },
+              columnWidths: colWidths,
               children: [
                 TableRow(
                   decoration: const BoxDecoration(color: Color(0xFFE8F1F8)),
                   children: [
-                    _buildHeaderCell(controller, 'Order ID'),
-                    _buildHeaderCell(
-                      controller,
-                      locationHeaderName,
-                      sortKey: 'Location',
+                    _buildHeaderCell(controller, 'Order ID', isUnit: isUnit),
+                    _buildHeaderCell(controller, 'Item', isUnit: isUnit),
+                    ...locationNames.map(
+                      (locName) => _buildHeaderCell(
+                        controller,
+                        locName,
+                        sortKey: locName,
+                        isUnit: isUnit,
+                      ),
                     ),
-                    _buildHeaderCell(controller, 'Item'),
-                    _buildHeaderCell(controller, 'Quantity'),
-                    _buildHeaderCell(controller, 'Requested By'),
-                    _buildHeaderCell(controller, 'Status'),
-                    _buildHeaderCell(controller, 'Processed By'),
-                    _buildHeaderCell(controller, 'Action'),
+                    _buildHeaderCell(controller, 'Requested By', isUnit: isUnit),
+                    _buildHeaderCell(controller, 'Status', isUnit: isUnit),
+                    _buildHeaderCell(controller, 'Processed By', isUnit: isUnit),
+                    _buildHeaderCell(controller, 'Action', isUnit: isUnit),
                   ],
                 ),
-                ...ordersToRender.asMap().entries.map((entry) {
+                ...groupedRows.asMap().entries.map((entry) {
                   final index = entry.key;
-                  final order = entry.value;
-                  final key = 'order_${order.orderType}_${order.id}_$index';
+                  final row = entry.value;
+                  final key = 'order_${isUnit ? "unit" : "store"}_${row.orderId}_${row.itemId}_$index';
                   final isExpanded = _expandedRows.contains(key);
 
                   return TableRow(
                     children: [
                       _buildDataCell(
-                        '#${order.orderId}',
+                        '#${row.orderId}',
                         isExpanded,
                         () => _toggleRow(key),
                       ),
                       _buildDataCell(
-                        order.displayName,
+                        row.itemName,
                         isExpanded,
                         () => _toggleRow(key),
                       ),
+                      ...locationNames.map((locName) {
+                        final locOrder = row.locationOrders[locName];
+                        if (locOrder != null) {
+                          return _buildDataCell(
+                            locOrder.formattedQty,
+                            isExpanded,
+                            () => _toggleRow(key),
+                            bgColor: const Color(0xFFFFF8E7),
+                          );
+                        }
+                        return _buildDataCell(
+                          '-',
+                          isExpanded,
+                          () => _toggleRow(key),
+                        );
+                      }),
                       _buildDataCell(
-                        order.itemName,
-                        isExpanded,
-                        () => _toggleRow(key),
-                      ),
-                      _buildDataCell(
-                        order.formattedQty,
-                        isExpanded,
-                        () => _toggleRow(key),
-                        bgColor: const Color(0xFFFFF8E7),
-                      ),
-                      _buildDataCell(
-                        order.requestedBy?.name ?? '-',
+                        row.requestedBy?.name ?? '-',
                         isExpanded,
                         () => _toggleRow(key),
                       ),
                       _buildStatusCell(
-                        order,
+                        row.status,
+                        row.statusName,
                         isExpanded,
                         () => _toggleRow(key),
                       ),
                       _buildDataCell(
-                        order.processedBy?.name ?? '-',
+                        row.processedBy?.name ?? '-',
                         isExpanded,
                         () => _toggleRow(key),
                       ),
-                      _buildActionCell(order),
+                      _buildActionCellForGroupedRow(row),
                     ],
                   );
                 }),
@@ -397,14 +713,22 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     InventoryOrdersController controller,
     String text, {
     String? sortKey,
+    required bool isUnit,
   }) {
     final key = sortKey ?? text;
-    final isSorted = controller.sortColumn.value == key;
-    final isAsc = controller.sortAscending.value;
+    final sortColumn = isUnit ? controller.unitSortColumn.value : controller.storeSortColumn.value;
+    final isAsc = isUnit ? controller.unitSortAscending.value : controller.storeSortAscending.value;
+    final isSorted = sortColumn == key;
 
     return InkWell(
       onTap: key.isNotEmpty && key != 'Action'
-          ? () => controller.sortBy(key)
+          ? () {
+              if (isUnit) {
+                controller.sortByUnit(key);
+              } else {
+                controller.sortByStore(key);
+              }
+            }
           : null,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
@@ -433,13 +757,14 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
   }
 
   Widget _buildStatusCell(
-    InventoryOrderModel order,
+    int status,
+    String statusName,
     bool isExpanded,
     VoidCallback onTap,
   ) {
     Widget childWidget;
 
-    if (order.status == 0) {
+    if (status == 0) {
       // Pending
       childWidget = Container(
         padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
@@ -455,7 +780,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
           overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
         ),
       );
-    } else if (order.status == 1) {
+    } else if (status == 1) {
       // Waiting for Receive
       childWidget = Container(
         padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
@@ -471,7 +796,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
           overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
         ),
       );
-    } else if (order.status == 2) {
+    } else if (status == 2) {
       // Completed
       childWidget = Container(
         padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
@@ -489,7 +814,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
       );
     } else {
       childWidget = Text(
-        order.statusName,
+        statusName,
         style: AppTextStyle.style_10_400(color: AppColors.black),
         maxLines: isExpanded ? null : 1,
         overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
@@ -506,8 +831,11 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     );
   }
 
-  Widget _buildActionCell(InventoryOrderModel order) {
-    if (order.canProcess) {
+  Widget _buildActionCellForGroupedRow(_GroupedOrderRow row) {
+    final processableOrders =
+        row.locationOrders.values.where((o) => o.canProcess).toList();
+
+    if (processableOrders.isNotEmpty) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
         child: SizedBox(
@@ -534,9 +862,11 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(dialogContext);
-                        Get.find<InventoryOrdersController>().completeOrder(order);
+                        for (var order in processableOrders) {
+                          await Get.find<InventoryOrdersController>().completeOrder(order);
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -572,7 +902,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
       );
     }
 
-    if (order.status == 1 || order.statusName == 'Waiting for Receive') {
+    if (row.status == 1 || row.statusName == 'Waiting for Receive') {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
         child: SizedBox(

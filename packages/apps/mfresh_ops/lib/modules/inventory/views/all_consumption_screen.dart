@@ -28,7 +28,7 @@ class AllConsumptionScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: AppColors.white,
             title: Text(
-              'All Consumption',
+              'All Usage',
               style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
           ),
@@ -54,7 +54,7 @@ class AllConsumptionScreen extends StatelessWidget {
                     onChanged: (v) => controller.applyFilters(),
                   )
                 : Text(
-                    'All Consumption',
+                    'All Usage',
                     style: AppTextStyle.style_18_700(color: AppColors.black),
                   ),
           ),
@@ -97,38 +97,18 @@ class AllConsumptionScreen extends StatelessWidget {
   }
 
   Widget _buildTable(ConsumptionController controller) {
-    final isTableLoading = controller.isLoading.value;
-    final authRepo = Get.find<AuthRepository>();
-    final hasReverse = authRepo.rxUserPermissions.contains('consumption_reverse');
+    final items = controller.sortedItems;
+    final hasReverse = Get.find<AuthRepository>()
+        .rxUserPermissions
+        .contains('reverse_consumption');
 
-    final items = isTableLoading
-        ? List.generate(
-            10,
-            (index) => ConsumptionItemModel(
-              id: index,
-              consumedOn: '01-jan-2023',
-              state: 'State_Dummy',
-              district: 'District_Dummy',
-              sourceType: 'Store',
-              source: 'Source_Dummy',
-              category: 'Category_Dummy',
-              item: 'Loading Item',
-              consumedQty: '0',
-              mUnit: 'pcs',
-              createdBy: 'User',
-              isReversed: 0,
-            ),
-          )
-        : controller.sortedItems;
-
-    if (items.isEmpty && !controller.isSearching.value) {
-      return Padding(
-        padding: EdgeInsets.all(32.r),
-        child: Center(
-          child: Text(
-            'No consumption records found',
-            style: AppTextStyle.style_14_400(color: AppColors.grey300),
-          ),
+    if (items.isEmpty && !controller.isLoading.value) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+        alignment: Alignment.center,
+        child: Text(
+          'No usage data found.',
+          style: AppTextStyle.style_14_400(color: AppColors.grey300),
         ),
       );
     }
@@ -137,9 +117,9 @@ class AllConsumptionScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.symmetric(horizontal: 16.w),
+          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(4.r),
             border: Border.all(color: Colors.grey.shade300),
           ),
@@ -152,31 +132,31 @@ class AllConsumptionScreen extends StatelessWidget {
                   minWidth: MediaQuery.of(Get.context!).size.width - 32.w,
                 ),
                 child: Skeletonizer(
-                  enabled: isTableLoading,
+                  enabled: controller.isLoading.value,
                   child: Table(
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                     columnWidths: {
                       if (hasReverse) 0: const IntrinsicColumnWidth(), // Action
                       if (hasReverse) ...{
-                        1: const IntrinsicColumnWidth(), // Consumed On
+                        1: const IntrinsicColumnWidth(), // Used On
                         2: const IntrinsicColumnWidth(), // State
                         3: const IntrinsicColumnWidth(), // District
                         4: const IntrinsicColumnWidth(), // Source Type
                         5: const IntrinsicColumnWidth(), // Source
                         6: const IntrinsicColumnWidth(), // Category
                         7: const IntrinsicColumnWidth(), // Item
-                        8: const IntrinsicColumnWidth(), // Consumed Qty
+                        8: const IntrinsicColumnWidth(), // Used Qty
                         9: const IntrinsicColumnWidth(), // M_Unit
                         10: const IntrinsicColumnWidth(), // Created By
                       } else ...{
-                        0: const IntrinsicColumnWidth(), // Consumed On
+                        0: const IntrinsicColumnWidth(), // Used On
                         1: const IntrinsicColumnWidth(), // State
                         2: const IntrinsicColumnWidth(), // District
                         3: const IntrinsicColumnWidth(), // Source Type
                         4: const IntrinsicColumnWidth(), // Source
                         5: const IntrinsicColumnWidth(), // Category
                         6: const IntrinsicColumnWidth(), // Item
-                        7: const IntrinsicColumnWidth(), // Consumed Qty
+                        7: const IntrinsicColumnWidth(), // Used Qty
                         8: const IntrinsicColumnWidth(), // M_Unit
                         9: const IntrinsicColumnWidth(), // Created By
                       }
@@ -189,14 +169,14 @@ class AllConsumptionScreen extends StatelessWidget {
                         decoration: const BoxDecoration(color: AppColors.white),
                         children: [
                           if (hasReverse) _buildHeaderCell('Action', controller, sortable: false),
-                          _buildHeaderCell('Consumed On', controller),
+                          _buildHeaderCell('Used On', controller),
                           _buildHeaderCell('State', controller),
                           _buildHeaderCell('District', controller),
                           _buildHeaderCell('Source Type', controller),
                           _buildHeaderCell('Source', controller),
                           _buildHeaderCell('Category', controller),
                           _buildHeaderCell('Item', controller),
-                          _buildHeaderCell('Consumed Qty', controller),
+                          _buildHeaderCell('Used Qty', controller),
                           _buildHeaderCell('M_Unit', controller),
                           _buildHeaderCell('Created By', controller),
                         ],
