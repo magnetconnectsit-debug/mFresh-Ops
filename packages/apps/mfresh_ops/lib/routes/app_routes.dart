@@ -62,4 +62,5 @@ abstract class AppRoutes {
 
   // Payment Reminder
   static const paymentReminder = '/payment-reminder';
+  static const completedPayments = '/completed-payments';
 }

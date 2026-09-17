@@ -6,6 +6,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import '../../controllers/inventory_orders_controller.dart';
 import 'package:mfresh_ops/data/models/inventory/inventory_order_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'unit_required_orders_dialog.dart';
 import 'store_required_orders_dialog.dart';
 
@@ -62,6 +63,36 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     final controller = Get.find<InventoryOrdersController>();
 
     return Obx(() {
+      final userPermissions = Get.find<AuthRepository>().rxUserPermissions;
+      final canUnitOrder = userPermissions.contains('Inv_Unit_Order');
+      final canStoreOrder = userPermissions.contains('Inv_Store_Order');
+
+      if (!canUnitOrder && !canStoreOrder) {
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          child: Center(
+            child: Text(
+              'You do not have permission to view Unit or Store orders.',
+              style: AppTextStyle.style_12_400(color: AppColors.grey500),
+            ),
+          ),
+        );
+      }
+
+      if (canUnitOrder && !canStoreOrder) {
+        if (controller.selectedTab.value != InventoryOrderTab.unit) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            controller.setTab(InventoryOrderTab.unit);
+          });
+        }
+      } else if (canStoreOrder && !canUnitOrder) {
+        if (controller.selectedTab.value != InventoryOrderTab.store) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            controller.setTab(InventoryOrderTab.store);
+          });
+        }
+      }
+
       final unitOrders = controller.filteredUnitOrders;
       final storeOrders = controller.filteredStoreOrders;
       final paginatedUnitOrders = controller.paginatedUnitOrders;
@@ -79,173 +110,177 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tab Switcher (Unit / Store)
-          _buildTabSwitcher(controller),
-          SizedBox(height: 8.h),
+          // Tab Switcher (Unit / Store) - show only if user has access to BOTH
+          if (canUnitOrder && canStoreOrder) ...[
+            _buildTabSwitcher(controller),
+            SizedBox(height: 8.h),
+          ],
 
           // ── Order Requests Expandable Card ──
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Expandable header
-                InkWell(
-                  onTap: () => setState(() => _isOrderTableExpanded = !_isOrderTableExpanded),
-                  child: Container(
-                    color: const Color(0xFFEBF3FA),
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isUnitTab ? Icons.domain_rounded : Icons.storefront_rounded,
-                          size: 15.r,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: 6.w),
-                        Expanded(
-                          child: Text(
-                            isUnitTab ? 'Unit Order Requests' : 'Store Order Requests',
-                            style: AppTextStyle.style_12_600(color: const Color(0xFF1E3A5F)),
+          if ((isUnitTab && canUnitOrder) || (!isUnitTab && canStoreOrder))
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 8.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Expandable header
+                  InkWell(
+                    onTap: () => setState(() => _isOrderTableExpanded = !_isOrderTableExpanded),
+                    child: Container(
+                      color: const Color(0xFFEBF3FA),
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isUnitTab ? Icons.domain_rounded : Icons.storefront_rounded,
+                            size: 15.r,
+                            color: AppColors.primary,
                           ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10.r),
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              isUnitTab ? 'Unit Order Requests' : 'Store Order Requests',
+                              style: AppTextStyle.style_12_600(color: const Color(0xFF1E3A5F)),
+                            ),
                           ),
-                          child: Text(
-                            '${isUnitTab ? unitOrders.length : storeOrders.length}',
-                            style: AppTextStyle.style_10_600(color: AppColors.primary),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            child: Text(
+                              '${isUnitTab ? unitOrders.length : storeOrders.length}',
+                              style: AppTextStyle.style_10_600(color: AppColors.primary),
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 8.w),
-                        AnimatedRotation(
-                          turns: _isOrderTableExpanded ? 0 : -0.25,
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(Icons.keyboard_arrow_down_rounded,
-                              size: 18.r, color: AppColors.grey600),
-                        ),
-                      ],
+                          SizedBox(width: 8.w),
+                          AnimatedRotation(
+                            turns: _isOrderTableExpanded ? 0 : -0.25,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 18.r, color: AppColors.grey600),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                // Animated content
-                AnimatedCrossFade(
-                  firstChild: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 8.h),
-                      _buildOrderTable(
-                        controller: controller,
-                        orders: isUnitTab ? paginatedUnitOrders : paginatedStoreOrders,
-                        locationNames: isUnitTab ? unitColumnNames : storeColumnNames,
-                        isLoading: isLoading,
-                        isUnit: isUnitTab,
-                      ),
-                      if (!isLoading &&
-                          (isUnitTab ? unitOrders.isNotEmpty : storeOrders.isNotEmpty))
-                        isUnitTab
-                            ? _buildUnitPagination(controller, unitOrders.length)
-                            : _buildStorePagination(controller, storeOrders.length),
-                      SizedBox(height: 8.h),
-                    ],
+                  // Animated content
+                  AnimatedCrossFade(
+                    firstChild: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 8.h),
+                        _buildOrderTable(
+                          controller: controller,
+                          orders: isUnitTab ? paginatedUnitOrders : paginatedStoreOrders,
+                          locationNames: isUnitTab ? unitColumnNames : storeColumnNames,
+                          isLoading: isLoading,
+                          isUnit: isUnitTab,
+                        ),
+                        if (!isLoading &&
+                            (isUnitTab ? unitOrders.isNotEmpty : storeOrders.isNotEmpty))
+                          isUnitTab
+                              ? _buildUnitPagination(controller, unitOrders.length)
+                              : _buildStorePagination(controller, storeOrders.length),
+                        SizedBox(height: 8.h),
+                      ],
+                    ),
+                    secondChild: const SizedBox.shrink(),
+                    crossFadeState: _isOrderTableExpanded
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    duration: const Duration(milliseconds: 250),
+                    sizeCurve: Curves.easeInOut,
                   ),
-                  secondChild: const SizedBox.shrink(),
-                  crossFadeState: _isOrderTableExpanded
-                      ? CrossFadeState.showFirst
-                      : CrossFadeState.showSecond,
-                  duration: const Duration(milliseconds: 250),
-                  sizeCurve: Curves.easeInOut,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
           SizedBox(height: 10.h),
 
           // ── Required Orders Expandable Card ──
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Expandable header
-                InkWell(
-                  onTap: () => setState(() => _isRequiredOrdersExpanded = !_isRequiredOrdersExpanded),
-                  child: Container(
-                    color: const Color(0xFFEBF3FA),
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.assignment_outlined,
-                          size: 15.r,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: 6.w),
-                        Expanded(
-                          child: Text(
-                            isUnitTab ? 'Unit Required Orders' : 'Store Required Orders',
-                            style: AppTextStyle.style_12_600(color: const Color(0xFF1E3A5F)),
+          if ((isUnitTab && canUnitOrder) || (!isUnitTab && canStoreOrder))
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 8.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Expandable header
+                  InkWell(
+                    onTap: () => setState(() => _isRequiredOrdersExpanded = !_isRequiredOrdersExpanded),
+                    child: Container(
+                      color: const Color(0xFFEBF3FA),
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.assignment_outlined,
+                            size: 15.r,
+                            color: AppColors.primary,
                           ),
-                        ),
-                        AnimatedRotation(
-                          turns: _isRequiredOrdersExpanded ? 0 : -0.25,
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(Icons.keyboard_arrow_down_rounded,
-                              size: 18.r, color: AppColors.grey600),
-                        ),
-                      ],
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              isUnitTab ? 'Unit Required Orders' : 'Store Required Orders',
+                              style: AppTextStyle.style_12_600(color: const Color(0xFF1E3A5F)),
+                            ),
+                          ),
+                          AnimatedRotation(
+                            turns: _isRequiredOrdersExpanded ? 0 : -0.25,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 18.r, color: AppColors.grey600),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                // Animated content
-                AnimatedCrossFade(
-                  firstChild: isUnitTab
-                      ? UnitRequiredOrdersDialog(
-                          bulkPreviewSection: bulkPreview.unitOrders,
-                        )
-                      : StoreRequiredOrdersDialog(
-                          bulkPreviewSection: bulkPreview.storeOrders,
-                        ),
-                  secondChild: const SizedBox.shrink(),
-                  crossFadeState: _isRequiredOrdersExpanded
-                      ? CrossFadeState.showFirst
-                      : CrossFadeState.showSecond,
-                  duration: const Duration(milliseconds: 250),
-                  sizeCurve: Curves.easeInOut,
-                ),
-              ],
+                  // Animated content
+                  AnimatedCrossFade(
+                    firstChild: isUnitTab
+                        ? UnitRequiredOrdersDialog(
+                            bulkPreviewSection: bulkPreview.unitOrders,
+                          )
+                        : StoreRequiredOrdersDialog(
+                            bulkPreviewSection: bulkPreview.storeOrders,
+                          ),
+                    secondChild: const SizedBox.shrink(),
+                    crossFadeState: _isRequiredOrdersExpanded
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    duration: const Duration(milliseconds: 250),
+                    sizeCurve: Curves.easeInOut,
+                  ),
+                ],
+              ),
             ),
-          ),
           SizedBox(height: 16.h),
         ],
       );
@@ -254,7 +289,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
 
   Widget _buildTabSwitcher(InventoryOrdersController controller) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       padding: EdgeInsets.all(3.r),
       decoration: BoxDecoration(
         color: const Color(0xFFE2E8F0),
@@ -434,7 +469,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     );
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -490,7 +525,7 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     );
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -607,8 +642,37 @@ class _InventoryOrdersTableState extends State<InventoryOrdersTable> {
     colWidths[colIdx++] = FixedColumnWidth(120.w); // Processed By
     colWidths[colIdx++] = FixedColumnWidth(135.w); // Action
 
+    if (!isLoading && groupedRows.isEmpty) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 6.w),
+        padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4.r),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.inbox_outlined,
+                size: 40.r,
+                color: Colors.grey.shade400,
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'No orders available',
+                style: AppTextStyle.style_14_500(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      margin: EdgeInsets.symmetric(horizontal: 6.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(4.r),

@@ -11,6 +11,8 @@ import 'package:mfresh_ops/modules/info_directory/controllers/account_subscripti
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/payment_reminder_screen.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/completed_payment_screen.dart';
+import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
@@ -356,6 +358,14 @@ class AppPages {
       page: () => const PaymentReminderScreen(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => PaymentReminderRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.completedPayments,
+      page: () => const CompletedPaymentScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => PaymentReminderRepository());
+        Get.lazyPut(() => CompletedPaymentController());
       }),
     ),
   ];

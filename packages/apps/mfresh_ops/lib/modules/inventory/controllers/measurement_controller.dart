@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/measurement_model.dart';
 
 class MeasurementController extends GetxController {
@@ -48,6 +49,11 @@ class MeasurementController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     await fetchMeasurements();
   }
 

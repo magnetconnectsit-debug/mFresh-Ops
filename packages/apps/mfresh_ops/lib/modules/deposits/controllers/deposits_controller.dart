@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/data/repositories/deposit_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
@@ -196,6 +197,11 @@ class DepositsController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     await fetchDeposits();
   }
 

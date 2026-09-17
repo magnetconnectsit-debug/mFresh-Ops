@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/widgets/month_range_picker.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/allotment_item_model.dart';
 
 class AllotmentController extends GetxController {
@@ -151,6 +152,11 @@ class AllotmentController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     // Reset filters on pull to refresh
     fromDateController.clear();
     toDateController.clear();

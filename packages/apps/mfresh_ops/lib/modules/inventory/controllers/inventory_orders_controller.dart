@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/models/inventory/inventory_order_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 enum InventoryOrderStatusFilter {
   allActive,
@@ -119,6 +120,7 @@ class InventoryOrdersController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    await Get.find<AuthRepository>().fetchProfile();
     await fetchOrders();
   }
 

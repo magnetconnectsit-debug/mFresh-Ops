@@ -79,22 +79,23 @@ class StoreInventoryActionButtons extends StatelessWidget {
               ),
               SizedBox(width: 4.w),
             ],
-            SizedBox(
-              height: 24.h,
-              child: ElevatedButton(
-                onPressed: () => StoreRequiredOrdersDialog.show(context: context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6F42C1),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                  elevation: 1,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            if (authRepo.rxUserPermissions.contains('Inv_Store_Order'))
+              SizedBox(
+                height: 24.h,
+                child: ElevatedButton(
+                  onPressed: () => StoreRequiredOrdersDialog.show(context: context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6F42C1),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                    elevation: 1,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text('Request Orders', style: AppTextStyle.style_10_600(color: Colors.white)),
                 ),
-                child: Text('Request Orders', style: AppTextStyle.style_10_600(color: Colors.white)),
               ),
-            ),
             const Spacer(),
             Container(
               height: 24.h,

@@ -12,7 +12,6 @@ import 'widgets/unit_inventory_filters.dart';
 import 'widgets/unit_inventory_table.dart';
 import 'widgets/unit_required_orders_dialog.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class UnitInventoryScreen extends StatefulWidget {
@@ -159,22 +158,27 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
             ),
             SizedBox(width: 4.w),
           ],
-          SizedBox(
-            height: 24.h,
-            child: ElevatedButton(
-              onPressed: () => UnitRequiredOrdersDialog.show(context: context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6F42C1),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                elevation: 1,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          Obx(() {
+            if (!Get.find<AuthRepository>().rxUserPermissions.contains('Inv_Unit_Order')) {
+              return const SizedBox.shrink();
+            }
+            return SizedBox(
+              height: 24.h,
+              child: ElevatedButton(
+                onPressed: () => UnitRequiredOrdersDialog.show(context: context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6F42C1),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                  elevation: 1,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text('Request Orders', style: AppTextStyle.style_10_600(color: Colors.white)),
               ),
-              child: Text('Request Orders', style: AppTextStyle.style_10_600(color: Colors.white)),
-            ),
-          ),
+            );
+          }),
           const Spacer(),
           Container(
             height: 24.h,

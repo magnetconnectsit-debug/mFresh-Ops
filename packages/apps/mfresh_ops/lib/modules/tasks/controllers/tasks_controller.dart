@@ -235,6 +235,11 @@ class TasksController extends GetxController {
       selectedToMonth.value != null;
 
   Future<void> refreshData() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     await fetchAllData();
   }
 

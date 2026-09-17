@@ -5,6 +5,7 @@ import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:services/api_services.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/consumption_item_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
@@ -111,6 +112,11 @@ class ConsumptionController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     isLoading.value = true;
 
     // Reset filters

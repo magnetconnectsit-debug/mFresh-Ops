@@ -304,7 +304,8 @@ class _UnitInventoryTableState extends State<UnitInventoryTable> {
   }
 
   Widget _buildOrderCell(UnitInventoryModel item) {
-    if (item.canRequestOrder && !item.canReceiveOrder) {
+    final canUnitOrder = Get.find<AuthRepository>().rxUserPermissions.contains('Inv_Unit_Order');
+    if (item.canRequestOrder && canUnitOrder && !item.canReceiveOrder) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
         child: SizedBox(

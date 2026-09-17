@@ -101,6 +101,7 @@ class AppConstants {
   // Payment Reminder
   static const String paymentIndex = 'payment-index';
   static const String paymentAdd = 'payment-add';
+  static const String completedPaymentFilter = 'payment-reminders/completed/filter';
 
   // Inventory
   static const String invGetStates = 'inv-get-states';

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/models/inventory/inventory_order_receive_log_model.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class InventoryOrderLogsController extends GetxController {
   final InventoryRepository _repository = InventoryRepository();
@@ -67,6 +68,11 @@ class InventoryOrderLogsController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     await fetchOrderLogs();
   }
 

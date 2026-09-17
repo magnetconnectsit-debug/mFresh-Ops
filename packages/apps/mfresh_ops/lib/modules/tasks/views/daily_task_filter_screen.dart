@@ -157,7 +157,11 @@ class DailyTaskFilterScreen extends StatelessWidget {
                         style: isActive
                             ? AppTextStyle.style_13_600(color: AppColors.black)
                             : AppTextStyle.style_13_500(color: AppColors.grey500),
-                        child: const Text('Active'),
+                        child: Text(
+                          controller.tabActiveCount.value > 0
+                              ? 'Active (${controller.tabActiveCount.value})'
+                              : 'Active',
+                        ),
                       ),
                     ),
                   ),
@@ -172,7 +176,11 @@ class DailyTaskFilterScreen extends StatelessWidget {
                         style: !isActive
                             ? AppTextStyle.style_13_600(color: AppColors.black)
                             : AppTextStyle.style_13_500(color: AppColors.grey500),
-                        child: const Text('Completed'),
+                        child: Text(
+                          controller.tabCompletedCount.value > 0
+                              ? 'Completed (${controller.tabCompletedCount.value})'
+                              : 'Completed',
+                        ),
                       ),
                     ),
                   ),
@@ -198,6 +206,33 @@ class DailyTaskMonthWiseSection extends StatefulWidget {
 class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
   final Map<String, bool> _expandedMonths = {};
   final Map<String, bool> _expandedWeeks = {};
+
+  int get _headerTabCount {
+    final currentTab = widget.controller.selectedTab.value;
+    final tabCount = currentTab == 'completed'
+        ? widget.controller.tabCompletedCount.value
+        : widget.controller.tabActiveCount.value;
+
+    if (tabCount > 0) return tabCount;
+
+    int sum = 0;
+    for (final month in widget.controller.taskDataList) {
+      final mCount = int.tryParse('${month['count']}') ?? 0;
+      if (mCount > 0) {
+        sum += mCount;
+      } else if (month['weeks'] is List) {
+        for (final w in (month['weeks'] as List)) {
+          final wCount = int.tryParse('${w['count']}') ?? 0;
+          if (wCount > 0) {
+            sum += wCount;
+          } else if (w['tasks'] is List) {
+            sum += (w['tasks'] as List).length;
+          }
+        }
+      }
+    }
+    return sum > 0 ? sum : widget.controller.totalCount.value;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +283,7 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
                         borderRadius: BorderRadius.circular(10.r),
                       ),
                       child: Text(
-                        '${widget.controller.totalCount.value}',
+                        '$_headerTabCount',
                         style: AppTextStyle.style_11_600(color: AppColors.grey800),
                       ),
                     ),
@@ -292,12 +327,22 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
   Widget _buildMonthBlock(Map<String, dynamic> monthData) {
     final monthKey = monthData['month_key']?.toString() ?? '';
     final monthLabel = monthData['month_label'] ?? monthData['month_name'] ?? 'Month';
-    final monthCount = monthData['count'] ?? 0;
     final isCurrentMonth = monthData['is_current_month'] == true;
     final defaultOpen = monthData['default_open'] == true;
     final weeks = (monthData['weeks'] as List? ?? [])
         .map((w) => Map<String, dynamic>.from(w as Map))
         .toList();
+
+    int monthCount = int.tryParse('${monthData['count']}') ?? 0;
+    if (monthCount == 0 && weeks.isNotEmpty) {
+      for (final w in weeks) {
+        int wc = int.tryParse('${w['count']}') ?? 0;
+        if (wc == 0 && w['tasks'] is List) {
+          wc = (w['tasks'] as List).length;
+        }
+        monthCount += wc;
+      }
+    }
 
     _expandedMonths.putIfAbsent(monthKey, () => defaultOpen);
     final isMonthExpanded = _expandedMonths[monthKey] ?? defaultOpen;
@@ -397,13 +442,17 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
     final weekNo = weekData['week_no']?.toString() ?? '';
     final weekKey = '${monthKey}_week$weekNo';
     final weekLabel = weekData['week_label'] ?? 'Week $weekNo';
-    final weekCount = weekData['count'] ?? 0;
     final isCurrentWeek = weekData['is_current_week'] == true;
     final defaultOpen = weekData['default_open'] == true;
     final rawTasks = weekData['tasks'] as List? ?? [];
     final tasks = rawTasks
         .map((t) => TaskItem.fromJson(Map<String, dynamic>.from(t as Map)))
         .toList();
+
+    int weekCount = int.tryParse('${weekData['count']}') ?? 0;
+    if (weekCount == 0 && tasks.isNotEmpty) {
+      weekCount = tasks.length;
+    }
 
     _expandedWeeks.putIfAbsent(weekKey, () => defaultOpen);
     final isWeekExpanded = _expandedWeeks[weekKey] ?? defaultOpen;
@@ -507,7 +556,7 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
   Widget _buildLegacyMonthWise() {
     return Obx(() {
       final monthWiseData = widget.controller.monthWiseData;
-      final totalCount = monthWiseData['total_count']?.toString() ?? '0';
+      final totalCount = _headerTabCount.toString();
 
       Map<String, dynamic> monthsMap = {};
       final rawGroups = monthWiseData['groups'];

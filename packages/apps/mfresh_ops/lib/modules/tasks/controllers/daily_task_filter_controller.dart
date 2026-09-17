@@ -15,6 +15,8 @@ class DailyTaskFilterController extends GetxController {
   final RxInt completedCount = 0.obs;
   final RxInt overdueCount = 0.obs;
   final RxInt totalCount = 0.obs;
+  final RxInt tabActiveCount = 0.obs;
+  final RxInt tabCompletedCount = 0.obs;
 
   // Selected filters (default to current year and current month)
   final Rxn<int> selectedYear = Rxn<int>(DateTime.now().year);
@@ -106,6 +108,17 @@ class DailyTaskFilterController extends GetxController {
           completedCount.value = summary['completed_count'] ?? 0;
           overdueCount.value = summary['overdue_count'] ?? 0;
           totalCount.value = summary['total_count'] ?? 0;
+        }
+
+        // Parse Tabs counts
+        if (data['tabs'] != null && data['tabs'] is Map) {
+          final tabs = data['tabs'] as Map<String, dynamic>;
+          if (tabs['active'] != null && tabs['active'] is Map) {
+            tabActiveCount.value = tabs['active']['count'] ?? 0;
+          }
+          if (tabs['completed'] != null && tabs['completed'] is Map) {
+            tabCompletedCount.value = tabs['completed']['count'] ?? 0;
+          }
         }
 
         // Parse filter_options

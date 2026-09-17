@@ -294,6 +294,14 @@ class _UnitRequiredOrdersDialogState
         ..sort((a, b) => a.itemName.compareTo(b.itemName));
     }
 
+    final Map<int, TableColumnWidth> tableColumnWidths = {
+      0: const FixedColumnWidth(140),
+    };
+    for (int i = 0; i < units.length; i++) {
+      tableColumnWidths[i + 1] = const FixedColumnWidth(95);
+    }
+    tableColumnWidths[units.length + 1] = const FixedColumnWidth(90);
+
     return Stack(
       children: [
         // Offscreen unclipped full table container specifically for full image capture
@@ -427,21 +435,22 @@ class _UnitRequiredOrdersDialogState
               // Header Row
               Container(
                 color: const Color(0xFFEBF3FA),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
                         dialogTitle,
-                        style: AppTextStyle.style_14_700(color: const Color(0xFF1E3A5F)),
+                        style: AppTextStyle.style_12_700(color: const Color(0xFF1E3A5F)),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              Flexible(
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -459,12 +468,12 @@ class _UnitRequiredOrdersDialogState
                         style: AppTextStyle.style_11_500(color: const Color(0xFF006064)),
                       ),
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: 10.h),
 
                     // Data Table Section
                     if (!_isLoadingPreview && itemsData.isEmpty)
                       Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20.h),
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
                         child: Center(
                           child: Text(
                             'No required unit orders found.',
@@ -473,23 +482,23 @@ class _UnitRequiredOrdersDialogState
                         ),
                       )
                     else
-                      Flexible(
-                        child: Skeletonizer(
-                          enabled: _isLoadingPreview,
-                          child: Container(
-                            color: Colors.white,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.vertical,
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Table(
-                                  defaultColumnWidth: const IntrinsicColumnWidth(),
+                      Skeletonizer(
+                        enabled: _isLoadingPreview,
+                        child: Container(
+                          color: Colors.white,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Fixed Header Table
+                                Table(
+                                  columnWidths: tableColumnWidths,
                                   border: TableBorder.all(
                                     color: const Color(0xFFE0E0E0),
                                     width: 1,
                                   ),
                                   children: [
-                                    // Table Header Row
                                     TableRow(
                                       decoration: const BoxDecoration(
                                         color: Color(0xFF0288D1),
@@ -497,7 +506,7 @@ class _UnitRequiredOrdersDialogState
                                       children: [
                                         Padding(
                                           padding: EdgeInsets.symmetric(
-                                              horizontal: 16.w, vertical: 8.h),
+                                              horizontal: 8.w, vertical: 8.h),
                                           child: Text(
                                             'Item',
                                             textAlign: TextAlign.center,
@@ -508,10 +517,12 @@ class _UnitRequiredOrdersDialogState
                                         ...units.map(
                                           (uName) => Padding(
                                             padding: EdgeInsets.symmetric(
-                                                horizontal: 16.w, vertical: 8.h),
+                                                horizontal: 6.w, vertical: 8.h),
                                             child: Text(
                                               uName,
                                               textAlign: TextAlign.center,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
                                               style: AppTextStyle.style_11_700(
                                                   color: Colors.white),
                                             ),
@@ -519,7 +530,7 @@ class _UnitRequiredOrdersDialogState
                                         ),
                                         Padding(
                                           padding: EdgeInsets.symmetric(
-                                              horizontal: 16.w, vertical: 8.h),
+                                              horizontal: 6.w, vertical: 8.h),
                                           child: Text(
                                             'Total',
                                             textAlign: TextAlign.center,
@@ -529,73 +540,87 @@ class _UnitRequiredOrdersDialogState
                                         ),
                                       ],
                                     ),
-
-                                    // Table Data Rows
-                                    ...itemsData.asMap().entries.map((entry) {
-                                      final idx = entry.key;
-                                      final itemData = entry.value;
-                                      final rowBgColor = idx % 2 == 0
-                                          ? Colors.white
-                                          : const Color(0xFFFAFAFA);
-
-                                      return TableRow(
-                                        decoration: BoxDecoration(color: rowBgColor),
-                                        children: [
-                                          // Item Name Column
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 10.w, vertical: 6.h),
-                                            child: Text(
-                                              itemData.itemName,
-                                              style: AppTextStyle.style_11_600(
-                                                  color: const Color(0xFF2C3E50)),
-                                            ),
-                                          ),
-
-                                          // Unit Qty Columns
-                                          ...units.map((uName) {
-                                            final qty = itemData.unitQtyMap[uName] ?? 0;
-                                            return Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 10.w, vertical: 6.h),
-                                              child: Text(
-                                                '${_formatQty(qty)} ${itemData.displayUnit}',
-                                                textAlign: TextAlign.center,
-                                                style: AppTextStyle.style_11_400(
-                                                    color: const Color(0xFF2C3E50)),
-                                              ),
-                                            );
-                                          }),
-
-                                          // Total Column
-                                          Container(
-                                            color: const Color(0xFFF7F2E9),
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 10.w, vertical: 6.h),
-                                            child: Text(
-                                              '${_formatQty(itemData.totalQty)} ${itemData.displayUnit}',
-                                              textAlign: TextAlign.center,
-                                              style: AppTextStyle.style_11_600(
-                                                  color: const Color(0xFF2C3E50)),
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    }),
                                   ],
                                 ),
-                              ),
+
+                                // Scrollable Data Table
+                                ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxHeight: MediaQuery.of(context).size.height * 0.42,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.vertical,
+                                    physics: const BouncingScrollPhysics(),
+                                    child: Table(
+                                      columnWidths: tableColumnWidths,
+                                      border: TableBorder.all(
+                                        color: const Color(0xFFE0E0E0),
+                                        width: 1,
+                                      ),
+                                      children: itemsData.asMap().entries.map((entry) {
+                                        final idx = entry.key;
+                                        final itemData = entry.value;
+                                        final rowBgColor = idx % 2 == 0
+                                            ? Colors.white
+                                            : const Color(0xFFFAFAFA);
+
+                                        return TableRow(
+                                          decoration: BoxDecoration(color: rowBgColor),
+                                          children: [
+                                            // Item Name Column
+                                            Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 8.w, vertical: 6.h),
+                                              child: Text(
+                                                itemData.itemName,
+                                                style: AppTextStyle.style_11_600(
+                                                    color: const Color(0xFF2C3E50)),
+                                              ),
+                                            ),
+
+                                            // Unit Qty Columns
+                                            ...units.map((uName) {
+                                              final qty = itemData.unitQtyMap[uName] ?? 0;
+                                              return Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 6.w, vertical: 6.h),
+                                                child: Text(
+                                                  '${_formatQty(qty)} ${itemData.displayUnit}',
+                                                  textAlign: TextAlign.center,
+                                                  style: AppTextStyle.style_11_400(
+                                                      color: const Color(0xFF2C3E50)),
+                                                ),
+                                              );
+                                            }),
+
+                                            // Total Column
+                                            Container(
+                                              color: const Color(0xFFF7F2E9),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 6.w, vertical: 6.h),
+                                              child: Text(
+                                                '${_formatQty(itemData.totalQty)} ${itemData.displayUnit}',
+                                                textAlign: TextAlign.center,
+                                                style: AppTextStyle.style_11_600(
+                                                    color: const Color(0xFF2C3E50)),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    SizedBox(height: 16.h),
+                    SizedBox(height: 12.h),
 
                     // Action Buttons Row
-                    Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 6.w,
-                      runSpacing: 6.h,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         // Share Button
                         Builder(
@@ -615,7 +640,7 @@ class _UnitRequiredOrdersDialogState
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF198754),
                                 foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                padding: EdgeInsets.symmetric(horizontal: 10.w),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(5.r),
                                 ),
@@ -626,6 +651,7 @@ class _UnitRequiredOrdersDialogState
                             ),
                           ),
                         ),
+                        SizedBox(width: 8.w),
 
                         // Order Button
                         SizedBox(
@@ -635,7 +661,7 @@ class _UnitRequiredOrdersDialogState
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF0D6EFD),
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 8.w),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(5.r),
                               ),

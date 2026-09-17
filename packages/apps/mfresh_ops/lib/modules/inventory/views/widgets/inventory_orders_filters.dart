@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import '../../controllers/inventory_orders_controller.dart';
 
 class InventoryOrdersFilters extends StatelessWidget {
@@ -13,8 +14,17 @@ class InventoryOrdersFilters extends StatelessWidget {
     final controller = Get.find<InventoryOrdersController>();
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       child: Obx(() {
+        final authRepo = Get.find<AuthRepository>();
+        final userPermissions = authRepo.rxUserPermissions;
+        final canUnitOrder = userPermissions.contains('Inv_Unit_Order');
+        final canStoreOrder = userPermissions.contains('Inv_Store_Order');
+
+        if (!canUnitOrder && !canStoreOrder) {
+          return const SizedBox.shrink();
+        }
+
         final summary = controller.summary.value;
         final selected = controller.selectedFilter.value;
         final activeCount = controller.allActiveCount;

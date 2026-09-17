@@ -3,15 +3,15 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
+import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/widgets/month_range_picker.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
-class PaymentReminderFilterCard extends StatelessWidget {
-  final PaymentReminderController controller;
+class CompletedPaymentFilterCard extends StatelessWidget {
+  final CompletedPaymentController controller;
 
-  const PaymentReminderFilterCard({super.key, required this.controller});
+  const CompletedPaymentFilterCard({super.key, required this.controller});
 
   static const List<String> _monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -206,66 +206,66 @@ class PaymentReminderFilterCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8.h),
-          // Row 2: Status & Reset
+          // Row 2: Search, Reset, Apply
           Row(
             children: [
               Expanded(
-                child: Obx(() {
-                  final statusOptions = [
-                    {'value': 'due', 'label': 'Due'},
-                    {'value': 'overdue', 'label': 'Overdue'},
-                    {'value': 'upcoming', 'label': 'Upcoming'},
-                  ];
-                  final currentStatus = controller.selectedStatus.value;
-                  final hasStatus = currentStatus.isNotEmpty;
-
-                  return MultiSelectDropdownWidget<String>(
-                    label: 'Status',
-                    selectedValues: controller.selectedStatus.toSet(),
-                    items: statusOptions
-                        .map<DropdownMenuItem<String>>(
-                          (opt) => DropdownMenuItem<String>(
-                            value: opt['value']!,
-                            child: Text(
-                              opt['label']!,
-                              style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (values) {
-                      controller.selectedStatus.assignAll(values);
-                      controller.applyFilters();
-                    },
-                  );
-                }),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
+                flex: 2,
                 child: SizedBox(
-                  height: 24.h,
-                  child: InkWell(
-                    onTap: () => controller.resetFilters(),
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: AppColors.borderColor),
+                  height: 28.h,
+                  child: TextField(
+                    controller: controller.searchController,
+                    onChanged: (v) {
+                      controller.searchQuery.value = v;
+                    },
+                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                    decoration: InputDecoration(
+                      hintText: 'Search completed payments...',
+                      hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      isDense: true,
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4.r),
+                        borderSide: BorderSide(color: AppColors.borderColor),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.refresh_rounded, size: 13.r, color: const Color(0xFFEF4444)),
-                          SizedBox(width: 2.w),
-                          Text(
-                            'Reset',
-                            style: AppTextStyle.style_11_600(color: const Color(0xFFEF4444)),
-                          ),
-                        ],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: BorderSide(color: AppColors.borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.r),
+                        borderSide: BorderSide(color: AppColors.borderColor),
                       ),
                     ),
                   ),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              SizedBox(
+                height: 28.h,
+                child: OutlinedButton(
+                  onPressed: () => controller.resetFilters(),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                  ),
+                  child: Text('Reset', style: AppTextStyle.style_12_500(color: AppColors.black)),
+                ),
+              ),
+              SizedBox(width: 6.w),
+              SizedBox(
+                height: 28.h,
+                child: ElevatedButton(
+                  onPressed: () => controller.applyFilters(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                    elevation: 0,
+                  ),
+                  child: Text('Apply', style: AppTextStyle.style_12_500(color: Colors.white)),
                 ),
               ),
             ],

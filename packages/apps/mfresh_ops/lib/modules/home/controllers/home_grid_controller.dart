@@ -145,6 +145,12 @@ class HomeGridController extends GetxController {
           icon: Icons.filter_alt_outlined,
           route: AppRoutes.dailyTaskFilter,
         ),
+        GridSubAction(
+          title: 'Month',
+          icon: Icons.calendar_month_outlined,
+          route: AppRoutes.dailyTaskFilter,
+          permissionKey: 'daily_task_by_month',
+        ),
       ],
     ),
     GridItemData(
@@ -167,6 +173,13 @@ class HomeGridController extends GetxController {
           title: 'Orders',
           icon: Icons.shopping_cart_outlined,
           route: AppRoutes.inventoryOrders,
+          permissionKey: 'Inv_Order_Panel',
+        ),
+        GridSubAction(
+          title: 'Logs',
+          icon: Icons.history,
+          route: AppRoutes.orderReceiveLogs,
+          permissionKey: 'Inv_Order_Log_Panel',
         ),
         GridSubAction(
           title: 'Consumption',
@@ -239,26 +252,26 @@ class HomeGridController extends GetxController {
         ),
       ],
     ),
-    GridItemData(
-      title: 'Payment Scheduler',
-      headerTitle: 'Reminders',
-      subtitle: 'Payment tracking & alerts',
-      icon: Icons.payment_rounded,
-      gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
-      route: AppRoutes.paymentReminder,
-      subActions: [
-        GridSubAction(
-          title: 'Scheduler',
-          icon: Icons.schedule_rounded,
-          route: AppRoutes.paymentReminder,
-        ),
-        GridSubAction(
-          title: 'Completed',
-          icon: Icons.task_alt_rounded,
-          route: AppRoutes.paymentReminder,
-        ),
-      ],
-    ),
+    // GridItemData(
+    //   title: 'Payment Scheduler',
+    //   headerTitle: 'Reminders',
+    //   subtitle: 'Payment tracking & alerts',
+    //   icon: Icons.payment_rounded,
+    //   gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
+    //   route: AppRoutes.paymentReminder,
+    //   subActions: [
+    //     GridSubAction(
+    //       title: 'Scheduler',
+    //       icon: Icons.schedule_rounded,
+    //       route: AppRoutes.paymentReminder,
+    //     ),
+    //     GridSubAction(
+    //       title: 'Completed',
+    //       icon: Icons.task_alt_rounded,
+    //       route: AppRoutes.completedPayments,
+    //     ),
+    //   ],
+    // ),
     GridItemData(
       title: 'Contacts',
       headerTitle: 'Info Directory',

@@ -79,6 +79,35 @@ class _OrderLogsTableState extends State<OrderLogsTable> {
         8: FixedColumnWidth(110.w), // Fulfilled Days
       };
 
+      if (!isLoading && totalFiltered == 0) {
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+          padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 20.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 44.r,
+                  color: Colors.grey.shade400,
+                ),
+                SizedBox(height: 10.h),
+                Text(
+                  'No logs available',
+                  style: AppTextStyle.style_14_500(color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -167,45 +196,45 @@ class _OrderLogsTableState extends State<OrderLogsTable> {
                       // Data Rows
                       Table(
                         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                        border: TableBorder.symmetric(
-                          inside: BorderSide(color: Colors.grey.shade300),
+                          border: TableBorder.symmetric(
+                            inside: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          columnWidths: columnWidths,
+                          children: paginatedList.map((log) {
+                            final isExpanded = _expandedRows.contains(log.logId);
+                            return TableRow(
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                              ),
+                              children: [
+                                _buildDataCell('${log.slNo}', isExpanded, () => _toggleRow(log.logId)),
+                                _buildDataCell(log.formattedOrderId, isExpanded, () => _toggleRow(log.logId)),
+                                _buildDataCell(log.itemName, isExpanded, () => _toggleRow(log.logId)),
+                                _buildDataCell(
+                                  log.formattedRequestedQty,
+                                  isExpanded,
+                                  () => _toggleRow(log.logId),
+                                  bgColor: const Color(0xFFFFF8E7),
+                                ),
+                                _buildDataCell(
+                                  log.formattedReceivedQty,
+                                  isExpanded,
+                                  () => _toggleRow(log.logId),
+                                  bgColor: const Color(0xFFFFF8E7),
+                                ),
+                                _buildDataCell(
+                                  log.formattedDifferenceQty,
+                                  isExpanded,
+                                  () => _toggleRow(log.logId),
+                                  textColor: const Color(0xFFE05252),
+                                ),
+                                _buildDataCell(log.formattedRequestedOn, isExpanded, () => _toggleRow(log.logId)),
+                                _buildDataCell(log.formattedFulfilledOn, isExpanded, () => _toggleRow(log.logId)),
+                                _buildFulfilledDaysCell(log, isExpanded, () => _toggleRow(log.logId)),
+                              ],
+                            );
+                          }).toList(),
                         ),
-                        columnWidths: columnWidths,
-                        children: paginatedList.map((log) {
-                          final isExpanded = _expandedRows.contains(log.logId);
-                          return TableRow(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                            ),
-                            children: [
-                              _buildDataCell('${log.slNo}', isExpanded, () => _toggleRow(log.logId)),
-                              _buildDataCell(log.formattedOrderId, isExpanded, () => _toggleRow(log.logId)),
-                              _buildDataCell(log.itemName, isExpanded, () => _toggleRow(log.logId)),
-                              _buildDataCell(
-                                log.formattedRequestedQty,
-                                isExpanded,
-                                () => _toggleRow(log.logId),
-                                bgColor: const Color(0xFFFFF8E7),
-                              ),
-                              _buildDataCell(
-                                log.formattedReceivedQty,
-                                isExpanded,
-                                () => _toggleRow(log.logId),
-                                bgColor: const Color(0xFFFFF8E7),
-                              ),
-                              _buildDataCell(
-                                log.formattedDifferenceQty,
-                                isExpanded,
-                                () => _toggleRow(log.logId),
-                                textColor: const Color(0xFFE05252),
-                              ),
-                              _buildDataCell(log.formattedRequestedOn, isExpanded, () => _toggleRow(log.logId)),
-                              _buildDataCell(log.formattedFulfilledOn, isExpanded, () => _toggleRow(log.logId)),
-                              _buildFulfilledDaysCell(log, isExpanded, () => _toggleRow(log.logId)),
-                            ],
-                          );
-                        }).toList(),
-                      ),
                     ],
                   ),
                 ),

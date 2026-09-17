@@ -5,20 +5,19 @@ import 'package:core/core.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
-import 'package:mfresh_ops/modules/payment_reminder/views/widgets/payment_reminder_filter_card.dart';
-import 'package:mfresh_ops/modules/payment_reminder/views/widgets/payment_reminder_table.dart';
-import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
-import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
+import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/widgets/completed_payment_filter_card.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/widgets/completed_payment_table.dart';
 
-class PaymentReminderScreen extends StatelessWidget {
-  const PaymentReminderScreen({super.key});
+class CompletedPaymentScreen extends StatelessWidget {
+  const CompletedPaymentScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(PaymentReminderController());
+    final controller = Get.put(CompletedPaymentController());
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,36 +29,10 @@ class PaymentReminderScreen extends StatelessWidget {
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
         toolbarHeight: 45.h,
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchController,
-                    hintText: 'Search payment reminders...',
-                    onChanged: (v) {
-                      controller.searchQuery.value = v;
-                      controller.applyFilters();
-                    },
-                  ),
-                )
-              : Text(
-                  'Scheduler',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
+        title: Text(
+          'Completed Payments',
+          style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 26.sp,
-              ),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -71,23 +44,28 @@ class PaymentReminderScreen extends StatelessWidget {
             } catch (_) {}
             controller.searchQuery.value = '';
             controller.currentPage.value = 1;
-            await controller.fetchPaymentReminders();
+            await controller.fetchCompletedPayments();
           },
           child: ListView(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              PaymentReminderFilterCard(controller: controller),
+              // Filter Card
+              CompletedPaymentFilterCard(controller: controller),
               SizedBox(height: 6.h),
-              
-              // Action Buttons (Add Reminder & Rows per Page)
+
+              // Action Buttons (Payment Reminders button & Rows per Page)
               Row(
                 children: [
                   SizedBox(
                     height: 24.h,
                     child: ElevatedButton(
                       onPressed: () {
-                        Get.to(() => const CreatePaymentReminderScreen());
+                        if (Get.isRegistered<PaymentReminderController>()) {
+                          final reminderController = Get.find<PaymentReminderController>();
+                          reminderController.fetchPaymentReminders();
+                        }
+                        Get.offNamed(AppRoutes.paymentReminder);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF16A3B8),
@@ -96,24 +74,14 @@ class PaymentReminderScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
                         elevation: 1,
                       ),
-                      child: Text('Add Reminder', style: AppTextStyle.style_10_500(color: Colors.white)),
-                    ),
-                  ),
-                  SizedBox(width: 6.w),
-                  SizedBox(
-                    height: 24.h,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Get.offNamed(AppRoutes.completedPayments);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 6.w),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                        elevation: 1,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Payment Reminders', style: AppTextStyle.style_10_500(color: Colors.white)),
+                          SizedBox(width: 3.w),
+                          Icon(Icons.arrow_forward_ios, size: 10.sp, color: Colors.white),
+                        ],
                       ),
-                      child: Text('Completed Payments', style: AppTextStyle.style_10_500(color: Colors.white)),
                     ),
                   ),
                   const Spacer(),
@@ -156,9 +124,9 @@ class PaymentReminderScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 6.h),
-              
+
               // Table
-              PaymentReminderTable(controller: controller),
+              CompletedPaymentTable(controller: controller),
             ],
           ),
         ),
