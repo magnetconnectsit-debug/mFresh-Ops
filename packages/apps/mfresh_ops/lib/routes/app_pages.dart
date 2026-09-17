@@ -11,6 +11,8 @@ import 'package:mfresh_ops/modules/info_directory/controllers/account_subscripti
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/payment_reminder_screen.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/completed_payment_screen.dart';
+import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
@@ -29,6 +31,7 @@ import 'package:mfresh_ops/modules/deposits/views/deposits_screen.dart';
 import 'package:mfresh_ops/modules/deposits/views/create_deposit_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/all_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_tasks_screen.dart';
+import 'package:mfresh_ops/modules/tasks/views/daily_task_filter_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/create_task_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/task_review_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_tickets_screen.dart';
@@ -43,6 +46,8 @@ import 'package:mfresh_ops/modules/support_tickets/views/edit_ticket_screen.dart
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_inventory_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/unit_inventory_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/inventory_orders_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/order_logs_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/all_consumption_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/allotment_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/measurement_screen.dart';
@@ -74,7 +79,6 @@ import 'package:mfresh_ops/modules/booking/views/booking_confirmed_screen.dart';
 import 'package:mfresh_ops/modules/booking/views/booking_history_screen.dart';
 import 'package:mfresh_ops/modules/booking/views/print_receipt_screen.dart';
 import 'package:mfresh_ops/modules/booking/views/booking_unit_selection_screen.dart';
-import 'package:mfresh_ops/modules/service_details/views/service_details_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/views/assets_products_screen.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
@@ -117,6 +121,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.dailyTasks,
       page: () => const DailyTasksScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
+    GetPage(
+      name: AppRoutes.dailyTaskFilter,
+      page: () => const DailyTaskFilterScreen(),
       binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
     ),
     GetPage(
@@ -201,6 +210,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.unitInventory,
       page: () => const UnitInventoryScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.inventoryOrders,
+      page: () => const InventoryOrdersScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.orderReceiveLogs,
+      page: () => const OrderLogsScreen(),
     ),
     GetPage(
       name: AppRoutes.allConsumption,
@@ -341,6 +358,14 @@ class AppPages {
       page: () => const PaymentReminderScreen(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => PaymentReminderRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.completedPayments,
+      page: () => const CompletedPaymentScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => PaymentReminderRepository());
+        Get.lazyPut(() => CompletedPaymentController());
       }),
     ),
   ];

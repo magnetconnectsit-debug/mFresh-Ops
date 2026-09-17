@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mfresh_ops/data/models/models.dart';
-import 'package:mfresh_ops/data/models/payment_reminder_model.dart';
+import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
-import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 
 class PaymentReminderController extends GetxController {
   final PaymentReminderRepository _paymentReminderRepository = Get.find<PaymentReminderRepository>();
-  final TaskRepository _taskRepository = Get.find<TaskRepository>();
 
   final isLoading = false.obs;
   final isSearching = false.obs;
@@ -18,18 +15,14 @@ class PaymentReminderController extends GetxController {
   final paymentReminders = <PaymentReminderItem>[].obs;
   final users = <PaymentReminderUser>[].obs;
 
-  // Filter lists from TaskRepository
-  final projects = <TaskProject>[].obs;
-  final units = <SupportUnit>[].obs;
-  final groups = <TaskGroup>[].obs;
-
   // Selected filters
-  final selectedProjects = <TaskProject>[].obs;
-  final selectedUnits = <SupportUnit>[].obs;
-  final selectedGroups = <TaskGroup>[].obs;
+  final Rxn<int> selectedYear = Rxn<int>(DateTime.now().year);
+  final Rxn<int> selectedFromMonth = Rxn<int>();
+  final Rxn<int> selectedToMonth = Rxn<int>();
   final selectedAssignees = <PaymentReminderUser>[].obs;
+  final selectedStatus = <String>[].obs;
 
-  // Pagination (assuming standard pagination if needed, though API currently returns all in 'payment_reminders')
+  // Pagination
   final currentPage = 1.obs;
   final perPage = 50.obs;
 
@@ -40,7 +33,6 @@ class PaymentReminderController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchFilters();
     fetchPaymentReminders();
   }
 
@@ -59,44 +51,41 @@ class PaymentReminderController extends GetxController {
     }
   }
 
-  Future<void> fetchFilters() async {
-    try {
-      final prjs = await _taskRepository.getTaskProjects();
-      projects.assignAll(prjs);
-      
-      final un = await _taskRepository.getTaskUnits();
-      units.assignAll(un);
-
-      final grps = await _taskRepository.getTaskGroups('');
-      groups.assignAll(grps);
-    } catch (e) {
-      debugPrint("Error fetching filters: $e");
-    }
-  }
-
   Future<void> fetchPaymentReminders() async {
     isLoading.value = true;
     try {
-      final projectIds = selectedProjects.map((e) => int.tryParse(e.projectId.toString()) ?? 0).where((id) => id != 0).toList();
-      final unitId = selectedUnits.isNotEmpty ? selectedUnits.first.unitId.toString() : "";
-      final assigneeIds = selectedAssignees.map((e) => e.id).toList();
-      final groupIds = selectedGroups.map((e) => e.id).where((id) => id != 0).toList();
+      final yearStr = selectedYear.value != null ? selectedYear.value.toString() : DateTime.now().year.toString();
+      final fromMonthStr = selectedFromMonth.value != null ? selectedFromMonth.value.toString() : "";
+      final toMonthStr = selectedToMonth.value != null ? selectedToMonth.value.toString() : "";
+      final assigneeList = selectedAssignees.map((e) => e.id).toList();
+      final statusList = selectedStatus.toList();
+      final searchStr = searchQuery.value;
 
       final response = await _paymentReminderRepository.getPaymentReminders(
-        projectIds: projectIds,
-        unitId: unitId,
-        assigneeIds: assigneeIds,
-        sGroupIds: groupIds,
+        year: yearStr,
+        fromMonth: fromMonthStr,
+        toMonth: toMonthStr,
+        assignee: assigneeList,
+        status: statusList,
+        search: searchStr,
       );
 
-      if (response.status == true && response.data != null) {
-        users.assignAll(response.data!.users);
-        paymentReminders.assignAll(response.data!.paymentReminders);
+      if (response.status == true || response.success == true) {
+        if (response.users.isNotEmpty) {
+          users.assignAll(response.users);
+        }
+        paymentReminders.assignAll(response.paymentReminders);
       } else {
-        AppCommonToastMessage.show(message: response.message ?? "Failed to load payment reminders", type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: response.message ?? "Failed to load payment reminders",
+          type: ToastType.error,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: "Error loading payment reminders", type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: "Error loading payment reminders",
+        type: ToastType.error,
+      );
       debugPrint("Error fetching payment reminders: $e");
     } finally {
       isLoading.value = false;
@@ -108,35 +97,58 @@ class PaymentReminderController extends GetxController {
     fetchPaymentReminders();
   }
 
+  void resetFilters() {
+    selectedYear.value = DateTime.now().year;
+    selectedFromMonth.value = null;
+    selectedToMonth.value = null;
+    selectedAssignees.clear();
+    selectedStatus.clear();
+    searchQuery.value = '';
+    searchController.clear();
+    applyFilters();
+  }
+
   String getAssigneeName(int? userId) {
     if (userId == null) return "-";
     final user = users.firstWhereOrNull((u) => u.id == userId);
     return user?.name ?? "-";
   }
 
-  // Calculated "Due In" status
-  Map<String, dynamic> getDueInStatus(String? dueDateStr) {
+  Map<String, dynamic> getDueInStatus(String? dueDateStr, {String? serverDueIn}) {
+    if (serverDueIn != null && serverDueIn.isNotEmpty) {
+      final isOverdue = serverDueIn.toLowerCase().contains('overdue');
+      return {'text': serverDueIn, 'isOverdue': isOverdue, 'days': isOverdue ? -1 : 1};
+    }
     if (dueDateStr == null || dueDateStr.isEmpty) {
-      return {'text': '-', 'isOverdue': false};
+      return {'text': '-', 'isOverdue': false, 'days': 0};
     }
     try {
       final dueDate = DateTime.parse(dueDateStr);
       final now = DateTime.now();
-      final difference = dueDate.difference(now).inDays;
+      final today = DateTime(now.year, now.month, now.day);
+      final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
+      final difference = target.difference(today).inDays;
 
       if (difference < 0) {
-        return {'text': 'Overdue ${difference.abs()} Days', 'isOverdue': true};
+        return {'text': 'Overdue ${difference.abs()} Days', 'isOverdue': true, 'days': difference};
+      } else if (difference == 0) {
+        return {'text': 'Due Today', 'isOverdue': false, 'days': 0};
       } else {
-        return {'text': '$difference Days', 'isOverdue': false};
+        return {'text': '$difference Days', 'isOverdue': false, 'days': difference};
       }
     } catch (e) {
-      return {'text': '-', 'isOverdue': false};
+      return {'text': '-', 'isOverdue': false, 'days': 0};
     }
   }
 
   void toggleSort(String column) {
     if (sortColumn.value == column) {
-      sortAscending.value = !sortAscending.value;
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
     } else {
       sortColumn.value = column;
       sortAscending.value = true;
@@ -145,14 +157,38 @@ class PaymentReminderController extends GetxController {
 
   List<PaymentReminderItem> get displayedReminders {
     List<PaymentReminderItem> filtered = paymentReminders.toList();
+    
+    // Client-side search fallback / filtering if needed
     if (searchQuery.value.isNotEmpty) {
       final query = searchQuery.value.toLowerCase();
       filtered = filtered.where((item) {
         return (item.forDesc ?? '').toLowerCase().contains(query) ||
-               (item.customerId ?? '').toLowerCase().contains(query) ||
-               getAssigneeName(item.notificationTo).toLowerCase().contains(query) ||
+               (item.to ?? '').toLowerCase().contains(query) ||
+               (item.assigneeName ?? getAssigneeName(item.assigneeId)).toLowerCase().contains(query) ||
                (item.expenseHead ?? '').toLowerCase().contains(query) ||
                (item.costCenter ?? '').toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Status filtering for multiselect due, overdue, upcoming
+    if (selectedStatus.isNotEmpty) {
+      final selectedList = selectedStatus.map((s) => s.toLowerCase()).toList();
+      filtered = filtered.where((item) {
+        final st = (item.status ?? '').toLowerCase();
+        if (selectedList.contains(st)) return true;
+        final dueStatus = getDueInStatus(item.dueDate);
+        for (final sel in selectedList) {
+          if (sel == 'due' && (st == 'due' || dueStatus['text'].toString().toLowerCase().contains('today') || (dueStatus['days'] as int? ?? -1) == 0)) {
+            return true;
+          }
+          if (sel == 'overdue' && (st == 'overdue' || (dueStatus['isOverdue'] as bool? ?? false))) {
+            return true;
+          }
+          if (sel == 'upcoming' && (st == 'upcoming' || (!(dueStatus['isOverdue'] as bool? ?? false) && (dueStatus['days'] as int? ?? 0) > 0))) {
+            return true;
+          }
+        }
+        return false;
       }).toList();
     }
     
@@ -161,20 +197,24 @@ class PaymentReminderController extends GetxController {
       filtered.sort((a, b) {
         int result = 0;
         switch (sortColumn.value) {
+          case 'SI No':
+          case 'Sl No':
+            result = a.id.compareTo(b.id);
+            break;
           case 'For':
             result = (a.forDesc ?? '').compareTo(b.forDesc ?? '');
             break;
-          case 'Costumer ID':
-            result = (a.customerId ?? '').compareTo(b.customerId ?? '');
+          case 'To':
+            result = (a.to ?? '').compareTo(b.to ?? '');
             break;
+          case 'Assignee':
           case 'Assignee Name':
-            result = getAssigneeName(a.notificationTo).compareTo(getAssigneeName(b.notificationTo));
+            final aName = a.assigneeName ?? getAssigneeName(a.assigneeId);
+            final bName = b.assigneeName ?? getAssigneeName(b.assigneeId);
+            result = aName.compareTo(bName);
             break;
           case 'Expense Head':
             result = (a.expenseHead ?? '').compareTo(b.expenseHead ?? '');
-            break;
-          case 'Sub-Head':
-            result = (a.subHead ?? '').compareTo(b.subHead ?? '');
             break;
           case 'Cost Center':
             result = (a.costCenter ?? '').compareTo(b.costCenter ?? '');
@@ -182,19 +222,32 @@ class PaymentReminderController extends GetxController {
           case 'Due Date':
             result = (a.dueDate ?? '').compareTo(b.dueDate ?? '');
             break;
+          case 'Reminder End Date':
+            result = (a.endDate ?? '').compareTo(b.endDate ?? '');
+            break;
+          case 'Notification Date':
+            result = (a.notificationDate ?? '').compareTo(b.notificationDate ?? '');
+            break;
+          case 'Time':
+            result = (a.notificationTime ?? '').compareTo(b.notificationTime ?? '');
+            break;
+          case 'Status':
+            result = (a.status ?? '').compareTo(b.status ?? '');
+            break;
           case 'Due In':
             final aDue = getDueInStatus(a.dueDate);
             final bDue = getDueInStatus(b.dueDate);
-            result = aDue['text'].compareTo(bDue['text']);
+            final aDays = (aDue['days'] as int? ?? 0);
+            final bDays = (bDue['days'] as int? ?? 0);
+            result = aDays.compareTo(bDays);
             break;
           default:
-            result = a.id.compareTo(b.id);
+            result = 0;
         }
         return sortAscending.value ? result : -result;
       });
     }
 
-    // Pagination (since API doesn't seem to paginate this list directly based on the response format)
     int startIndex = (currentPage.value - 1) * perPage.value;
     if (startIndex >= filtered.length) return [];
     

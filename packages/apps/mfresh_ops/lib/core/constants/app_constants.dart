@@ -96,10 +96,12 @@ class AppConstants {
   static const String updateTask = 'update-task';
   static const String deleteTask = 'delete-Task';
   static const String userTaskFilter = 'User_task_filter';
+  static const String dailyTaskFilterApi = 'DailyTaskFilterApi';
 
   // Payment Reminder
   static const String paymentIndex = 'payment-index';
   static const String paymentAdd = 'payment-add';
+  static const String completedPaymentFilter = 'payment-reminders/completed/filter';
 
   // Inventory
   static const String invGetStates = 'inv-get-states';
@@ -124,6 +126,14 @@ class AppConstants {
   static const String measurementCreate = 'measurement/create';
   static const String measurementUpdate = 'measurement/update';
   static const String measurementDelete = 'measurement/delete';
+  static const String inventoryOrders = 'inventory/orders';
+  static const String inventoryOrdersStoreRequest = 'inventory/orders/store/request';
+  static const String inventoryOrdersUnitRequest = 'inventory/orders/unit/request';
+  static const String inventoryStoreOrdersBulkStore = 'inventory/store-orders/bulk-store';
+  static const String inventoryUnitOrdersBulkStore = 'inventory/unit-orders/bulk-store';
+  static String inventoryOrdersReceive(dynamic orderId) => 'inventory/orders/$orderId/receive';
+  static String inventoryOrdersComplete(dynamic orderId) => 'inventory/orders/$orderId/complete';
+  static const String inventoryOrderReceiveLogs = 'inventory/order-receive-logs';
   static const String measurementList = 'measurement/list';
 
   // Tracking

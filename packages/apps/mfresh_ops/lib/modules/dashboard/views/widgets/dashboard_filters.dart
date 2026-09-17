@@ -340,7 +340,30 @@ class DashboardFilters extends GetView<DashboardController> {
   }
 
   Future<void> _showCustomMonthRangeDialog(BuildContext context) async {
-    final DateTimeRange? picked = await showMonthRangePicker(context);
+    DateTime? initialStart;
+    DateTime? initialEnd;
+
+    final fromStr = controller.rxFromMonth.value ?? '';
+    final toStr = controller.rxToMonth.value ?? '';
+
+    if (fromStr.isNotEmpty) {
+      final parts = fromStr.split('-');
+      if (parts.length == 2) {
+        initialStart = DateTime.tryParse("$fromStr-01");
+      }
+    }
+    if (toStr.isNotEmpty) {
+      final parts = toStr.split('-');
+      if (parts.length == 2) {
+        initialEnd = DateTime.tryParse("$toStr-01");
+      }
+    }
+
+    final DateTimeRange? picked = await showMonthRangePicker(
+      context,
+      initialStartMonth: initialStart,
+      initialEndMonth: initialEnd,
+    );
     if (picked != null) {
       final from = "${picked.start.year}-${picked.start.month.toString().padLeft(2, '0')}";
       final to = "${picked.end.year}-${picked.end.month.toString().padLeft(2, '0')}";

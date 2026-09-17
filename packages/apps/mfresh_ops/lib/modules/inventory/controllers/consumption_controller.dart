@@ -5,6 +5,7 @@ import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:services/api_services.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/consumption_item_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
@@ -25,7 +26,7 @@ class ConsumptionController extends GetxController {
   final currentPage = 1.obs;
   final totalPages = 1.obs;
   final totalEntries = 0.obs;
-  final perPage = 20.obs;
+  final perPage = 50.obs;
 
   // Sorting states
   final RxString sortColumn = ''.obs;
@@ -111,6 +112,11 @@ class ConsumptionController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     isLoading.value = true;
 
     // Reset filters
@@ -392,16 +398,16 @@ class ConsumptionController extends GetxController {
   Future<void> exportToExcel() async {
     isExporting.value = true;
     await AppExportUtils.exportToExcel(
-      title: 'Consumption Report',
+      title: 'Usage Report',
       columns: const [
-        "Consumed On",
+        "Used On",
         "State",
         "District",
         "Source Type",
         "Source",
         "Category",
         "Item",
-        "Consumed Qty",
+        "Used Qty",
         "M_Unit",
         "Created By",
       ],
@@ -428,16 +434,16 @@ class ConsumptionController extends GetxController {
   Future<void> exportToPdf() async {
     isExportingPdf.value = true;
     await AppExportUtils.exportToPdf(
-      title: 'Consumption Report',
+      title: 'Usage Report',
       columns: const [
-        "Consumed On",
+        "Used On",
         "State",
         "District",
         "Source Type",
         "Source",
         "Category",
         "Item",
-        "Consumed Qty",
+        "Used Qty",
         "M_Unit",
         "Created By",
       ],

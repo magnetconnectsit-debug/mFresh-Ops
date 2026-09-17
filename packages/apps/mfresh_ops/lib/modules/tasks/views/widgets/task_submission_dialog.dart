@@ -290,7 +290,8 @@ class TaskSubmissionDialog extends StatelessWidget {
       child: TextField(
         controller: controller,
         enabled: enabled,
-        maxLines: 2,
+        minLines: 2,
+        maxLines: 5,
         style: AppTextStyle.style_10_400(color: AppColors.black),
         decoration: InputDecoration(
           hintText: hintText,

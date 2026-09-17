@@ -1,0 +1,132 @@
+class PaymentReminderResponse {
+  final bool? success;
+  final bool? status;
+  final String? message;
+  final int? count;
+  final String? financialYear;
+  final dynamic fromMonth;
+  final dynamic toMonth;
+  final List<PaymentReminderUser> users;
+  final List<PaymentReminderItem> paymentReminders;
+
+  PaymentReminderResponse({
+    this.success,
+    this.status,
+    this.message,
+    this.count,
+    this.financialYear,
+    this.fromMonth,
+    this.toMonth,
+    required this.users,
+    required this.paymentReminders,
+  });
+
+  factory PaymentReminderResponse.fromJson(Map<String, dynamic> json) {
+    final rawList = json['result'] ?? json['payment_reminders'] ?? json['data'];
+    return PaymentReminderResponse(
+      success: json['success'],
+      status: json['status'],
+      message: json['message'],
+      count: json['count'] ?? json['result_count'],
+      financialYear: json['financial_year']?.toString(),
+      fromMonth: json['from_month'],
+      toMonth: json['to_month'],
+      users: json['users'] != null && json['users'] is List
+          ? List<PaymentReminderUser>.from(
+              (json['users'] as List).map((x) => PaymentReminderUser.fromJson(x as Map<String, dynamic>)))
+          : [],
+      paymentReminders: rawList != null && rawList is List
+          ? List<PaymentReminderItem>.from(
+              (rawList as List).map((x) => PaymentReminderItem.fromJson(x as Map<String, dynamic>)))
+          : [],
+    );
+  }
+}
+
+class PaymentReminderUser {
+  final int id;
+  final String? name;
+
+  PaymentReminderUser({
+    required this.id,
+    this.name,
+  });
+
+  factory PaymentReminderUser.fromJson(Map<String, dynamic> json) {
+    return PaymentReminderUser(
+      id: json['id'] ?? 0,
+      name: json['name'],
+    );
+  }
+}
+
+class PaymentReminderItem {
+  final int id;
+  final int? parentId;
+  final int? recurrenceId;
+  final String? forDesc;
+  final String? brand;
+  final String? location;
+  final String? to;
+  final int? assigneeId;
+  final String? assigneeName;
+  final String? expenseHead;
+  final String? subHead;
+  final String? costCenter;
+  final String? expenseType;
+  final String? dueDate;
+  final String? endDate;
+  final String? notificationDate;
+  final String? notificationTime;
+  final String? completedAt;
+  final String? dueIn;
+  final String? status;
+
+  PaymentReminderItem({
+    required this.id,
+    this.parentId,
+    this.recurrenceId,
+    this.forDesc,
+    this.brand,
+    this.location,
+    this.to,
+    this.assigneeId,
+    this.assigneeName,
+    this.expenseHead,
+    this.subHead,
+    this.costCenter,
+    this.expenseType,
+    this.dueDate,
+    this.endDate,
+    this.notificationDate,
+    this.notificationTime,
+    this.completedAt,
+    this.dueIn,
+    this.status,
+  });
+
+  factory PaymentReminderItem.fromJson(Map<String, dynamic> json) {
+    return PaymentReminderItem(
+      id: json['id'] ?? 0,
+      parentId: json['parent_id'],
+      recurrenceId: json['recurrence_id'],
+      forDesc: json['for'],
+      brand: json['brand'],
+      location: json['location'],
+      to: json['to'],
+      assigneeId: json['assignee_id'],
+      assigneeName: json['assignee_name'],
+      expenseHead: json['expense_head'],
+      subHead: json['sub_head'],
+      costCenter: json['cost_center'],
+      expenseType: json['expense_type'],
+      dueDate: json['due_date'],
+      endDate: json['end_date'] ?? json['reminder_end_date'],
+      notificationDate: json['notification_date'],
+      notificationTime: json['notification_time'],
+      completedAt: json['completed_at'],
+      dueIn: json['due_in'],
+      status: json['status'],
+    );
+  }
+}

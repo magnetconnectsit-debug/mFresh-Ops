@@ -279,4 +279,140 @@ class InventoryRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<dynamic> getInventoryOrders() async {
+    try {
+      return await _apiService.get(AppConstants.inventoryOrders);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> receiveStoreOrder(int orderId, int receivedQty) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryOrdersReceive(orderId),
+        data: {'received_qty': receivedQty},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> completeOrder({
+    required int orderId,
+    dynamic unitId,
+    dynamic storeId,
+    required int itemId,
+    required dynamic qty,
+  }) async {
+    try {
+      num parsedQty = 0;
+      if (qty is num) {
+        parsedQty = qty;
+      } else if (qty != null) {
+        parsedQty = num.tryParse(qty.toString().replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      }
+
+      final Map<String, dynamic> data = {
+        'item_id': itemId,
+        'qty': parsedQty,
+      };
+      if (unitId != null) {
+        data['unit_id'] = unitId is int ? unitId : int.tryParse(unitId.toString());
+      }
+      if (storeId != null) {
+        data['store_id'] = storeId is int ? storeId : int.tryParse(storeId.toString());
+      }
+
+      return await _apiService.post(
+        AppConstants.inventoryOrdersComplete(orderId),
+        data: data,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> requestStoreOrder({
+    required int storeId,
+    required int itemId,
+    required dynamic qty,
+  }) async {
+    try {
+      num parsedQty = 0;
+      if (qty is num) {
+        parsedQty = qty;
+      } else if (qty != null) {
+        parsedQty = num.tryParse(qty.toString().replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      }
+
+      return await _apiService.post(
+        AppConstants.inventoryOrdersStoreRequest,
+        data: {
+          'store_id': storeId,
+          'item_id': itemId,
+          'qty': parsedQty,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> requestUnitOrder({
+    required int unitId,
+    required int itemId,
+    required dynamic qty,
+  }) async {
+    try {
+      num parsedQty = 0;
+      if (qty is num) {
+        parsedQty = qty;
+      } else if (qty != null) {
+        parsedQty = num.tryParse(qty.toString().replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+      }
+
+      return await _apiService.post(
+        AppConstants.inventoryOrdersUnitRequest,
+        data: {
+          'unit_id': unitId,
+          'item_id': itemId,
+          'qty': parsedQty,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createBulkStoreOrder() async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryStoreOrdersBulkStore,
+        data: {},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createBulkUnitOrder() async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryUnitOrdersBulkStore,
+        data: {},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getOrderReceiveLogs() async {
+    try {
+      return await _apiService.get(AppConstants.inventoryOrderReceiveLogs);
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

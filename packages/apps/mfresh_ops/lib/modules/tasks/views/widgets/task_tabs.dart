@@ -13,8 +13,8 @@ class TaskTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 36.h,
-      padding: EdgeInsets.all(3.r),
+      height: 30.h,
+      padding: EdgeInsets.all(2.r),
       decoration: BoxDecoration(
         color: const Color(0xFFE2E5E9),
         borderRadius: BorderRadius.circular(6.r),
@@ -35,6 +35,68 @@ class TaskTabs extends StatelessWidget {
                 title: 'Completed',
                 isSelected: controller.activeTab.value == 1,
                 onTap: () => controller.changeTab(1),
+              ),
+            ),
+            SizedBox(width: 6.w),
+            Container(
+              height: 28.h,
+              padding: EdgeInsets.symmetric(horizontal: 2.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4.r),
+                border: Border.all(color: const Color(0xFFCED4DA)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: 'Detail View',
+                    child: InkWell(
+                      onTap: () => controller.isListView.value = false,
+                      borderRadius: BorderRadius.circular(3.r),
+                      child: Container(
+                        padding: EdgeInsets.all(3.r),
+                        decoration: BoxDecoration(
+                          color: !controller.isListView.value
+                              ? AppColors.primary.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(3.r),
+                        ),
+                        child: Icon(
+                          Icons.view_day_outlined,
+                          size: 15.r,
+                          color: !controller.isListView.value
+                              ? AppColors.primary
+                              : const Color(0xFF6C757D),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 2.w),
+                  Tooltip(
+                    message: 'List View',
+                    child: InkWell(
+                      onTap: () => controller.isListView.value = true,
+                      borderRadius: BorderRadius.circular(3.r),
+                      child: Container(
+                        padding: EdgeInsets.all(3.r),
+                        decoration: BoxDecoration(
+                          color: controller.isListView.value
+                              ? AppColors.primary.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(3.r),
+                        ),
+                        child: Icon(
+                          Icons.format_list_bulleted_rounded,
+                          size: 15.r,
+                          color: controller.isListView.value
+                              ? AppColors.primary
+                              : const Color(0xFF6C757D),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

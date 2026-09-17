@@ -113,6 +113,21 @@ class TaskRepository extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>?> getDailyTaskFilterData(Map<String, dynamic> filterData) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.dailyTaskFilterApi,
+        data: filterData,
+      );
+      if (response != null && response['status'] == true) {
+        return response as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<dynamic> createTask(Map<String, dynamic> taskData) async {
     try {
       final response = await _apiService.post(

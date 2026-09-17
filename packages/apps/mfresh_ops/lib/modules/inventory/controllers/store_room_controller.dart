@@ -4,6 +4,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/store_room_model.dart';
 
 class StoreRoomController extends GetxController {
@@ -34,6 +35,11 @@ class StoreRoomController extends GetxController {
   }
 
   Future<void> onRefresh() async {
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().fetchProfile();
+      }
+    } catch (_) {}
     await fetchStoreRooms();
   }
 

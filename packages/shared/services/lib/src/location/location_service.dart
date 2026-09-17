@@ -22,9 +22,9 @@ class GeolocatorLocationService implements LocationService {
     if (defaultTargetPlatform == TargetPlatform.android) {
       return AndroidSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 10,
+        distanceFilter: 0,
         intervalDuration: const Duration(seconds: 5),
-        forceLocationManager: true,
+        forceLocationManager: false,
       );
     }
 

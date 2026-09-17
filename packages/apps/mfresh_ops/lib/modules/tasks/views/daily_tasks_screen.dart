@@ -30,7 +30,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
   @override
   void initState() {
     super.initState();
-    controller = Get.put(TasksController());
+    controller = Get.isRegistered<TasksController>()
+        ? Get.find<TasksController>()
+        : Get.put(TasksController());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.clearFilters();
       controller.refreshData();
@@ -164,7 +166,6 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
 
           final now = DateTime.now();
           final today = DateTime(now.year, now.month, now.day);
-          final tomorrowStart = today.add(const Duration(days: 1));
 
           if (isInitialLoading) {
             todayTasks.addAll(displayTasks);
@@ -195,13 +196,13 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                 SliverPadding(
                   padding: EdgeInsets.symmetric(
                     horizontal: 16.w,
-                    vertical: 8.h,
+                    vertical: 4.h,
                   ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       Wrap(
                         spacing: 12.w,
-                        runSpacing: 4.h,
+                        runSpacing: 2.h,
                         children: [
                           TaskStatItem(
                             count: '${controller.taskCounts['active'] ?? 0}',
@@ -225,18 +226,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 2.h),
                       TaskFilterCard(controller: controller),
                       SizedBox(height: 6.h),
-                      Text(
-                        'My Tasks',
-                        style: AppTextStyle.style_14_600(
-                          color: AppColors.black,
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
                       TaskTabs(controller: controller),
-                      SizedBox(height: 12.h),
                     ]),
                   ),
                 ),
@@ -244,7 +237,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                   SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 50.h),
+                        padding: EdgeInsets.only(top: 30.h),
                         child: Text(
                           'No tasks found',
                           style: AppTextStyle.style_12_400(
@@ -264,15 +257,15 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.warning_amber_rounded, size: 18.r, color: const Color(0xFFE25C5C)),
-                                SizedBox(width: 8.w),
+                                Icon(Icons.warning_amber_rounded, size: 16.r, color: const Color(0xFFE25C5C)),
+                                SizedBox(width: 6.w),
                                 Text(
                                   'Overdue Tasks',
                                   style: AppTextStyle.style_14_700(color: const Color(0xFFE25C5C)),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 6.h),
+                            SizedBox(height: 4.h),
                           ],
                         ),
                       ),
@@ -282,7 +275,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
                           return Padding(
-                            padding: EdgeInsets.only(bottom: 6.h),
+                            padding: EdgeInsets.only(bottom: 4.h),
                             child: DailyTaskCard(task: overdueTasks[index]),
                           );
                         }, childCount: overdueTasks.length),
@@ -292,7 +285,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                   if (todayTasks.isNotEmpty) ...[
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -303,19 +296,19 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                                 dashWidth: 4,
                                 dashSpace: 3,
                               ),
-                              SizedBox(height: 8.h),
+                              SizedBox(height: 4.h),
                             ],
                             Row(
                               children: [
-                                Icon(Icons.today, size: 18.r, color: AppColors.primary),
-                                SizedBox(width: 8.w),
+                                Icon(Icons.today, size: 16.r, color: AppColors.primary),
+                                SizedBox(width: 6.w),
                                 Text(
                                   'Today\'s Tasks',
                                   style: AppTextStyle.style_14_700(color: AppColors.primary),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 6.h),
+                            SizedBox(height: 4.h),
                           ],
                         ),
                       ),
@@ -325,7 +318,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
                           return Padding(
-                            padding: EdgeInsets.only(bottom: 6.h),
+                            padding: EdgeInsets.only(bottom: 4.h),
                             child: DailyTaskCard(task: todayTasks[index]),
                           );
                         }, childCount: todayTasks.length),
@@ -337,7 +330,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 16.w,
-                          vertical: 6.h,
+                          vertical: 4.h,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,15 +341,15 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                               dashWidth: 4,
                               dashSpace: 3,
                             ),
-                            SizedBox(height: 8.h),
+                            SizedBox(height: 4.h),
                             Row(
                               children: [
                                 Icon(
                                   Icons.calendar_month_outlined,
-                                  size: 18.r,
+                                  size: 16.r,
                                   color: const Color(0xFF0D6EFD),
                                 ),
-                                SizedBox(width: 8.w),
+                                SizedBox(width: 6.w),
                                 Text(
                                   'Tomorrow – Upcoming Tasks',
                                   style: AppTextStyle.style_14_700(
@@ -365,7 +358,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 6.h),
+                            SizedBox(height: 4.h),
                           ],
                         ),
                       ),
@@ -375,7 +368,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
                           return Padding(
-                            padding: EdgeInsets.only(bottom: 6.h),
+                            padding: EdgeInsets.only(bottom: 4.h),
                             child: DailyTaskCard(task: tomorrowTasks[index]),
                           );
                         }, childCount: tomorrowTasks.length),
@@ -386,7 +379,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                 ],
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: MediaQuery.of(context).padding.bottom + 24.h,
+                    height: MediaQuery.of(context).padding.bottom + 12.h,
                   ),
                 ),
               ],

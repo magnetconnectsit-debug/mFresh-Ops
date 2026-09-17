@@ -10,15 +10,31 @@ import '../controllers/unit_inventory_controller.dart';
 import '../../../widgets/common_sidebar.dart';
 import 'widgets/unit_inventory_filters.dart';
 import 'widgets/unit_inventory_table.dart';
+import 'widgets/unit_required_orders_dialog.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
-class UnitInventoryScreen extends StatelessWidget {
+class UnitInventoryScreen extends StatefulWidget {
   const UnitInventoryScreen({super.key});
 
   @override
+  State<UnitInventoryScreen> createState() => _UnitInventoryScreenState();
+}
+
+class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
+  late final UnitInventoryController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(UnitInventoryController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchUnitInventory();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(UnitInventoryController());
     return Obx(() {
       final authRepo = Get.find<AuthRepository>();
       final userPermissions = authRepo.rxUserPermissions;
@@ -83,11 +99,8 @@ class UnitInventoryScreen extends StatelessWidget {
               children: [
                 const UnitInventoryFilters(),
                 _buildActionButtons(context),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: UnitInventoryTable(),
-                ),
-                SizedBox(height: 20.h),
+                const UnitInventoryTable(),
+                SizedBox(height: 40.h),
               ],
             ),
           ),
@@ -112,19 +125,90 @@ class UnitInventoryScreen extends StatelessWidget {
             SizedBox(
               height: 24.h,
               child: ElevatedButton(
-                onPressed: () => controller.exportToExcel(),
+                onPressed: controller.isExporting.value
+                    ? null
+                    : () => controller.exportToExcel(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF389D6A),
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
                   elevation: 1,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: Text('Export Excel', style: AppTextStyle.style_12_500(color: Colors.white)),
+                child: controller.isExporting.value
+                    ? SizedBox(
+                        width: 12.r,
+                        height: 12.r,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.file_download_outlined, size: 13.r, color: Colors.white),
+                          SizedBox(width: 2.w),
+                          Text('Excel', style: AppTextStyle.style_10_600(color: Colors.white)),
+                        ],
+                      ),
               ),
             ),
+            SizedBox(width: 4.w),
           ],
+          Obx(() {
+            if (!Get.find<AuthRepository>().rxUserPermissions.contains('Inv_Unit_Order')) {
+              return const SizedBox.shrink();
+            }
+            return SizedBox(
+              height: 24.h,
+              child: ElevatedButton(
+                onPressed: () => UnitRequiredOrdersDialog.show(context: context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6F42C1),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                  elevation: 1,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text('Request Orders', style: AppTextStyle.style_10_600(color: Colors.white)),
+              ),
+            );
+          }),
           const Spacer(),
+          Container(
+            height: 24.h,
+            padding: EdgeInsets.symmetric(horizontal: 3.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: controller.itemsPerPage.value,
+                icon: Icon(Icons.arrow_drop_down, size: 14.r),
+                isDense: true,
+                padding: EdgeInsets.zero,
+                style: AppTextStyle.style_10_500(color: AppColors.black),
+                items: const [10, 25, 50, 100].map((int val) {
+                  return DropdownMenuItem<int>(
+                    value: val,
+                    child: Text('$val / page'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.setItemsPerPage(val);
+                  }
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -153,23 +153,22 @@ class AppDateUtils {
       final now = DateTime.now();
       final difference = now.difference(local);
 
-      // If less than 24 hours ago and on the same or previous day within 24h
-      if (difference.inHours < 24 && difference.inDays == 0) {
-        if (difference.isNegative || difference.inSeconds < 5) {
-          return 'Just now';
-        } else if (difference.inSeconds < 60) {
-          final secs = difference.inSeconds;
-          return '$secs sec${secs > 1 ? 's' : ''} ago';
-        } else if (difference.inMinutes < 60) {
-          final mins = difference.inMinutes;
-          return '$mins min${mins > 1 ? 's' : ''} ago';
-        } else {
-          final hours = difference.inHours;
-          return '$hours hr${hours > 1 ? 's' : ''} ago';
-        }
+      if (difference.isNegative || difference.inSeconds < 5) {
+        return 'Just now';
+      } else if (difference.inSeconds < 60) {
+        final secs = difference.inSeconds;
+        return '$secs sec${secs > 1 ? 's' : ''} ago';
+      } else if (difference.inMinutes < 60) {
+        final mins = difference.inMinutes;
+        return '$mins min${mins > 1 ? 's' : ''} ago';
+      } else if (difference.inHours < 24) {
+        final hours = difference.inHours;
+        return '$hours hr${hours > 1 ? 's' : ''} ago';
+      } else {
+        final days = difference.inDays > 0 ? difference.inDays : (difference.inHours ~/ 24);
+        final dayVal = days < 1 ? 1 : days;
+        return '$dayVal day${dayVal > 1 ? 's' : ''} ago';
       }
-
-      return formatToDateTimeAmPm(rawDate);
     } catch (_) {
       return rawDate;
     }

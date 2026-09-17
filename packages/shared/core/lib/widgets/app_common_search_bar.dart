@@ -40,7 +40,7 @@ class AppCommonSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 40.h,
+      height: 34.h,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
@@ -82,7 +82,7 @@ class AppCommonSearchBar extends StatelessWidget {
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
         ),
       ),
     );

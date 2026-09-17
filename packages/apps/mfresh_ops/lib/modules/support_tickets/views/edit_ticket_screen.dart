@@ -344,7 +344,7 @@ class EditTicketScreen extends StatelessWidget {
             ),
             rightLabel: "Created By",
             rightChild: _readOnlyBox(
-              controller.ticketDetail.value?.userName ?? "N/A",
+              controller.createdByName,
             ),
           ),
           _tableRow(
@@ -367,6 +367,7 @@ class EditTicketScreen extends StatelessWidget {
               controller.categories,
               (v) {
                 controller.selectedCategory.value = v;
+                controller.selectedSubCategory.value = null;
                 if (v != null) controller.fetchSubCategories(v.categoryId);
               },
               (item) => item.categoryName,

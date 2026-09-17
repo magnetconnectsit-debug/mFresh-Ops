@@ -48,9 +48,10 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
         );
       }
 
-      // Touch sort state so Obx re-renders on sort change
+      // Touch sort & filter state so Obx re-renders on sort or filter change
       controller.sortColumn.value;
       controller.sortAscending.value;
+      controller.selectedStatusFilter.value;
       final rows = controller.sortedRows;
 
       return SingleChildScrollView(
@@ -380,14 +381,26 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               _kColumns[11].$2,
               isExpanded: isExpanded,
               onTap: toggleRow,
-              color: Colors.red.shade700,
+              bgColor: (row.dutyShortage != '-' &&
+                      row.dutyShortage != '0' &&
+                      row.dutyShortage != '00:00' &&
+                      row.dutyShortage.trim().isNotEmpty)
+                  ? Colors.red.withValues(alpha: 0.1)
+                  : null,
+              color: AppColors.black,
             ),
             _buildCell(
               row.lateDuration,
               _kColumns[12].$2,
               isExpanded: isExpanded,
               onTap: toggleRow,
-              color: Colors.red.shade700,
+              bgColor: (row.lateDuration != '-' &&
+                      row.lateDuration != '0' &&
+                      row.lateDuration != '00:00' &&
+                      row.lateDuration.trim().isNotEmpty)
+                  ? Colors.red.withValues(alpha: 0.1)
+                  : null,
+              color: AppColors.black,
             ),
             _buildCell(
               row.actualLocation,
@@ -400,16 +413,12 @@ class AttendanceLogTable extends GetView<AttendanceLogController> {
               _kColumns[14].$2,
               isExpanded: isExpanded,
               onTap: toggleRow,
-              bgColor: row.locationMismatch.toLowerCase() == 'no'
-                  ? Colors.green.withValues(alpha: 0.1)
-                  : row.locationMismatch.toLowerCase() == 'yes'
+              bgColor: row.locationMismatch.toLowerCase().contains('yes')
                   ? Colors.red.withValues(alpha: 0.1)
                   : null,
-              color: row.locationMismatch.toLowerCase() == 'no'
-                  ? Colors.green.shade700
-                  : row.locationMismatch.toLowerCase() == 'yes'
+              color: row.locationMismatch.toLowerCase().contains('yes')
                   ? Colors.red.shade700
-                  : null,
+                  : AppColors.grey900,
             ),
             // Action column
             GestureDetector(

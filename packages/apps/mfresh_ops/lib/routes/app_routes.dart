@@ -5,6 +5,7 @@ abstract class AppRoutes {
   static const dashboard = '/dashboard';
   static const allTasks = '/all-tasks';
   static const dailyTasks = '/daily-tasks';
+  static const dailyTaskFilter = '/daily-task-filter';
   static const attendanceLog = '/attendance-log';
   static const attendanceBreakdown = '/attendance-breakdown';
   static const supportTickets = '/support-tickets';
@@ -20,6 +21,8 @@ abstract class AppRoutes {
   static const editTicket = '/edit-ticket';
   static const storeInventory = '/store-inventory';
   static const unitInventory = '/unit-inventory';
+  static const inventoryOrders = '/inventory-orders';
+  static const orderReceiveLogs = '/order-receive-logs';
   static const allConsumption = '/all-consumption';
   static const allotments = '/allotments';
   static const measurements = '/measurements';
@@ -59,4 +62,5 @@ abstract class AppRoutes {
 
   // Payment Reminder
   static const paymentReminder = '/payment-reminder';
+  static const completedPayments = '/completed-payments';
 }

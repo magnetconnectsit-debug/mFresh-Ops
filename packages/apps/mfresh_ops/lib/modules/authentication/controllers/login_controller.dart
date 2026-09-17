@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -9,11 +12,8 @@ import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:services/services.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_button.dart';
 import 'package:pinput/pinput.dart';
+import 'package:services/services.dart';
 
 class LoginController extends GetxController {
   final usernameController = TextEditingController();
@@ -42,15 +42,22 @@ class LoginController extends GetxController {
     if (kDebugMode &&
         usernameController.text.isNotEmpty &&
         passwordController.text.isNotEmpty) {
-      debugPrint("🚀 [DEBUG AUTO-LOGIN] Attempting auto-login with mobile: ${usernameController.text}");
+      debugPrint(
+        "🚀 [DEBUG AUTO-LOGIN] Attempting auto-login with mobile: ${usernameController.text}",
+      );
       handleLoginAction();
     }
   }
 
   void _loadSavedCredentials() {
     if (kDebugMode) {
+      ///   [Prod Credential]
       usernameController.text = '7873168884';
       passwordController.text = 'nayak@1234';
+
+      ///  [Test Credential]
+      // usernameController.text = '9776888070';
+      // passwordController.text = '1234567890';
       rememberMe.value = true;
       return;
     }
@@ -170,7 +177,13 @@ class LoginController extends GetxController {
         }
 
         Get.find<TrackingService>().startAutoTracking();
-        Get.offAllNamed(AppRoutes.home);
+        final updatedUser = await _authRepository.fetchProfile() ?? user;
+        final roleId = updatedUser.role;
+        if (roleId == '1' || roleId == 1) {
+          Get.offAllNamed(AppRoutes.home);
+        } else {
+          Get.offAllNamed(AppRoutes.dailyTasks);
+        }
       } else {
         AppCommonToastMessage.show(
           message: 'Login failed. Please check your credentials.',
@@ -324,7 +337,13 @@ class LoginController extends GetxController {
         }
 
         Get.find<TrackingService>().startAutoTracking();
-        Get.offAllNamed(AppRoutes.home);
+        final updatedUser = await _authRepository.fetchProfile() ?? user;
+        final roleId = updatedUser.role;
+        if (roleId == '1' || roleId == 1) {
+          Get.offAllNamed(AppRoutes.home);
+        } else {
+          Get.offAllNamed(AppRoutes.dailyTasks);
+        }
       } else {
         AppCommonToastMessage.show(
           message: 'OTP Verification failed.',

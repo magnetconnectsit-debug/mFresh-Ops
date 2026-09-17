@@ -92,10 +92,8 @@ class TicketDetailsController extends GetxController {
         fetchAssignees(),
       ]);
 
-      // Map the edit data IDs to dropdown models
-      if (_editData != null) {
-        await _mapDropdownValues(_editData!);
-      }
+      // Map all dropdown values from editData and ticketDetail
+      await mapAllDropdownValues();
     } catch (e) {
       debugPrint('Error fetching all data: $e');
     } finally {
@@ -139,50 +137,131 @@ class TicketDetailsController extends GetxController {
     }
   }
 
-  Future<void> _mapDropdownValues(EditSupportTicketData editData) async {
-    // 1. Status & Priority
-    if (editData.status != null) {
-      selectedStatus.value = editData.status;
+  String get createdByName {
+    final detail = ticketDetail.value;
+    if (detail?.userName != null && detail!.userName!.isNotEmpty) {
+      return detail.userName!;
     }
-    if (editData.priority != null) {
-      selectedPriority.value = editData.priority;
-    }
-
-    // 2. Unit
-    if (editData.unitId != null) {
-      selectedUnit.value = units.firstWhereOrNull(
-        (u) => u.unitId.toString() == editData.unitId,
-      );
+    final String? creatorIdStr =
+        _editData?.createdBy ?? detail?.createdBy?.toString() ?? detail?.createdById?.toString();
+    if (creatorIdStr == null || creatorIdStr.isEmpty) {
+      return "N/A";
     }
 
-    // 3. Project
-    if (editData.projectId != null) {
-      selectedProject.value = projects.firstWhereOrNull(
-        (p) => p.projectId.toString() == editData.projectId,
-      );
+    final matchedAssignee = assignees.firstWhereOrNull(
+      (a) => a.id.toString() == creatorIdStr,
+    );
+    if (matchedAssignee != null) {
+      return matchedAssignee.name;
     }
 
-    // 4. Category
-    if (editData.mcatId != null) {
-      selectedCategory.value = categories.firstWhereOrNull(
-        (c) => c.categoryId.toString() == editData.mcatId,
-      );
+    if (int.tryParse(creatorIdStr) == null) {
+      return creatorIdStr;
     }
 
-    // 5. Sub Category (Requires fetching subcategories first)
-    if (selectedCategory.value != null && editData.subcatId != null) {
+    return creatorIdStr;
+  }
+
+  String? _normalizeStatus(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (statusOptions.contains(raw)) return raw;
+    final lower = raw.trim().toLowerCase();
+    switch (lower) {
+      case 'new':
+        return '0';
+      case 'wip':
+      case 'work in progress':
+      case 'in progress':
+        return '1';
+      case 'resolved':
+        return '2';
+      case 'closed':
+        return '3';
+      case 'hold':
+      case 'on hold':
+        return '4';
+      case 'awaited':
+      case 'awaiting':
+        return '5';
+      default:
+        return null;
+    }
+  }
+
+  String? _normalizePriority(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (priorityOptions.contains(raw)) return raw;
+    final lower = raw.trim().toLowerCase();
+    switch (lower) {
+      case 'low':
+        return '1';
+      case 'medium':
+        return '2';
+      case 'high':
+        return '3';
+      case 'top priority':
+      case 'top':
+      case 'urgent':
+        return '6';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> mapAllDropdownValues() async {
+    final detail = ticketDetail.value;
+    final editData = _editData;
+
+    // 1. Status
+    final rawStatus = editData?.status ?? detail?.status;
+    selectedStatus.value = _normalizeStatus(rawStatus) ?? (statusOptions.isNotEmpty ? statusOptions.first : null);
+
+    // 2. Priority
+    final rawPriority = editData?.priority ?? detail?.priorityId ?? detail?.priority;
+    selectedPriority.value = _normalizePriority(rawPriority) ?? (priorityOptions.isNotEmpty ? priorityOptions.first : null);
+
+    // 3. Unit
+    final unitIdStr = editData?.unitId ?? detail?.unitId?.toString();
+    final unitNameStr = detail?.unitNo;
+    selectedUnit.value = units.firstWhereOrNull(
+      (u) => (unitIdStr != null && u.unitId.toString() == unitIdStr) ||
+             (unitNameStr != null && u.unitName.trim().toLowerCase() == unitNameStr.trim().toLowerCase()),
+    );
+
+    // 4. Project
+    final projectIdStr = editData?.projectId ?? detail?.projectId?.toString();
+    final projectNameStr = detail?.project;
+    selectedProject.value = projects.firstWhereOrNull(
+      (p) => (projectIdStr != null && p.projectId.toString() == projectIdStr) ||
+             (projectNameStr != null && p.projectName.trim().toLowerCase() == projectNameStr.trim().toLowerCase()),
+    );
+
+    // 5. Category
+    final catIdStr = editData?.mcatId ?? detail?.categoryId?.toString();
+    final catNameStr = detail?.category;
+    selectedCategory.value = categories.firstWhereOrNull(
+      (c) => (catIdStr != null && c.categoryId.toString() == catIdStr) ||
+             (catNameStr != null && c.categoryName.trim().toLowerCase() == catNameStr.trim().toLowerCase()),
+    );
+
+    // 6. Sub Category
+    if (selectedCategory.value != null) {
       await fetchSubCategories(selectedCategory.value!.categoryId);
+      final subCatIdStr = editData?.subcatId ?? detail?.subcategoryId?.toString();
+      final subCatNameStr = detail?.subcategory;
       selectedSubCategory.value = subCategories.firstWhereOrNull(
-        (sc) => sc.subCategoryId.toString() == editData.subcatId,
+        (sc) => (subCatIdStr != null && sc.subCategoryId.toString() == subCatIdStr) ||
+               (subCatNameStr != null && sc.subCategoryName.trim().toLowerCase() == subCatNameStr.trim().toLowerCase()),
       );
     }
 
-    // 6. Assignee
-    if (editData.assignedTo != null) {
-      selectedAssignee.value = assignees.firstWhereOrNull(
-        (a) => a.id.toString() == editData.assignedTo,
-      );
-    }
+    // 7. Assignee
+    final assigneeIdStr = editData?.assignedTo ?? detail?.assignedToId?.toString() ?? detail?.assignedTo;
+    final assigneeNameStr = detail?.assignedToName;
+    selectedAssignee.value = assignees.firstWhereOrNull(
+      (a) => (assigneeIdStr != null && a.id.toString() == assigneeIdStr) ||
+             (assigneeNameStr != null && a.name.trim().toLowerCase() == assigneeNameStr.trim().toLowerCase()),
+    );
   }
 
   Future<void> fetchUnits() async {
@@ -198,16 +277,6 @@ class TicketDetailsController extends GetxController {
     try {
       final result = await _supportRepository.getSupportCategories();
       categories.assignAll(result);
-
-      // If we have a ticket, match the category object
-      if (ticketDetail.value?.categoryId != null) {
-        selectedCategory.value = categories.firstWhereOrNull(
-          (c) => c.categoryId == ticketDetail.value!.categoryId,
-        );
-        if (selectedCategory.value != null) {
-          fetchSubCategories(selectedCategory.value!.categoryId);
-        }
-      }
     } catch (e) {
       debugPrint('Error fetching categories: $e');
     }
@@ -228,13 +297,6 @@ class TicketDetailsController extends GetxController {
         categoryId,
       );
       subCategories.assignAll(result);
-
-      // If we have a ticket, match the subcategory object
-      if (ticketDetail.value?.subcategoryId != null) {
-        selectedSubCategory.value = subCategories.firstWhereOrNull(
-          (sc) => sc.subCategoryId == ticketDetail.value!.subcategoryId,
-        );
-      }
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
     }
@@ -276,9 +338,9 @@ class TicketDetailsController extends GetxController {
         descriptionController.text = response.description ?? '';
         unitController.text = response.unitNo ?? '';
 
-        // Map labels to options (In a real app, you'd match by ID from an edit API)
-        selectedStatus.value = response.status;
-        selectedPriority.value = response.priority;
+        // Map labels to options
+        selectedStatus.value = _normalizeStatus(response.status);
+        selectedPriority.value = _normalizePriority(response.priority);
 
         // Map logs and comments to UI models
         if (response.comments != null) {

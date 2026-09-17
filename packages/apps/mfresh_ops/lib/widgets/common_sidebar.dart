@@ -33,15 +33,22 @@ class CommonSidebar extends StatelessWidget {
                       width: 60.r,
                       height: 60.r,
                       color: AppColors.white,
-                      child: (Get.find<StorageService>().getUser()?.imageUrl != null && Get.find<StorageService>().getUser()!.imageUrl!.isNotEmpty)
+                      child:
+                          (Get.find<StorageService>().getUser()?.imageUrl !=
+                                  null &&
+                              Get.find<StorageService>()
+                                  .getUser()!
+                                  .imageUrl!
+                                  .isNotEmpty)
                           ? Image.network(
                               Get.find<StorageService>().getUser()!.imageUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Icon(
-                                Icons.person,
-                                size: 40.r,
-                                color: AppColors.primary,
-                              ),
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
+                                    Icons.person,
+                                    size: 40.r,
+                                    color: AppColors.primary,
+                                  ),
                             )
                           : Icon(
                               Icons.person,
@@ -131,7 +138,12 @@ class CommonSidebar extends StatelessWidget {
             child: Obx(() {
               final authRepo = Get.find<AuthRepository>();
               final userPermissions = authRepo.rxUserPermissions;
-              final showInventory = userPermissions.contains('inventory_panel');
+              final showInventory =
+                  userPermissions.contains('inventory_panel') ||
+                  userPermissions.contains('unit_inventory_stock') ||
+                  userPermissions.contains('store_inventory_stock') ||
+                  userPermissions.contains('Inv_Order_Panel') ||
+                  userPermissions.contains('Inv_Order_Log_Panel');
 
               final showTaskScheduler = userPermissions.contains(
                 'Task_Sheduler_Pannel',
@@ -141,13 +153,17 @@ class CommonSidebar extends StatelessWidget {
                 'Support Ticket',
                 if (userPermissions.contains('M_Template')) 'M_Template',
                 if (userPermissions.contains('M_Projects')) 'M_Projects',
-                if (userPermissions.contains('m_sub_category')) 'M_Sub Category',
-                if (userPermissions.contains('maintenance_category')) 'M_Category',
+                if (userPermissions.contains('m_sub_category'))
+                  'M_Sub Category',
+                if (userPermissions.contains('maintenance_category'))
+                  'M_Category',
               ];
 
               final taskSubItems = [
                 if (userPermissions.contains('All_Task')) 'All Task',
                 if (userPermissions.contains('Daily_Task')) 'Daily Task',
+                if (userPermissions.contains('daily_task_by_month'))
+                  'Daily Task By Month',
               ];
 
               final inventorySubItems = [
@@ -155,9 +171,12 @@ class CommonSidebar extends StatelessWidget {
                   'Store Inventory',
                 if (userPermissions.contains('unit_inventory_stock'))
                   'Unit Inventory',
-                if (userPermissions.contains('consumption_report'))
-                  'Consumption',
-                if (userPermissions.contains('allotments_report')) 'Allotments',
+                if (userPermissions.contains('Inv_Order_Panel'))
+                  'Inventory Orders',
+                if (userPermissions.contains('Inv_Order_Log_Panel'))
+                  'Order Logs',
+                if (userPermissions.contains('consumption_report')) 'Usage',
+                if (userPermissions.contains('allotments_report')) 'Transfer',
                 if (userPermissions.contains('measurements_panel'))
                   'M_Measurements',
                 if (userPermissions.contains('inventory_item')) 'M_Items',
@@ -165,11 +184,16 @@ class CommonSidebar extends StatelessWidget {
               ];
 
               final infoDirectorySubItems = [
-                if (userPermissions.contains('Asset_Panel')) 'Assets & Products',
-                if (userPermissions.contains('Account_subscription_panel')) 'Account Details',
-                if (userPermissions.contains('c_directory_panel')) 'Contact Directory',
-                if (userPermissions.contains('brand_details')) 'MContact_Brands',
-                if (userPermissions.contains('company_details')) 'MContact_Companies',
+                if (userPermissions.contains('Asset_Panel'))
+                  'Assets & Products',
+                if (userPermissions.contains('Account_subscription_panel'))
+                  'Account Details',
+                if (userPermissions.contains('c_directory_panel'))
+                  'Contact Directory',
+                if (userPermissions.contains('brand_details'))
+                  'MContact_Brands',
+                if (userPermissions.contains('company_details'))
+                  'MContact_Companies',
               ];
 
               return ListView(
@@ -191,7 +215,8 @@ class CommonSidebar extends StatelessWidget {
                     currentRoute: currentRoute,
                   ),
 
-                  if (userPermissions.contains('maintenance_panel') && supportTicketSubItems.isNotEmpty)
+                  if (userPermissions.contains('maintenance_panel') &&
+                      supportTicketSubItems.isNotEmpty)
                     _buildExpandableMenuItem(
                       icon: Icons.support_agent_outlined,
                       title: 'Support Ticket',
@@ -218,13 +243,16 @@ class CommonSidebar extends StatelessWidget {
                     ),
 
                   // Tracking Section
-                  if (userPermissions.contains('tracking_panel') || userPermissions.contains('Attendance_Log'))
+                  if (userPermissions.contains('tracking_panel') ||
+                      userPermissions.contains('Attendance_Log'))
                     _buildExpandableMenuItem(
                       icon: Icons.location_on_outlined,
                       title: 'Attendance',
                       subItems: [
-                        if (userPermissions.contains('tracking_panel')) 'Attendance',
-                        if (userPermissions.contains('Attendance_Log')) 'Log',
+                        if (userPermissions.contains('tracking_panel'))
+                          'Attendance',
+                        if (userPermissions.contains('Attendance_Log'))
+                          'Report',
                       ],
                       currentRoute: currentRoute,
                     ),
@@ -235,9 +263,12 @@ class CommonSidebar extends StatelessWidget {
                       icon: Icons.attach_money_outlined,
                       title: 'Collections & Deposits',
                       subItems: [
-                        if (userPermissions.contains('collection_panel')) 'Admin Collections',
-                        if (userPermissions.contains('normal_admin_collection')) 'Collections',
-                        if (userPermissions.contains('deposit_panel')) 'Deposits',
+                        if (userPermissions.contains('collection_panel'))
+                          'Admin Collections',
+                        if (userPermissions.contains('normal_admin_collection'))
+                          'Collections',
+                        if (userPermissions.contains('deposit_panel'))
+                          'Deposits',
                       ],
                       currentRoute: currentRoute,
                     ),
@@ -260,14 +291,12 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  // _buildMenuItem(
+                  // _buildExpandableMenuItem(
                   //   icon: Icons.payment_outlined,
-                  //   activeIcon: Icons.payment,
-                  //   title: 'Payment Reminder',
-                  //   route: AppRoutes.paymentReminder,
+                  //   title: 'Payment Scheduler',
+                  //   subItems: const ['Scheduler', 'Completed Schedulers'],
                   //   currentRoute: currentRoute,
                   // ),
-
                   _buildMenuItem(
                     icon: Icons.person_outline,
                     activeIcon: Icons.person,
@@ -415,19 +444,26 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.allTasks);
                   } else if (item == 'Daily Task') {
                     Get.toNamed(AppRoutes.dailyTasks);
+                  } else if (item == 'Daily Task Filter' ||
+                      item == 'Daily Task By Month') {
+                    Get.toNamed(AppRoutes.dailyTaskFilter);
                   } else if (item == 'My Routes') {
                     Get.toNamed(AppRoutes.liveTracking);
                   } else if (item == 'Attendance') {
                     Get.toNamed(AppRoutes.staffTracking);
-                  } else if (item == 'Log') {
+                  } else if (item == 'Log' || item == 'Report') {
                     Get.toNamed(AppRoutes.attendanceLog);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);
                   } else if (item == 'Unit Inventory') {
                     Get.toNamed(AppRoutes.unitInventory);
-                  } else if (item == 'Consumption') {
+                  } else if (item == 'Inventory Orders') {
+                    Get.toNamed(AppRoutes.inventoryOrders);
+                  } else if (item == 'Order Logs') {
+                    Get.toNamed(AppRoutes.orderReceiveLogs);
+                  } else if (item == 'Consumption' || item == 'Usage') {
                     Get.toNamed(AppRoutes.allConsumption);
-                  } else if (item == 'Allotments') {
+                  } else if (item == 'Allotments' || item == 'Transfer') {
                     Get.toNamed(AppRoutes.allotments);
                   } else if (item == 'M_Measurements') {
                     Get.toNamed(AppRoutes.measurements);
@@ -451,6 +487,10 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.contactBrands);
                   } else if (item == 'MContact_Companies') {
                     Get.toNamed(AppRoutes.contactCompanies);
+                  } else if (item == 'Scheduler') {
+                    Get.toNamed(AppRoutes.paymentReminder);
+                  } else if (item == 'Completed Schedulers') {
+                    Get.toNamed(AppRoutes.completedPayments);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

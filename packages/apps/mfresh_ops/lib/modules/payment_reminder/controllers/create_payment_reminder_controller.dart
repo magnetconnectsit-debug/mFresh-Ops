@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
-import 'package:mfresh_ops/data/models/payment_reminder_model.dart';
+import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 import 'package:intl/intl.dart';

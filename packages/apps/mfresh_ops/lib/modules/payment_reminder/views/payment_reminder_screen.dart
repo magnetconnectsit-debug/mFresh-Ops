@@ -10,6 +10,8 @@ import 'package:mfresh_ops/modules/payment_reminder/views/widgets/payment_remind
 import 'package:mfresh_ops/modules/payment_reminder/views/widgets/payment_reminder_table.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class PaymentReminderScreen extends StatelessWidget {
   const PaymentReminderScreen({super.key});
@@ -37,11 +39,12 @@ class PaymentReminderScreen extends StatelessWidget {
                     hintText: 'Search payment reminders...',
                     onChanged: (v) {
                       controller.searchQuery.value = v;
+                      controller.applyFilters();
                     },
                   ),
                 )
               : Text(
-                  'Payment Reminder',
+                  'Scheduler',
                   style: AppTextStyle.style_18_700(color: AppColors.black),
                 ),
         ),
@@ -61,6 +64,11 @@ class PaymentReminderScreen extends StatelessWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
+            try {
+              if (Get.isRegistered<AuthRepository>()) {
+                await Get.find<AuthRepository>().fetchProfile();
+              }
+            } catch (_) {}
             controller.searchQuery.value = '';
             controller.currentPage.value = 1;
             await controller.fetchPaymentReminders();
@@ -70,7 +78,7 @@ class PaymentReminderScreen extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               PaymentReminderFilterCard(controller: controller),
-              SizedBox(height: 12.h),
+              SizedBox(height: 6.h),
               
               // Action Buttons (Add Reminder & Rows per Page)
               Row(
@@ -84,18 +92,35 @@ class PaymentReminderScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF16A3B8),
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        padding: EdgeInsets.symmetric(horizontal: 6.w),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
                         elevation: 1,
                       ),
-                      child: Text('Add Reminder', style: AppTextStyle.style_12_500(color: Colors.white)),
+                      child: Text('Add Reminder', style: AppTextStyle.style_10_500(color: Colors.white)),
+                    ),
+                  ),
+                  SizedBox(width: 6.w),
+                  SizedBox(
+                    height: 24.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.offNamed(AppRoutes.completedPayments);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 6.w),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                        elevation: 1,
+                      ),
+                      child: Text('Completed Payments', style: AppTextStyle.style_10_500(color: Colors.white)),
                     ),
                   ),
                   const Spacer(),
                   Obx(
                     () => Container(
                       height: 24.h,
-                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         border: Border.all(color: Colors.grey.shade300),
@@ -104,11 +129,12 @@ class PaymentReminderScreen extends StatelessWidget {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<int>(
                           value: controller.perPage.value,
+                          isDense: true,
                           dropdownColor: Colors.white,
-                          style: AppTextStyle.style_12_500(color: AppColors.black),
+                          style: AppTextStyle.style_10_500(color: AppColors.black),
                           icon: Icon(
                             Icons.arrow_drop_down,
-                            size: 16.r,
+                            size: 14.r,
                             color: Colors.grey.shade600,
                           ),
                           items: [10, 20, 50, 100, 500, 1000].map((int val) {
@@ -129,7 +155,7 @@ class PaymentReminderScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 6.h),
               
               // Table
               PaymentReminderTable(controller: controller),

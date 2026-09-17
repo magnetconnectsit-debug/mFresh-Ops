@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 
 class GridSubAction {
   final String title;
@@ -142,6 +140,17 @@ class HomeGridController extends GetxController {
           route: AppRoutes.allTasks,
           permissionKey: 'All_Task',
         ),
+        GridSubAction(
+          title: 'Filter',
+          icon: Icons.filter_alt_outlined,
+          route: AppRoutes.dailyTaskFilter,
+        ),
+        GridSubAction(
+          title: 'Month',
+          icon: Icons.calendar_month_outlined,
+          route: AppRoutes.dailyTaskFilter,
+          permissionKey: 'daily_task_by_month',
+        ),
       ],
     ),
     GridItemData(
@@ -161,8 +170,20 @@ class HomeGridController extends GetxController {
           permissionKey: 'store_inventory_stock',
         ),
         GridSubAction(
+          title: 'Orders',
+          icon: Icons.shopping_cart_outlined,
+          route: AppRoutes.inventoryOrders,
+          permissionKey: 'Inv_Order_Panel',
+        ),
+        GridSubAction(
+          title: 'Logs',
+          icon: Icons.history,
+          route: AppRoutes.orderReceiveLogs,
+          permissionKey: 'Inv_Order_Log_Panel',
+        ),
+        GridSubAction(
           title: 'Consumption',
-          icon: Icons.restaurant,
+          icon: Icons.pie_chart_rounded,
           route: AppRoutes.allConsumption,
           permissionKey: 'consumption_report',
         ),
@@ -202,7 +223,7 @@ class HomeGridController extends GetxController {
       subActions: [
 
         GridSubAction(
-          title: 'Log',
+          title: 'Report',
           icon: Icons.assignment_rounded,
           route: AppRoutes.attendanceLog,
           permissionKey: 'Attendance_Log',
@@ -232,6 +253,26 @@ class HomeGridController extends GetxController {
         ),
       ],
     ),
+    // GridItemData(
+    //   title: 'Payment Scheduler',
+    //   headerTitle: 'Reminders',
+    //   subtitle: 'Payment tracking & alerts',
+    //   icon: Icons.payment_rounded,
+    //   gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
+    //   route: AppRoutes.paymentReminder,
+    //   subActions: [
+    //     GridSubAction(
+    //       title: 'Scheduler',
+    //       icon: Icons.schedule_rounded,
+    //       route: AppRoutes.paymentReminder,
+    //     ),
+    //     GridSubAction(
+    //       title: 'Completed',
+    //       icon: Icons.task_alt_rounded,
+    //       route: AppRoutes.completedPayments,
+    //     ),
+    //   ],
+    // ),
     GridItemData(
       title: 'Contacts',
       headerTitle: 'Info Directory',
@@ -330,7 +371,7 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        } 
+        }
       } else if (item.title == 'Attendance') {
         if (userPermissions.contains('tracking_panel')) {
           final sub = item.subActions
@@ -341,10 +382,10 @@ class HomeGridController extends GetxController {
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('Attendance_Log')) { 
+        } else if (userPermissions.contains('Attendance_Log')) {
           availableItems.add(
             GridItemData(
-              title: 'Attendance Log',
+              title: 'Attendance Report',
               subtitle: 'View attendance records',
               icon: Icons.assignment_rounded,
               gradient: item.gradient,

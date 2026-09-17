@@ -23,8 +23,9 @@ class AllTasksHeaderCell extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
               child: Text(
@@ -33,12 +34,14 @@ class AllTasksHeaderCell extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (isSorted)
+            if (isSorted) ...[
+              SizedBox(width: 2.w),
               Icon(
                 sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 14.sp,
+                size: 13.sp,
                 color: AppColors.black,
               ),
+            ],
           ],
         ),
       ),

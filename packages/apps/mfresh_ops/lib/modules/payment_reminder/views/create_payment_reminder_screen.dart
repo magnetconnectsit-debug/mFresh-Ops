@@ -7,7 +7,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_reminder_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
-import 'package:mfresh_ops/data/models/payment_reminder_model.dart';
+import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 
