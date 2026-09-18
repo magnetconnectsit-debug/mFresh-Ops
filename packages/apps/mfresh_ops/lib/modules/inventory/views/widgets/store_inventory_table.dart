@@ -58,7 +58,8 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Obx(() {
-                  if (controller.inventoryItems.isEmpty && !controller.isLoading.value) {
+                  if (controller.inventoryItems.isEmpty &&
+                      !controller.isLoading.value) {
                     return Padding(
                       padding: EdgeInsets.all(20.r),
                       child: const Text('No inventory items found.'),
@@ -86,7 +87,8 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                       children: [
                         // Sticky Header Row
                         Table(
-                          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                          defaultVerticalAlignment:
+                              TableCellVerticalAlignment.middle,
                           border: TableBorder.symmetric(
                             inside: BorderSide(color: Colors.grey.shade300),
                           ),
@@ -102,28 +104,57 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                           },
                           children: [
                             TableRow(
-                              decoration: const BoxDecoration(color: Color(0xFFE8F1F8)),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE8F1F8),
+                              ),
                               children: [
                                 _buildHeaderCell(controller, 'Action'),
                                 _buildHeaderCell(controller, 'Store'),
                                 _buildHeaderCell(controller, 'Item'),
                                 _buildHeaderCell(controller, 'Category'),
                                 _buildHeaderCell(controller, 'Quantity'),
-                                _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Usage ${controller.consumptionSubtitle.value}' : 'Usage', sortKey: 'Consumption'),
-                                _buildHeaderCell(controller, controller.consumptionSubtitle.value.isNotEmpty ? 'Required Qty ${controller.consumptionSubtitle.value}' : 'Required Qty', sortKey: 'Required Qty'),
-                                _buildHeaderCell(controller, 'Request Order', sortKey: 'Order'),
+                                _buildHeaderCell(
+                                  controller,
+                                  controller
+                                          .consumptionSubtitle
+                                          .value
+                                          .isNotEmpty
+                                      ? 'Usage ${controller.consumptionSubtitle.value}'
+                                      : 'Usage',
+                                  sortKey: 'Consumption',
+                                ),
+                                _buildHeaderCell(
+                                  controller,
+                                  controller
+                                          .consumptionSubtitle
+                                          .value
+                                          .isNotEmpty
+                                      ? 'Required Qty ${controller.consumptionSubtitle.value}'
+                                      : 'Required Qty',
+                                  sortKey: 'Required Qty',
+                                ),
+                                _buildHeaderCell(
+                                  controller,
+                                  'Request Order',
+                                  sortKey: 'Order',
+                                ),
                               ],
                             ),
                           ],
                         ),
-                        const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Color(0xFFE0E0E0),
+                        ),
                         // Scrollable Rows
                         ConstrainedBox(
                           constraints: BoxConstraints(maxHeight: 340.h),
                           child: SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
                             child: Table(
-                              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                              defaultVerticalAlignment:
+                                  TableCellVerticalAlignment.middle,
                               border: TableBorder.symmetric(
                                 inside: BorderSide(color: Colors.grey.shade300),
                               ),
@@ -140,13 +171,19 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                               children: [
                                 ...List.generate(itemsToRender.length, (index) {
                                   final item = itemsToRender[index];
-                                  final key = '${item.store}_${item.item}_${item.category}_$index';
-                                  final isExpanded = _expandedRows.contains(key);
+                                  final key =
+                                      '${item.store}_${item.item}_${item.category}_$index';
+                                  final isExpanded = _expandedRows.contains(
+                                    key,
+                                  );
 
                                   return TableRow(
                                     children: [
                                       Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 4.w,
+                                          vertical: 4.h,
+                                        ),
                                         child: FittedBox(
                                           fit: BoxFit.scaleDown,
                                           child: Row(
@@ -157,17 +194,39 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                                                   height: 18.h,
                                                   width: 56.w,
                                                   child: ElevatedButton(
-                                                    onPressed: () => StoreInventoryDialogs.showAllocateSheet(context, item),
+                                                    onPressed: () =>
+                                                        StoreInventoryDialogs.showAllocateSheet(
+                                                          context,
+                                                          item,
+                                                        ),
                                                     style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.blue,
-                                                      foregroundColor: Colors.white,
+                                                      backgroundColor:
+                                                          Colors.blue,
+                                                      foregroundColor:
+                                                          Colors.white,
                                                       padding: EdgeInsets.zero,
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4.r,
+                                                            ),
+                                                      ),
                                                       elevation: 0,
                                                       minimumSize: Size.zero,
-                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                      tapTargetSize:
+                                                          MaterialTapTargetSize
+                                                              .shrinkWrap,
                                                     ),
-                                                    child: Center(child: Text('Transfer', style: AppTextStyle.style_10_500(color: Colors.white))),
+                                                    child: Center(
+                                                      child: Text(
+                                                        'Transfer',
+                                                        style:
+                                                            AppTextStyle.style_10_500(
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                                 SizedBox(width: 4.w),
@@ -177,17 +236,41 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                                                   height: 18.h,
                                                   width: 56.w,
                                                   child: ElevatedButton(
-                                                    onPressed: () => StoreInventoryDialogs.showConsumptionSheet(context, item),
+                                                    onPressed: () =>
+                                                        StoreInventoryDialogs.showConsumptionSheet(
+                                                          context,
+                                                          item,
+                                                        ),
                                                     style: ElevatedButton.styleFrom(
-                                                      backgroundColor: const Color(0xFFE53935),
-                                                      foregroundColor: Colors.white,
+                                                      backgroundColor:
+                                                          const Color(
+                                                            0xFFE53935,
+                                                          ),
+                                                      foregroundColor:
+                                                          Colors.white,
                                                       padding: EdgeInsets.zero,
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4.r,
+                                                            ),
+                                                      ),
                                                       elevation: 0,
                                                       minimumSize: Size.zero,
-                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                      tapTargetSize:
+                                                          MaterialTapTargetSize
+                                                              .shrinkWrap,
                                                     ),
-                                                    child: Center(child: Text('Use', style: AppTextStyle.style_10_500(color: Colors.white))),
+                                                    child: Center(
+                                                      child: Text(
+                                                        'Use',
+                                                        style:
+                                                            AppTextStyle.style_10_500(
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -195,12 +278,41 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                                           ),
                                         ),
                                       ),
-                                      _buildDataCell(item.store, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.item, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.category, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.quantity, isExpanded, () => _toggleRow(key), textColor: (item.isLowStock || item.isQntyLow) ? Colors.red : null, bgColor: const Color(0xFFFFF8E7)),
-                                      _buildDataCell(item.formattedConsumption, isExpanded, () => _toggleRow(key)),
-                                      _buildDataCell(item.formattedRequiredQuantity, isExpanded, () => _toggleRow(key)),
+                                      _buildDataCell(
+                                        item.store,
+                                        isExpanded,
+                                        () => _toggleRow(key),
+                                      ),
+                                      _buildDataCell(
+                                        item.item,
+                                        isExpanded,
+                                        () => _toggleRow(key),
+                                      ),
+                                      _buildDataCell(
+                                        item.category,
+                                        isExpanded,
+                                        () => _toggleRow(key),
+                                      ),
+                                      _buildDataCell(
+                                        item.quantity,
+                                        isExpanded,
+                                        () => _toggleRow(key),
+                                        textColor:
+                                            (item.isLowStock || item.isQntyLow)
+                                            ? Colors.red
+                                            : null,
+                                        bgColor: const Color(0xFFFFF8E7),
+                                      ),
+                                      _buildDataCell(
+                                        item.formattedConsumption,
+                                        isExpanded,
+                                        () => _toggleRow(key),
+                                      ),
+                                      _buildDataCell(
+                                        item.formattedRequiredQuantity,
+                                        isExpanded,
+                                        () => _toggleRow(key),
+                                      ),
                                       _buildOrderCell(item),
                                     ],
                                   );
@@ -219,8 +331,13 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
           SizedBox(height: 12.h),
           Obx(() {
             final totalItems = controller.inventoryItems.length;
-            final startItem = totalItems == 0 ? 0 : ((controller.currentPage.value - 1) * controller.itemsPerPage.value) + 1;
-            final endItem = (startItem + controller.itemsPerPage.value - 1).clamp(0, totalItems);
+            final startItem = totalItems == 0
+                ? 0
+                : ((controller.currentPage.value - 1) *
+                          controller.itemsPerPage.value) +
+                      1;
+            final endItem = (startItem + controller.itemsPerPage.value - 1)
+                .clamp(0, totalItems);
 
             return Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -241,7 +358,11 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildPaginationButton('←', false, controller.previousPage),
+                          _buildPaginationButton(
+                            '←',
+                            false,
+                            controller.previousPage,
+                          ),
                           ...List.generate(controller.totalPages, (index) {
                             final pageNumber = index + 1;
                             return _buildPaginationButton(
@@ -250,7 +371,11 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
                               () => controller.goToPage(pageNumber),
                             );
                           }),
-                          _buildPaginationButton('→', false, controller.nextPage),
+                          _buildPaginationButton(
+                            '→',
+                            false,
+                            controller.nextPage,
+                          ),
                         ],
                       ),
                     ),
@@ -264,13 +389,19 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
     });
   }
 
-  Widget _buildHeaderCell(InventoryController controller, String text, {String? sortKey}) {
+  Widget _buildHeaderCell(
+    InventoryController controller,
+    String text, {
+    String? sortKey,
+  }) {
     final key = sortKey ?? text;
     final isSorted = controller.sortColumn.value == key;
     final isAsc = controller.sortAscending.value;
 
     return InkWell(
-      onTap: key.isNotEmpty && key != 'Action' ? () => controller.sortBy(key) : null,
+      onTap: key.isNotEmpty && key != 'Action'
+          ? () => controller.sortBy(key)
+          : null,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
         child: Row(
@@ -298,8 +429,7 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
   }
 
   Widget _buildOrderCell(InventoryItemModel item) {
-    final canStoreOrder = Get.find<AuthRepository>().rxUserPermissions.contains('Inv_Store_Order');
-    if (item.canRequestOrder && canStoreOrder && !item.canReceiveOrder) {
+    if (item.canRequestOrder && !item.canReceiveOrder) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
         child: SizedBox(
@@ -322,12 +452,17 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
               backgroundColor: const Color(0xFFFFC107),
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(horizontal: 6.w),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.r),
+              ),
               elevation: 1,
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text('Request Order', style: AppTextStyle.style_10_600(color: Colors.white)),
+            child: Text(
+              'Request Order',
+              style: AppTextStyle.style_10_600(color: Colors.white),
+            ),
           ),
         ),
       );
@@ -338,7 +473,10 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
         return const SizedBox.shrink();
       }
       final rawStatus = item.currentOrderStatusName?.trim();
-      final statusDisplay = (rawStatus == null || rawStatus.isEmpty || rawStatus.toLowerCase() == 'pending')
+      final statusDisplay =
+          (rawStatus == null ||
+              rawStatus.isEmpty ||
+              rawStatus.toLowerCase() == 'pending')
           ? 'Order Pending'
           : rawStatus;
 
@@ -367,7 +505,8 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
           height: 20.h,
           child: ElevatedButton(
             onPressed: () {
-              final orderId = int.tryParse(item.currentOrderId?.toString() ?? '') ?? 0;
+              final orderId =
+                  int.tryParse(item.currentOrderId?.toString() ?? '') ?? 0;
               ReceiveStoreOrderDialog.show(
                 context: context,
                 orderId: orderId,
@@ -382,12 +521,17 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
               backgroundColor: const Color(0xFF00875A),
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(horizontal: 8.w),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.r),
+              ),
               elevation: 1,
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text('Order Receive', style: AppTextStyle.style_10_600(color: Colors.white)),
+            child: Text(
+              'Order Receive',
+              style: AppTextStyle.style_10_600(color: Colors.white),
+            ),
           ),
         ),
       );
@@ -396,7 +540,13 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildDataCell(String text, bool isExpanded, VoidCallback onTap, {Color? textColor, Color? bgColor}) {
+  Widget _buildDataCell(
+    String text,
+    bool isExpanded,
+    VoidCallback onTap, {
+    Color? textColor,
+    Color? bgColor,
+  }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -413,7 +563,11 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
     );
   }
 
-  Widget _buildPaginationButton(String text, bool isActive, VoidCallback onTap) {
+  Widget _buildPaginationButton(
+    String text,
+    bool isActive,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4.r),
@@ -422,12 +576,16 @@ class _StoreInventoryTableState extends State<StoreInventoryTable> {
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
         decoration: BoxDecoration(
           color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
-          border: Border.all(color: isActive ? Colors.blue.shade600 : Colors.grey.shade300),
+          border: Border.all(
+            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
+          ),
           borderRadius: BorderRadius.circular(4.r),
         ),
         child: Text(
           text,
-          style: AppTextStyle.style_12_500(color: isActive ? Colors.white : Colors.blue.shade600),
+          style: AppTextStyle.style_12_500(
+            color: isActive ? Colors.white : Colors.blue.shade600,
+          ),
         ),
       ),
     );

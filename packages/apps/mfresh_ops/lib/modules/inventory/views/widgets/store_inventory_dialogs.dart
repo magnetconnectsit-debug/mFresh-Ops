@@ -833,7 +833,7 @@ class StoreInventoryDialogs {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Allocate to Unit',
+                      'Transfer to Unit',
                       style: AppTextStyle.style_18_700(color: AppColors.black),
                     ),
                     IconButton(
@@ -873,8 +873,8 @@ class StoreInventoryDialogs {
                   children: [
                     Expanded(
                       child: _buildGreyField(
-                        'Available Qty. (Consumption)',
-                        '${item.quantity} ${item is InventoryItemModel ? item.unit : item.mUnit}',
+                        'Available Qty.',
+                        '${item.quantity}',
                       ),
                     ),
                     SizedBox(width: 12.w),
@@ -1047,37 +1047,37 @@ class StoreInventoryDialogs {
                                 .toLowerCase();
                         if (unit == 'litre') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (ml)',
+                            'Transfer Quantity (ml)',
                             'Enter in ml',
                             controller: qtyController,
                           );
                         } else if (unit == 'piece' || unit == 'pcs') {
                           return _buildWhiteInput(
-                            'Allocate Quantity',
+                            'Transfer Quantity',
                             'Enter Pieces',
                             controller: qtyController,
                           );
                         } else if (unit == 'pair') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (Pair)',
+                            'Transfer Quantity (Pair)',
                             'Enter Pairs',
                             controller: qtyController,
                           );
                         } else if (unit == 'kg') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (g)',
+                            'Transfer Quantity (g)',
                             'Enter in grams',
                             controller: qtyController,
                           );
                         } else if (unit == 'packet' || unit == 'box') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (Packet)',
+                            'Transfer Quantity (Packet)',
                             'Enter Packets',
                             controller: qtyController,
                           );
                         } else {
                           return _buildWhiteInput(
-                            'Allocate Qty. (Consumption)',
+                            'Transfer Quantity',
                             'Enter Qty.',
                             controller: qtyController,
                           );
@@ -1117,10 +1117,13 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        final enteredQty = double.tryParse(qty) ?? 0;
-                        final availableQty =
-                            double.tryParse(item.quantity?.toString() ?? '0') ??
-                            0;
+                        final cleanEntered = qty.replaceAll(RegExp(r'[^0-9.-]'), '');
+                        final enteredQty = double.tryParse(cleanEntered) ?? 0;
+
+                        final rawAvail = item.quantity?.toString() ?? '0';
+                        final cleanAvail = rawAvail.replaceAll(RegExp(r'[^0-9.-]'), '');
+                        final availableQty = double.tryParse(cleanAvail) ?? 0;
+
                         if (enteredQty <= 0) {
                           AppCommonToastMessage.show(
                             message:
@@ -1129,7 +1132,7 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        if (enteredQty > availableQty) {
+                        if (availableQty > 0 && enteredQty > availableQty) {
                           AppCommonToastMessage.show(
                             message:
                                 'Not enough quantity available. Maximum: $availableQty',
@@ -1209,7 +1212,7 @@ class StoreInventoryDialogs {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Consumption',
+                      'Usage',
                       style: AppTextStyle.style_18_700(color: AppColors.black),
                     ),
                     IconButton(
@@ -1259,42 +1262,42 @@ class StoreInventoryDialogs {
                                 .toLowerCase();
                         if (unit == 'litre') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (ml)',
+                            'Usage Quantity (ml)',
                             'Enter in ml',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'piece' || unit == 'pcs') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity',
+                            'Usage Quantity',
                             'Enter Pieces',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'pair') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (Pair)',
+                            'Usage Quantity (Pair)',
                             'Enter Pairs',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'kg') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (g)',
+                            'Usage Quantity (g)',
                             'Enter in grams',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'packet' || unit == 'box') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (Packet)',
+                            'Usage Quantity (Packet)',
                             'Enter Packets',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Qty.',
+                            'Usage Quantity',
                             'Enter Qty.',
                             isInput: true,
                             controller: qtyController,
@@ -1331,10 +1334,13 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        final enteredQty = double.tryParse(qty) ?? 0;
-                        final availableQty =
-                            double.tryParse(item.quantity?.toString() ?? '0') ??
-                            0;
+                        final cleanEntered = qty.replaceAll(RegExp(r'[^0-9.-]'), '');
+                        final enteredQty = double.tryParse(cleanEntered) ?? 0;
+
+                        final rawAvail = item.quantity?.toString() ?? '0';
+                        final cleanAvail = rawAvail.replaceAll(RegExp(r'[^0-9.-]'), '');
+                        final availableQty = double.tryParse(cleanAvail) ?? 0;
+
                         if (enteredQty <= 0) {
                           AppCommonToastMessage.show(
                             message:
@@ -1343,7 +1349,7 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        if (enteredQty > availableQty) {
+                        if (availableQty > 0 && enteredQty > availableQty) {
                           AppCommonToastMessage.show(
                             message:
                                 'Not enough quantity available. Maximum: $availableQty',

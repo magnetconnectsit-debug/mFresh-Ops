@@ -147,6 +147,7 @@ class AuthRepository extends GetxService {
           'is_dev': devInfo['is_dev'],
           'fcm_token': devInfo['fcm_token'],
           'device_info': devInfo['device_info'],
+          'login_mode': 'operation',
         },
       );
 
@@ -262,6 +263,7 @@ class AuthRepository extends GetxService {
           'is_dev': devInfo['is_dev'],
           'fcm_token': devInfo['fcm_token'],
           'device_info': devInfo['device_info'],
+          'login_mode': 'operation',
         },
       );
 

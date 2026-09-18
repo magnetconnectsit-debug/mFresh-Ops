@@ -263,10 +263,10 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   }
 
   void _closeGpsDisabledDialog() {
-    if (_isGpsDialogShowing) {
-       Get.back();
-       _isGpsDialogShowing = false;
+    if (_isGpsDialogShowing && (Get.isDialogOpen ?? false)) {
+      Get.back();
     }
+    _isGpsDialogShowing = false;
   }
 
   @override
@@ -484,7 +484,6 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         return true;
       } else {
         await _repository.dutyOn();
-        isTracking.value = true;
         await _storageService.saveIntendedTrackingStatus(true);
         await startTracking();
         try {
@@ -817,6 +816,12 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       return;
     }
 
+    // If background service owns tracking, let it handle the cache sync.
+    // Foreground must not access the same Hive box simultaneously (not isolate-safe).
+    final bool isBgOwner =
+        await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
+    if (isBgOwner) return;
+
     try {
       final box = await Hive.openBox<LocationData>('location_cache_box');
       if (box.isEmpty) {
@@ -1026,7 +1031,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   Future<void> _updateNotificationSafely() async {
     if (await FlutterForegroundTask.isRunningService) {
       final String syncedText = _lastSyncedAt != null
-          ? DateFormat('hh:mm:ss a').format(_lastSyncedAt!)
+          ? DateFormat('hh:mm a').format(_lastSyncedAt!)
           : 'Never';
       FlutterForegroundTask.updateService(
         notificationTitle: 'Duty Active',

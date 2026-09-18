@@ -351,7 +351,6 @@ class MyTaskHandler extends TaskHandler {
       }
 
       final connectivityResults = await _connectivity.checkConnectivity();
-
       if (connectivityResults.isEmpty ||
           connectivityResults.contains(ConnectivityResult.none)) {
         await box.close();
@@ -362,9 +361,7 @@ class MyTaskHandler extends TaskHandler {
         key: 'session_id',
       );
       final sessionId = int.tryParse(sessionIdRaw?.toString() ?? '');
-
       final token = await FlutterForegroundTask.getData<String>(key: 'token');
-
       final deviceId = await FlutterForegroundTask.getData<String>(
         key: 'device_id',
       );
@@ -378,14 +375,38 @@ class MyTaskHandler extends TaskHandler {
       }
 
       _dio.options.headers['Authorization'] = 'Bearer $token';
+      final uri = '${AppConfig.baseUrl}${AppConstants.trackingBulkSync}';
 
-      final uri = '${AppConfig.baseUrl}${AppConstants.trackingLocationUpdate}';
+      // Sort entries by time so oldest locations sync first
+      final entries = box.toMap().entries.toList()
+        ..sort((a, b) => a.value.locationTime.compareTo(b.value.locationTime));
 
-      final keysToDelete = <dynamic>[];
+      // Process in batches of bulkSyncBatchSize (matches foreground behaviour)
+      for (
+        var i = 0;
+        i < entries.length;
+        i += TrackingConstants.bulkSyncBatchSize
+      ) {
+        final end = (i + TrackingConstants.bulkSyncBatchSize > entries.length)
+            ? entries.length
+            : i + TrackingConstants.bulkSyncBatchSize;
+        final batchEntries = entries.sublist(i, end);
 
-      for (final key in box.keys) {
-        final location = box.get(key);
-        if (location == null) continue;
+        final locationsPayload = batchEntries
+            .map(
+              (e) => {
+                'latitude': e.value.latitude,
+                'longitude': e.value.longitude,
+                'accuracy': e.value.accuracy,
+                'speed': e.value.speed,
+                'heading': e.value.heading,
+                'battery': e.value.battery,
+                'is_charging': e.value.isCharging,
+                'network_type': e.value.networkType,
+                'location_time': e.value.locationTime,
+              },
+            )
+            .toList();
 
         try {
           final response = await _dio.post(
@@ -393,24 +414,17 @@ class MyTaskHandler extends TaskHandler {
             data: {
               'session_id': sessionId,
               'device_id': deviceId,
-              'latitude': location.latitude,
-              'longitude': location.longitude,
-              'accuracy': location.accuracy,
-              'speed': location.speed,
-              'heading': location.heading,
-              'battery': location.battery,
-              'is_charging': location.isCharging,
-              'network_type': _networkType(connectivityResults),
-              'location_time': location.locationTime,
+              'locations': locationsPayload,
             },
           );
 
           if (response.statusCode == 200 || response.statusCode == 201) {
-            keysToDelete.add(key);
+            final keysToDelete = batchEntries.map((e) => e.key).toList();
+            await box.deleteAll(keysToDelete);
             _lastSyncedAt = DateTime.now();
             _updateNotificationSafely();
           } else {
-            break;
+            break; // Hard abort on batch failure (matches foreground)
           }
         } on DioException catch (e) {
           if (e.response?.statusCode == 401) {
@@ -422,9 +436,6 @@ class MyTaskHandler extends TaskHandler {
         }
       }
 
-      if (keysToDelete.isNotEmpty) {
-        await box.deleteAll(keysToDelete);
-      }
       await box.close();
     } catch (_) {}
   }
@@ -559,14 +570,9 @@ class MyTaskHandler extends TaskHandler {
     }
   }
 
-  bool _hasUpdatedNotificationOnce = false;
-
   Future<void> _updateNotificationSafely() async {
-    if (_hasUpdatedNotificationOnce || _lastSyncedAt == null) return;
-    
-    _hasUpdatedNotificationOnce = true;
-    final String syncedText = DateFormat('hh:mm:ss a').format(_lastSyncedAt!);
-    
+    if (_lastSyncedAt == null) return;
+    final String syncedText = DateFormat('hh:mm a').format(_lastSyncedAt!);
     FlutterForegroundTask.updateService(
       notificationTitle: 'Duty Active',
       notificationText: 'Duty Active | Last Synced: $syncedText',
