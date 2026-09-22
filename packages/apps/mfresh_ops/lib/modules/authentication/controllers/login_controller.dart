@@ -50,6 +50,17 @@ class LoginController extends GetxController {
   }
 
   void _loadSavedCredentials() {
+    final isRemembered = _storageService.getRememberMe();
+    if (isRemembered) {
+      rememberMe.value = true;
+      final credentials = _storageService.getCredentials();
+      if (credentials != null && (credentials['mobile']?.isNotEmpty ?? false)) {
+        usernameController.text = credentials['mobile'] ?? '';
+        passwordController.text = credentials['password'] ?? '';
+        return;
+      }
+    }
+
     if (kDebugMode) {
       ///   [Prod Credential]
       usernameController.text = '7873168884';
@@ -62,16 +73,7 @@ class LoginController extends GetxController {
       return;
     }
 
-    final isRemembered = _storageService.getRememberMe();
     rememberMe.value = isRemembered;
-
-    if (isRemembered) {
-      final credentials = _storageService.getCredentials();
-      if (credentials != null) {
-        usernameController.text = credentials['mobile'] ?? '';
-        passwordController.text = credentials['password'] ?? '';
-      }
-    }
   }
 
   void handleLogoTap() {

@@ -9,33 +9,41 @@ import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_r
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
-import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/widgets/reminder_setup_dialog.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/widgets/edit_reminder_date_dialog.dart';
 
 class CreatePaymentReminderScreen extends StatelessWidget {
-  const CreatePaymentReminderScreen({super.key});
+  final PaymentReminderItem? reminderItem;
+
+  const CreatePaymentReminderScreen({super.key, this.reminderItem});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(CreatePaymentReminderController());
+    if (Get.isRegistered<CreatePaymentReminderController>()) {
+      Get.delete<CreatePaymentReminderController>();
+    }
+    final controller = Get.put(CreatePaymentReminderController(reminderItem: reminderItem));
 
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
       appBar: PreferredSize(
         preferredSize: const AppCommonAppBar().preferredSize,
-        child: const AppCommonAppBar(
-          title: Text('Add Payment Reminder'),
+        child: Obx(
+          () => AppCommonAppBar(
+            title: Text(controller.isEditing.value ? 'Edit Payment Reminder' : 'Add Payment Reminder'),
+          ),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
+          padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
           child: Container(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderColor),
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
             child: Form(
               key: controller.formKey,
@@ -44,114 +52,218 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Payment Reminder Form',
+                    style: AppTextStyle.style_16_700(color: AppColors.black),
+                  ),
+                  SizedBox(height: 12.h),
+
+                  // ── Assignee Field ─────────────────────────────────────────
+                  Obx(
+                    () {
+                      final assigneeName = controller.selectedAssignee.value?.name;
+                      return MultiSelectDropdownWidget<PaymentReminderUser>(
+                        label: 'Assignee *',
+                        hint: 'Select User',
+                        isSingleSelect: true,
+                        showSearch: true,
+                        selectedValues: controller.selectedAssignee.value == null
+                            ? <PaymentReminderUser>{}
+                            : {controller.selectedAssignee.value!},
+                        items: controller.users
+                            .map((e) => DropdownMenuItem<PaymentReminderUser>(
+                                  value: e,
+                                  child: Text(
+                                    e.name ?? '-',
+                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (values) => controller.selectedAssignee.value =
+                            values.isEmpty ? null : values.first,
+                        customChild: _buildDropdownField(
+                          label: 'Assignee *',
+                          hint: 'Select User',
+                          value: assigneeName,
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: 14.h),
+
+                  // ── Basic Details + Expense Details ────────────────────────
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final basicDetails = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Basic Details',
+                            style: AppTextStyle.style_14_700(color: AppColors.black),
+                          ),
+                          SizedBox(height: 8.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.forCtrl,
+                                  label: 'For *',
+                                  hint: 'Enter For',
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.brandCtrl,
+                                  label: 'Brand',
+                                  hint: 'Enter Brand',
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.customerIdCtrl,
+                                  label: 'Customer ID',
+                                  hint: 'Enter Customer ID',
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.locationCtrl,
+                                  label: 'Location',
+                                  hint: 'Enter Location',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+
+                      final expenseDetails = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Expense Details',
+                            style: AppTextStyle.style_14_700(color: AppColors.black),
+                          ),
+                          SizedBox(height: 8.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.expenseHeadCtrl,
+                                  label: 'Expense Head',
+                                  hint: 'Enter Expense Head',
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Obx(
+                                  () {
+                                    final expType = controller.selectedExpenseType.value;
+                                    return MultiSelectDropdownWidget<String>(
+                                      label: 'CAPEX/OPEX',
+                                      hint: 'Select',
+                                      isSingleSelect: true,
+                                      showSearch: false,
+                                      selectedValues: expType == null ? <String>{} : {expType},
+                                      items: controller.expenseTypes
+                                          .map((e) => DropdownMenuItem<String>(
+                                                value: e,
+                                                child: Text(
+                                                  e,
+                                                  style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                                ),
+                                              ))
+                                          .toList(),
+                                      onChanged: (values) => controller.selectedExpenseType.value =
+                                          values.isEmpty ? null : values.first,
+                                      customChild: _buildDropdownField(
+                                        label: 'CAPEX/OPEX',
+                                        hint: 'Select',
+                                        value: expType,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.subHeadCtrl,
+                                  label: 'Sub Head',
+                                  hint: 'Enter Sub Head',
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _buildTextField(
+                                  controller: controller.costCenterCtrl,
+                                  label: 'Cost Centre',
+                                  hint: 'Enter Cost Centre',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+
+                      if (constraints.maxWidth > 700) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: basicDetails),
+                            SizedBox(width: 16.w),
+                            Expanded(child: expenseDetails),
+                          ],
+                        );
+                      }
+                      return Column(
+                        children: [
+                          basicDetails,
+                          SizedBox(height: 14.h),
+                          expenseDetails,
+                        ],
+                      );
+                    },
+                  ),
+                  SizedBox(height: 14.h),
+
+                  // ── Reminder Details ───────────────────────────────────────
+                  Text(
+                    'Reminder Details',
                     style: AppTextStyle.style_14_700(color: AppColors.black),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 8.h),
                   Row(
                     children: [
-                      Expanded(
-                        child: Obx(
-                          () => MultiSelectDropdownWidget<PaymentReminderUser>(
-                            label: 'Assignee Name *',
-                            isSingleSelect: true,
-                            showSearch: true,
-                            selectedValues: controller.selectedAssignee.value == null
-                                ? <PaymentReminderUser>{}
-                                : {controller.selectedAssignee.value!},
-                            items: controller.users
-                                .map((e) => DropdownMenuItem<PaymentReminderUser>(
-                                      value: e,
-                                      child: Text(
-                                        e.name ?? '-',
-                                        style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                                      ),
-                                    ))
-                                .toList(),
-                            onChanged: (values) => controller.selectedAssignee.value = values.isEmpty ? null : values.first,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildTextField(controller: controller.forCtrl, label: 'For'),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(controller: controller.brandCtrl, label: 'Brand'),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Obx(
-                          () => MultiSelectDropdownWidget<String>(
-                            label: 'Expense Type',
-                            isSingleSelect: true,
-                            showSearch: false,
-                            selectedValues: controller.selectedExpenseType.value == null
-                                ? <String>{}
-                                : {controller.selectedExpenseType.value!},
-                            items: controller.expenseTypes
-                                .map((e) => DropdownMenuItem<String>(
-                                      value: e,
-                                      child: Text(
-                                        e,
-                                        style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                                      ),
-                                    ))
-                                .toList(),
-                            onChanged: (values) => controller.selectedExpenseType.value = values.isEmpty ? null : values.first,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(controller: controller.expenseHeadCtrl, label: 'Expense Head'),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildTextField(controller: controller.subHeadCtrl, label: 'Sub-Head'),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(controller: controller.costCenterCtrl, label: 'Cost Center'),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildTextField(controller: controller.locationCtrl, label: 'Location *'),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(controller: controller.customerIdCtrl, label: 'Customer ID'),
-                      ),
-                      SizedBox(width: 12.w),
                       Expanded(
                         child: Obx(
                           () => _buildDateTimeField(
                             label: 'Due Date',
+                            hint: 'Select Date',
                             icon: Icons.calendar_today_outlined,
                             value: controller.selectedDueDate.value != null
-                                ? AppDateUtils.formatToOrdinalDate(controller.selectedDueDate.value!.toIso8601String())
+                                ? AppDateUtils.formatToShortOrdinalDate(
+                                    controller.selectedDueDate.value!,
+                                  )
                                 : null,
                             onTap: () async {
+                              final now = DateTime.now();
+                              final today = DateTime(now.year, now.month, now.day);
+                              final rawInitial = controller.selectedDueDate.value ?? today;
+                              final initialDate = rawInitial.isBefore(today) ? today : rawInitial;
                               final date = await showDatePicker(
                                 context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(2000),
+                                initialDate: initialDate,
+                                firstDate: today,
                                 lastDate: DateTime(2100),
                               );
                               if (date != null) {
@@ -161,112 +273,74 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: controller.remindBeforeCtrl,
+                          label: 'Reminder Before',
+                          hint: '0',
+                          isNumber: true,
+                        ),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 12.h),
+                  SizedBox(height: 10.h),
                   Row(
                     children: [
                       Expanded(
                         child: Obx(
                           () => _buildDateTimeField(
                             label: 'Reminder Setup *',
-                            icon: Icons.calendar_today_outlined,
-                            value: controller.selectedReminderSetupDate.value != null
-                                ? AppDateUtils.formatToOrdinalDate(controller.selectedReminderSetupDate.value!.toIso8601String())
-                                : 'Set Reminder',
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2100),
-                              );
-                              if (date != null) {
-                                controller.selectedReminderSetupDate.value = date;
+                            hint: 'Set Reminder',
+                            icon: Icons.keyboard_arrow_down_rounded,
+                            value: _getReminderSetupDisplayText(controller, context),
+                            onTap: () {
+                              if (controller.isEditing.value) {
+                                EditReminderDateDialog.show(context, controller);
+                              } else {
+                                ReminderSetupDialog.show(context, controller);
                               }
                             },
                           ),
                         ),
                       ),
-                      SizedBox(width: 12.w),
+                      SizedBox(width: 10.w),
                       Expanded(
-                        child: _buildTextField(controller: controller.remindBeforeCtrl, label: 'Remind Before', isNumber: true),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(controller: controller.additionalNumberCtrl, label: 'Additional Number', isNumber: true),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildRecurringTask(context, controller),
-                          ],
+                        child: _buildTextField(
+                          controller: controller.additionalNumberCtrl,
+                          label: 'Alternative Number',
+                          hint: 'Enter Alternative Number',
+                          isNumber: true,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 32.h),
-                  
-                  // Submit Buttons
+                  SizedBox(height: 16.h),
+
+                  // ── Action Buttons ──────────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      SizedBox(
-                        width: 100.w,
-                        child: OutlinedButton(
-                          onPressed: () => Get.back(),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.grey100),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 10.h),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Cancel',
-                            style: AppTextStyle.style_14_600(color: AppColors.black),
-                          ),
+                      AppCommonButton(
+                        text: 'Cancel',
+                        variant: ButtonVariant.outline,
+                        isSmall: true,
+                        height: 32.h,
+                        width: 90.w,
+                        onPressed: () => Get.back(),
+                      ),
+                      SizedBox(width: 12.w),
+                      Obx(
+                        () => AppCommonButton(
+                          text: 'Submit',
+                          variant: ButtonVariant.primary,
+                          isSmall: true,
+                          isLoading: controller.isLoading.value,
+                          height: 32.h,
+                          width: 110.w,
+                          onPressed: controller.submit,
                         ),
                       ),
-                      SizedBox(width: 16.w),
-                      Obx(() => SizedBox(
-                        width: 130.w,
-                        child: ElevatedButton(
-                          onPressed: controller.isLoading.value ? null : controller.submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D6EFD),
-                            disabledBackgroundColor: const Color(0xFF0D6EFD).withOpacity(0.6),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 10.h),
-                            elevation: 0,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: controller.isLoading.value
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  'Submit',
-                                  style: AppTextStyle.style_14_600(color: AppColors.white),
-                                ),
-                        ),
-                      )),
                     ],
                   ),
                 ],
@@ -281,6 +355,7 @@ class CreatePaymentReminderScreen extends StatelessWidget {
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
+    String? hint,
     int maxLines = 1,
     bool isNumber = false,
   }) {
@@ -291,23 +366,27 @@ class CreatePaymentReminderScreen extends StatelessWidget {
       textAlignVertical: TextAlignVertical.center,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint ?? 'Enter $label',
+        hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+        filled: true,
+        fillColor: Colors.white,
         contentPadding: EdgeInsets.symmetric(
           horizontal: 10.w,
           vertical: maxLines > 1 ? 6.h : 4.h,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: AppColors.borderColor),
+          borderSide: BorderSide(color: AppColors.borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: AppColors.borderColor),
+          borderSide: BorderSide(color: AppColors.borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         isDense: true,
       ),
@@ -315,8 +394,55 @@ class CreatePaymentReminderScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDropdownField({
+    required String label,
+    String? hint,
+    String? value,
+    IconData icon = Icons.keyboard_arrow_down_rounded,
+  }) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+        filled: true,
+        fillColor: Colors.white,
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(color: AppColors.borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(color: AppColors.borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        suffixIcon: Padding(
+          padding: EdgeInsets.only(right: 4.w),
+          child: Icon(icon, color: AppColors.grey300, size: 16.r),
+        ),
+        suffixIconConstraints: BoxConstraints(
+          minWidth: 18.w,
+          minHeight: 18.h,
+        ),
+      ),
+      child: Text(
+        (value != null && value.isNotEmpty) ? value : (hint ?? 'Select'),
+        style: (value != null && value.isNotEmpty)
+            ? AppTextStyle.style_12_400(color: AppColors.grey900)
+            : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
   Widget _buildDateTimeField({
     required String label,
+    String? hint,
     IconData? icon,
     String? value,
     VoidCallback? onTap,
@@ -328,97 +454,65 @@ class CreatePaymentReminderScreen extends StatelessWidget {
           labelText: label,
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+          filled: true,
+          fillColor: Colors.white,
           isDense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
+            borderSide: BorderSide(color: AppColors.borderColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
+            borderSide: BorderSide(color: AppColors.borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
+            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
           ),
           suffixIcon: icon != null
               ? Padding(
                   padding: EdgeInsets.only(right: 4.w),
-                  child: Icon(icon, color: AppColors.grey200, size: 16.r),
+                  child: Icon(icon, color: AppColors.grey300, size: 14.r),
                 )
               : null,
           suffixIconConstraints: BoxConstraints(
-            minWidth: 20.w,
-            minHeight: 20.h,
+            minWidth: 18.w,
+            minHeight: 18.h,
           ),
         ),
         child: Text(
-          value ?? 'Select',
-          style: AppTextStyle.style_12_400(color: AppColors.grey900),
+          value ?? hint ?? 'Select',
+          style: value != null
+              ? AppTextStyle.style_12_400(color: AppColors.grey900)
+              : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
           overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
-  Widget _buildSwitch(bool value, Function(bool) onChanged) {
-    return SizedBox(
-      width: 44.w,
-      height: 28.h,
-      child: Transform.scale(
-        scale: 0.7,
-        alignment: Alignment.centerRight,
-        child: Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: AppColors.white,
-          activeTrackColor: AppColors.primary,
-          inactiveTrackColor: AppColors.grey100,
-          inactiveThumbColor: AppColors.white,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ),
-    );
-  }
+  String? _getReminderSetupDisplayText(
+    CreatePaymentReminderController controller,
+    BuildContext context,
+  ) {
+    final date = controller.selectedReminderSetupDate.value;
+    final time = controller.selectedReminderTime.value;
+    final isRecurring = controller.isRecurring.value;
 
-  Widget _buildRecurringTask(BuildContext context, CreatePaymentReminderController controller) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Recurring Setup',
-            style: AppTextStyle.style_12_400(color: AppColors.black),
-          ),
-        ),
-        SizedBox(width: 6.w),
-        Obx(
-          () => _buildSwitch(controller.isRecurring.value, (val) async {
-            if (val) {
-              // Open Recurrence Dialog
-              final result = await Get.dialog<RecurrenceData>(
-                AppointmentRecurrenceDialog(
-                  initialData: controller.recurrenceData.value,
-                  defaultStartDate: controller.selectedReminderSetupDate.value,
-                ),
-              );
-              if (result != null) {
-                controller.recurrenceData.value = result;
-                controller.selectedReminderSetupDate.value = result.startDate;
-                controller.selectedReminderTime.value = controller.parseTimeOfDay(
-                  result.startTime,
-                );
-                controller.isRecurring.value = true;
-              } else {
-                controller.isRecurring.value = false;
-              }
-            } else {
-              controller.isRecurring.value = false;
-              controller.recurrenceData.value = null;
-            }
-          }),
-        ),
-      ],
-    );
+    if (date == null && time == null && !isRecurring) return null;
+
+    final List<String> parts = [];
+    if (isRecurring && date != null) {
+      parts.add(AppDateUtils.formatToShortOrdinalDate(date));
+    }
+    if (time != null) {
+      parts.add(time.format(context));
+    }
+    if (isRecurring) {
+      parts.add('(Recurring)');
+    }
+
+    return parts.isEmpty ? null : parts.join(' ');
   }
 }

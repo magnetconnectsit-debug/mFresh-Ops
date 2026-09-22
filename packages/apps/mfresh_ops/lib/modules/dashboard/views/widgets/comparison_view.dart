@@ -249,8 +249,7 @@ class _SlotRowState extends State<_SlotRow> {
   ComparisonSlot get slot => _c.comparisonSlots[widget.index];
 
   String _fmt(DateTime? d) {
-    if (d == null) return 'dd-mm-yyyy';
-    return DateFormat('dd-MM-yyyy').format(d);
+    return AppDateUtils.formatToShortOrdinalDate(d);
   }
 
   Future<void> _pickRange() async {
@@ -323,7 +322,7 @@ class _SlotRowState extends State<_SlotRow> {
               ),
               SizedBox(height: 2.h),
 
-              // ── Three fields in a Card ──
+              // ── Date Range + Unit fields in a Card ──
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
                 decoration: BoxDecoration(
@@ -334,21 +333,14 @@ class _SlotRowState extends State<_SlotRow> {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 1,
+                      flex: 2,
                       child: _CompactField(
-                        label: 'From',
-                        value: _fmt(slot.fromDate),
-                        hasValue: slot.fromDate != null,
-                        onTap: _pickRange,
-                      ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Expanded(
-                      flex: 1,
-                      child: _CompactField(
-                        label: 'To',
-                        value: _fmt(slot.toDate),
-                        hasValue: slot.toDate != null,
+                        label: 'Date Range',
+                        value: slot.fromDate != null && slot.toDate != null
+                            ? '${_fmt(slot.fromDate)} - ${_fmt(slot.toDate)}'
+                            : 'Date Range',
+                        hasValue: slot.fromDate != null && slot.toDate != null,
+                        icon: Icons.calendar_today_rounded,
                         onTap: _pickRange,
                       ),
                     ),
@@ -387,11 +379,13 @@ class _CompactField extends StatelessWidget {
   final String label;
   final String value;
   final bool hasValue;
+  final IconData? icon;
   final VoidCallback? onTap;
   const _CompactField({
     required this.label,
     required this.value,
     required this.hasValue,
+    this.icon,
     this.onTap,
   });
 
@@ -404,17 +398,21 @@ class _CompactField extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE5E7EB)),
         borderRadius: BorderRadius.circular(4.r),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            hasValue ? value : label,
-            style: AppTextStyle.style_10_400(
-              color: hasValue ? AppColors.black : AppColors.grey500,
+          if (icon != null) ...[
+            Icon(icon, size: 10.r, color: AppColors.grey500),
+            SizedBox(width: 3.w),
+          ],
+          Expanded(
+            child: Text(
+              hasValue ? value : label,
+              style: AppTextStyle.style_10_400(
+                color: hasValue ? AppColors.black : AppColors.grey500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

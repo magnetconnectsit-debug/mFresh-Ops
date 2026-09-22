@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
@@ -143,7 +142,7 @@ class PaymentReminderFilterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(8.w),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(6.r),
@@ -157,7 +156,38 @@ class PaymentReminderFilterCard extends StatelessWidget {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Filter Header: Title + Reset
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Filters',
+                style: AppTextStyle.style_12_600(color: AppColors.grey800),
+              ),
+              InkWell(
+                onTap: () => controller.resetFilters(),
+                borderRadius: BorderRadius.circular(4.r),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh_rounded, size: 14.r, color: AppColors.red),
+                      SizedBox(width: 4.w),
+                      Text(
+                        'Reset',
+                        style: AppTextStyle.style_12_600(color: AppColors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+
           // Row 1: Combined Month & Assignee
           Row(
             children: [
@@ -205,8 +235,9 @@ class PaymentReminderFilterCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 8.h),
-          // Row 2: Status & Reset
+          SizedBox(height: 6.h),
+
+          // Row 2: Status
           Row(
             children: [
               Expanded(
@@ -216,9 +247,6 @@ class PaymentReminderFilterCard extends StatelessWidget {
                     {'value': 'overdue', 'label': 'Overdue'},
                     {'value': 'upcoming', 'label': 'Upcoming'},
                   ];
-                  final currentStatus = controller.selectedStatus.value;
-                  final hasStatus = currentStatus.isNotEmpty;
-
                   return MultiSelectDropdownWidget<String>(
                     label: 'Status',
                     selectedValues: controller.selectedStatus.toSet(),
@@ -241,33 +269,7 @@ class PaymentReminderFilterCard extends StatelessWidget {
                 }),
               ),
               SizedBox(width: 8.w),
-              Expanded(
-                child: SizedBox(
-                  height: 24.h,
-                  child: InkWell(
-                    onTap: () => controller.resetFilters(),
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: AppColors.borderColor),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.refresh_rounded, size: 13.r, color: const Color(0xFFEF4444)),
-                          SizedBox(width: 2.w),
-                          Text(
-                            'Reset',
-                            style: AppTextStyle.style_11_600(color: const Color(0xFFEF4444)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              const Expanded(child: SizedBox.shrink()),
             ],
           ),
         ],

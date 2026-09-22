@@ -57,7 +57,20 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
     if (rawDateStr == null || rawDateStr.isEmpty) return '-';
     try {
       final dt = DateTime.parse(rawDateStr);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final day = dt.day.toString().padLeft(2, '0');
       final month = months[dt.month - 1];
       final year = (dt.year % 100).toString().padLeft(2, '0');
@@ -90,7 +103,20 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
     if (rawStr == null || rawStr.isEmpty) return '-';
     try {
       final dt = DateTime.parse(rawStr);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final day = dt.day.toString().padLeft(2, '0');
       final month = months[dt.month - 1];
       final year = (dt.year % 100).toString().padLeft(2, '0');
@@ -184,8 +210,8 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
                       8: FixedColumnWidth(125.w), // Reminder End Date
                       9: FixedColumnWidth(110.w), // Notification Date
                       10: FixedColumnWidth(80.w), // Time
-                      11: FixedColumnWidth(130.w), // Completed At
-                      12: FixedColumnWidth(75.w), // Status
+                      11: FixedColumnWidth(135.w), // Completed At
+                      12: FixedColumnWidth(85.w), // Status
                     },
                     children: [
                       // Header row
@@ -198,8 +224,10 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
                             AllTasksHeaderCell(
                               text: col,
                               onTap: () => widget.controller.toggleSort(col),
-                              isSorted: widget.controller.sortColumn.value == col,
-                              sortAscending: widget.controller.sortAscending.value,
+                              isSorted:
+                                  widget.controller.sortColumn.value == col,
+                              sortAscending:
+                                  widget.controller.sortAscending.value,
                             ),
                         ],
                       ),
@@ -207,18 +235,24 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
                       ...reminders.asMap().entries.map((entry) {
                         final index = entry.key;
                         final item = entry.value;
-                        final rowKey = "${item.id}_${item.recurrenceId ?? index}";
+                        final rowKey =
+                            "${item.id}_${item.recurrenceId ?? index}";
                         final isExpanded = _expandedRows.contains(rowKey);
                         void toggleRow() => _toggleRow(rowKey);
 
-                        final assigneeDisplay = item.assigneeName != null && item.assigneeName!.isNotEmpty
+                        final assigneeDisplay =
+                            item.assigneeName != null &&
+                                item.assigneeName!.isNotEmpty
                             ? item.assigneeName!
-                            : widget.controller.getAssigneeName(item.assigneeId);
+                            : widget.controller.getAssigneeName(
+                                item.assigneeId,
+                              );
 
                         return TableRow(
                           children: [
                             AllTasksDataCell(
-                              text: '${(widget.controller.currentPage.value - 1) * widget.controller.perPage.value + index + 1}',
+                              text:
+                                  '${(widget.controller.currentPage.value - 1) * widget.controller.perPage.value + index + 1}',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
@@ -277,7 +311,11 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            _buildStatusCell(item.status, isExpanded, toggleRow),
+                            _buildStatusCell(
+                              item.status,
+                              isExpanded,
+                              toggleRow,
+                            ),
                           ],
                         );
                       }),

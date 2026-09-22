@@ -22,6 +22,7 @@ class AppCommonButton extends StatelessWidget {
   final Widget? prefixWidget;
   final IconData? icon;
   final ButtonVariant variant;
+  final EdgeInsetsGeometry? padding;
 
   const AppCommonButton({
     super.key,
@@ -40,6 +41,7 @@ class AppCommonButton extends StatelessWidget {
     this.prefixWidget,
     this.icon,
     this.variant = ButtonVariant.primary,
+    this.padding,
   });
 
   @override
@@ -79,7 +81,7 @@ class AppCommonButton extends StatelessWidget {
             width ?? (isSmall ? 60.w : double.infinity),
             height ?? (isSmall ? 32.h : 40.h),
           ),
-          padding: EdgeInsets.symmetric(horizontal: isSmall ? 12.w : 16.w),
+          padding: padding ?? EdgeInsets.symmetric(horizontal: isSmall ? 12.w : 16.w),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius ?? 8.r),
             side: effectiveBorderColor != null

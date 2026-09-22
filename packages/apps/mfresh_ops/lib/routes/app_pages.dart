@@ -11,9 +11,16 @@ import 'package:mfresh_ops/modules/info_directory/controllers/account_subscripti
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/payment_reminder_screen.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/completed_payment_screen.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
+import 'package:mfresh_ops/data/repositories/roles_responsibilities_repository.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/roles_master_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/add_role_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/responsibilities_master_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/add_responsibility_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/view_responsibilities_screen.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
 import 'package:dev/views/dev_settings_screen.dart';
@@ -361,11 +368,53 @@ class AppPages {
       }),
     ),
     GetPage(
+      name: AppRoutes.createPaymentReminder,
+      page: () => const CreatePaymentReminderScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => PaymentReminderRepository());
+      }),
+    ),
+    GetPage(
       name: AppRoutes.completedPayments,
       page: () => const CompletedPaymentScreen(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => PaymentReminderRepository());
         Get.lazyPut(() => CompletedPaymentController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.rolesMaster,
+      page: () => const RolesMasterScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.addRole,
+      page: () => const AddRoleScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.responsibilitiesMaster,
+      page: () => const ResponsibilitiesMasterScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.addResponsibility,
+      page: () => const AddResponsibilityScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.viewResponsibilities,
+      page: () => const ViewResponsibilitiesScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
       }),
     ),
   ];

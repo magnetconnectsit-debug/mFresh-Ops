@@ -291,12 +291,22 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  // _buildExpandableMenuItem(
-                  //   icon: Icons.payment_outlined,
-                  //   title: 'Payment Scheduler',
-                  //   subItems: const ['Scheduler', 'Completed Schedulers'],
-                  //   currentRoute: currentRoute,
-                  // ),
+                  _buildExpandableMenuItem(
+                    icon: Icons.payment_outlined,
+                    title: 'Payment Scheduler',
+                    subItems: const ['Scheduler', 'Completed Schedulers'],
+                    currentRoute: currentRoute,
+                  ),
+                  _buildExpandableMenuItem(
+                    icon: Icons.badge_outlined,
+                    title: 'Roles & Responsibilities',
+                    subItems: const [
+                      'Roles Master',
+                      'Responsibilities',
+                      'View Responsibilities',
+                    ],
+                    currentRoute: currentRoute,
+                  ),
                   _buildMenuItem(
                     icon: Icons.person_outline,
                     activeIcon: Icons.person,
@@ -491,6 +501,12 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.paymentReminder);
                   } else if (item == 'Completed Schedulers') {
                     Get.toNamed(AppRoutes.completedPayments);
+                  } else if (item == 'Roles Master') {
+                    Get.toNamed(AppRoutes.rolesMaster);
+                  } else if (item == 'Responsibilities') {
+                    Get.toNamed(AppRoutes.responsibilitiesMaster);
+                  } else if (item == 'View Responsibilities') {
+                    Get.toNamed(AppRoutes.viewResponsibilities);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

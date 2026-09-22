@@ -90,30 +90,33 @@ class LoginScreen extends StatelessWidget {
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 20.w,
-                                      height: 20.w,
-                                      child: Obx(
-                                        () => Checkbox(
-                                          value: controller.rememberMe.value,
-                                          onChanged: controller.toggleRememberMe,
-                                          activeColor: AppColors.primary,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4.r),
+                                InkWell(
+                                  onTap: () => controller.toggleRememberMe(!controller.rememberMe.value),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 20.w,
+                                        height: 20.w,
+                                        child: Obx(
+                                          () => Checkbox(
+                                            value: controller.rememberMe.value,
+                                            onChanged: controller.toggleRememberMe,
+                                            activeColor: AppColors.primary,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(4.r),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      'Remember Me',
-                                      style: AppTextStyle.style_12_400(
-                                        color: AppColors.grey400,
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Remember Me',
+                                        style: AppTextStyle.style_12_400(
+                                          color: AppColors.grey400,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                                 // InkWell(
                                 //   onTap: () {},

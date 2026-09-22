@@ -62,5 +62,13 @@ abstract class AppRoutes {
 
   // Payment Reminder
   static const paymentReminder = '/payment-reminder';
+  static const createPaymentReminder = '/create-payment-reminder';
   static const completedPayments = '/completed-payments';
+
+  // Roles & Responsibilities
+  static const rolesMaster = '/roles-master';
+  static const addRole = '/add-role';
+  static const responsibilitiesMaster = '/responsibilities-master';
+  static const addResponsibility = '/add-responsibility';
+  static const viewResponsibilities = '/view-responsibilities';
 }

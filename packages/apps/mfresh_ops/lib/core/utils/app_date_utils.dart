@@ -16,6 +16,37 @@ class AppDateUtils {
     }
   }
 
+  static String formatToShortOrdinalDate(dynamic rawDate) {
+    if (rawDate == null) return '';
+    try {
+      DateTime? parsed;
+      if (rawDate is DateTime) {
+        parsed = rawDate;
+      } else if (rawDate is String && rawDate.isNotEmpty) {
+        parsed = DateTime.tryParse(rawDate);
+      }
+      if (parsed == null) return rawDate.toString();
+
+      final day = parsed.day;
+      final suffix = _getDaySuffix(day);
+      final monthName = _getShortMonthName(parsed.month);
+      final year = parsed.year;
+
+      return '$day$suffix $monthName $year';
+    } catch (_) {
+      return rawDate.toString();
+    }
+  }
+
+  static String formatDateRangeOrdinal(dynamic start, dynamic end, {String defaultText = 'Date Range'}) {
+    final startStr = formatToShortOrdinalDate(start);
+    final endStr = formatToShortOrdinalDate(end);
+    if (startStr.isEmpty && endStr.isEmpty) return defaultText;
+    if (startStr.isEmpty) return endStr;
+    if (endStr.isEmpty) return startStr;
+    return '$startStr - $endStr';
+  }
+
   static String _getDaySuffix(int day) {
     if (day >= 11 && day <= 13) {
       return 'th';

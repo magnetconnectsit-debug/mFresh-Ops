@@ -5,6 +5,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_table_elements.dart';
 
 class PaymentReminderTable extends StatefulWidget {
@@ -30,7 +31,7 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
   static const _kColumns = [
     'SI No',
     'For',
-    'To',
+    'Customer ID',
     'Assignee',
     'Expense Head',
     'Cost Center',
@@ -57,7 +58,20 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
     if (rawDateStr == null || rawDateStr.isEmpty) return '-';
     try {
       final dt = DateTime.parse(rawDateStr);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final day = dt.day.toString().padLeft(2, '0');
       final month = months[dt.month - 1];
       final year = (dt.year % 100).toString().padLeft(2, '0');
@@ -86,14 +100,14 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
     }
   }
 
-  Widget _buildDueInCell(Map<String, dynamic> dueInStatus, bool isExpanded, VoidCallback onTap) {
+  Widget _buildDueInCell(
+    Map<String, dynamic> dueInStatus,
+    bool isExpanded,
+    VoidCallback onTap,
+  ) {
     final text = dueInStatus['text'] as String;
     if (text == '-') {
-      return AllTasksDataCell(
-        text: '-',
-        isExpanded: isExpanded,
-        onTap: onTap,
-      );
+      return AllTasksDataCell(text: '-', isExpanded: isExpanded, onTap: onTap);
     }
     final isOverdue = dueInStatus['isOverdue'] as bool;
     final isToday = text.toLowerCase().contains('today');
@@ -128,11 +142,7 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
 
   Widget _buildStatusCell(String? status, bool isExpanded, VoidCallback onTap) {
     if (status == null || status.isEmpty) {
-      return AllTasksDataCell(
-        text: '-',
-        isExpanded: isExpanded,
-        onTap: onTap,
-      );
+      return AllTasksDataCell(text: '-', isExpanded: isExpanded, onTap: onTap);
     }
 
     final formattedText = _formatStatusText(status);
@@ -195,26 +205,288 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
         children: [
           _buildActionButton(
             icon: Icons.edit_outlined,
-            iconColor: const Color(0xFF555555),
+            iconColor: AppColors.black300,
             onTap: () {
-              // Edit callback
+              Get.to(() => CreatePaymentReminderScreen(reminderItem: item));
             },
           ),
           SizedBox(width: 4.w),
           _buildActionButton(
             icon: Icons.delete_outline,
             iconColor: const Color(0xFFDC3545),
-            onTap: () {
-              // Delete callback
-            },
+            onTap: () => _showDeleteConfirmation(item),
           ),
           SizedBox(width: 4.w),
           _buildActionButton(
             icon: Icons.check_circle_outline,
             iconColor: const Color(0xFF28A745),
-            onTap: () {
-              // Complete callback
+            onTap: () => _showCompleteConfirmation(item),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(PaymentReminderItem item) {
+    if (item.recurrenceId != null || item.parentId != null) {
+      _showDeleteRecurringConfirmation(item);
+    } else {
+      _showStandardDeleteConfirmation(item);
+    }
+  }
+
+  void _showDeleteRecurringConfirmation(PaymentReminderItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Container(
+          width: 420.w,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC3545).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: const Color(0xFFDC3545),
+                  size: 28.r,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'Delete this Payment Reminder',
+                style: AppTextStyle.style_16_700(color: AppColors.black),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'What do you want to delete?',
+                style: AppTextStyle.style_14_400(color: AppColors.grey900),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 20.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        widget.controller.deleteReminder(
+                          item.parentId ?? item.id,
+                          recurrenceId: item.recurrenceId,
+                          recurrenceScope: "only_this",
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: Color(0xFFDC3545),
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                      ),
+                      child: Text(
+                        'Only This',
+                        style: AppTextStyle.style_12_600(
+                          color: const Color(0xFFDC3545),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        widget.controller.deleteReminder(
+                          item.parentId ?? item.id,
+                          recurrenceId: item.recurrenceId,
+                          recurrenceScope: "entire_schedule",
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC3545),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                      ),
+                      child: Text(
+                        'All Recurrences',
+                        style: AppTextStyle.style_12_600(color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showStandardDeleteConfirmation(PaymentReminderItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        titlePadding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 12.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 24.w),
+        actionsPadding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 24.h),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.r),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC3545).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.warning_amber_rounded,
+                color: const Color(0xFFDC3545),
+                size: 20.r,
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              'Delete Reminder',
+              style: AppTextStyle.style_16_700(color: AppColors.black),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete this payment reminder?\nThis action cannot be undone.',
+          style: AppTextStyle.style_14_400(color: AppColors.grey900),
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.grey.shade400),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+            ),
+            child: Text(
+              'Cancel',
+              style: AppTextStyle.style_14_500(color: AppColors.black),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              widget.controller.deleteReminder(
+                item.parentId ?? item.id,
+                recurrenceId: item.recurrenceId,
+                recurrenceScope: "entire_schedule",
+              );
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC3545),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+              elevation: 0,
+            ),
+            child: Text(
+              'Delete',
+              style: AppTextStyle.style_14_600(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCompleteConfirmation(PaymentReminderItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              color: const Color(0xFF28A745),
+              size: 22.r,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              'Mark as Complete',
+              style: AppTextStyle.style_14_700(color: AppColors.black),
+            ),
+          ],
+        ),
+        content: Text(
+          'Mark this payment reminder as completed?',
+          style: AppTextStyle.style_12_400(color: AppColors.grey900),
+        ),
+        actionsPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.grey.shade400),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+            ),
+            child: Text(
+              'Cancel',
+              style: AppTextStyle.style_12_500(color: AppColors.black),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              widget.controller.markComplete(
+                item.parentId ?? item.id,
+                recurrenceId: item.recurrenceId,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF28A745),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+              elevation: 0,
+            ),
+            child: Text(
+              'Confirm',
+              style: AppTextStyle.style_12_600(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -236,11 +508,7 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(4.r),
         ),
-        child: Icon(
-          icon,
-          size: 12.5.sp,
-          color: iconColor,
-        ),
+        child: Icon(icon, size: 12.5.sp, color: iconColor),
       ),
     );
   }
@@ -285,7 +553,7 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
                     columnWidths: {
                       0: FixedColumnWidth(42.w), // SI No
                       1: FixedColumnWidth(85.w), // For
-                      2: FixedColumnWidth(75.w), // To
+                      2: FixedColumnWidth(105.w), // Customer ID
                       3: FixedColumnWidth(110.w), // Assignee
                       4: FixedColumnWidth(115.w), // Expense Head
                       5: FixedColumnWidth(90.w), // Cost Center
@@ -293,7 +561,7 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
                       7: FixedColumnWidth(130.w), // Reminder End Date
                       8: FixedColumnWidth(120.w), // Notification Date
                       9: FixedColumnWidth(80.w), // Time
-                      10: FixedColumnWidth(115.w), // Due In
+                      10: FixedColumnWidth(110.w), // Due In
                       11: FixedColumnWidth(72.w), // Status
                       12: FixedColumnWidth(90.w), // Action
                     },
@@ -310,8 +578,10 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
                               onTap: col == 'Action'
                                   ? null
                                   : () => widget.controller.toggleSort(col),
-                              isSorted: widget.controller.sortColumn.value == col,
-                              sortAscending: widget.controller.sortAscending.value,
+                              isSorted:
+                                  widget.controller.sortColumn.value == col,
+                              sortAscending:
+                                  widget.controller.sortAscending.value,
                             ),
                         ],
                       ),
@@ -323,15 +593,23 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
                         final isExpanded = _expandedRows.contains(rowKey);
                         void toggleRow() => _toggleRow(rowKey);
 
-                        final dueInStatus = widget.controller.getDueInStatus(item.dueDate, serverDueIn: item.dueIn);
-                        final assigneeDisplay = item.assigneeName != null && item.assigneeName!.isNotEmpty
+                        final dueInStatus = widget.controller.getDueInStatus(
+                          item.dueDate,
+                          serverDueIn: item.dueIn,
+                        );
+                        final assigneeDisplay =
+                            item.assigneeName != null &&
+                                item.assigneeName!.isNotEmpty
                             ? item.assigneeName!
-                            : widget.controller.getAssigneeName(item.assigneeId);
+                            : widget.controller.getAssigneeName(
+                                item.assigneeId,
+                              );
 
                         return TableRow(
                           children: [
                             AllTasksDataCell(
-                              text: '${(widget.controller.currentPage.value - 1) * widget.controller.perPage.value + index + 1}',
+                              text:
+                                  '${(widget.controller.currentPage.value - 1) * widget.controller.perPage.value + index + 1}',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
@@ -381,7 +659,11 @@ class _PaymentReminderTableState extends State<PaymentReminderTable> {
                               onTap: toggleRow,
                             ),
                             _buildDueInCell(dueInStatus, isExpanded, toggleRow),
-                            _buildStatusCell(item.status, isExpanded, toggleRow),
+                            _buildStatusCell(
+                              item.status,
+                              isExpanded,
+                              toggleRow,
+                            ),
                             _buildActionCell(item),
                           ],
                         );

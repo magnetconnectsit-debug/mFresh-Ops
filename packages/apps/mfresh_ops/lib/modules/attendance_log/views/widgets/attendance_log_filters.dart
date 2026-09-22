@@ -42,21 +42,19 @@ class AttendanceLogFilters extends GetView<AttendanceLogController> {
             ),
             SizedBox(width: 8.w),
             Expanded(
-              flex: 1,
-              child: Obx(() => _buildDatePickerField(
-                    'From Date',
-                    AppDateUtils.formatToApiDate(controller.startDate.value),
-                    controller.showCustomDateRangePicker,
-                  )),
-            ),
-            SizedBox(width: 8.w),
-            Expanded(
-              flex: 1,
-              child: Obx(() => _buildDatePickerField(
-                    'To Date',
-                    AppDateUtils.formatToApiDate(controller.endDate.value),
-                    controller.showCustomDateRangePicker,
-                  )),
+              flex: 2,
+              child: Obx(() {
+                final dateRangeStr = AppDateUtils.formatDateRangeOrdinal(
+                  controller.startDate.value,
+                  controller.endDate.value,
+                  defaultText: 'Select Date Range',
+                );
+                return _buildDatePickerField(
+                  'Date Range',
+                  dateRangeStr,
+                  controller.showCustomDateRangePicker,
+                );
+              }),
             ),
           ],
         ),

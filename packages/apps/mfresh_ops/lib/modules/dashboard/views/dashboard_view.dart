@@ -163,19 +163,11 @@ class _DashboardViewState extends State<DashboardView> {
                                 final startDt = DateTime.tryParse(controller.rxStartDate.value!);
                                 final endDt = DateTime.tryParse(controller.rxEndDate.value!);
                                 
-                                bool isDefaultTime = false;
-                                if (startDt != null && endDt != null) {
-                                  isDefaultTime = startDt.hour == 0 && startDt.minute == 0 && endDt.hour == 23 && endDt.minute == 59;
-                                }
-
-                                final start = isDefaultTime
-                                    ? AppDateUtils.formatToDateDayMonth(controller.rxStartDate.value)
-                                    : AppDateUtils.formatToDateTimeAmPm(controller.rxStartDate.value);
-                                final end = isDefaultTime
-                                    ? AppDateUtils.formatToDateDayMonth(controller.rxEndDate.value)
-                                    : AppDateUtils.formatToDateTimeAmPm(controller.rxEndDate.value);
-                                    
-                                chips.add(buildChip('$start - $end', () => controller.clearCustomDateFilter()));
+                                final dateRangeStr = AppDateUtils.formatDateRangeOrdinal(
+                                  controller.rxStartDate.value,
+                                  controller.rxEndDate.value,
+                                );
+                                chips.add(buildChip(dateRangeStr, () => controller.clearCustomDateFilter()));
                               }
 
                               // Month Filter

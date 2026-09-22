@@ -1201,10 +1201,14 @@ class _AppointmentRecurrenceDialogState
     return GestureDetector(
       onTap: enabled
           ? () async {
+              final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final rawInitial = date ?? today;
+              final initialDate = rawInitial.isBefore(today) ? today : rawInitial;
               final selected = await showDatePicker(
                 context: context,
-                initialDate: date ?? DateTime.now(),
-                firstDate: DateTime(2000),
+                initialDate: initialDate,
+                firstDate: today,
                 lastDate: DateTime(2100),
               );
               if (selected != null) onSelected(selected);

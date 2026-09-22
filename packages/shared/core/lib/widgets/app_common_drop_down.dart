@@ -105,22 +105,22 @@ class AppCommonDropdown<T> extends StatelessWidget {
           color: AppColors.grey300,
           size: 16.r,
         ),
-        style: style ?? AppTextStyle.style_11_600(color: AppColors.black),
+        style: style ?? AppTextStyle.style_12_400(color: AppColors.grey900),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: hintStyle ?? AppTextStyle.style_11_600(color: AppColors.black),
+          hintStyle: hintStyle ?? AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
           contentPadding: contentPadding ??
               EdgeInsets.symmetric(
-                horizontal: 8.w,
-                vertical: 0,
+                horizontal: 10.w,
+                vertical: 4.h,
               ),
           filled: true,
           fillColor: fillColor ?? AppColors.white,
           border: _buildBorder(color: borderColor ?? AppColors.borderColor),
           enabledBorder: _buildBorder(color: borderColor ?? AppColors.borderColor),
-          focusedBorder: _buildBorder(color: AppColors.primary),
+          focusedBorder: _buildBorder(color: AppColors.primary, width: 1.5),
           errorBorder: _buildBorder(color: AppColors.red),
-          focusedErrorBorder: _buildBorder(color: AppColors.red),
+          focusedErrorBorder: _buildBorder(color: AppColors.red, width: 1.5),
           isDense: true,
         ),
       ),
@@ -169,7 +169,7 @@ class AppCommonDropdown<T> extends StatelessWidget {
       },
       child: Container(
         constraints: BoxConstraints(minHeight: height ?? 32.h),
-        padding: contentPadding ?? EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+        padding: contentPadding ?? EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
         decoration: BoxDecoration(
           color: fillColor ?? AppColors.white,
           borderRadius: BorderRadius.circular(4.r),
@@ -215,7 +215,9 @@ class AppCommonDropdown<T> extends StatelessWidget {
                     )
                   : Text(
                       displayValue,
-                      style: style ?? AppTextStyle.style_11_600(color: AppColors.black),
+                      style: style ?? ((value == null && (selectedValues == null || selectedValues!.isEmpty))
+                          ? AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp)
+                          : AppTextStyle.style_12_400(color: AppColors.grey900)),
                       overflow: TextOverflow.ellipsis,
                       textAlign: textAlign,
                     ),
@@ -235,11 +237,11 @@ class AppCommonDropdown<T> extends StatelessWidget {
   // endregion
 
   // region Helpers
-  OutlineInputBorder _buildBorder({Color color = AppColors.primary}) {
+  OutlineInputBorder _buildBorder({Color color = AppColors.primary, double width = 1.0}) {
     // region _buildBorder
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(4.r),
-      borderSide: BorderSide(color: color, width: 1.0),
+      borderSide: BorderSide(color: color, width: width),
     );
     // endregion
   }

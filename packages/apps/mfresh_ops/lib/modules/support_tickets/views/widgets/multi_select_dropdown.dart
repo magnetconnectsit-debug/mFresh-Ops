@@ -305,10 +305,6 @@ class _MultiSelectMenuContentState<T> extends State<_MultiSelectMenuContent<T>> 
         allItemValues.isNotEmpty && _tempSelected.containsAll(allItemValues);
 
     return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      constraints: BoxConstraints(
-        maxHeight: 300.h + MediaQuery.of(context).viewInsets.bottom,
-      ),
       color: AppColors.white,
       child: Column(
         mainAxisSize: MainAxisSize.min,

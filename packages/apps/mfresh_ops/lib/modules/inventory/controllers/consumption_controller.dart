@@ -9,6 +9,7 @@ import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/models/inventory/consumption_item_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
+import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'dart:developer' as developer;
 
 class ConsumptionController extends GetxController {
@@ -150,11 +151,12 @@ class ConsumptionController extends GetxController {
   String _formatDateForApi(String dateStr) {
     if (dateStr.isEmpty) return '';
     try {
-      final parts = dateStr.split('-');
+      final cleaned = dateStr.replaceAll(RegExp(r'(\d+)(st|nd|rd|th)'), r'$1');
+      final parts = cleaned.contains('-') ? cleaned.split('-') : cleaned.split(' ');
       if (parts.length != 3) return '';
-      final day = parts[0];
+      final day = parts[0].replaceAll(RegExp(r'\D'), '').padLeft(2, '0');
       final monthStr = parts[1].toLowerCase();
-      final year = parts[2];
+      final year = parts[2].trim();
       const months = [
         'jan',
         'feb',
@@ -169,7 +171,7 @@ class ConsumptionController extends GetxController {
         'nov',
         'dec',
       ];
-      final monthIndex = months.indexOf(monthStr) + 1;
+      final monthIndex = months.indexWhere((m) => monthStr.startsWith(m)) + 1;
       if (monthIndex == 0) return '';
       final month = monthIndex.toString().padLeft(2, '0');
       return '$year-$month-$day';
@@ -486,30 +488,10 @@ class ConsumptionController extends GetxController {
       },
     );
     if (picked != null) {
-      fromDateController.text =
-          "${picked.start.day.toString().padLeft(2, '0')}-${_getMonthName(picked.start.month)}-${picked.start.year}";
-      toDateController.text =
-          "${picked.end.day.toString().padLeft(2, '0')}-${_getMonthName(picked.end.month)}-${picked.end.year}";
+      fromDateController.text = AppDateUtils.formatToShortOrdinalDate(picked.start);
+      toDateController.text = AppDateUtils.formatToShortOrdinalDate(picked.end);
       applyFilters();
     }
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'jan',
-      'feb',
-      'mar',
-      'apr',
-      'may',
-      'jun',
-      'jul',
-      'aug',
-      'sep',
-      'oct',
-      'nov',
-      'dec',
-    ];
-    return months[month - 1];
   }
 
   @override

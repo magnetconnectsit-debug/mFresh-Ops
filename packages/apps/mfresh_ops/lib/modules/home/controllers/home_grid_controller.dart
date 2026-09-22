@@ -252,26 +252,47 @@ class HomeGridController extends GetxController {
         ),
       ],
     ),
-    // GridItemData(
-    //   title: 'Payment Scheduler',
-    //   headerTitle: 'Reminders',
-    //   subtitle: 'Payment tracking & alerts',
-    //   icon: Icons.payment_rounded,
-    //   gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
-    //   route: AppRoutes.paymentReminder,
-    //   subActions: [
-    //     GridSubAction(
-    //       title: 'Scheduler',
-    //       icon: Icons.schedule_rounded,
-    //       route: AppRoutes.paymentReminder,
-    //     ),
-    //     GridSubAction(
-    //       title: 'Completed',
-    //       icon: Icons.task_alt_rounded,
-    //       route: AppRoutes.completedPayments,
-    //     ),
-    //   ],
-    // ),
+    GridItemData(
+      title: 'Payments',
+      headerTitle: 'Payment Reminders',
+      subtitle: 'Payment tracking & alerts',
+      icon: Icons.payment_rounded,
+      gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
+      route: AppRoutes.paymentReminder,
+      subActions: [
+        GridSubAction(
+          title: 'Add',
+          icon: Icons.add,
+          isSolidIcon: true,
+          route: AppRoutes.createPaymentReminder,
+        ),
+        GridSubAction(
+          title: 'Completed',
+          icon: Icons.task_alt_rounded,
+          route: AppRoutes.completedPayments,
+        ),
+      ],
+    ),
+    GridItemData(
+      title: 'Responsibilities',
+      headerTitle: 'Roles & Responsibilities',
+      subtitle: 'Roles, Guidelines & Duties',
+      icon: Icons.badge_rounded,
+      gradient: const [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+      route: AppRoutes.viewResponsibilities,
+      subActions: [
+        GridSubAction(
+          title: 'Responsibilities',
+          icon: Icons.assignment_turned_in_rounded,
+          route: AppRoutes.responsibilitiesMaster,
+        ),
+        GridSubAction(
+          title: 'Roles',
+          icon: Icons.visibility_rounded,
+          route: AppRoutes.rolesMaster,
+        ),
+      ],
+    ),
     GridItemData(
       title: 'Contacts',
       headerTitle: 'Info Directory',
@@ -534,6 +555,12 @@ class HomeGridController extends GetxController {
           );
           if (found != null) {
             filteredSubs.add(found);
+          }
+        }
+        for (final origSub in originalSubs) {
+          if (!filteredSubs.any((s) => s.title == origSub.title) &&
+              filteredSubs.length < 4) {
+            filteredSubs.add(origSub);
           }
         }
         if (filteredSubs.length > 4) {
