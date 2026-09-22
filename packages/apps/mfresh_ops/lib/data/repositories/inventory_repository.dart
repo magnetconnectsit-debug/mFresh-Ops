@@ -84,6 +84,58 @@ class InventoryRepository extends GetxService {
     }
   }
 
+  Future<dynamic> submitInventoryAudit({
+    required int unitId,
+    required int auditedBy,
+    required String auditDate,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    try {
+      return await _apiService.post(AppConstants.inventoryAuditSubmit, data: {
+        'unit_id': unitId,
+        'audited_by': auditedBy,
+        'audit_date': auditDate,
+        'items': items,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditReport({
+    int page = 1,
+    int perPage = 25,
+    String? unitId,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryAuditReport,
+        query: {'page': page},
+        data: {
+          if (unitId != null && unitId.isNotEmpty) 'unit_id': unitId,
+          if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
+          if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
+          'per_page': perPage,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditDetail(int auditId) async {
+    try {
+      return await _apiService.post(AppConstants.inventoryAuditDetail, data: {
+        'audit_id': auditId,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
   Future<dynamic> getSupportUnits() async {
     try {
       return await _apiService.post(AppConstants.supportUnits, data: {});

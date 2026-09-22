@@ -60,6 +60,8 @@ import 'package:mfresh_ops/modules/inventory/views/allotment_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/measurement_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/item_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_room_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/inventory_audit_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/audit_report_screen.dart';
 import 'package:mfresh_ops/modules/home/views/notification_screen.dart';
 import 'package:mfresh_ops/modules/map/views/map_view.dart';
 import 'package:mfresh_ops/modules/map/views/history_view.dart';
@@ -217,6 +219,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.unitInventory,
       page: () => const UnitInventoryScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.unitInventoryAudit,
+      page: () => const InventoryAuditScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.auditReport,
+      page: () => const AuditReportScreen(),
     ),
     GetPage(
       name: AppRoutes.inventoryOrders,

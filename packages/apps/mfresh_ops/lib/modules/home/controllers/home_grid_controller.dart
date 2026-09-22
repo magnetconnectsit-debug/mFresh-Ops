@@ -280,16 +280,20 @@ class HomeGridController extends GetxController {
       icon: Icons.badge_rounded,
       gradient: const [Color(0xFF0EA5E9), Color(0xFF0284C7)],
       route: AppRoutes.viewResponsibilities,
+      permissionKey: 'roles_responsibility_panel',
+      actionPermissionKey: 'view_responsibilities',
       subActions: [
         GridSubAction(
           title: 'Responsibilities',
           icon: Icons.assignment_turned_in_rounded,
           route: AppRoutes.responsibilitiesMaster,
+          permissionKey: 'responsibilities_master',
         ),
         GridSubAction(
           title: 'Roles',
           icon: Icons.visibility_rounded,
           route: AppRoutes.rolesMaster,
+          permissionKey: 'roles_master',
         ),
       ],
     ),
@@ -476,6 +480,53 @@ class HomeGridController extends GetxController {
               icon: Icons.account_box,
               gradient: item.gradient,
               route: null,
+              subActions: [],
+            ),
+          );
+        }
+      } else if (item.title == 'Responsibilities') {
+        if (userPermissions.contains('roles_responsibility_panel')) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
+          availableItems.add(item.copyWith(subActions: sub));
+        } else if (userPermissions.contains('view_responsibilities')) {
+          availableItems.add(
+            GridItemData(
+              title: 'View Responsibilities',
+              headerTitle: 'Roles & Responsibilities',
+              subtitle: 'View Duties & Guidelines',
+              icon: Icons.badge_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.viewResponsibilities,
+              subActions: [],
+            ),
+          );
+        } else if (userPermissions.contains('responsibilities_master')) {
+          availableItems.add(
+            GridItemData(
+              title: 'Responsibilities',
+              headerTitle: 'Roles & Responsibilities',
+              subtitle: 'Manage Responsibilities',
+              icon: Icons.assignment_turned_in_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.responsibilitiesMaster,
+              subActions: [],
+            ),
+          );
+        } else if (userPermissions.contains('roles_master')) {
+          availableItems.add(
+            GridItemData(
+              title: 'Roles Master',
+              headerTitle: 'Roles & Responsibilities',
+              subtitle: 'Manage Roles',
+              icon: Icons.visibility_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.rolesMaster,
               subActions: [],
             ),
           );

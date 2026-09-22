@@ -622,16 +622,14 @@ class SupportTicketsTable extends StatelessWidget {
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // Helpers 
   bool _isFollowUpOverdue(String? followUpStr) {
     if (followUpStr == null || followUpStr.isEmpty || followUpStr == '-') {
       return false;
     }
     try {
       final followUpDate = DateTime.parse(followUpStr);
-      final now = DateTime.now();
-      final todayStart = DateTime(now.year, now.month, now.day);
-      return followUpDate.isBefore(todayStart);
+      return followUpDate.isBefore(DateTime.now());
     } catch (_) {
       return false;
     }
