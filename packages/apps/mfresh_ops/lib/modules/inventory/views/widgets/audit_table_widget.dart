@@ -3,21 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_audit_controller.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-
-class _AuditColumnWidths {
-  static double get slNo => 55.w;
-  static double get item => 170.w;
-  static double get category => 140.w;
-  static double get systemQty => 110.w;
-  static double get actualQty => 135.w;
-  static double get difference => 110.w;
-
-  static double get totalWidth =>
-      slNo + item + category + systemQty + actualQty + difference;
-}
 
 class AuditTableWidget extends StatelessWidget {
   const AuditTableWidget({super.key});
@@ -138,41 +125,35 @@ class AuditTableWidget extends StatelessWidget {
             _buildPillTabsBar(controller),
             Divider(height: 1, color: Colors.grey.shade300),
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: _AuditColumnWidths.totalWidth,
-                  child: Column(
-                    children: [
-                      _buildTableHeaderGrid(controller),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: Column(
-                            children: List.generate(dummyItems.length, (index) {
-                              final item = dummyItems[index];
-                              return Column(
-                                children: [
-                                  if (index > 0)
-                                    Divider(
-                                      height: 1,
-                                      thickness: 1,
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  _AuditRowGridTile(
-                                    index: index,
-                                    item: item,
-                                    controller: controller,
-                                  ),
-                                ],
-                              );
-                            }),
-                          ),
-                        ),
+              child: Column(
+                children: [
+                  _buildTableHeaderGrid(controller),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Column(
+                        children: List.generate(dummyItems.length, (index) {
+                          final item = dummyItems[index];
+                          return Column(
+                            children: [
+                              if (index > 0)
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: Colors.grey.shade200,
+                                ),
+                              _AuditRowGridTile(
+                                index: index,
+                                item: item,
+                                controller: controller,
+                              ),
+                            ],
+                          );
+                        }),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
@@ -269,86 +250,81 @@ class AuditTableWidget extends StatelessWidget {
 
           Divider(height: 1, color: Colors.grey.shade300),
 
-          // 3. Scrollable Audit Data Table
+          // 3. Audit Data Table
           Flexible(
             fit: FlexFit.loose,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: SizedBox(
-                width: _AuditColumnWidths.totalWidth,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTableHeaderGrid(controller),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Obx(() {
-                          final items = controller.filteredTabAuditItems;
-                          final editables = controller.editableAdditionalItems;
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTableHeaderGrid(controller),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Obx(() {
+                      final items = controller.filteredTabAuditItems;
+                      final editables = controller.editableAdditionalItems;
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Editable additional items inserted at the TOP of the items list
-                              ...editables.map((editItem) => Column(
-                                    children: [
-                                      _EditableRowGridTile(
-                                        key: ValueKey(editItem.id),
-                                        item: editItem,
-                                        controller: controller,
-                                      ),
-                                      Divider(
-                                        height: 1,
-                                        thickness: 1,
-                                        color: Colors.grey.shade200,
-                                      ),
-                                    ],
-                                  )),
-                              if (items.isEmpty && editables.isEmpty)
-                                Padding(
-                                  padding: EdgeInsets.all(20.h),
-                                  child: Center(
-                                    child: Text(
-                                      'No items in this tab category.',
-                                      style: AppTextStyle.style_12_400(
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Editable additional items inserted at the TOP of the items list
+                          ...editables.map(
+                            (editItem) => Column(
+                              children: [
+                                _EditableRowGridTile(
+                                  key: ValueKey(editItem.id),
+                                  item: editItem,
+                                  controller: controller,
+                                ),
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: Colors.grey.shade200,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (items.isEmpty && editables.isEmpty)
+                            Padding(
+                              padding: EdgeInsets.all(20.h),
+                              child: Center(
+                                child: Text(
+                                  'No items in this tab category.',
+                                  style: AppTextStyle.style_12_400(
+                                    color: Colors.grey.shade600,
                                   ),
-                                )
-                              else
-                                ...List.generate(items.length, (index) {
-                                  final item = items[index];
-                                  return Column(
-                                    children: [
-                                      if (index > 0)
-                                        Divider(
-                                          height: 1,
-                                          thickness: 1,
-                                          color: Colors.grey.shade200,
-                                        ),
-                                      _AuditRowGridTile(
-                                        key: ValueKey(item.itemId),
-                                        index: index,
-                                        item: item,
-                                        controller: controller,
-                                      ),
-                                    ],
-                                  );
-                                }),
-                            ],
-                          );
-                        }),
-                      ),
-                    ),
-                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            ...List.generate(items.length, (index) {
+                              final item = items[index];
+                              return Column(
+                                children: [
+                                  if (index > 0)
+                                    Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: Colors.grey.shade200,
+                                    ),
+                                  _AuditRowGridTile(
+                                    key: ValueKey(item.itemId),
+                                    index: index,
+                                    item: item,
+                                    controller: controller,
+                                  ),
+                                ],
+                              );
+                            }),
+                        ],
+                      );
+                    }),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -473,48 +449,33 @@ class AuditTableWidget extends StatelessWidget {
       child: Obx(
         () => Row(
           children: [
-            _headerCell(
-              'Sl No.',
-              controller,
-              columnKey: 'slNo',
-              width: _AuditColumnWidths.slNo,
-              alignment: Alignment.center,
+            Expanded(
+              flex: 4,
+              child: _headerCell(
+                'Item',
+                controller,
+                columnKey: 'item',
+                alignment: Alignment.centerLeft,
+              ),
             ),
-            _headerCell(
-              'Item',
-              controller,
-              columnKey: 'item',
-              width: _AuditColumnWidths.item,
-              alignment: Alignment.centerLeft,
+            Expanded(
+              flex: 3,
+              child: _headerCell(
+                'Category',
+                controller,
+                columnKey: 'category',
+                alignment: Alignment.centerLeft,
+              ),
             ),
-            _headerCell(
-              'Category',
-              controller,
-              columnKey: 'category',
-              width: _AuditColumnWidths.category,
-              alignment: Alignment.centerLeft,
-            ),
-            _headerCell(
-              'System Qty',
-              controller,
-              columnKey: 'systemQty',
-              width: _AuditColumnWidths.systemQty,
-              alignment: Alignment.center,
-            ),
-            _headerCell(
-              'Actual Qty',
-              controller,
-              columnKey: 'actualQty',
-              width: _AuditColumnWidths.actualQty,
-              alignment: Alignment.center,
-            ),
-            _headerCell(
-              'Difference',
-              controller,
-              columnKey: 'difference',
-              width: _AuditColumnWidths.difference,
-              alignment: Alignment.center,
-              hasRightBorder: false,
+            SizedBox(
+              width: 105.w,
+              child: _headerCell(
+                'Actual Qty',
+                controller,
+                columnKey: 'actualQty',
+                alignment: Alignment.center,
+                hasRightBorder: false,
+              ),
             ),
           ],
         ),
@@ -526,7 +487,6 @@ class AuditTableWidget extends StatelessWidget {
     String title,
     InventoryAuditController controller, {
     required String columnKey,
-    required double width,
     Alignment alignment = Alignment.centerLeft,
     bool hasRightBorder = true,
   }) {
@@ -536,7 +496,6 @@ class AuditTableWidget extends StatelessWidget {
     return InkWell(
       onTap: () => controller.toggleSort(columnKey),
       child: Container(
-        width: width,
         height: double.infinity,
         alignment: alignment,
         padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -593,180 +552,119 @@ class _EditableRowGridTile extends StatelessWidget {
       color: const Color(0xFFEFF6FF),
       child: Row(
         children: [
-          // 1. Sl No.
-          Container(
-            width: _AuditColumnWidths.slNo,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.shade300)),
-            ),
+          // Item Name Input
+          Expanded(
+            flex: 4,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
               decoration: BoxDecoration(
-                color: const Color(0xFF009BD9),
-                borderRadius: BorderRadius.circular(4.r),
+                border: Border(right: BorderSide(color: Colors.grey.shade300)),
+              ),
+              child: TextField(
+                controller: item.nameController,
+                style: AppTextStyle.style_11_500(color: AppColors.black),
+                decoration: InputDecoration(
+                  hintText: 'Enter item name',
+                  hintStyle: AppTextStyle.style_10_400(
+                    color: Colors.grey.shade400,
+                  ),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 6.w,
+                    vertical: 4.h,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                    borderSide: const BorderSide(color: Color(0xFF009BD9)),
+                  ),
+                ),
+                onChanged: (_) => controller.editableAdditionalItems.refresh(),
+              ),
+            ),
+          ),
+          // Category Badge
+          Expanded(
+            flex: 3,
+            child: Container(
+              alignment: Alignment.centerLeft,
+              padding: EdgeInsets.symmetric(horizontal: 6.w),
+              decoration: BoxDecoration(
+                border: Border(right: BorderSide(color: Colors.grey.shade300)),
               ),
               child: Text(
-                'NEW',
-                style: AppTextStyle.style_10_700(color: Colors.white),
+                'Additional',
+                style: AppTextStyle.style_11_600(color: const Color(0xFF009BD9)),
               ),
             ),
           ),
-          // 2. Item Name Input
-          Container(
-            width: _AuditColumnWidths.item,
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: TextField(
-              controller: item.nameController,
-              style: AppTextStyle.style_11_500(color: AppColors.black),
-              decoration: InputDecoration(
-                hintText: 'Enter item name',
-                hintStyle:
-                    AppTextStyle.style_10_400(color: Colors.grey.shade400),
-                isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4.r),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4.r),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4.r),
-                  borderSide: const BorderSide(color: Color(0xFF009BD9)),
-                ),
-              ),
-              onChanged: (_) => controller.editableAdditionalItems.refresh(),
-            ),
-          ),
-          // 3. Category Badge
-          Container(
-            width: _AuditColumnWidths.category,
-            alignment: Alignment.centerLeft,
-            padding: EdgeInsets.symmetric(horizontal: 6.w),
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Text(
-              'Additional',
-              style: AppTextStyle.style_11_600(color: const Color(0xFF009BD9)),
-            ),
-          ),
-          // 4. System Qty
-          Container(
-            width: _AuditColumnWidths.systemQty,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Text(
-              '0',
-              style: AppTextStyle.style_11_400(color: Colors.grey.shade500),
-            ),
-          ),
-          // 5. Actual Qty Input
-          Container(
-            width: _AuditColumnWidths.actualQty,
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Center(
-              child: SizedBox(
-                width: 105.w,
-                height: 25.h,
-                child: TextField(
-                  controller: item.qtyController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  style: AppTextStyle.style_11_600(color: AppColors.black),
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    hintText: 'Qty',
-                    hintStyle: AppTextStyle.style_10_400(
-                        color: Colors.grey.shade400),
-                    isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 5.h),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                      borderSide: const BorderSide(color: Color(0xFF009BD9)),
+          // Actual Qty Input
+          SizedBox(
+            width: 105.w,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+              alignment: Alignment.center,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 25.h,
+                      child: TextField(
+                        controller: item.qtyController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        style: AppTextStyle.style_11_600(color: AppColors.black),
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: 'Qty',
+                          hintStyle: AppTextStyle.style_10_400(
+                            color: Colors.grey.shade400,
+                          ),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 4.w,
+                            vertical: 5.h,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                            borderSide: const BorderSide(color: Color(0xFF009BD9)),
+                          ),
+                        ),
+                        onChanged: (_) =>
+                            controller.editableAdditionalItems.refresh(),
+                      ),
                     ),
                   ),
-                  onChanged: (_) =>
-                      controller.editableAdditionalItems.refresh(),
-                ),
-              ),
-            ),
-          ),
-          // 6. Unit Dropdown & Delete Button
-          Container(
-            width: _AuditColumnWidths.difference,
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            alignment: Alignment.center,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Obx(() {
-                    return MultiSelectDropdownWidget<String>(
-                      isSingleSelect: true,
-                      selectedValues: item.selectedUnitId.value.isNotEmpty
-                          ? {item.selectedUnitId.value}
-                          : {},
-                      items: controller.measurementOptions
-                          .map<DropdownMenuItem<String>>(
-                            (e) => DropdownMenuItem<String>(
-                              value: e.value,
-                              child: Text(
-                                e.label,
-                                style: AppTextStyle.style_10_400(
-                                    color: AppColors.black),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (set) {
-                        if (set.isNotEmpty) {
-                          item.selectedUnitId.value = set.first;
-                          final opt = controller.measurementOptions
-                              .firstWhereOrNull((o) => o.value == set.first);
-                          item.selectedUnitName.value = opt?.label ?? '';
-                        } else {
-                          item.selectedUnitId.value = '';
-                          item.selectedUnitName.value = '';
-                        }
-                        controller.editableAdditionalItems.refresh();
-                      },
-                      hint: 'Unit',
-                    );
-                  }),
-                ),
-                InkWell(
-                  onTap: () => controller.removeAdditionalItemRow(item.id),
-                  child: Padding(
-                    padding: EdgeInsets.all(4.r),
-                    child: Icon(
-                      Icons.delete_outline,
-                      size: 18.r,
-                      color: Colors.red.shade400,
+                  SizedBox(width: 2.w),
+                  InkWell(
+                    onTap: () => controller.removeAdditionalItemRow(item.id),
+                    child: Padding(
+                      padding: EdgeInsets.all(2.r),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 16.r,
+                        color: Colors.red.shade400,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -810,122 +708,87 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. Sl No.
-              _cell(
-                width: _AuditColumnWidths.slNo,
-                alignment: Alignment.center,
-                child: Text(
-                  '${widget.index + 1}',
-                  style: AppTextStyle.style_11_400(color: AppColors.black),
-                ),
-              ),
-              // 2. Item Name
-              _cell(
-                width: _AuditColumnWidths.item,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  widget.item.itemName,
-                  style: AppTextStyle.style_11_500(color: AppColors.black),
-                  maxLines: _isExpanded ? null : 1,
-                  overflow: _isExpanded
-                      ? TextOverflow.visible
-                      : TextOverflow.ellipsis,
-                ),
-              ),
-              // 3. Category Name
-              _cell(
-                width: _AuditColumnWidths.category,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  widget.item.categoryName,
-                  style: AppTextStyle.style_11_400(color: Colors.grey.shade700),
-                  maxLines: _isExpanded ? null : 1,
-                  overflow: _isExpanded
-                      ? TextOverflow.visible
-                      : TextOverflow.ellipsis,
-                ),
-              ),
-              // 4. System Qty
-              _cell(
-                width: _AuditColumnWidths.systemQty,
-                alignment: Alignment.center,
-                child: Text(
-                  widget.item.systemQtyStr,
-                  style: AppTextStyle.style_11_700(color: AppColors.black),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              // 5. Actual Qty (Centered input box with hint "Enter Qty")
-              _cell(
-                width: _AuditColumnWidths.actualQty,
-                alignment: Alignment.center,
-                child: Center(
-                  child: SizedBox(
-                    width: 105.w,
-                    height: 25.h,
-                    child: TextField(
-                      controller: textCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textAlign: TextAlign.center,
-                      textAlignVertical: TextAlignVertical.center,
-                      style: AppTextStyle.style_11_600(color: AppColors.black),
-                      decoration: InputDecoration(
-                        hintText: 'Enter Qty',
-                        hintStyle: AppTextStyle.style_10_400(
-                          color: Colors.grey.shade400,
-                        ),
-                        isDense: true,
-                        isCollapsed: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 4.w,
-                          vertical: 5.h,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4.r),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4.r),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4.r),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF009BD9),
-                          ),
-                        ),
-                      ),
-                      onChanged: (val) {
-                        widget.controller.setQty(widget.item.itemId, val);
-                      },
-                    ),
+              // Item Name
+              Expanded(
+                flex: 4,
+                child: _cell(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    widget.item.itemName,
+                    style: AppTextStyle.style_11_500(color: AppColors.black),
+                    maxLines: _isExpanded ? null : 1,
+                    overflow: _isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
                   ),
                 ),
               ),
-              // 6. Difference (Live calculated)
-              _cell(
-                width: _AuditColumnWidths.difference,
-                alignment: Alignment.center,
-                hasRightBorder: false,
-                child: Obx(() {
-                  final diffText = widget.controller.calculateDifferenceText(
-                    widget.item,
-                  );
-                  return Text(
-                    diffText,
-                    style: AppTextStyle.style_11_500(
-                      color:
-                          diffText.startsWith('-') && !diffText.startsWith('- ')
-                          ? Colors.grey.shade700
-                          : (diffText.startsWith('+')
-                                ? Colors.green.shade700
-                                : AppColors.black),
+              // Category Name
+              Expanded(
+                flex: 3,
+                child: _cell(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    widget.item.categoryName,
+                    style: AppTextStyle.style_11_400(color: Colors.grey.shade700),
+                    maxLines: _isExpanded ? null : 1,
+                    overflow: _isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              // Actual Qty
+              SizedBox(
+                width: 105.w,
+                child: _cell(
+                  alignment: Alignment.center,
+                  hasRightBorder: false,
+                  child: Center(
+                    child: SizedBox(
+                      width: 85.w,
+                      height: 25.h,
+                      child: TextField(
+                        controller: textCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textAlign: TextAlign.center,
+                        textAlignVertical: TextAlignVertical.center,
+                        style: AppTextStyle.style_11_600(color: AppColors.black),
+                        decoration: InputDecoration(
+                          hintText: 'Enter Qty',
+                          hintStyle: AppTextStyle.style_10_400(
+                            color: Colors.grey.shade400,
+                          ),
+                          isDense: true,
+                          isCollapsed: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 4.w,
+                            vertical: 5.h,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF009BD9),
+                            ),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          widget.controller.setQty(widget.item.itemId, val);
+                        },
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  );
-                }),
+                  ),
+                ),
               ),
             ],
           ),
@@ -936,12 +799,10 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
 
   Widget _cell({
     required Widget child,
-    required double width,
     Alignment alignment = Alignment.centerLeft,
     bool hasRightBorder = true,
   }) {
     return Container(
-      width: width,
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
       alignment: alignment,
       decoration: BoxDecoration(

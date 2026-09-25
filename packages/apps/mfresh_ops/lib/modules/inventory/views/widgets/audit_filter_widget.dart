@@ -30,35 +30,41 @@ class AuditFilterWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoadingUnits.value) {
-                return const CustomAppLoader();
-              }
-              return MultiSelectDropdownWidget<String>(
-                label: 'Select Unit',
-                hint: 'Choose unit',
-                height: 26.h,
-                selectedValues: controller.selectedUnitIds.toSet(),
-                items: controller.unitOptions
-                    .map(
-                      (o) => DropdownMenuItem<String>(
-                        value: o.value,
-                        child: Text(
-                          o.label,
-                          style:
-                              AppTextStyle.style_12_400(color: AppColors.black),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (selected) => controller.onUnitChanged(selected),
-                showSearch: true,
-                isSingleSelect: true,
-              );
-            }),
-          ),
-          SizedBox(width: 8.w),
+          // Left Side: Selected Unit Name
+          Obx(() {
+            final selectedId = controller.selectedUnitIds.firstOrNull;
+            final selectedOpt = controller.unitOptions
+                .firstWhereOrNull((o) => o.value == selectedId);
+            final unitName = selectedOpt?.label ?? selectedId ?? '';
+
+            return InkWell(
+              onTap: () => controller.clearSelectedUnit(),
+              borderRadius: BorderRadius.circular(4.r),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(4.r),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.storefront, size: 13.r, color: Colors.blue.shade900),
+                    SizedBox(width: 4.w),
+                    Text(
+                      'Unit: $unitName',
+                      style: AppTextStyle.style_11_600(color: Colors.blue.shade900),
+                    ),
+                    SizedBox(width: 4.w),
+                    Icon(Icons.close, size: 12.r, color: Colors.blue.shade900),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const Spacer(),
+          // Right Side: Add Item Button
           Obx(() {
             if (controller.selectedUnitIds.isEmpty) {
               return const SizedBox.shrink();
@@ -87,6 +93,7 @@ class AuditFilterWidget extends StatelessWidget {
               ),
             );
           }),
+          // Right Side: Submit Button
           Obx(() {
             final isEnabled = controller.isSubmitEnabled;
 

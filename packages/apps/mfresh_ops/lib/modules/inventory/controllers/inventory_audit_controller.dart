@@ -26,6 +26,24 @@ class AuditItem {
   });
 }
 
+class AuditUnitCardItem {
+  final String id;
+  final String name;
+  final String shortForm;
+  final String location;
+  final String image;
+  final String timing;
+
+  AuditUnitCardItem({
+    required this.id,
+    required this.name,
+    this.shortForm = '',
+    required this.location,
+    required this.image,
+    required this.timing,
+  });
+}
+
 class AdditionalAuditItem {
   final String itemName;
   final int measurementUnitId;
@@ -313,16 +331,70 @@ class InventoryAuditController extends GetxController {
     super.onClose();
   }
 
+  final unitCardItems = <AuditUnitCardItem>[].obs;
+  final unitSearchQuery = ''.obs;
+
+  List<AuditUnitCardItem> get filteredUnitCards {
+    final query = unitSearchQuery.value.trim().toLowerCase();
+    if (query.isEmpty) return unitCardItems;
+    return unitCardItems.where((u) {
+      return u.name.toLowerCase().contains(query) ||
+          u.shortForm.toLowerCase().contains(query) ||
+          u.location.toLowerCase().contains(query) ||
+          u.id.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  Map<String, List<AuditUnitCardItem>> get groupedUnitCards {
+    final Map<String, List<AuditUnitCardItem>> grouped = {};
+    for (final unit in filteredUnitCards) {
+      final locationKey = unit.location.isNotEmpty ? unit.location : 'Other';
+      grouped.putIfAbsent(locationKey, () => []).add(unit);
+    }
+    return grouped;
+  }
+
+  void clearSelectedUnit() {
+    selectedUnitIds.clear();
+    auditItems.clear();
+    additionalAuditItems.clear();
+    _disposeQtyControllers();
+  }
+
   Future<void> fetchUnits() async {
     isLoadingUnits.value = true;
     try {
       final response = await _repository.getSupportUnits();
       if (response != null && response['status'] == true) {
         final List data = response['data'] ?? [];
-        unitOptions.assignAll(data.map((e) => DropdownOption(
-              value: (e['unitid'] ?? e['id'])?.toString() ?? '',
-              label: e['unitname']?.toString() ?? '',
-            )));
+        unitOptions.assignAll(data.map((e) {
+          final name = (e['unitname'] ?? e['unit_name'] ?? e['Unit_Name'])?.toString() ?? '';
+          final shortForm = (e['unit_shortform'] ?? e['unit_short_form'])?.toString();
+          final label = (shortForm != null && shortForm.isNotEmpty) ? shortForm : name;
+          return DropdownOption(
+            value: (e['unitid'] ?? e['id'] ?? e['Unit_Id'])?.toString() ?? '',
+            label: label,
+          );
+        }));
+        unitCardItems.assignAll(data.map((e) {
+          final id = (e['unitid'] ?? e['id'] ?? e['Unit_Id'])?.toString() ?? '';
+          final name = (e['unitname'] ?? e['unit_name'] ?? e['Unit_Name'])?.toString() ?? id;
+          final shortForm = (e['unit_shortform'] ?? e['unit_short_form'] ?? e['unitshortform'])?.toString() ?? '';
+          final location = (e['district_name'] ?? e['unit_location'] ?? e['location'] ?? e['Unit_location'])?.toString() ?? '';
+          var img = (e['unit_image'] ?? e['image'] ?? e['Unit_Image'])?.toString() ?? '';
+          if (img.isNotEmpty && !img.startsWith('http')) {
+            img = 'https://$img';
+          }
+          final timing = (e['timing'] ?? e['time'])?.toString() ?? '';
+          return AuditUnitCardItem(
+            id: id,
+            name: name,
+            shortForm: shortForm,
+            location: location,
+            image: img,
+            timing: timing,
+          );
+        }));
       }
     } catch (e) {
       debugPrint('InventoryAuditController: fetchUnits error: $e');
