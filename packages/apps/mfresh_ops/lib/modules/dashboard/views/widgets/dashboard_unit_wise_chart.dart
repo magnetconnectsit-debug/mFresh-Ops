@@ -204,24 +204,21 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
         maxY: maxRevenue,
         showingTooltipIndicators: () {
           List<ShowingTooltipIndicators> indicators = [];
-          // Add non-touched spots first
           for (int xIndex = 0; xIndex < distinctDatesSet.length; xIndex++) {
             if (xIndex == touchedSpotIndex) continue;
             for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
-              if (lineBarsData[barIndex].spots[xIndex].y != 0) {
+              if (xIndex < lineBarsData[barIndex].spots.length && lineBarsData[barIndex].spots[xIndex].y != 0) {
                 indicators.add(ShowingTooltipIndicators([
                   LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex])
                 ]));
               }
             }
           }
-          
-          // Add touched spot last so it paints on top
           if (touchedSpotIndex != null) {
             final xIndex = touchedSpotIndex!;
             List<LineBarSpot> spotsForThisX = [];
             for (int barIndex = 0; barIndex < lineBarsData.length; barIndex++) {
-              if (lineBarsData[barIndex].spots[xIndex].y != 0) {
+              if (xIndex < lineBarsData[barIndex].spots.length && lineBarsData[barIndex].spots[xIndex].y != 0) {
                 spotsForThisX.add(LineBarSpot(lineBarsData[barIndex], barIndex, lineBarsData[barIndex].spots[xIndex]));
               }
             }
@@ -308,7 +305,13 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
                   final isWknd = _isWeekend(rawDate);
                   return LineTooltipItem(
                     NumberFormat('#,##,###').format(spot.y),
-                    AppTextStyle.style_10_600(color: isWknd ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
+                    AppTextStyle.style_10_700(
+                      color: isWknd
+                          ? Colors.red
+                          : (lineBarsData.length > spot.barIndex
+                              ? (lineBarsData[spot.barIndex].color ?? AppColors.primary)
+                              : AppColors.primary),
+                    ).copyWith(fontSize: 8.5.sp),
                   );
                 }).toList();
               }
@@ -502,28 +505,30 @@ class _DashboardUnitWiseChartState extends State<DashboardUnitWiseChart> {
       ),
     );
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 8.h, color: const Color(0xFF059669)),
-          if (widget.isFullScreen)
-            Expanded(child: innerContent)
-          else
-            innerContent,
-        ],
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 8.h, color: const Color(0xFF059669)),
+            if (widget.isFullScreen)
+              Expanded(child: innerContent)
+            else
+              innerContent,
+          ],
+        ),
       ),
     );
   }

@@ -121,6 +121,7 @@ class AppConstants {
   static const String inventoryConsume = 'inventory/consume';
   static const String inventoryUnitStock = 'inventory/Unit/Stock';
   static const String inventoryAuditSubmit = 'inventory/audit-store';
+  static const String inventoryAuditUnitItems = 'inventory-audit/unit-items';
   static const String inventoryAuditReport = 'inventory/audit/report';
   static const String inventoryAuditDetail = 'inventory/audit/detail';
   static const String invCategoryWiseItem = 'inv-Category-wise-Item';

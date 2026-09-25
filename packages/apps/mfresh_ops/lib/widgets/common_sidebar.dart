@@ -202,6 +202,13 @@ class CommonSidebar extends StatelessWidget {
                   'View Responsibilities',
               ];
 
+              final paymentSchedulerSubItems = [
+                if (userPermissions.contains('payment_reminder_pannel')) ...[
+                  'Scheduler',
+                  'Completed Schedulers',
+                ],
+              ];
+
               return ListView(
                 padding: EdgeInsets.zero,
                 children: [
@@ -288,12 +295,14 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  _buildExpandableMenuItem(
-                    icon: Icons.payment_outlined,
-                    title: 'Payment Scheduler',
-                    subItems: const ['Scheduler', 'Completed Schedulers'],
-                    currentRoute: currentRoute,
-                  ),
+                  if (userPermissions.contains('payment_reminder_pannel') &&
+                      paymentSchedulerSubItems.isNotEmpty)
+                    _buildExpandableMenuItem(
+                      icon: Icons.payment_outlined,
+                      title: 'Payment Scheduler',
+                      subItems: paymentSchedulerSubItems,
+                      currentRoute: currentRoute,
+                    ),
                   if (userPermissions.contains('roles_responsibility_panel') &&
                       rolesSubItems.isNotEmpty)
                     _buildExpandableMenuItem(

@@ -259,6 +259,7 @@ class HomeGridController extends GetxController {
       icon: Icons.payment_rounded,
       gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
       route: AppRoutes.paymentReminder,
+      permissionKey: 'payment_reminder_pannel',
       subActions: [
         GridSubAction(
           title: 'Add',
@@ -530,6 +531,17 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
+        }
+      } else if (item.title == 'Payments') {
+        if (userPermissions.contains('payment_reminder_pannel')) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
+          availableItems.add(item.copyWith(subActions: sub));
         }
       } else {
         // Fallback for any unknown items

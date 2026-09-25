@@ -76,7 +76,7 @@ class PaymentReminderUser {
 class PaymentReminderItem {
   final int id;
   final int? parentId;
-  final int? recurrenceId;
+  final dynamic recurrenceId;
   final String? forDesc;
   final String? brand;
   final String? location;
@@ -88,6 +88,8 @@ class PaymentReminderItem {
   final String? costCenter;
   final String? expenseType;
   final String? dueDate;
+  final String? reminderSetupDate;
+  final String? reminderDate;
   final String? endDate;
   final String? notificationDate;
   final String? notificationTime;
@@ -95,6 +97,10 @@ class PaymentReminderItem {
   final String? dueIn;
   final String? status;
   final dynamic remindBefore;
+  final String? additionalNumber;
+  final dynamic whatsappNotification;
+  final dynamic appNotification;
+  final dynamic recurringReminder;
 
   PaymentReminderItem({
     required this.id,
@@ -111,6 +117,8 @@ class PaymentReminderItem {
     this.costCenter,
     this.expenseType,
     this.dueDate,
+    this.reminderSetupDate,
+    this.reminderDate,
     this.endDate,
     this.notificationDate,
     this.notificationTime,
@@ -118,6 +126,10 @@ class PaymentReminderItem {
     this.dueIn,
     this.status,
     this.remindBefore,
+    this.additionalNumber,
+    this.whatsappNotification,
+    this.appNotification,
+    this.recurringReminder,
   });
 
   factory PaymentReminderItem.fromJson(Map<String, dynamic> json) {
@@ -136,6 +148,8 @@ class PaymentReminderItem {
       costCenter: json['cost_center'],
       expenseType: json['expense_type'],
       dueDate: json['due_date'],
+      reminderSetupDate: json['reminder_setup_date'] ?? json['notification_date'],
+      reminderDate: json['reminder_date'] ?? json['notification_date'],
       endDate: json['end_date'] ?? json['reminder_end_date'],
       notificationDate: json['notification_date'],
       notificationTime: json['notification_time'],
@@ -143,6 +157,10 @@ class PaymentReminderItem {
       dueIn: json['due_in'],
       status: json['status'],
       remindBefore: json['remind_before'],
+      additionalNumber: json['additional_number']?.toString(),
+      whatsappNotification: json['whatsapp_notification'],
+      appNotification: json['app_notification'],
+      recurringReminder: json['recurring_reminder'],
     );
   }
 }

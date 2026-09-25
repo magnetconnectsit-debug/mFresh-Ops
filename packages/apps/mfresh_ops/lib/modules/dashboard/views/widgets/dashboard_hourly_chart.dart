@@ -253,7 +253,9 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
                             // Permanent label
                             return BarTooltipItem(
                               '$prefix$formattedValue',
-                              AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                              AppTextStyle.style_10_700(
+                                color: widget.isRevenue ? const Color(0xFF1D4ED8) : const Color(0xFF059669),
+                              ).copyWith(fontSize: 8.5.sp),
                             );
                           }
                         },
@@ -274,7 +276,7 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
                             ),
                           ),
                         ],
-                        showingTooltipIndicators: [0], // Always show for rod 0
+                        showingTooltipIndicators: const [0],
                       ),
                     ),
                     ),
@@ -307,28 +309,30 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
       ),
     );
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 8.h, color: const Color(0xFF059669)),
-          if (widget.isFullScreen)
-            Expanded(child: innerContent)
-          else
-            innerContent,
-        ],
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 8.h, color: const Color(0xFF059669)),
+            if (widget.isFullScreen)
+              Expanded(child: innerContent)
+            else
+              innerContent,
+          ],
+        ),
       ),
     );
   }

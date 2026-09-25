@@ -89,14 +89,34 @@ class InventoryRepository extends GetxService {
     required int auditedBy,
     required String auditDate,
     required List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>>? additionalItems,
   }) async {
     try {
-      return await _apiService.post(AppConstants.inventoryAuditSubmit, data: {
+      final data = <String, dynamic>{
         'unit_id': unitId,
         'audited_by': auditedBy,
         'audit_date': auditDate,
         'items': items,
-      });
+      };
+      if (additionalItems != null && additionalItems.isNotEmpty) {
+        data['additional_items'] = additionalItems;
+      }
+      return await _apiService.post(AppConstants.inventoryAuditSubmit, data: data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditUnitItems({
+    required int unitId,
+    required dynamic auditRank,
+  }) async {
+    try {
+      final data = {
+        'unit_id': unitId,
+        'audit_rank': auditRank,
+      };
+      return await _apiService.post(AppConstants.inventoryAuditUnitItems, data: data);
     } catch (e) {
       rethrow;
     }

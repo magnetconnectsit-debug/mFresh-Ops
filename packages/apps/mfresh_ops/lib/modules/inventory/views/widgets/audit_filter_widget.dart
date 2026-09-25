@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
-import '../../controllers/inventory_audit_controller.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_audit_controller.dart';
 
 class AuditFilterWidget extends StatelessWidget {
   const AuditFilterWidget({super.key});
@@ -15,10 +15,10 @@ class AuditFilterWidget extends StatelessWidget {
     final controller = Get.find<InventoryAuditController>();
 
     return Container(
-      padding: EdgeInsets.all(12.r),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(8.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -38,6 +38,7 @@ class AuditFilterWidget extends StatelessWidget {
               return MultiSelectDropdownWidget<String>(
                 label: 'Select Unit',
                 hint: 'Choose unit',
+                height: 26.h,
                 selectedValues: controller.selectedUnitIds.toSet(),
                 items: controller.unitOptions
                     .map(
@@ -59,19 +60,45 @@ class AuditFilterWidget extends StatelessWidget {
           ),
           SizedBox(width: 8.w),
           Obx(() {
-            final isEnabled = controller.selectedUnitIds.isNotEmpty &&
-                controller.auditItems.isNotEmpty &&
-                !controller.isSubmitting.value;
+            if (controller.selectedUnitIds.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              height: 26.h,
+              margin: EdgeInsets.only(right: 6.w),
+              child: ElevatedButton.icon(
+                onPressed: () => controller.addAdditionalItemRow(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF009BD9),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  elevation: 0,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(Icons.add, size: 13.r, color: Colors.white),
+                label: Text(
+                  'Add Item',
+                  style: AppTextStyle.style_10_600(color: Colors.white),
+                ),
+              ),
+            );
+          }),
+          Obx(() {
+            final isEnabled = controller.isSubmitEnabled;
 
             return SizedBox(
-              height: 24.h,
+              height: 26.h,
               child: ElevatedButton(
                 onPressed: isEnabled ? () => controller.submitAudit() : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F7BF7),
                   disabledBackgroundColor: Colors.grey.shade300,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4.r),
                   ),

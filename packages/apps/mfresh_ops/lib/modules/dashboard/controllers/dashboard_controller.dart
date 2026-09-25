@@ -9,6 +9,7 @@ import 'package:mfresh_ops/data/repositories/dashboard_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
 import 'package:mfresh_ops/data/models/revenue_report/dashboard_data_model.dart';
 import 'package:mfresh_ops/data/models/revenue_report/comparison_model.dart';
+import 'package:mfresh_ops/modules/dashboard/views/widgets/custom_date_time_range_dialog.dart';
 
 class DashboardController extends GetxController {
   final DashboardRepository _repository = Get.put(DashboardRepository());
@@ -305,42 +306,21 @@ class DashboardController extends GetxController {
     final initialStart = rxStartDate.value != null ? DateTime.tryParse(rxStartDate.value!) : null;
     final initialEnd = rxEndDate.value != null ? DateTime.tryParse(rxEndDate.value!) : null;
 
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      initialDateRange: initialStart != null && initialEnd != null
-          ? DateTimeRange(start: initialStart, end: initialEnd)
-          : null,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFFE84C3D),
-            onPrimary: Colors.white,
-            onSurface: Colors.black,
-          ),
-        ),
-        child: child!,
-      ),
+    final result = await CustomDateTimeRangeDialog.show(
+      context,
+      initialStart: initialStart,
+      initialEnd: initialEnd,
     );
 
-    if (picked != null) {
-      final start = picked.start;
-      final end = picked.end;
-
-      final startStr =
-          "${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')} 00:00";
-      final endStr =
-          "${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')} 23:59";
-
+    if (result != null) {
       rxDateFilter.value = null;
       rxMonthFilter.value = null;
       rxFromMonth.value = null;
       rxToMonth.value = null;
       rxGrowthFilter.value = null;
 
-      rxStartDate.value = startStr;
-      rxEndDate.value = endStr;
+      rxStartDate.value = result.startFormatted;
+      rxEndDate.value = result.endFormatted;
       fetchDashboardData();
     }
   }

@@ -35,17 +35,61 @@ class _ChartFullScreenViewerState extends State<ChartFullScreenViewer> {
 
   Future<void> _shareChart() async {
     if (_isCapturing) return;
+
+    Rect? originRect;
+    if (mounted) {
+      final box = context.findRenderObject() as RenderBox?;
+      if (box != null && box.hasSize) {
+        originRect = box.localToGlobal(Offset.zero) & box.size;
+      }
+    }
+
     try {
       setState(() => _isCapturing = true);
       final imageBytes = await _captureChart();
       if (imageBytes != null) {
         final directory = await getTemporaryDirectory();
-        final imagePath = await File('${directory.path}/chart.png').create();
-        await imagePath.writeAsBytes(imageBytes);
-        await Share.shareXFiles([XFile(imagePath.path)], text: 'Chart: ${widget.title}');
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final imageFile = File('${directory.path}/chart_$timestamp.png');
+        await imageFile.writeAsBytes(imageBytes);
+
+        if (!mounted) return;
+
+        final mediaQuery = MediaQuery.of(context);
+        final fallbackRect = Rect.fromLTWH(
+          0,
+          0,
+          mediaQuery.size.width > 0 ? mediaQuery.size.width : 300,
+          mediaQuery.size.height > 0 ? mediaQuery.size.height / 2 : 300,
+        );
+        final shareRect = (originRect != null &&
+                !originRect.isEmpty &&
+                originRect.width > 0 &&
+                originRect.height > 0)
+            ? originRect
+            : fallbackRect;
+
+        await Share.shareXFiles(
+          [XFile(imageFile.path, mimeType: 'image/png')],
+          text: 'Chart: ${widget.title}',
+          sharePositionOrigin: shareRect,
+        );
+      } else {
+        if (mounted) {
+          AppCommonToastMessage.show(
+            message: 'Failed to generate chart image for sharing',
+            type: ToastType.error,
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error sharing chart: $e');
+      if (mounted) {
+        AppCommonToastMessage.show(
+          message: 'Failed to share chart: $e',
+          type: ToastType.error,
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isCapturing = false);
@@ -57,9 +101,18 @@ class _ChartFullScreenViewerState extends State<ChartFullScreenViewer> {
     try {
       // Small delay to ensure rendering is complete
       await Future.delayed(const Duration(milliseconds: 100));
-      
-      RenderRepaintBoundary boundary =
-          _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+
+      final currentContext = _globalKey.currentContext;
+      if (currentContext == null) return null;
+
+      RenderRepaintBoundary? boundary =
+          currentContext.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      if (boundary.debugNeedsPaint) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
       ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);

@@ -36,7 +36,8 @@ class EditReminderDateDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tempDate = Rxn<DateTime>(
-      controller.selectedReminderSetupDate.value ??
+      controller.selectedReminderDate.value ??
+          controller.selectedReminderSetupDate.value ??
           controller.selectedDueDate.value ??
           DateTime.now(),
     );
@@ -284,10 +285,7 @@ class EditReminderDateDialog extends StatelessWidget {
               height: 34.h,
               width: 115.w,
               onPressed: () {
-                controller.selectedReminderSetupDate.value = tempDate.value;
-                if (tempApplyChangeTo.value == 'only_this') {
-                  controller.selectedDueDate.value = tempDate.value;
-                }
+                controller.selectedReminderDate.value = tempDate.value;
                 if (tempTime.value != null) {
                   controller.selectedReminderTime.value = tempTime.value;
                 }

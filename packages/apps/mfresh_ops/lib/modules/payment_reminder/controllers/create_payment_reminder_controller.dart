@@ -40,6 +40,7 @@ class CreatePaymentReminderController extends GetxController {
   // Dates
   final selectedDueDate = Rxn<DateTime>();
   final selectedReminderSetupDate = Rxn<DateTime>();
+  final selectedReminderDate = Rxn<DateTime>();
   final selectedReminderTime = Rxn<TimeOfDay>();
 
   // Recurrence & Notifications
@@ -72,14 +73,38 @@ class CreatePaymentReminderController extends GetxController {
     if (reminderItem!.dueDate != null && reminderItem!.dueDate!.isNotEmpty) {
       selectedDueDate.value = DateTime.tryParse(reminderItem!.dueDate!);
     }
-    if (reminderItem!.notificationDate != null && reminderItem!.notificationDate!.isNotEmpty) {
+    if (reminderItem!.reminderSetupDate != null && reminderItem!.reminderSetupDate!.isNotEmpty) {
+      selectedReminderSetupDate.value = DateTime.tryParse(reminderItem!.reminderSetupDate!);
+    } else if (reminderItem!.notificationDate != null && reminderItem!.notificationDate!.isNotEmpty) {
       selectedReminderSetupDate.value = DateTime.tryParse(reminderItem!.notificationDate!);
+    }
+    if (reminderItem!.reminderDate != null && reminderItem!.reminderDate!.isNotEmpty) {
+      selectedReminderDate.value = DateTime.tryParse(reminderItem!.reminderDate!);
+    } else if (selectedReminderSetupDate.value != null) {
+      selectedReminderDate.value = selectedReminderSetupDate.value;
     }
     if (reminderItem!.notificationTime != null && reminderItem!.notificationTime!.isNotEmpty) {
       selectedReminderTime.value = parseTimeOfDay(reminderItem!.notificationTime!);
     }
     if (reminderItem!.remindBefore != null) {
       remindBeforeCtrl.text = reminderItem!.remindBefore.toString();
+    }
+    if (reminderItem!.additionalNumber != null) {
+      additionalNumberCtrl.text = reminderItem!.additionalNumber!;
+    }
+    if (reminderItem!.whatsappNotification != null) {
+      whatsappNotification.value =
+          reminderItem!.whatsappNotification == true || reminderItem!.whatsappNotification == 1;
+    }
+    if (reminderItem!.appNotification != null) {
+      appNotification.value =
+          reminderItem!.appNotification == true || reminderItem!.appNotification == 1;
+    }
+    if (reminderItem!.recurringReminder != null) {
+      isRecurring.value =
+          reminderItem!.recurringReminder == true || reminderItem!.recurringReminder == 1;
+    } else if (reminderItem!.recurrenceId != null) {
+      isRecurring.value = true;
     }
     _matchAssignee();
   }
@@ -196,9 +221,7 @@ class CreatePaymentReminderController extends GetxController {
             : null,
         "reminder_setup_date": selectedReminderSetupDate.value != null
             ? DateFormat('yyyy-MM-dd').format(selectedReminderSetupDate.value!)
-            : (selectedDueDate.value != null
-                ? DateFormat('yyyy-MM-dd').format(selectedDueDate.value!)
-                : DateFormat('yyyy-MM-dd').format(DateTime.now())),
+            : null,
         "notification_to": assigneeId ?? assigneeIdRaw,
         "additional_number": additionalNumberCtrl.text.trim(),
         "expense_head": expenseHeadCtrl.text.trim(),
@@ -206,12 +229,17 @@ class CreatePaymentReminderController extends GetxController {
         "cost_center": costCenterCtrl.text.trim(),
         "expense_type": selectedExpenseType.value,
         "remind_before": int.tryParse(remindBeforeCtrl.text) ?? 0,
+        "reminder_date": selectedReminderDate.value != null
+            ? DateFormat('yyyy-MM-dd').format(selectedReminderDate.value!)
+            : (selectedReminderSetupDate.value != null
+                ? DateFormat('yyyy-MM-dd').format(selectedReminderSetupDate.value!)
+                : null),
         "reminder_time": selectedReminderTime.value != null
             ? '${selectedReminderTime.value!.hour.toString().padLeft(2, '0')}:${selectedReminderTime.value!.minute.toString().padLeft(2, '0')}'
             : null,
-        "recurring_reminder": isRecurring.value ? 1 : 0,
-        "whatsapp_notification": whatsappNotification.value ? 1 : 0,
-        "app_notification": appNotification.value ? 1 : 0,
+        "whatsapp_notification": whatsappNotification.value,
+        "app_notification": appNotification.value,
+        "recurring_reminder": isRecurring.value,
       };
 
       if (isRecurring.value && recurrenceData.value != null) {
@@ -276,16 +304,44 @@ class CreatePaymentReminderController extends GetxController {
         data["occurrences"] = null;
       }
 
-      if (isEditing.value && reminderItem != null) {
-        data["id"] = reminderItem!.parentId ?? reminderItem!.id;
-        if (reminderItem!.recurrenceId != null) {
-          data["recurrence_id"] = reminderItem!.recurrenceId;
-        }
-        data["recurrence_scope"] = recurrenceScope.value;
-      }
-
       final success = (isEditing.value && reminderItem != null)
-          ? await _repository.updatePaymentReminder(data)
+          ? await _repository.updatePaymentReminder(<String, dynamic>{
+              "id": reminderItem!.parentId ?? reminderItem!.id,
+              "recurrence_id": reminderItem!.recurrenceId != null
+                  ? reminderItem!.recurrenceId.toString()
+                  : null,
+              "recurrence_scope": recurrenceScope.value.isNotEmpty
+                  ? recurrenceScope.value
+                  : "only_this",
+              "for": forCtrl.text.trim(),
+              "brand": brandCtrl.text.trim(),
+              "location": locationCtrl.text.trim(),
+              "customer_id": customerIdCtrl.text.trim(),
+              "due_date": selectedDueDate.value != null
+                  ? DateFormat('yyyy-MM-dd').format(selectedDueDate.value!)
+                  : null,
+              "reminder_setup_date": selectedReminderSetupDate.value != null
+                  ? DateFormat('yyyy-MM-dd').format(selectedReminderSetupDate.value!)
+                  : null,
+              "notification_to": assigneeId ?? assigneeIdRaw,
+              "additional_number": additionalNumberCtrl.text.trim(),
+              "expense_head": expenseHeadCtrl.text.trim(),
+              "sub_head": subHeadCtrl.text.trim(),
+              "cost_center": costCenterCtrl.text.trim(),
+              "expense_type": selectedExpenseType.value,
+              "remind_before": int.tryParse(remindBeforeCtrl.text) ?? 0,
+              "reminder_date": selectedReminderDate.value != null
+                  ? DateFormat('yyyy-MM-dd').format(selectedReminderDate.value!)
+                  : (selectedReminderSetupDate.value != null
+                      ? DateFormat('yyyy-MM-dd').format(selectedReminderSetupDate.value!)
+                      : null),
+              "reminder_time": selectedReminderTime.value != null
+                  ? '${selectedReminderTime.value!.hour.toString().padLeft(2, '0')}:${selectedReminderTime.value!.minute.toString().padLeft(2, '0')}'
+                  : null,
+              "whatsapp_notification": whatsappNotification.value,
+              "app_notification": appNotification.value,
+              "recurring_reminder": isRecurring.value,
+            })
           : await _repository.addPaymentReminder(data);
 
       if (success) {

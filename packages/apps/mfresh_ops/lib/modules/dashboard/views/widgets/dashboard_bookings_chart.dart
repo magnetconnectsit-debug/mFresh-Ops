@@ -274,10 +274,8 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
         ),
         showingTooltipIndicators: () {
           List<ShowingTooltipIndicators> indicators = [];
-          // Add non-touched spots first
           for (int index = 0; index < math.max(widget.bookingsData.length, widget.serviceBookingsData.length); index++) {
             if (index == touchedSpotIndex) continue;
-            
             if (index < bookingsBar.spots.length && bookingsBar.spots[index].y > 0) {
               indicators.add(ShowingTooltipIndicators([LineBarSpot(bookingsBar, 0, bookingsBar.spots[index])]));
             }
@@ -285,8 +283,6 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
               indicators.add(ShowingTooltipIndicators([LineBarSpot(servicesBar, 1, servicesBar.spots[index])]));
             }
           }
-          
-          // Add touched spot last so it paints on top
           if (touchedSpotIndex != null) {
             final index = touchedSpotIndex!;
             List<LineBarSpot> spotsForThisX = [];
@@ -386,7 +382,11 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
                   
                   return LineTooltipItem(
                     NumberFormat('#,##,###').format(spot.y),
-                    AppTextStyle.style_10_600(color: isW2 ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
+                    AppTextStyle.style_10_700(
+                      color: isW2
+                          ? Colors.red
+                          : (spot.barIndex == 0 ? const Color(0xFF059669) : const Color(0xFF1D4ED8)),
+                    ).copyWith(fontSize: 8.5.sp),
                   );
                 }).toList();
               }
@@ -488,28 +488,30 @@ class _DashboardBookingsChartState extends State<DashboardBookingsChart> {
       ),
     );
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 8.h, color: const Color(0xFF059669)),
-          if (widget.isFullScreen)
-            Expanded(child: innerContent)
-          else
-            innerContent,
-        ],
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 8.h, color: const Color(0xFF059669)),
+            if (widget.isFullScreen)
+              Expanded(child: innerContent)
+            else
+              innerContent,
+          ],
+        ),
       ),
     );
   }
