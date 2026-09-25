@@ -19,11 +19,16 @@ class ApiService extends GetxService {
   }
   // endregion
 
-  // region HTTP_Methods
-  Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {
+  // region HTTP Methods
+  Future<dynamic> get(String path, {dynamic data, Map<String, dynamic>? query, Options? options}) async {
     // region get
     try {
-      final response = await _dio.get(path, queryParameters: query);
+      final response = await _dio.get(
+        _normalizePath(path),
+        data: data,
+        queryParameters: query,
+        options: options,
+      );
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -35,13 +40,15 @@ class ApiService extends GetxService {
     String path, {
     dynamic data,
     Map<String, dynamic>? query,
+    Options? options,
   }) async {
     // region post
     try {
       final response = await _dio.post(
-        path,
+        _normalizePath(path),
         data: data,
         queryParameters: query,
+        options: options,
       );
       return response.data;
     } catch (e) {
@@ -54,10 +61,16 @@ class ApiService extends GetxService {
     String path, {
     dynamic data,
     Map<String, dynamic>? query,
+    Options? options,
   }) async {
     // region put
     try {
-      final response = await _dio.put(path, data: data, queryParameters: query);
+      final response = await _dio.put(
+        _normalizePath(path),
+        data: data,
+        queryParameters: query,
+        options: options,
+      );
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -69,13 +82,15 @@ class ApiService extends GetxService {
     String path, {
     dynamic data,
     Map<String, dynamic>? query,
+    Options? options,
   }) async {
     // region delete
     try {
       final response = await _dio.delete(
-        path,
+        _normalizePath(path),
         data: data,
         queryParameters: query,
+        options: options,
       );
       return response.data;
     } catch (e) {
@@ -84,6 +99,14 @@ class ApiService extends GetxService {
     // endregion
   }
   // endregion
+
+  // region Helpers
+  String _normalizePath(String path) {
+    if (path.startsWith('/')) {
+      return path.substring(1);
+    }
+    return path;
+  }
 
   // region Helpers
   Exception _handleError(dynamic e) {

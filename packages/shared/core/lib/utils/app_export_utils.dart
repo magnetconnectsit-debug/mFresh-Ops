@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/widgets/app_common_excel_viewer.dart';
 import 'package:core/widgets/app_common_pdf_viewer.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class AppExportUtils {
   AppExportUtils._();
@@ -49,26 +51,66 @@ class AppExportUtils {
     }
   }
 
-  /// Exports data to a PDF (currently launches dummy viewer)
+  /// Exports data to a PDF file and opens the in-app viewer.
   static Future<void> exportToPdf({
     required String title,
-    String? pdfUrl,
+    required List<String> columns,
+    required List<List<dynamic>> rows,
+    String? fileName,
   }) async {
     try {
-      // In a real scenario, this would generate or fetch a PDF
-      // For now, we use the standardized dummy flow
-      Get.to(() => AppCommonPdfViewer(
-            pdfUrl: pdfUrl ?? 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-            title: title,
-          ));
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.landscape.copyWith(
+            marginBottom: 0.5 * PdfPageFormat.cm,
+            marginLeft: 0.5 * PdfPageFormat.cm,
+            marginRight: 0.5 * PdfPageFormat.cm,
+            marginTop: 0.5 * PdfPageFormat.cm,
+          ),
+          build: (context) => [
+            pw.Header(
+              level: 0,
+              child: pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+            ),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              headers: columns,
+              data: rows,
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+              cellStyle: const pw.TextStyle(fontSize: 7),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              cellHeight: 20,
+              cellAlignments: {
+                for (var i = 0; i < columns.length; i++) i: pw.Alignment.centerLeft,
+              },
+            ),
+          ],
+        ),
+      );
+
+      // Save to temporary directory
+      final directory = await getTemporaryDirectory();
+      final name = fileName ?? '${title.toLowerCase().replaceAll(' ', '_')}_export_${DateTime.now().millisecondsSinceEpoch}';
+      final path = "${directory.path}/$name.pdf";
+      
+      final file = File(path);
+      await file.writeAsBytes(await pdf.save());
 
       AppCommonToastMessage.show(
-        message: "$title report ready for viewing!",
+        message: "$title exported to PDF successfully!",
         type: ToastType.success,
       );
+
+      // Navigate to PDF Viewer
+      Get.to(() => AppCommonPdfViewer(
+            filePath: path,
+            title: title,
+          ));
     } catch (e) {
       AppCommonToastMessage.show(
-        message: "Failed to open PDF report: $e",
+        message: "Failed to export PDF: $e",
         type: ToastType.error,
       );
     }

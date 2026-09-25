@@ -1,12 +1,11 @@
 // region Imports
 import 'package:dio/dio.dart';
-import 'package:core/constants/app_constants.dart';
 import 'package:services/log_service.dart';
 import 'package:services/storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
-// endregion
+import 'package:core/utils/app_common_toast_message.dart';// endregion
 
 // region DioClient
 class DioClient {
@@ -15,27 +14,30 @@ class DioClient {
 
   Dio get dio => _dio;
 
-  Future<DioClient> init() async {
+  Future<DioClient> init({List<String> publicPaths = const []}) async {
     _storageService = Get.find<StorageService>();
     final loggerService = Get.find<LoggerService>();
 
     final String baseUrl = _storageService.getBaseUrl();
-    AppConstants.baseUrl = baseUrl;
+    final normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
 
     _dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(
-          milliseconds: AppConstants.connectionTimeout,
-        ),
-        receiveTimeout: const Duration(
-          milliseconds: AppConstants.receiveTimeout,
-        ),
+        baseUrl: normalizedBaseUrl,
+        connectTimeout: const Duration(milliseconds: 100000),
+        receiveTimeout: const Duration(milliseconds: 100000),
         responseType: ResponseType.json,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (status) {
+          return status != null && status < 500;
+        },
       ),
     );
 
-    _dio.interceptors.add(AuthInterceptor(_storageService));
+    _dio.interceptors.add(AuthInterceptor(_storageService, publicPaths: publicPaths));
     _dio.interceptors.add(LoggerInterceptor(loggerService: loggerService));
 
     if (kDebugMode) {
@@ -48,6 +50,7 @@ class DioClient {
           error: true,
           compact: true,
           maxWidth: 90,
+          logPrint: (object) => debugPrint(object.toString()),
         ),
       );
     }
@@ -61,13 +64,18 @@ class DioClient {
 // region AuthInterceptor
 class AuthInterceptor extends Interceptor {
   final StorageService _storageService;
+  final List<String> publicPaths;
+  static bool _isLoggingOut = false;
 
-  AuthInterceptor(this._storageService);
+  AuthInterceptor(this._storageService, {this.publicPaths = const []});
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     debugPrint('AuthInterceptor: onRequest: ${options.path}');
-    if (options.path.contains(AppConstants.login)) {
+    
+    final isPublic = publicPaths.any((path) => options.path.contains(path));
+    
+    if (isPublic) {
       debugPrint('AuthInterceptor: Path is public, skipping token.');
       return super.onRequest(options, handler);
     }
@@ -82,6 +90,47 @@ class AuthInterceptor extends Interceptor {
       );
     }
     return super.onRequest(options, handler);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    final isPublic = publicPaths.any((path) => response.requestOptions.path.contains(path));
+    if (response.statusCode == 401 && !isPublic) {
+      debugPrint('AuthInterceptor: 401 Unauthorized detected in response. Logging out...');
+      _handleLogout(response.data);
+    }
+    return super.onResponse(response, handler);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final isPublic = publicPaths.any((path) => err.requestOptions.path.contains(path));
+    if (err.response?.statusCode == 401 && !isPublic) {
+      debugPrint('AuthInterceptor: 401 Unauthorized detected in error. Logging out...');
+      _handleLogout(err.response?.data);
+    }
+    return super.onError(err, handler);
+  }
+
+  void _handleLogout(dynamic responseData) async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
+
+    final message = responseData is Map ? responseData['message']?.toString() : null;
+    
+    AppCommonToastMessage.show(
+      message: message ?? 'Session expired, logging out...',
+      type: ToastType.warning,
+    );
+    
+    await _storageService.clearAllStorage();
+    
+    // Using a small delay to ensure the UI can handle the transition
+    Future.delayed(const Duration(milliseconds: 100), () {
+      Get.offAllNamed('/login');
+      // Reset after redirect to allow future logins
+      _isLoggingOut = false;
+    });
   }
 }
 // endregion

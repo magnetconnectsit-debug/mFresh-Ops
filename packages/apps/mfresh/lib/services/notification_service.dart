@@ -7,8 +7,8 @@ import 'package:dio/dio.dart' as dio;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:core/constants/app_colors.dart';
-import 'package:core/routes/app_routes.dart';
-import 'package:models/notification/app_notification.dart';
+import 'package:mfresh/routes/app_routes.dart';
+import 'package:core/models/app_notification.dart';
 import 'package:mfresh/modules/notification/controllers/notification_controller.dart';
 import 'package:mfresh/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:flutter/foundation.dart';
@@ -17,7 +17,7 @@ import 'package:services/storage_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 // endregion
 

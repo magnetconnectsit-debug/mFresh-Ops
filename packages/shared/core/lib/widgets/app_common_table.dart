@@ -71,8 +71,6 @@ class AppCommonTable extends StatelessWidget {
                           : Text(
                               value.toString(),
                               style: AppTextStyle.style_12_400(),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
                             ),
                       ),
                     );

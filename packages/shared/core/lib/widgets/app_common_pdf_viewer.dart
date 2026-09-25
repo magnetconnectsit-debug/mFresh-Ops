@@ -15,14 +15,16 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:share_plus/share_plus.dart';
 
 class AppCommonPdfViewer extends StatefulWidget {
-  final String pdfUrl;
+  final String? pdfUrl;
+  final String? filePath;
   final String title;
 
   const AppCommonPdfViewer({
     super.key,
-    required this.pdfUrl,
+    this.pdfUrl,
+    this.filePath,
     required this.title,
-  });
+  }) : assert(pdfUrl != null || filePath != null, 'Either pdfUrl or filePath must be provided');
 
   @override
   State<AppCommonPdfViewer> createState() => _AppCommonPdfViewerState();
@@ -69,7 +71,7 @@ class _AppCommonPdfViewerState extends State<AppCommonPdfViewer> {
           '${widget.title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final filePath = '${directory.path}/$fileName';
 
-      await dio.download(widget.pdfUrl, filePath);
+      await dio.download(widget.pdfUrl!, filePath);
 
       if (!silent) {
         AppCommonToastMessage.show(
@@ -89,14 +91,21 @@ class _AppCommonPdfViewerState extends State<AppCommonPdfViewer> {
     }
   }
 
-  Future<void> _sharePdf() async {
-    final filePath = await _downloadPdf(silent: true);
-    if (filePath != null) {
-      await Share.shareXFiles([XFile(filePath)], text: 'Check out this ${widget.title}');
+  Future<void> _sharePdf(BuildContext context) async {
+    final path = widget.filePath ?? await _downloadPdf(silent: true);
+    if (path != null) {
+      final box = context.findRenderObject() as RenderBox?;
+      final rect = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, MediaQuery.of(context).size.height / 2);
+
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: 'Check out this ${widget.title}',
+        sharePositionOrigin: rect,
+      );
     } else {
-       AppCommonToastMessage.show(
-            message: 'Failed to prepare file for sharing',
-            type: ToastType.error);
+      AppCommonToastMessage.show(message: 'Failed to prepare file for sharing', type: ToastType.error);
     }
   }
 
@@ -107,12 +116,14 @@ class _AppCommonPdfViewerState extends State<AppCommonPdfViewer> {
       appBar: AppCommonAppBar(
         title: Text(widget.title.sanitize),
         actions: [
-          IconButton(
-            onPressed: _sharePdf,
-            icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
+          Builder(
+            builder: (ctx) => IconButton(
+              onPressed: () => _sharePdf(ctx),
+              icon: Icon(Icons.share_outlined, color: AppColors.primary, size: 22.sp),
+            ),
           ),
           Obx(() => IconButton(
-                onPressed: _isDownloading.value ? null : () => _downloadPdf(),
+                onPressed: (_isDownloading.value || widget.filePath != null) ? null : () => _downloadPdf(),
                 icon: _isDownloading.value
                     ? SizedBox(
                         width: 20.w,
@@ -123,27 +134,37 @@ class _AppCommonPdfViewerState extends State<AppCommonPdfViewer> {
                         ),
                       )
                     : Icon(Icons.download_rounded,
-                        color: AppColors.primary, size: 24.sp),
+                        color: widget.filePath != null ? AppColors.grey300 : AppColors.primary, size: 24.sp),
               )),
           SizedBox(width: 8.w),
         ],
       ),
       body: Stack(
         children: [
-          SfPdfViewer.network(
-            widget.pdfUrl,
-            controller: _pdfViewerController,
-            key: ValueKey(widget.pdfUrl),
-            onDocumentLoaded: (PdfDocumentLoadedDetails details) {
-              _isLoading.value = false;
-            },
-            onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-              _isLoading.value = false;
-              AppCommonToastMessage.show(
-                  message: 'Failed to load PDF: ${details.error}',
-                  type: ToastType.error);
-            },
-          ),
+          widget.filePath != null
+              ? SfPdfViewer.file(
+                  File(widget.filePath!),
+                  controller: _pdfViewerController,
+                  onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+                    _isLoading.value = false;
+                  },
+                  onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                    _isLoading.value = false;
+                    AppCommonToastMessage.show(message: 'Failed to load PDF: ${details.error}', type: ToastType.error);
+                  },
+                )
+              : SfPdfViewer.network(
+                  widget.pdfUrl!,
+                  controller: _pdfViewerController,
+                  key: ValueKey(widget.pdfUrl),
+                  onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+                    _isLoading.value = false;
+                  },
+                  onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                    _isLoading.value = false;
+                    AppCommonToastMessage.show(message: 'Failed to load PDF: ${details.error}', type: ToastType.error);
+                  },
+                ),
           Obx(() => _isLoading.value
               ? Center(
                   child: Container(

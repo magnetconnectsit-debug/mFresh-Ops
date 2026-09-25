@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:models/models.dart';
+import 'package:core/utils/app_common_toast_message.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/data/repositories/common_repository.dart';
+import 'package:mfresh_ops/data/repositories/support_repository.dart';
+import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:dio/dio.dart' as dio;
+import 'package:core/utils/app_utils.dart';
+import 'dart:io';
+import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
 
 class CreateTicketController extends GetxController {
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
@@ -13,7 +19,8 @@ class CreateTicketController extends GetxController {
 
   final occurredDate = DateTime.now().obs;
   final isLoading = false.obs;
-  
+  final isCompressingMedia = false.obs;
+
   // Dropdown Selections
   final selectedUnit = Rxn<SupportUnit>();
   final selectedCategory = Rxn<SupportCategory>();
@@ -29,11 +36,25 @@ class CreateTicketController extends GetxController {
   final projects = <SupportProject>[].obs;
   final assignees = <AssigneeModel>[].obs;
   final selectedAssignee = Rxn<AssigneeModel>();
+  final templates = <SupportTemplateModel>[].obs;
+  final selectedTemplate = Rxn<SupportTemplateModel>();
+
+  // Reminder Logic
+  final reminderDate = Rxn<DateTime>();
+  final reminderTime = Rxn<TimeOfDay>();
+  final whatsappNotification = true.obs;
+  final appNotification = true.obs;
+  final displayReminder = 'Reminder'.obs;
+
+  final subjectText = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
     fetchAllData();
+    subjectController.addListener(() {
+      subjectText.value = subjectController.text;
+    });
   }
 
   Future<void> fetchAllData() async {
@@ -44,7 +65,11 @@ class CreateTicketController extends GetxController {
         fetchUnits(),
         fetchCategories(),
         fetchProjects(),
+        fetchTemplates(),
       ]);
+
+      // Set default selections
+      _setDefaults();
     } catch (e) {
       debugPrint('Error fetching dropdown data: $e');
     } finally {
@@ -52,11 +77,68 @@ class CreateTicketController extends GetxController {
     }
   }
 
+  void _setDefaults() {
+    // Unit: default to "Other"
+    if (selectedUnit.value == null && units.isNotEmpty) {
+      final otherUnit = units.firstWhereOrNull(
+        (u) => u.unitName.toLowerCase() == 'other',
+      );
+      if (otherUnit != null) selectedUnit.value = otherUnit;
+    }
+
+    // Category: default to "Other"
+    if (selectedCategory.value == null && categories.isNotEmpty) {
+      final otherCategory = categories.firstWhereOrNull(
+        (c) => c.categoryName.toLowerCase() == 'other',
+      );
+      if (otherCategory != null) onCategorySelected(otherCategory);
+    }
+
+    // Priority: default to "Medium"
+    if (selectedPriority.value == null && priorities.isNotEmpty) {
+      selectedPriority.value = 'Medium';
+    }
+
+    // Project: default to "mFresh"
+    if (selectedProject.value == null && projects.isNotEmpty) {
+      final mfreshProject = projects.firstWhereOrNull(
+        (p) => p.projectName.toLowerCase() == 'mfresh',
+      );
+      if (mfreshProject != null) selectedProject.value = mfreshProject;
+    }
+  }
+
+  Future<void> fetchTemplates() async {
+    try {
+      final result = await _supportRepository.fetchAllTemplates();
+      result.sort((a, b) => a.templateName.compareTo(b.templateName));
+      templates.assignAll(result);
+    } catch (e) {
+      debugPrint('Error fetching templates: $e');
+    }
+  }
+
+  void onTemplateSelected(SupportTemplateModel? template) {
+    selectedTemplate.value = template;
+    if (template != null) {
+      subjectController.text = template.templateName;
+      
+      String desc = template.description;
+      if (template.subtasks.isNotEmpty) {
+        if (desc.isNotEmpty) desc += '\n\n';
+        for (int i = 0; i < template.subtasks.length; i++) {
+          desc += '${i + 1}. ${template.subtasks[i]}\n';
+        }
+      }
+      descriptionController.text = desc.trim();
+    }
+  }
+
   Future<void> fetchAssignees() async {
     try {
       final user = _storageService.getUser();
       if (user == null) return;
-      final result = await _commonRepository.getAllAssignees(mainId: user.id.toString());
+      final result = await _commonRepository.getAllAssignees();
       assignees.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching assignees: $e');
@@ -92,7 +174,9 @@ class CreateTicketController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
-      final result = await _supportRepository.getSupportSubCategories(categoryId);
+      final result = await _supportRepository.getSupportSubCategories(
+        categoryId,
+      );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
@@ -111,8 +195,9 @@ class CreateTicketController extends GetxController {
   final reminderController = TextEditingController();
   final subjectController = TextEditingController();
   final descriptionController = TextEditingController();
-  
+
   final selectedImages = <XFile>[].obs;
+  final selectedVideos = <File>[].obs;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> selectDate(BuildContext context) async {
@@ -127,14 +212,45 @@ class CreateTicketController extends GetxController {
     }
   }
 
+  Future<void> selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: reminderTime.value ?? TimeOfDay.now(),
+    );
+    if (picked != null) {
+      reminderTime.value = picked;
+    }
+  }
+
+  String getFormattedReminderTime() {
+    if (reminderTime.value == null) return '10:30-AM'; // fallback
+    final t = reminderTime.value!;
+    final int h = t.hour;
+    final int m = t.minute;
+    final String period = h >= 12 ? 'PM' : 'AM';
+    final int displayHour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+    return '${displayHour.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}-$period';
+  }
+
   Future<void> pickImages() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
-        selectedImages.addAll(images);
+        isCompressingMedia.value = true;
+        for (var image in images) {
+          final compressed = await AppMediaCompressor.compressImage(
+            File(image.path),
+          );
+          selectedImages.add(XFile(compressed.path));
+        }
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to pick images: $e');
+      AppCommonToastMessage.show(
+        message: 'Failed to pick images: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      isCompressingMedia.value = false;
     }
   }
 
@@ -142,10 +258,19 @@ class CreateTicketController extends GetxController {
     try {
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
-        selectedImages.add(photo);
+        isCompressingMedia.value = true;
+        final compressed = await AppMediaCompressor.compressImage(
+          File(photo.path),
+        );
+        selectedImages.add(XFile(compressed.path));
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to take photo: $e');
+      AppCommonToastMessage.show(
+        message: 'Failed to take photo: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      isCompressingMedia.value = false;
     }
   }
 
@@ -153,73 +278,158 @@ class CreateTicketController extends GetxController {
     selectedImages.removeAt(index);
   }
 
+  Future<void> pickVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+      if (video != null) {
+        isCompressingMedia.value = true;
+        final compressed = await AppMediaCompressor.compressVideo(
+          File(video.path),
+        );
+        selectedVideos.add(compressed);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Failed to pick/compress video: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      isCompressingMedia.value = false;
+    }
+  }
+
+  Future<void> recordVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
+      if (video != null) {
+        isCompressingMedia.value = true;
+        final compressed = await AppMediaCompressor.compressVideo(
+          File(video.path),
+        );
+        selectedVideos.add(compressed);
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Failed to record/compress video: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      isCompressingMedia.value = false;
+    }
+  }
+
+  void removeVideo(int index) {
+    selectedVideos.removeAt(index);
+  }
+
+  final showValidationErrors = false.obs;
+
   Future<void> createTicket() async {
-    if (selectedUnit.value == null || 
-        selectedCategory.value == null || 
-        subjectController.text.isEmpty) {
-      Get.snackbar('Error', 'Please fill all required fields');
+    if (selectedUnit.value == null ||
+        selectedCategory.value == null ||
+        selectedProject.value == null ||
+        selectedAssignee.value == null ||
+        subjectController.text.trim().isEmpty) {
+      showValidationErrors.value = true;
+      AppCommonToastMessage.show(
+        message: 'Please fill all required fields',
+        type: ToastType.error,
+      );
       return;
     }
+    showValidationErrors.value = false;
 
     try {
       isLoading.value = true;
       final user = _storageService.getUser();
-      
+
       final Map<String, dynamic> data = {
         'unit': selectedUnit.value!.unitId.toString(),
         'categoryid': selectedCategory.value!.categoryId.toString(),
-        'projectid': selectedProject.value?.projectId.toString() ?? '8', // Default as per example if null
-        'subcategoryid': selectedSubCategory.value?.subCategoryId.toString() ?? '',
+        'projectid':
+            selectedProject.value?.projectId.toString() ??
+            '8', // Default as per example if null
+        'subcategoryid':
+            selectedSubCategory.value?.subCategoryId.toString() ?? '',
         'priority': _getPriorityId(selectedPriority.value),
         'subject': subjectController.text,
         'description': descriptionController.text,
         'comment': reminderController.text,
         'userid': user?.id.toString() ?? '',
         'assigned_to': selectedAssignee.value?.id.toString() ?? '',
-        'reminder_date': '${occurredDate.value.year}-${occurredDate.value.month}-${occurredDate.value.day}',
-        'reminder_time': '10:30-AM', // Hardcoded as placeholder or add time picker
-        'whatsapp_notification': '1',
-        'app_notification': '1',
+        'reminder_date':
+            '${occurredDate.value.year}-${occurredDate.value.month}-${occurredDate.value.day}',
+        'reminder_time': getFormattedReminderTime(),
+        'whatsapp_notification': whatsappNotification.value ? '1' : '0',
+        'app_notification': appNotification.value ? '1' : '0',
         'folder_path': 'images/maintenance',
       };
+
+      if (selectedTemplate.value != null) {
+        data['template_id'] = selectedTemplate.value!.id.toString();
+      }
 
       final formData = dio.FormData.fromMap(data);
 
       // Add attachments
       for (var file in selectedImages) {
-        formData.files.add(MapEntry(
-          'attachments[]',
-          await dio.MultipartFile.fromFile(file.path),
-        ));
+        final path = file.path;
+        formData.files.add(
+          MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)),
+        );
+      }
+      for (var file in selectedVideos) {
+        final path = file.path;
+        formData.files.add(
+          MapEntry('attachments[]', await dio.MultipartFile.fromFile(path)),
+        );
       }
 
       final response = await _supportRepository.createSupportTicket(formData);
-      
+
       if (response != null && response['status'] == true) {
         Get.back();
-        Get.snackbar(
-          'Success',
-          'Ticket created successfully',
-          backgroundColor: AppColors.success,
-          colorText: AppColors.white,
+        AppCommonToastMessage.show(
+          message: 'Ticket created successfully',
+          type: ToastType.success,
         );
+        // Refresh ticket list
+        if (Get.isRegistered<SupportTicketsController>()) {
+          Get.find<SupportTicketsController>().fetchTickets();
+        }
       } else {
-        Get.snackbar('Error', response?['message'] ?? 'Failed to create ticket');
+        final rawMsg = response?['message']?.toString() ?? '';
+        final cleanMsg =
+            (rawMsg.toLowerCase().contains('sqlstate') ||
+                rawMsg.toLowerCase().contains('database') ||
+                rawMsg.toLowerCase().contains('exception'))
+            ? 'Failed to create ticket. Please try again later.'
+            : (rawMsg.isNotEmpty ? rawMsg : 'Failed to create ticket');
+        AppCommonToastMessage.show(message: cleanMsg, type: ToastType.error);
       }
     } catch (e) {
-      Get.snackbar('Error', 'An error occurred: $e');
+      AppCommonToastMessage.show(
+        message: AppUtils.parseError(e),
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
+      AppMediaCompressor.clearCache();
     }
   }
 
   String _getPriorityId(String? priority) {
     switch (priority) {
-      case 'Low': return '1';
-      case 'Medium': return '2';
-      case 'High': return '3';
-      case 'Top Priority': return '6';
-      default: return '2';
+      case 'Low':
+        return '1';
+      case 'Medium':
+        return '2';
+      case 'High':
+        return '3';
+      case 'Top Priority':
+        return '6';
+      default:
+        return '2';
     }
   }
 }
