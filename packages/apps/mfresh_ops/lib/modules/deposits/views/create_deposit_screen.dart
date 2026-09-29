@@ -7,6 +7,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/deposits/controllers/create_deposit_controller.dart';
 import 'package:core/widgets/month_year_picker_field.dart';
 import 'package:intl/intl.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class CreateDepositScreen extends StatelessWidget {
   const CreateDepositScreen({super.key});
@@ -23,6 +24,7 @@ class CreateDepositScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         elevation: 0,
         hasBackButton: true,
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           controller.editingItem != null ? 'Edit Deposit' : 'Deposite Cash',
           style: const TextStyle(

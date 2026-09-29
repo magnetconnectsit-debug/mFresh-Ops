@@ -17,6 +17,17 @@ class AssetsProductsController extends GetxController {
   final lastPage = 1.obs;
   final totalRecords = 0.obs;
 
+  // Expanded Row IDs for responsive row expansion
+  final expandedRowIds = <dynamic>{}.obs;
+
+  void toggleRowExpansion(dynamic id) {
+    if (expandedRowIds.contains(id)) {
+      expandedRowIds.remove(id);
+    } else {
+      expandedRowIds.add(id);
+    }
+  }
+
   // Filter state
   final selectedItemType = ''.obs; // '' = all, '0' = product, '1' = asset
   final searchController = TextEditingController(); // For appbar global search

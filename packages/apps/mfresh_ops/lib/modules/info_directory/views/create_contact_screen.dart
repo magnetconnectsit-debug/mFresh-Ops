@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'dart:io';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_contact_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
@@ -19,12 +19,10 @@ class CreateContactScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
-      appBar: PreferredSize(
-        preferredSize: const AppCommonAppBar().preferredSize,
-        child: Obx(
-          () => AppCommonAppBar(
-            title: Text(controller.isEdit.value ? 'Edit Contact' : 'Create Contact'),
-          ),
+      appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
+        title: Obx(
+          () => Text(controller.isEdit.value ? 'Edit Contact' : 'Create Contact'),
         ),
       ),
       body: SafeArea(
@@ -281,7 +279,7 @@ class CreateContactScreen extends StatelessWidget {
                         onPressed: controller.isLoading.value ? null : controller.submit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D6EFD),
-                          disabledBackgroundColor: const Color(0xFF0D6EFD).withOpacity(0.6),
+                          disabledBackgroundColor: const Color(0xFF0D6EFD).withValues(alpha: 0.6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4.r),
                           ),

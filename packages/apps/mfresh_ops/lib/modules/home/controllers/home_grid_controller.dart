@@ -170,6 +170,18 @@ class HomeGridController extends GetxController {
           permissionKey: 'store_inventory_stock',
         ),
         GridSubAction(
+          title: 'Audit Report',
+          icon: Icons.fact_check_outlined,
+          route: AppRoutes.auditReport,
+          permissionKey: 'unit_audit_report',
+        ),
+        GridSubAction(
+          title: 'Audit Rank',
+          icon: Icons.grade_outlined,
+          route: AppRoutes.auditItemRanks,
+          permissionKey: 'audit_item_rank',
+        ),
+        GridSubAction(
           title: 'Orders',
           icon: Icons.shopping_cart_outlined,
           route: AppRoutes.inventoryOrders,
@@ -375,27 +387,22 @@ class HomeGridController extends GetxController {
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Unit Inventory') {
-        if (userPermissions.contains('inventory_panel') &&
-            userPermissions.contains('unit_inventory_stock')) {
+        if (userPermissions.contains('unit_inventory_stock') ||
+            userPermissions.contains('store_inventory_stock') ||
+            userPermissions.contains('inventory_panel') ||
+            userPermissions.contains('unit_audit_report') ||
+            userPermissions.contains('audit_item_rank') ||
+            userPermissions.contains('audit_item_ranks')) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    userPermissions.contains(s.permissionKey) ||
+                    (s.permissionKey == 'audit_item_rank' &&
+                        userPermissions.contains('audit_item_ranks')),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('store_inventory_stock')) {
-          availableItems.add(
-            GridItemData(
-              title: 'Store Inventory',
-              subtitle: 'Manage Store',
-              icon: Icons.store,
-              gradient: item.gradient,
-              route: AppRoutes.storeInventory,
-              subActions: [],
-            ),
-          );
         }
       } else if (item.title == 'Attendance') {
         if (userPermissions.contains('tracking_panel')) {
@@ -690,7 +697,9 @@ class HomeGridController extends GetxController {
         .where(
           (s) =>
               s.permissionKey == null ||
-              userPermissions.contains(s.permissionKey),
+              userPermissions.contains(s.permissionKey) ||
+              (s.permissionKey == 'audit_item_rank' &&
+                  userPermissions.contains('audit_item_ranks')),
         )
         .toList();
 

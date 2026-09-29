@@ -7,6 +7,7 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'widgets/multi_select_dropdown.dart';
 
 class EditTicketScreen extends StatelessWidget {
@@ -22,6 +23,7 @@ class EditTicketScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         hasBackButton: true,
+        topHeader: const CommonShortcutHeader(),
         title: Obx(
           () => RichText(
             text: TextSpan(

@@ -23,7 +23,7 @@ class AppDateUtils {
       if (rawDate is DateTime) {
         parsed = rawDate;
       } else if (rawDate is String && rawDate.isNotEmpty) {
-        parsed = DateTime.tryParse(rawDate);
+        parsed = DateTime.tryParse(rawDate) ?? _tryParseCustomFormat(rawDate);
       }
       if (parsed == null) return rawDate.toString();
 
@@ -36,6 +36,48 @@ class AppDateUtils {
     } catch (_) {
       return rawDate.toString();
     }
+  }
+
+  static DateTime? _tryParseCustomFormat(String str) {
+    try {
+      final clean = str.trim();
+      final parts = clean.split(RegExp(r'[-/ ]+'));
+      if (parts.length >= 3) {
+        int? day;
+        int? month;
+        int? year;
+
+        final p0 = int.tryParse(parts[0].replaceAll(RegExp(r'[^\d]'), ''));
+        final p2 = int.tryParse(parts[2].replaceAll(RegExp(r'[^\d]'), ''));
+
+        if (p0 != null && p2 != null) {
+          if (parts[2].length == 4) {
+            year = p2;
+            day = p0;
+            month = _parseMonthStr(parts[1]);
+          } else if (parts[0].length == 4) {
+            year = p0;
+            month = _parseMonthStr(parts[1]);
+            day = p2;
+          }
+        }
+        if (year != null && month != null && day != null && day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+          return DateTime(year, month, day);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static int? _parseMonthStr(String m) {
+    final num = int.tryParse(m);
+    if (num != null && num >= 1 && num <= 12) return num;
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    final lower = m.toLowerCase();
+    for (int i = 0; i < months.length; i++) {
+      if (lower.startsWith(months[i])) return i + 1;
+    }
+    return null;
   }
 
   static String formatDateRangeOrdinal(dynamic start, dynamic end, {String defaultText = 'Date Range'}) {

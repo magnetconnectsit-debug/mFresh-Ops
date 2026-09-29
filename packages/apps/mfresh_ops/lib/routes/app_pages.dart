@@ -62,6 +62,8 @@ import 'package:mfresh_ops/modules/inventory/views/item_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_room_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/inventory_audit_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/audit_report_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/audit_report_detail_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/audit_item_rank_screen.dart';
 import 'package:mfresh_ops/modules/home/views/notification_screen.dart';
 import 'package:mfresh_ops/modules/map/views/map_view.dart';
 import 'package:mfresh_ops/modules/map/views/history_view.dart';
@@ -229,6 +231,10 @@ class AppPages {
       page: () => const AuditReportScreen(),
     ),
     GetPage(
+      name: AppRoutes.auditReportDetail,
+      page: () => const AuditReportDetailScreen(),
+    ),
+    GetPage(
       name: AppRoutes.inventoryOrders,
       page: () => const InventoryOrdersScreen(),
     ),
@@ -247,6 +253,10 @@ class AppPages {
     ),
     GetPage(name: AppRoutes.items, page: () => const ItemScreen()),
     GetPage(name: AppRoutes.storeRooms, page: () => const StoreRoomScreen()),
+    GetPage(
+      name: AppRoutes.auditItemRanks,
+      page: () => const AuditItemRankScreen(),
+    ),
     GetPage(
       name: AppRoutes.locationPermission,
       page: () => const LocationPermissionScreen(),

@@ -9,6 +9,7 @@ import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import '../controllers/support_template_controller.dart';
 
 class SupportTemplateScreen extends StatelessWidget {
@@ -25,6 +26,7 @@ class SupportTemplateScreen extends StatelessWidget {
           appBar: AppCommonAppBar(
             backgroundColor: AppColors.white,
             hasBackButton: true,
+            topHeader: const CommonShortcutHeader(),
             onBackButtonPressed: () {
               controller.isFormScreenOpen.value = false;
               controller.clearControllers();
@@ -44,6 +46,7 @@ class SupportTemplateScreen extends StatelessWidget {
           backgroundColor: AppColors.white,
           hasBackButton: false,
           showAppDrawer: true,
+          topHeader: const CommonShortcutHeader(),
           title: Text(
             'Support Templates',
             style: AppTextStyle.style_14_600(color: AppColors.black),

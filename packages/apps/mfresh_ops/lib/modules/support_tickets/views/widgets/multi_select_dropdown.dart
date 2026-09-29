@@ -112,7 +112,34 @@ class MultiSelectDropdownWidget<T> extends StatelessWidget {
                                 }
                                 return 'Selected';
                               })()
-                            : '${selectedValues.length} selected',
+                            : (() {
+                                if (items.isEmpty) return '${selectedValues.length} selected';
+                                final matchedNames = <String>[];
+                                for (final val in selectedValues) {
+                                  final matches = items.where((item) {
+                                    if (item.value == val) return true;
+                                    if (item.value is String || item.value is num) {
+                                      return item.value.toString().trim().toLowerCase() ==
+                                          val.toString().trim().toLowerCase();
+                                    }
+                                    return false;
+                                  });
+                                  if (matches.isNotEmpty) {
+                                    final item = matches.first;
+                                    if (item.child is Text) {
+                                      final textData = (item.child as Text).data;
+                                      if (textData != null && textData.isNotEmpty) {
+                                        matchedNames.add(textData);
+                                      }
+                                    }
+                                  }
+                                }
+                                if (matchedNames.isEmpty) return '${selectedValues.length} selected';
+                                if (matchedNames.length == items.length && items.length > 1) {
+                                  return 'All Selected (${items.length})';
+                                }
+                                return matchedNames.join(', ');
+                              })(),
                     style: selectedValues.isEmpty 
                         ? AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp)
                         : (selectedTextStyle ?? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)),

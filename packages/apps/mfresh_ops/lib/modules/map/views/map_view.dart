@@ -8,6 +8,7 @@ import 'package:mfresh_ops/modules/map/views/widgets/animated_live_map.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class MapView extends GetView<TrackingService> {
   const MapView({super.key});
@@ -17,6 +18,7 @@ class MapView extends GetView<TrackingService> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           'Live Tracking',
           style: AppTextStyle.style_18_700(color: AppColors.black),

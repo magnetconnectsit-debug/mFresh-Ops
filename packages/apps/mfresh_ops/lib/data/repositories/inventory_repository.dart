@@ -84,23 +84,8 @@ class InventoryRepository extends GetxService {
     }
   }
 
-  Future<dynamic> submitInventoryAudit({
-    required int unitId,
-    required int auditedBy,
-    required String auditDate,
-    required List<Map<String, dynamic>> items,
-    List<Map<String, dynamic>>? additionalItems,
-  }) async {
+  Future<dynamic> submitInventoryAudit(dynamic data) async {
     try {
-      final data = <String, dynamic>{
-        'unit_id': unitId,
-        'audited_by': auditedBy,
-        'audit_date': auditDate,
-        'items': items,
-      };
-      if (additionalItems != null && additionalItems.isNotEmpty) {
-        data['additional_items'] = additionalItems;
-      }
       return await _apiService.post(AppConstants.inventoryAuditSubmit, data: data);
     } catch (e) {
       rethrow;
@@ -123,22 +108,29 @@ class InventoryRepository extends GetxService {
   }
 
   Future<dynamic> getAuditReport({
-    int page = 1,
-    int perPage = 25,
-    String? unitId,
+    dynamic unitId,
+    String? auditNumber,
+    String? auditedBy,
     String? fromDate,
     String? toDate,
   }) async {
     try {
-      return await _apiService.post(
+      final queryParams = <String, dynamic>{
+        if (auditNumber != null && auditNumber.isNotEmpty) 'audit_number': auditNumber,
+        if (auditedBy != null && auditedBy.isNotEmpty) 'audited_by': auditedBy,
+        if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
+        if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
+      };
+
+      final bodyData = <String, dynamic>{
+        if (unitId != null)
+          'unit_id': unitId is List ? unitId : (unitId is int ? [unitId] : unitId),
+      };
+
+      return await _apiService.get(
         AppConstants.inventoryAuditReport,
-        query: {'page': page},
-        data: {
-          if (unitId != null && unitId.isNotEmpty) 'unit_id': unitId,
-          if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
-          if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
-          'per_page': perPage,
-        },
+        data: bodyData.isNotEmpty ? bodyData : null,
+        query: queryParams.isNotEmpty ? queryParams : null,
       );
     } catch (e) {
       rethrow;
@@ -483,6 +475,39 @@ class InventoryRepository extends GetxService {
   Future<dynamic> getOrderReceiveLogs() async {
     try {
       return await _apiService.get(AppConstants.inventoryOrderReceiveLogs);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditItemRanks() async {
+    try {
+      return await _apiService.get(AppConstants.inventoryAuditItemRanks);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createAuditItemRank(String rankName) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryAuditItemRanksStore,
+        data: {'rank_name': rankName},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> updateAuditItemRank(int rankId, String rankName) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryAuditItemRanksUpdate,
+        data: {
+          'rank_id': rankId,
+          'rank_name': rankName,
+        },
+      );
     } catch (e) {
       rethrow;
     }

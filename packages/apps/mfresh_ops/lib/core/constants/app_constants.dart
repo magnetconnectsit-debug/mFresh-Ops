@@ -122,8 +122,8 @@ class AppConstants {
   static const String inventoryUnitStock = 'inventory/Unit/Stock';
   static const String inventoryAuditSubmit = 'inventory/audit-store';
   static const String inventoryAuditUnitItems = 'inventory-audit/unit-items';
-  static const String inventoryAuditReport = 'inventory/audit/report';
-  static const String inventoryAuditDetail = 'inventory/audit/detail';
+  static const String inventoryAuditReport = 'inventory-audits';
+  static const String inventoryAuditDetail = 'inventory-audits-details';
   static const String invCategoryWiseItem = 'inv-Category-wise-Item';
   static const String invEntryStoreStock = 'inv-entry-store-stock';
   static const String consumptionReport = 'consumption/report';
@@ -137,6 +137,11 @@ class AppConstants {
   static const String measurementCreate = 'measurement/create';
   static const String measurementUpdate = 'measurement/update';
   static const String measurementDelete = 'measurement/delete';
+  static const String inventoryAuditItemRanks = 'inventory-audit-item-ranks';
+  static const String inventoryAuditItemRanksStore =
+      'inventory-audit-item-ranks/store';
+  static const String inventoryAuditItemRanksUpdate =
+      'inventory-audit-item-ranks/update';
   static const String inventoryOrders = 'inventory/orders';
   static const String inventoryOrdersStoreRequest =
       'inventory/orders/store/request';

@@ -12,6 +12,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/measurement_controller.dart';
 import 'package:mfresh_ops/data/models/inventory/measurement_model.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class MeasurementScreen extends StatelessWidget {
   const MeasurementScreen({super.key});
@@ -26,6 +27,7 @@ class MeasurementScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
         title: Obx(
           () => controller.isSearching.value
               ? AppCommonSearchBar(

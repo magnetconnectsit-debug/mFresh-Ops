@@ -13,21 +13,25 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 45.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+      color: AppColors.white,
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          height: 45.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
           Builder(
             builder: (context) => InkWell(
               onTap: () => Scaffold.of(context).openDrawer(),
@@ -120,7 +124,9 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildShortcutButton({

@@ -11,6 +11,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/store_room_controller.dart';
 import 'package:mfresh_ops/data/models/inventory/store_room_model.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class StoreRoomScreen extends StatelessWidget {
@@ -26,6 +27,7 @@ class StoreRoomScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
         title: Obx(
           () => controller.isSearching.value
               ? AppCommonSearchBar(

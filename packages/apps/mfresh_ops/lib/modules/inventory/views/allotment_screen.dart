@@ -10,6 +10,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/allotment_controller.dart';
 import 'package:mfresh_ops/data/models/inventory/allotment_item_model.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class AllotmentScreen extends StatefulWidget {
@@ -47,6 +48,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
             backgroundColor: AppColors.white,
             hasBackButton: false,
             showAppDrawer: true,
+            topHeader: const CommonShortcutHeader(),
             title: Text(
               'All Transfers',
               style: AppTextStyle.style_18_700(color: AppColors.black),
@@ -68,6 +70,7 @@ class _AllotmentScreenState extends State<AllotmentScreen> {
           backgroundColor: AppColors.white,
           hasBackButton: false,
           showAppDrawer: true,
+          topHeader: const CommonShortcutHeader(),
           title: Obx(
             () => controller.isSearching.value
                 ? AppCommonSearchBar(

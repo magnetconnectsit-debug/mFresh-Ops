@@ -6,6 +6,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_audit_controller.dart';
+import 'package:mfresh_ops/modules/inventory/views/widgets/add_item_dialog.dart';
 
 class AuditFilterWidget extends StatelessWidget {
   const AuditFilterWidget({super.key});
@@ -73,7 +74,7 @@ class AuditFilterWidget extends StatelessWidget {
               height: 26.h,
               margin: EdgeInsets.only(right: 6.w),
               child: ElevatedButton.icon(
-                onPressed: () => controller.addAdditionalItemRow(),
+                onPressed: () => AddItemDialog.show(context, controller),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF009BD9),
                   foregroundColor: Colors.white,

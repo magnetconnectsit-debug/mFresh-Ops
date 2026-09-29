@@ -10,6 +10,7 @@ import 'package:core/widgets/app_common_media_source.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'widgets/multi_select_dropdown.dart';
 
 class CreateTicketScreen extends StatelessWidget {
@@ -24,6 +25,7 @@ class CreateTicketScreen extends StatelessWidget {
       appBar: AppCommonAppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        topHeader: const CommonShortcutHeader(),
         title: const Text(
           'Create Ticket',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),

@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart' as dio;
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:services/services.dart';
 import 'package:core/utils/app_common_toast_message.dart';
@@ -49,12 +53,14 @@ class AdditionalAuditItem {
   final int measurementUnitId;
   final String measurementUnitName;
   final double actualQty;
+  final List<File> images;
 
   AdditionalAuditItem({
     required this.itemName,
     required this.measurementUnitId,
     required this.measurementUnitName,
     required this.actualQty,
+    this.images = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -62,6 +68,10 @@ class AdditionalAuditItem {
       'item_name': itemName,
       'measurement_unit_id': measurementUnitId,
       'actual_qty': actualQty,
+      if (images.isNotEmpty) ...{
+        'image_path': images.first.path,
+        'image_paths': images.map((f) => f.path).toList(),
+      },
     };
   }
 }
@@ -72,6 +82,7 @@ class EditableAdditionalItem {
   final TextEditingController qtyController;
   final RxString selectedUnitId;
   final RxString selectedUnitName;
+  final Rx<File?> selectedImage = Rx<File?>(null);
 
   EditableAdditionalItem({
     required this.id,
@@ -120,6 +131,86 @@ class InventoryAuditController extends GetxController {
 
   // Reactive quantity map — used by Obx in the table widget
   final auditQtys = <int, String>{}.obs;
+
+  // Reactive image map — keyed by itemId
+  final itemImages = <int, List<File>>{}.obs;
+
+  Future<void> pickImageForAuditItem(int itemId, ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final currentList = List<File>.from(itemImages[itemId] ?? []);
+      if (source == ImageSource.gallery) {
+        final List<XFile> pickedFiles = await picker.pickMultiImage(imageQuality: 50);
+        if (pickedFiles.isNotEmpty) {
+          for (final f in pickedFiles) {
+            currentList.add(File(f.path));
+          }
+          itemImages[itemId] = currentList;
+        }
+      } else {
+        final XFile? image = await picker.pickImage(
+          source: source,
+          imageQuality: 50,
+        );
+        if (image != null) {
+          currentList.add(File(image.path));
+          itemImages[itemId] = currentList;
+        }
+      }
+    } catch (e) {
+      debugPrint('InventoryAuditController: pickImageForAuditItem error: $e');
+      AppCommonToastMessage.show(
+        message: 'Failed to pick image.',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  void removeImageForAuditItemAt(int itemId, int index) {
+    if (itemImages.containsKey(itemId)) {
+      final list = List<File>.from(itemImages[itemId]!);
+      if (index >= 0 && index < list.length) {
+        list.removeAt(index);
+        if (list.isEmpty) {
+          itemImages.remove(itemId);
+        } else {
+          itemImages[itemId] = list;
+        }
+      }
+    }
+  }
+
+  void removeImageForAuditItem(int itemId) {
+    itemImages.remove(itemId);
+  }
+
+  Future<void> pickImageForAdditionalItem(
+    EditableAdditionalItem item,
+    ImageSource source,
+  ) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        imageQuality: 50,
+      );
+      if (image != null) {
+        item.selectedImage.value = File(image.path);
+        editableAdditionalItems.refresh();
+      }
+    } catch (e) {
+      debugPrint('InventoryAuditController: pickImageForAdditionalItem error: $e');
+      AppCommonToastMessage.show(
+        message: 'Failed to pick image.',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  void removeImageForAdditionalItem(EditableAdditionalItem item) {
+    item.selectedImage.value = null;
+    editableAdditionalItems.refresh();
+  }
 
   // Search controller & observables
   final searchController = TextEditingController();
@@ -409,10 +500,14 @@ class InventoryAuditController extends GetxController {
       if (response != null &&
           (response['status'] == true || response['status'] == 'success')) {
         final List data = response['data'] ?? [];
-        measurementOptions.assignAll(data.map((e) => DropdownOption(
-              value: (e['id'])?.toString() ?? '',
-              label: (e['measurement_unit'])?.toString() ?? '',
-            )));
+        measurementOptions.assignAll(data.map((e) {
+          final idVal = (e['id'] ?? e['mes_id'] ?? e['measurement_unit_id'])?.toString() ?? '';
+          final nameVal = (e['measurement_unit'] ?? e['mesNm'] ?? e['measurement_name'] ?? e['unit_name'] ?? e['name'])?.toString() ?? idVal;
+          return DropdownOption(
+            value: idVal,
+            label: nameVal,
+          );
+        }).toList());
       }
     } catch (e) {
       debugPrint('InventoryAuditController: fetchMeasurements error: $e');
@@ -557,6 +652,7 @@ class InventoryAuditController extends GetxController {
     }
     qtyControllers.clear();
     auditQtys.clear();
+    itemImages.clear();
     _clearAdditionalItemRows();
   }
 
@@ -578,7 +674,9 @@ class InventoryAuditController extends GetxController {
       return;
     }
 
-    final items = <Map<String, dynamic>>[];
+    final itemsList = <Map<String, dynamic>>[];
+    final itemFilesMap = <int, List<File>>{};
+
     for (final item in auditItems) {
       final qty = qtyControllers[item.itemId]?.text.trim() ?? '';
       if (qty.isEmpty) continue;
@@ -589,14 +687,23 @@ class InventoryAuditController extends GetxController {
             type: ToastType.error);
         return;
       }
-      items.add({
+
+      final itemIndex = itemsList.length;
+      itemsList.add({
         'item_id': item.itemId,
         'system_qty': item.systemQtyNum,
         'actual_qty': parsedQty,
       });
+
+      if (itemImages.containsKey(item.itemId) &&
+          itemImages[item.itemId]!.isNotEmpty) {
+        itemFilesMap[itemIndex] = itemImages[item.itemId]!;
+      }
     }
 
-    final additionalItems = <Map<String, dynamic>>[];
+    final additionalItemsList = <Map<String, dynamic>>[];
+    final additionalItemFilesMap = <int, List<File>>{};
+
     for (final item in editableAdditionalItems) {
       final name = item.nameController.text.trim();
       final qtyStr = item.qtyController.text.trim();
@@ -604,20 +711,34 @@ class InventoryAuditController extends GetxController {
       if (name.isNotEmpty && qtyStr.isNotEmpty && unitIdStr.isNotEmpty) {
         final unitIdInt = int.tryParse(unitIdStr) ?? 0;
         final actualQty = double.tryParse(qtyStr) ?? 0.0;
-        additionalItems.add({
+        final addIndex = additionalItemsList.length;
+        additionalItemsList.add({
           'item_name': name,
           'measurement_unit_id': unitIdInt,
           'actual_qty': actualQty,
         });
+        if (item.selectedImage.value != null) {
+          additionalItemFilesMap[addIndex] = [item.selectedImage.value!];
+        }
       }
     }
+
     for (final add in additionalAuditItems) {
-      additionalItems.add(add.toJson());
+      final addIndex = additionalItemsList.length;
+      additionalItemsList.add({
+        'item_name': add.itemName,
+        'measurement_unit_id': add.measurementUnitId,
+        'actual_qty': add.actualQty,
+      });
+      if (add.images.isNotEmpty) {
+        additionalItemFilesMap[addIndex] = add.images;
+      }
     }
 
-    if (items.isEmpty && additionalItems.isEmpty) {
+    if (itemsList.isEmpty && additionalItemsList.isEmpty) {
       AppCommonToastMessage.show(
-          message: 'Please enter at least one item quantity or add an additional item.',
+          message:
+              'Please enter at least one item quantity or add an additional item.',
           type: ToastType.error);
       return;
     }
@@ -628,23 +749,61 @@ class InventoryAuditController extends GetxController {
 
     isSubmitting.value = true;
     try {
-      final response = await _repository.submitInventoryAudit(
-        unitId: int.parse(selectedUnitIds.first),
-        auditedBy: auditedBy,
-        auditDate: auditDate,
-        items: items,
-        additionalItems: additionalItems.isNotEmpty ? additionalItems : null,
-      );
+      final formData = dio.FormData();
+      formData.fields
+          .add(MapEntry('unit_id', selectedUnitIds.first.toString()));
+      formData.fields.add(MapEntry('audited_by', auditedBy.toString()));
+      formData.fields.add(MapEntry('audit_date', auditDate));
+      formData.fields.add(MapEntry('items', jsonEncode(itemsList)));
+
+      if (additionalItemsList.isNotEmpty) {
+        formData.fields.add(
+            MapEntry('additional_items', jsonEncode(additionalItemsList)));
+      }
+
+      for (final entry in itemFilesMap.entries) {
+        final itemIndex = entry.key;
+        final files = entry.value;
+        for (final file in files) {
+          final fileName = file.path.split('/').last;
+          formData.files.add(
+            MapEntry(
+              'item_images[$itemIndex][]',
+              await dio.MultipartFile.fromFile(file.path, filename: fileName),
+            ),
+          );
+        }
+      }
+
+      for (final entry in additionalItemFilesMap.entries) {
+        final addIndex = entry.key;
+        final files = entry.value;
+        for (final file in files) {
+          final fileName = file.path.split('/').last;
+          formData.files.add(
+            MapEntry(
+              'additional_item_images[$addIndex][]',
+              await dio.MultipartFile.fromFile(file.path, filename: fileName),
+            ),
+          );
+        }
+      }
+
+      final response = await _repository.submitInventoryAudit(formData);
+
       if (response != null &&
           (response['status'] == true || response['status'] == 'success')) {
         AppCommonToastMessage.show(
-            message: response['message'] ?? 'Inventory audit saved successfully.',
+            message:
+                response['message'] ?? 'Inventory audit saved successfully.',
             type: ToastType.success);
         // Reset
         selectedUnitIds.clear();
         auditItems.clear();
         auditQtys.clear();
+        itemImages.clear();
         additionalAuditItems.clear();
+        _clearAdditionalItemRows();
         _disposeQtyControllers();
       } else {
         AppCommonToastMessage.show(
@@ -654,7 +813,8 @@ class InventoryAuditController extends GetxController {
     } catch (e) {
       debugPrint('InventoryAuditController: submitAudit error: $e');
       AppCommonToastMessage.show(
-          message: 'An error occurred while submitting.', type: ToastType.error);
+          message: 'An error occurred while submitting.',
+          type: ToastType.error);
     } finally {
       isSubmitting.value = false;
     }

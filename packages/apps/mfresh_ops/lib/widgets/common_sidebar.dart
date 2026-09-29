@@ -177,7 +177,10 @@ class CommonSidebar extends StatelessWidget {
                   'M_Measurements',
                 if (userPermissions.contains('inventory_item')) 'M_Items',
                 if (userPermissions.contains('store_room')) 'M_Store',
-                // 'Audit Report',
+                if (userPermissions.contains('unit_audit_report'))
+                  'Audit Report',
+                if (userPermissions.contains('audit_item_rank'))
+                  'Audit Item Rank',
               ];
 
               final infoDirectorySubItems = [
@@ -496,8 +499,10 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.items);
                   } else if (item == 'M_Store') {
                     Get.toNamed(AppRoutes.storeRooms);
-                  // } else if (item == 'Audit Report') {
-                  //   Get.toNamed(AppRoutes.auditReport);
+                  } else if (item == 'Audit Report') {
+                    Get.toNamed(AppRoutes.auditReport);
+                  } else if (item == 'Audit Item Rank') {
+                    Get.toNamed(AppRoutes.auditItemRanks);
                   } else if (item == 'Collections') {
                     Get.toNamed(AppRoutes.collections);
                   } else if (item == 'Admin Collections') {

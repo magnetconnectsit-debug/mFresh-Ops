@@ -23,6 +23,8 @@ abstract class AppRoutes {
   static const unitInventory = '/unit-inventory';
   static const unitInventoryAudit = '/unit-inventory-audit';
   static const auditReport = '/audit-report';
+  static const auditReportDetail = '/audit-report-detail';
+  static const auditItemRanks = '/audit-item-ranks';
   static const inventoryOrders = '/inventory-orders';
   static const orderReceiveLogs = '/order-receive-logs';
   static const allConsumption = '/all-consumption';

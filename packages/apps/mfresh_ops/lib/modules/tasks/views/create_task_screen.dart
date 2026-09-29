@@ -9,6 +9,7 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class _FormLifecycleWrapper extends StatefulWidget {
   final Widget child;
@@ -55,6 +56,7 @@ class CreateTaskScreen extends GetView<TasksController> {
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
+        topHeader: const CommonShortcutHeader(),
         title: Obx(
           () => Text(
             controller.isReadOnly.value

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:core/core.dart';
 
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_reminder_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
@@ -22,16 +23,20 @@ class CreatePaymentReminderScreen extends StatelessWidget {
     if (Get.isRegistered<CreatePaymentReminderController>()) {
       Get.delete<CreatePaymentReminderController>();
     }
-    final controller = Get.put(CreatePaymentReminderController(reminderItem: reminderItem));
+    final controller = Get.put(
+      CreatePaymentReminderController(reminderItem: reminderItem),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
-      appBar: PreferredSize(
-        preferredSize: const AppCommonAppBar().preferredSize,
-        child: Obx(
-          () => AppCommonAppBar(
-            title: Text(controller.isEditing.value ? 'Edit Payment Reminder' : 'Add Payment Reminder'),
+      appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
+        title: Obx(
+          () => Text(
+            controller.isEditing.value
+                ? 'Edit Payment Reminder'
+                : 'Add Payment Reminder',
           ),
         ),
       ),
@@ -57,36 +62,39 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                   SizedBox(height: 12.h),
 
                   // ── Assignee Field ─────────────────────────────────────────
-                  Obx(
-                    () {
-                      final assigneeName = controller.selectedAssignee.value?.name;
-                      return MultiSelectDropdownWidget<PaymentReminderUser>(
+                  Obx(() {
+                    final assigneeName =
+                        controller.selectedAssignee.value?.name;
+                    return MultiSelectDropdownWidget<PaymentReminderUser>(
+                      label: 'Assignee *',
+                      hint: 'Select User',
+                      isSingleSelect: true,
+                      showSearch: true,
+                      selectedValues: controller.selectedAssignee.value == null
+                          ? <PaymentReminderUser>{}
+                          : {controller.selectedAssignee.value!},
+                      items: controller.users
+                          .map(
+                            (e) => DropdownMenuItem<PaymentReminderUser>(
+                              value: e,
+                              child: Text(
+                                e.name ?? '-',
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) => controller.selectedAssignee.value =
+                          values.isEmpty ? null : values.first,
+                      customChild: _buildDropdownField(
                         label: 'Assignee *',
                         hint: 'Select User',
-                        isSingleSelect: true,
-                        showSearch: true,
-                        selectedValues: controller.selectedAssignee.value == null
-                            ? <PaymentReminderUser>{}
-                            : {controller.selectedAssignee.value!},
-                        items: controller.users
-                            .map((e) => DropdownMenuItem<PaymentReminderUser>(
-                                  value: e,
-                                  child: Text(
-                                    e.name ?? '-',
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                                  ),
-                                ))
-                            .toList(),
-                        onChanged: (values) => controller.selectedAssignee.value =
-                            values.isEmpty ? null : values.first,
-                        customChild: _buildDropdownField(
-                          label: 'Assignee *',
-                          hint: 'Select User',
-                          value: assigneeName,
-                        ),
-                      );
-                    },
-                  ),
+                        value: assigneeName,
+                      ),
+                    );
+                  }),
                   SizedBox(height: 14.h),
 
                   // ── Basic Details + Expense Details ────────────────────────
@@ -97,7 +105,9 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Basic Details',
-                            style: AppTextStyle.style_14_700(color: AppColors.black),
+                            style: AppTextStyle.style_14_700(
+                              color: AppColors.black,
+                            ),
                           ),
                           SizedBox(height: 8.h),
                           Row(
@@ -147,7 +157,9 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Expense Details',
-                            style: AppTextStyle.style_14_700(color: AppColors.black),
+                            style: AppTextStyle.style_14_700(
+                              color: AppColors.black,
+                            ),
                           ),
                           SizedBox(height: 8.h),
                           Row(
@@ -161,34 +173,42 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                               ),
                               SizedBox(width: 10.w),
                               Expanded(
-                                child: Obx(
-                                  () {
-                                    final expType = controller.selectedExpenseType.value;
-                                    return MultiSelectDropdownWidget<String>(
+                                child: Obx(() {
+                                  final expType =
+                                      controller.selectedExpenseType.value;
+                                  return MultiSelectDropdownWidget<String>(
+                                    label: 'CAPEX/OPEX',
+                                    hint: 'Select',
+                                    isSingleSelect: true,
+                                    showSearch: false,
+                                    selectedValues: expType == null
+                                        ? <String>{}
+                                        : {expType},
+                                    items: controller.expenseTypes
+                                        .map(
+                                          (e) => DropdownMenuItem<String>(
+                                            value: e,
+                                            child: Text(
+                                              e,
+                                              style: AppTextStyle.style_12_400(
+                                                color: AppColors.grey900,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (values) =>
+                                        controller.selectedExpenseType.value =
+                                            values.isEmpty
+                                            ? null
+                                            : values.first,
+                                    customChild: _buildDropdownField(
                                       label: 'CAPEX/OPEX',
                                       hint: 'Select',
-                                      isSingleSelect: true,
-                                      showSearch: false,
-                                      selectedValues: expType == null ? <String>{} : {expType},
-                                      items: controller.expenseTypes
-                                          .map((e) => DropdownMenuItem<String>(
-                                                value: e,
-                                                child: Text(
-                                                  e,
-                                                  style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                                                ),
-                                              ))
-                                          .toList(),
-                                      onChanged: (values) => controller.selectedExpenseType.value =
-                                          values.isEmpty ? null : values.first,
-                                      customChild: _buildDropdownField(
-                                        label: 'CAPEX/OPEX',
-                                        hint: 'Select',
-                                        value: expType,
-                                      ),
-                                    );
-                                  },
-                                ),
+                                      value: expType,
+                                    ),
+                                  );
+                                }),
                               ),
                             ],
                           ),
@@ -257,9 +277,16 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                                 : null,
                             onTap: () async {
                               final now = DateTime.now();
-                              final today = DateTime(now.year, now.month, now.day);
-                              final rawInitial = controller.selectedDueDate.value ?? today;
-                              final initialDate = rawInitial.isBefore(today) ? today : rawInitial;
+                              final today = DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                              );
+                              final rawInitial =
+                                  controller.selectedDueDate.value ?? today;
+                              final initialDate = rawInitial.isBefore(today)
+                                  ? today
+                                  : rawInitial;
                               final date = await showDatePicker(
                                 context: context,
                                 initialDate: initialDate,
@@ -293,10 +320,16 @@ class CreatePaymentReminderScreen extends StatelessWidget {
                             label: 'Reminder Setup *',
                             hint: 'Set Reminder',
                             icon: Icons.keyboard_arrow_down_rounded,
-                            value: _getReminderSetupDisplayText(controller, context),
+                            value: _getReminderSetupDisplayText(
+                              controller,
+                              context,
+                            ),
                             onTap: () {
                               if (controller.isEditing.value) {
-                                EditReminderDateDialog.show(context, controller);
+                                EditReminderDateDialog.show(
+                                  context,
+                                  controller,
+                                );
                               } else {
                                 ReminderSetupDialog.show(context, controller);
                               }
@@ -367,7 +400,9 @@ class CreatePaymentReminderScreen extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint ?? 'Enter $label',
-        hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+        hintStyle: AppTextStyle.style_12_400(
+          color: AppColors.grey300,
+        ).copyWith(fontSize: 11.sp),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
         filled: true,
@@ -425,16 +460,15 @@ class CreatePaymentReminderScreen extends StatelessWidget {
           padding: EdgeInsets.only(right: 4.w),
           child: Icon(icon, color: AppColors.grey300, size: 16.r),
         ),
-        suffixIconConstraints: BoxConstraints(
-          minWidth: 18.w,
-          minHeight: 18.h,
-        ),
+        suffixIconConstraints: BoxConstraints(minWidth: 18.w, minHeight: 18.h),
       ),
       child: Text(
         (value != null && value.isNotEmpty) ? value : (hint ?? 'Select'),
         style: (value != null && value.isNotEmpty)
             ? AppTextStyle.style_12_400(color: AppColors.grey900)
-            : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+            : AppTextStyle.style_12_400(
+                color: AppColors.grey300,
+              ).copyWith(fontSize: 11.sp),
         overflow: TextOverflow.ellipsis,
       ),
     );
@@ -485,7 +519,9 @@ class CreatePaymentReminderScreen extends StatelessWidget {
           value ?? hint ?? 'Select',
           style: value != null
               ? AppTextStyle.style_12_400(color: AppColors.grey900)
-              : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+              : AppTextStyle.style_12_400(
+                  color: AppColors.grey300,
+                ).copyWith(fontSize: 11.sp),
           overflow: TextOverflow.ellipsis,
         ),
       ),

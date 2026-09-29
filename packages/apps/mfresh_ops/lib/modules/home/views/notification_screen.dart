@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -16,6 +17,7 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
         title: const Text('Notifications'),
         showAppDrawer: false,
         hasBackButton: true,

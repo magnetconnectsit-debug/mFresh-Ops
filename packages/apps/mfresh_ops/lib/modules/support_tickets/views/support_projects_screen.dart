@@ -7,6 +7,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import '../controllers/support_projects_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 
@@ -23,6 +24,7 @@ class SupportProjectsScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           'Support Projects',
           style: AppTextStyle.style_14_700(color: AppColors.black),

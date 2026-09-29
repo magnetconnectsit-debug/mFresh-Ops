@@ -4,6 +4,7 @@ import 'package:core/widgets/custom_app_loader.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'widgets/ticket_details_header.dart';
 import 'widgets/ticket_details_info_card.dart';
 import 'widgets/ticket_details_timeline.dart';
@@ -19,6 +20,7 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
         backgroundColor: Colors.white,
         elevation: 0,
         hasBackButton: true,
+        topHeader: CommonShortcutHeader(),
         title: Text(
           "Ticket Details",
           style: TextStyle(

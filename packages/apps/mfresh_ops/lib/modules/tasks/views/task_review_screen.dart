@@ -10,6 +10,7 @@ import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class TaskReviewScreen extends GetView<TasksController> {
   const TaskReviewScreen({super.key});
@@ -26,6 +27,7 @@ class TaskReviewScreen extends GetView<TasksController> {
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           'Task: ${task.title}',
           style: AppTextStyle.style_18_700(color: AppColors.black),

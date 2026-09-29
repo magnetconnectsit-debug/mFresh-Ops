@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_audit_controller.dart';
+import 'package:mfresh_ops/modules/inventory/views/widgets/audit_table_widget.dart'
+    show openFullScreenImageViewer;
 import 'add_additional_item_dialog.dart';
 
 class AdditionalAuditItemsWidget extends StatelessWidget {
@@ -121,7 +124,7 @@ class AdditionalAuditItemsWidget extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: SizedBox(
-                  width: 440.w,
+                  width: 490.w,
                   child: Column(
                     children: [
                       // Sub-header
@@ -133,11 +136,13 @@ class AdditionalAuditItemsWidget extends StatelessWidget {
                             _headerCell('Sl No.',
                                 width: 50.w, alignment: Alignment.center),
                             _headerCell('Item Name',
-                                width: 150.w, alignment: Alignment.centerLeft),
+                                width: 140.w, alignment: Alignment.centerLeft),
                             _headerCell('Measurement Unit',
-                                width: 120.w, alignment: Alignment.centerLeft),
+                                width: 110.w, alignment: Alignment.centerLeft),
                             _headerCell('Actual Qty',
                                 width: 75.w, alignment: Alignment.center),
+                            _headerCell('Images',
+                                width: 70.w, alignment: Alignment.center),
                             _headerCell('',
                                 width: 45.w,
                                 alignment: Alignment.center,
@@ -151,28 +156,100 @@ class AdditionalAuditItemsWidget extends StatelessWidget {
                             controller.additionalAuditItems.length, (index) {
                           final item = controller.additionalAuditItems[index];
                           return Container(
-                            height: 32.h,
+                            constraints: BoxConstraints(minHeight: 32.h),
                             decoration: BoxDecoration(
                               color: index.isEven
                                   ? Colors.white
                                   : const Color(0xFFF9FAFB),
                               border: Border(
-                                  bottom:
-                                      BorderSide(color: Colors.grey.shade200)),
+                                  bottom: BorderSide(
+                                      color: Colors.grey.shade200)),
                             ),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 _dataCell('${index + 1}',
                                     width: 50.w, alignment: Alignment.center),
                                 _dataCell(item.itemName,
-                                    width: 150.w,
+                                    width: 140.w,
                                     alignment: Alignment.centerLeft,
                                     isBold: true),
                                 _dataCell(item.measurementUnitName,
-                                    width: 120.w,
+                                    width: 110.w,
                                     alignment: Alignment.centerLeft),
                                 _dataCell('${item.actualQty}',
                                     width: 75.w, alignment: Alignment.center),
+                                // Images cell
+                                Container(
+                                  width: 70.w,
+                                  alignment: Alignment.center,
+                                  padding:
+                                      EdgeInsets.symmetric(vertical: 4.h),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                        right: BorderSide(
+                                            color: Colors.grey.shade200)),
+                                  ),
+                                  child: item.images.isEmpty
+                                      ? Icon(Icons.image_not_supported_outlined,
+                                          size: 14.r,
+                                          color: Colors.grey.shade400)
+                                      : GestureDetector(
+                                          onTap: () =>
+                                              openFullScreenImageViewer(
+                                                  context,
+                                                  item.images
+                                                      .cast<dynamic>(),
+                                                  0),
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        4.r),
+                                                child: Image.file(
+                                                  item.images.first,
+                                                  width: 24.r,
+                                                  height: 24.r,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                              if (item.images.length > 1)
+                                                Positioned(
+                                                  right: -4,
+                                                  top: -4,
+                                                  child: Container(
+                                                    padding: EdgeInsets
+                                                        .symmetric(
+                                                            horizontal: 3.w,
+                                                            vertical: 1.h),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFF009BD9),
+                                                      borderRadius:
+                                                          BorderRadius
+                                                              .circular(8.r),
+                                                      border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 1),
+                                                    ),
+                                                    child: Text(
+                                                      '+${item.images.length - 1}',
+                                                      style: TextStyle(
+                                                        fontSize: 8.sp,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                ),
+                                // Delete button
                                 Container(
                                   width: 45.w,
                                   alignment: Alignment.center,
@@ -227,7 +304,7 @@ class AdditionalAuditItemsWidget extends StatelessWidget {
     return Container(
       width: width,
       alignment: alignment,
-      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
       decoration: BoxDecoration(
         border: Border(right: BorderSide(color: Colors.grey.shade200)),
       ),
@@ -241,3 +318,4 @@ class AdditionalAuditItemsWidget extends StatelessWidget {
     );
   }
 }
+

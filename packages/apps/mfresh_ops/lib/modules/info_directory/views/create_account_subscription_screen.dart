@@ -6,6 +6,7 @@ import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class CreateAccountSubscriptionScreen extends StatelessWidget {
   const CreateAccountSubscriptionScreen({super.key});
@@ -16,18 +17,16 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PreferredSize(
-        preferredSize: const AppCommonAppBar().preferredSize,
-        child: AppCommonAppBar(
-          title: Obx(
-            () => Text(
-              controller.isEdit.value ? 'Update Account' : 'Create Account',
-              style: AppTextStyle.style_18_700(color: AppColors.black),
-            ),
+      appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
+        title: Obx(
+          () => Text(
+            controller.isEdit.value ? 'Update Account' : 'Create Account',
+            style: AppTextStyle.style_18_700(color: AppColors.black),
           ),
-          hasBackButton: true,
-          showAppDrawer: false,
         ),
+        hasBackButton: true,
+        showAppDrawer: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(

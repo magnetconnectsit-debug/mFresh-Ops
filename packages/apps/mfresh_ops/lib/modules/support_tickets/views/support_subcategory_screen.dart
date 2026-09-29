@@ -8,6 +8,7 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_drop_down.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import '../controllers/support_subcategory_controller.dart';
 
@@ -24,6 +25,7 @@ class SupportSubCategoryScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
         title: Text(
           'Support\nSub Categories',
           style: AppTextStyle.style_14_700(color: AppColors.black),

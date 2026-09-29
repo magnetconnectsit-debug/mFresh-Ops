@@ -10,6 +10,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../controllers/item_controller.dart';
 import 'package:mfresh_ops/data/models/inventory/item_model.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'widgets/inventory_item_dialog.dart';
 
 class ItemScreen extends StatelessWidget {
@@ -25,6 +26,7 @@ class ItemScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
         title: Obx(
           () => controller.isSearching.value
               ? AppCommonSearchBar(
