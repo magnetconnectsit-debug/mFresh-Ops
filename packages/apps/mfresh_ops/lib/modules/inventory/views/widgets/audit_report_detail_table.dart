@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_image_view.dart';
+import 'package:core/widgets/app_common_table.dart';
 import '../../controllers/audit_report_controller.dart';
 import 'audit_table_widget.dart' show openFullScreenImageViewer;
 
@@ -19,192 +20,186 @@ class AuditReportDetailTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<AuditReportController>();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(4.r),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Table Section Header
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-              decoration: const BoxDecoration(
-                color: Color(0xFF009BD9),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Title Header
+        Padding(
+          padding: EdgeInsets.only(bottom: 8.h),
+          child: Row(
+            children: [
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 16.r,
+                color: const Color(0xFF1E293B),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    color: Colors.white,
-                    size: 16.r,
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Existing Inventory Items',
-                    style: AppTextStyle.style_13_600(color: Colors.white),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    child: Text(
-                      '${detail.existingItemsCount} items',
-                      style: AppTextStyle.style_11_500(color: Colors.white),
-                    ),
-                  ),
-                ],
+              SizedBox(width: 6.w),
+              Text(
+                'Existing Inventory Items',
+                style: AppTextStyle.style_14_600(color: const Color(0xFF1E293B)),
               ),
-            ),
-
-            // Scrollable Table Body
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Obx(() {
-                final sortedItems = controller.sortedDetailItems;
-
-                if (sortedItems.isEmpty) {
-                  return Padding(
-                    padding: EdgeInsets.all(20.r),
-                    child: Center(
-                      child: Text(
-                        'No existing inventory items found.',
-                        style: AppTextStyle.style_14_400(
-                          color: AppColors.grey300,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final columnWidths = {
-                  0: FixedColumnWidth(110.w), // Item
-                  1: FixedColumnWidth(100.w), // Category
-                  2: FixedColumnWidth(65.w),  // Image
-                  3: FixedColumnWidth(85.w),  // System Qty
-                  4: FixedColumnWidth(85.w),  // Actual Qty
-                  5: FixedColumnWidth(85.w),  // Difference
-                  6: FixedColumnWidth(85.w),  // Result
-                };
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Table(
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      border: TableBorder.symmetric(
-                        inside: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      columnWidths: columnWidths,
-                      children: [
-                        TableRow(
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE8F1F8),
-                          ),
-                          children: [
-                            _buildDetailHeaderCell(controller, 'Item', sortKey: 'item'),
-                            _buildDetailHeaderCell(controller, 'Category', sortKey: 'category'),
-                            _buildDetailHeaderCell(controller, 'Image', isSortable: false),
-                            _buildDetailHeaderCell(controller, 'System Qty', sortKey: 'systemqty'),
-                            _buildDetailHeaderCell(controller, 'Actual Qty', sortKey: 'actualqty'),
-                            _buildDetailHeaderCell(controller, 'Difference', sortKey: 'difference'),
-                            _buildDetailHeaderCell(controller, 'Result', sortKey: 'result'),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: Color(0xFFE0E0E0),
-                    ),
-                    Table(
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      border: TableBorder.symmetric(
-                        inside: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      columnWidths: columnWidths,
-                      children: List.generate(sortedItems.length, (index) {
-                        final item = sortedItems[index];
-                        final isExpanded = controller.expandedDetailRowIds
-                            .contains(item.id);
-
-                        return TableRow(
-                          children: [
-                            // Item
-                            _buildDataCell(
-                              item.itemName,
-                              isExpanded,
-                              () => controller.toggleDetailRowExpansion(item.id),
-                              textStyle: AppTextStyle.style_11_600(
-                                  color: AppColors.black),
-                            ),
-                            // Category
-                            _buildDataCell(
-                              item.categoryName,
-                              isExpanded,
-                              () => controller.toggleDetailRowExpansion(item.id),
-                            ),
-                            // Image
-                            _buildImageCell(context, item.imageUrls),
-                            // System Qty
-                            _buildDataCell(
-                              item.systemQtyLabel,
-                              isExpanded,
-                              () => controller.toggleDetailRowExpansion(item.id),
-                            ),
-                            // Actual Qty
-                            _buildDataCell(
-                              item.actualQtyLabel,
-                              isExpanded,
-                              () => controller.toggleDetailRowExpansion(item.id),
-                              textStyle: AppTextStyle.style_11_600(
-                                  color: AppColors.black),
-                            ),
-                            // Difference
-                            _buildDifferenceCell(
-                              item,
-                              isExpanded,
-                              () => controller.toggleDetailRowExpansion(item.id),
-                            ),
-                            // Result
-                            _buildResultCell(
-                              item,
-                              isExpanded,
-                              () => controller.toggleDetailRowExpansion(item.id),
-                            ),
-                          ],
-                        );
-                      }),
-                    ),
-                  ],
-                );
-              }),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+
+        // Table Container
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(4.r),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4.r),
+            child: Obx(() {
+              final sortedItems = controller.sortedDetailItems;
+
+              if (sortedItems.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(20.r),
+                  child: Center(
+                    child: Text(
+                      'No existing inventory items found.',
+                      style: AppTextStyle.style_14_400(
+                        color: AppColors.grey300,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final expandedIndices = <int>{};
+              for (int i = 0; i < sortedItems.length; i++) {
+                if (controller.expandedDetailRowIds.contains(sortedItems[i].id)) {
+                  expandedIndices.add(i);
+                }
+              }
+
+              final columns = [
+                AppTableColumn<AuditItemDetail>(
+                  key: 'item',
+                  title: 'Item',
+                  width: 110.w,
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return Text(
+                      item.itemName,
+                      style: AppTextStyle.style_11_600(color: AppColors.black),
+                      maxLines: isExpanded ? null : 1,
+                      overflow: isExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                    );
+                  },
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'category',
+                  title: 'Category',
+                  width: 100.w,
+                  valueGetter: (item) => item.categoryName,
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'image',
+                  title: 'Image',
+                  width: 60.w,
+                  sortable: false,
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return _buildImageCell(context, item.imageUrls);
+                  },
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'systemqty',
+                  title: 'System Qty',
+                  width: 85.w,
+                  valueGetter: (item) => item.systemQtyLabel,
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'actualqty',
+                  title: 'Actual Qty',
+                  width: 85.w,
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return Text(
+                      item.actualQtyLabel,
+                      style: AppTextStyle.style_11_600(color: AppColors.black),
+                      maxLines: isExpanded ? null : 1,
+                      overflow: isExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                    );
+                  },
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'difference',
+                  title: 'Difference',
+                  width: 85.w,
+                  cellColorGetter: (item) {
+                    final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
+                    return isShortage ? const Color(0xFFFFEBEE) : null;
+                  },
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return _buildDifferenceCell(item, isExpanded);
+                  },
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'percentage',
+                  title: 'Stock %',
+                  width: 90.w,
+                  cellColorGetter: (item) {
+                    final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
+                    return isShortage ? const Color(0xFFFFEBEE) : null;
+                  },
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return _buildPercentageCell(item, isExpanded);
+                  },
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'result',
+                  title: 'Result',
+                  width: 85.w,
+                  cellColorGetter: (item) {
+                    final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
+                    return isShortage ? const Color(0xFFFFEBEE) : null;
+                  },
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return _buildResultCell(item, isExpanded);
+                  },
+                ),
+              ];
+
+              return AppCommonTable<AuditItemDetail>(
+                items: sortedItems,
+                columns: columns,
+                currentSortColumn: controller.detailSortColumn.value,
+                currentSortOrder: controller.detailSortAscending.value
+                    ? AppTableSortOrder.ascending
+                    : AppTableSortOrder.descending,
+                onSort: (columnKey, sortOrder) {
+                  controller.sortByDetail(columnKey);
+                },
+                expandedRowIndices: expandedIndices,
+                onRowExpandToggle: (index, isExpanded) {
+                  if (index >= 0 && index < sortedItems.length) {
+                    controller.toggleDetailRowExpansion(sortedItems[index].id);
+                  }
+                },
+                headingRowColor: const Color(0xFFDCE5F8),
+                headingBorderColor: Colors.white,
+                borderColor: Colors.grey.shade300,
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildImageCell(BuildContext context, List<String> imageUrls) {
     if (imageUrls.isEmpty) {
       return Padding(
-        padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 4.w),
+        padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 4.w),
         child: Center(
           child: Text(
             'No Image',
-            style: AppTextStyle.style_10_400(color: AppColors.grey300),
+            style: AppTextStyle.style_8_400(color: AppColors.grey300),
             textAlign: TextAlign.center,
           ),
         ),
@@ -214,7 +209,7 @@ class AuditReportDetailTable extends StatelessWidget {
     final firstUrl = imageUrls.first;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
+      padding: EdgeInsets.symmetric(vertical: 1.h),
       child: Center(
         child: GestureDetector(
           onTap: () => openFullScreenImageViewer(context, imageUrls, 0),
@@ -222,11 +217,11 @@ class AuditReportDetailTable extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(4.r),
+                borderRadius: BorderRadius.circular(3.r),
                 child: AppImageView(
                   imageUrl: firstUrl,
-                  width: 26.r,
-                  height: 26.r,
+                  width: 20.r,
+                  height: 20.r,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -258,124 +253,46 @@ class AuditReportDetailTable extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailHeaderCell(
-    AuditReportController controller,
-    String text, {
-    String? sortKey,
-    bool isSortable = true,
-  }) {
-    final key = (sortKey ?? text).toLowerCase();
-    final isSorted = isSortable && (controller.detailSortColumn.value.toLowerCase() == key);
-    final isAsc = controller.detailSortAscending.value;
-
-    return InkWell(
-      onTap: isSortable ? () => controller.sortByDetail(key) : null,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 5.h),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                text,
-                style: AppTextStyle.style_11_700(color: AppColors.black),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (isSorted) ...[
-              SizedBox(width: 2.w),
-              Icon(
-                isAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 11.r,
-                color: AppColors.black,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDataCell(
-    String text,
-    bool isExpanded,
-    VoidCallback onTap, {
-    Color? textColor,
-    Color? bgColor,
-    TextStyle? textStyle,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: bgColor,
-        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-        child: Text(
-          text,
-          style: textStyle ??
-              AppTextStyle.style_11_500(color: textColor ?? AppColors.black),
-          maxLines: isExpanded ? null : 1,
-          overflow: isExpanded ? null : TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-
   Widget _buildDifferenceCell(
     AuditItemDetail item,
     bool isExpanded,
-    VoidCallback onTap,
   ) {
     final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
     final isExcess = item.varianceColor == 'green' || item.differenceQty > 0;
 
-    Color? cellBgColor;
     Color textColor = AppColors.black;
     String text = item.differenceQtyLabel;
     FontWeight fontWeight = FontWeight.w500;
 
     if (isShortage) {
-      cellBgColor = const Color(0xFFFFEBEE);
       textColor = const Color(0xFFD32F2F);
       fontWeight = FontWeight.w700;
     } else if (isExcess) {
       text = '+${item.differenceQtyLabel}';
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: cellBgColor,
-        alignment: Alignment.centerLeft,
-        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-        child: Text(
-          text,
-          style: AppTextStyle.style_11_500(color: textColor).copyWith(
-            fontWeight: fontWeight,
-          ),
-          maxLines: isExpanded ? null : 1,
-          overflow: isExpanded ? null : TextOverflow.ellipsis,
-        ),
+    return Text(
+      text,
+      style: AppTextStyle.style_11_500(color: textColor).copyWith(
+        fontWeight: fontWeight,
       ),
+      maxLines: isExpanded ? null : 1,
+      overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
     );
   }
 
   Widget _buildResultCell(
     AuditItemDetail item,
     bool isExpanded,
-    VoidCallback onTap,
   ) {
     final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
     final isExcess = item.varianceColor == 'green' || item.differenceQty > 0;
 
-    Color? cellBgColor;
     Color textColor = AppColors.black;
     String text = 'Matched';
     FontWeight fontWeight = FontWeight.w500;
 
     if (isShortage) {
-      cellBgColor = const Color(0xFFFFEBEE);
       textColor = const Color(0xFFC62828);
       text = 'Shortage';
       fontWeight = FontWeight.w700;
@@ -383,22 +300,50 @@ class AuditReportDetailTable extends StatelessWidget {
       text = 'Excess';
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: cellBgColor,
-        alignment: Alignment.centerLeft,
-        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-        child: Text(
-          text,
-          style: AppTextStyle.style_11_500(color: textColor).copyWith(
-            fontWeight: fontWeight,
-          ),
-          maxLines: isExpanded ? null : 1,
-          overflow: isExpanded ? null : TextOverflow.ellipsis,
-        ),
+    return Text(
+      text,
+      style: AppTextStyle.style_11_500(color: textColor).copyWith(
+        fontWeight: fontWeight,
       ),
+      maxLines: isExpanded ? null : 1,
+      overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildPercentageCell(
+    AuditItemDetail item,
+    bool isExpanded,
+  ) {
+    final label = item.actualPercentageLabel;
+    final colorStr = item.actualPercentageColor.toLowerCase();
+    final isShortage = colorStr == 'red' || colorStr == 'danger' || item.varianceColor == 'red' || item.differenceQty < 0;
+
+    Color textColor = AppColors.grey900;
+
+    if (isShortage) {
+      textColor = const Color(0xFFC62828);
+    } else if (colorStr == 'green' || colorStr == 'success') {
+      textColor = const Color(0xFF2E7D32);
+    } else if (colorStr == 'orange' || colorStr == 'warning') {
+      textColor = const Color(0xFFEF6C00);
+    }
+
+    if (!item.percentageAvailable || label == '-' || label.isEmpty) {
+      return Text(
+        '-',
+        style: AppTextStyle.style_11_400(
+          color: isShortage ? const Color(0xFFC62828) : AppColors.grey500,
+        ),
+      );
+    }
+
+    return Text(
+      label,
+      style: AppTextStyle.style_11_600(color: textColor).copyWith(
+        fontWeight: isShortage ? FontWeight.w700 : FontWeight.w600,
+      ),
+      maxLines: isExpanded ? null : 1,
+      overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
     );
   }
 }

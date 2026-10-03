@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_table_elements.dart';
 

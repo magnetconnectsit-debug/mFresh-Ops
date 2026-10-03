@@ -26,7 +26,8 @@ class AuditItemRankScreen extends StatelessWidget {
       final authRepo = Get.find<AuthRepository>();
       final userPermissions = authRepo.rxUserPermissions;
 
-      final canViewPage = userPermissions.contains('audit_item_rank') ||
+      final canViewPage =
+          userPermissions.contains('audit_item_rank') ||
           userPermissions.contains('audit_item_ranks');
       final canCreateRank = userPermissions.contains('create_audit_item_rank');
       final canEditRank = userPermissions.contains('edit_audit_item_rank');
@@ -99,7 +100,10 @@ class AuditItemRankScreen extends StatelessWidget {
                       height: 28.h,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [AppColors.primaryBlue, AppColors.secondaryBlue],
+                          colors: [
+                            AppColors.primaryBlue,
+                            AppColors.secondaryBlue,
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(4.r),
                         boxShadow: [
@@ -115,12 +119,16 @@ class AuditItemRankScreen extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
                           padding: EdgeInsets.symmetric(horizontal: 14.w),
                         ),
                         child: Text(
                           'Add Rank',
-                          style: AppTextStyle.style_12_600(color: AppColors.white),
+                          style: AppTextStyle.style_12_600(
+                            color: AppColors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -151,7 +159,9 @@ class AuditItemRankScreen extends StatelessWidget {
                         child: Center(
                           child: Text(
                             'No audit item ranks found',
-                            style: AppTextStyle.style_14_400(color: AppColors.grey300),
+                            style: AppTextStyle.style_14_400(
+                              color: AppColors.grey300,
+                            ),
                           ),
                         ),
                       );
@@ -166,18 +176,24 @@ class AuditItemRankScreen extends StatelessWidget {
                             columnWidths: canEditRank
                                 ? const {
                                     0: IntrinsicColumnWidth(), // Sl No
-                                    1: FlexColumnWidth(1),     // Name
+                                    1: FlexColumnWidth(1), // Name
                                     2: IntrinsicColumnWidth(), // Action
                                   }
                                 : const {
                                     0: IntrinsicColumnWidth(), // Sl No
-                                    1: FlexColumnWidth(1),     // Name
+                                    1: FlexColumnWidth(1), // Name
                                   },
-                            border: TableBorder.all(color: AppColors.grey50, width: 1),
-                            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                            border: TableBorder.all(
+                              color: AppColors.grey50,
+                              width: 1,
+                            ),
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
                             children: [
                               TableRow(
-                                decoration: const BoxDecoration(color: AppColors.white),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.white,
+                                ),
                                 children: [
                                   _buildHeaderCell('Sl No'),
                                   _buildHeaderCell(
@@ -193,12 +209,18 @@ class AuditItemRankScreen extends StatelessWidget {
                                 final index = entry.key;
                                 final model = entry.value;
                                 return TableRow(
-                                  decoration: const BoxDecoration(color: AppColors.white),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.white,
+                                  ),
                                   children: [
                                     _buildDataCell('${index + 1}'),
                                     _buildDataCell(model.rankName),
                                     if (canEditRank)
-                                      _buildActionCell(context, controller, model),
+                                      _buildActionCell(
+                                        context,
+                                        controller,
+                                        model,
+                                      ),
                                   ],
                                 );
                               }),
@@ -208,7 +230,9 @@ class AuditItemRankScreen extends StatelessWidget {
                         SizedBox(height: 16.h),
                         Text(
                           'Showing 1 to ${controller.auditItemRanks.length} of ${controller.allAuditItemRanks.length} entries',
-                          style: AppTextStyle.style_14_400(color: AppColors.black),
+                          style: AppTextStyle.style_14_400(
+                            color: AppColors.black,
+                          ),
                         ),
                         SizedBox(height: 32.h),
                       ],
@@ -256,11 +280,7 @@ class AuditItemRankScreen extends StatelessWidget {
                       icon = Icons.unfold_more;
                       iconColor = AppColors.grey300;
                     }
-                    return Icon(
-                      icon,
-                      size: 13.sp,
-                      color: iconColor,
-                    );
+                    return Icon(icon, size: 13.sp, color: iconColor);
                   }),
                 ],
               ),
@@ -306,7 +326,10 @@ class AuditItemRankScreen extends StatelessWidget {
     );
   }
 
-  void _showAddDialog(BuildContext context, AuditItemRankController controller) {
+  void _showAddDialog(
+    BuildContext context,
+    AuditItemRankController controller,
+  ) {
     controller.rankNameController.clear();
     showDialog(
       context: context,
@@ -422,8 +445,10 @@ class AuditItemRankScreen extends StatelessWidget {
                       height: 36.h,
                       isLoading: controller.isSubmitting.value,
                       onPressed: () async {
-                        final success =
-                            await controller.editAuditItemRank(model, nameController.text);
+                        final success = await controller.editAuditItemRank(
+                          model,
+                          nameController.text,
+                        );
                         if (success && dialogContext.mounted) {
                           Navigator.of(dialogContext).pop();
                         }

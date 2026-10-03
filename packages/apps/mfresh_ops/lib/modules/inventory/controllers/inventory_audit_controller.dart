@@ -635,12 +635,24 @@ class InventoryAuditController extends GetxController {
       if (val == null || val.isEmpty) {
         return false;
       }
+      final parsedQty = double.tryParse(val) ?? 0.0;
+      if (parsedQty > 0) {
+        final images = itemImages[item.itemId];
+        if (images == null || images.isEmpty) {
+          return false;
+        }
+      }
     }
 
     for (final item in editableAdditionalItems) {
       if (item.nameController.text.trim().isEmpty) return false;
-      if (item.qtyController.text.trim().isEmpty) return false;
+      final qtyStr = item.qtyController.text.trim();
+      if (qtyStr.isEmpty) return false;
       if (item.selectedUnitId.value.isEmpty) return false;
+      final parsedQty = double.tryParse(qtyStr) ?? 0.0;
+      if (parsedQty > 0 && item.selectedImage.value == null) {
+        return false;
+      }
     }
 
     return true;
@@ -688,6 +700,16 @@ class InventoryAuditController extends GetxController {
         return;
       }
 
+      if (parsedQty > 0) {
+        final images = itemImages[item.itemId];
+        if (images == null || images.isEmpty) {
+          AppCommonToastMessage.show(
+              message: 'Please add at least one photo for "${item.itemName}" as quantity is greater than 0.',
+              type: ToastType.error);
+          return;
+        }
+      }
+
       final itemIndex = itemsList.length;
       itemsList.add({
         'item_id': item.itemId,
@@ -711,6 +733,14 @@ class InventoryAuditController extends GetxController {
       if (name.isNotEmpty && qtyStr.isNotEmpty && unitIdStr.isNotEmpty) {
         final unitIdInt = int.tryParse(unitIdStr) ?? 0;
         final actualQty = double.tryParse(qtyStr) ?? 0.0;
+
+        if (actualQty > 0 && item.selectedImage.value == null) {
+          AppCommonToastMessage.show(
+              message: 'Please add at least one photo for "$name" as quantity is greater than 0.',
+              type: ToastType.error);
+          return;
+        }
+
         final addIndex = additionalItemsList.length;
         additionalItemsList.add({
           'item_name': name,
@@ -724,6 +754,13 @@ class InventoryAuditController extends GetxController {
     }
 
     for (final add in additionalAuditItems) {
+      if (add.actualQty > 0 && add.images.isEmpty) {
+        AppCommonToastMessage.show(
+            message: 'Please add at least one photo for "${add.itemName}" as quantity is greater than 0.',
+            type: ToastType.error);
+        return;
+      }
+
       final addIndex = additionalItemsList.length;
       additionalItemsList.add({
         'item_name': add.itemName,

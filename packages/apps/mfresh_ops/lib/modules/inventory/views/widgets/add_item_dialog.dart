@@ -206,6 +206,13 @@ class _AddItemDialogState extends State<AddItemDialog> {
       );
       return;
     }
+    if (qty > 0 && _selectedImages.isEmpty) {
+      AppCommonToastMessage.show(
+        message: 'Please add at least one photo since quantity is greater than 0.',
+        type: ToastType.error,
+      );
+      return;
+    }
 
     final unitIdInt = int.tryParse(_selectedUnitId!) ?? 0;
 

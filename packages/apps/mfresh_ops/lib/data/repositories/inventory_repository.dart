@@ -109,22 +109,23 @@ class InventoryRepository extends GetxService {
 
   Future<dynamic> getAuditReport({
     dynamic unitId,
+    dynamic auditedBy,
     String? auditNumber,
-    String? auditedBy,
     String? fromDate,
     String? toDate,
   }) async {
     try {
       final queryParams = <String, dynamic>{
         if (auditNumber != null && auditNumber.isNotEmpty) 'audit_number': auditNumber,
-        if (auditedBy != null && auditedBy.isNotEmpty) 'audited_by': auditedBy,
-        if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
-        if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
       };
 
       final bodyData = <String, dynamic>{
         if (unitId != null)
           'unit_id': unitId is List ? unitId : (unitId is int ? [unitId] : unitId),
+        if (auditedBy != null)
+          'audited_by': auditedBy is List ? auditedBy : (auditedBy is int ? [auditedBy] : auditedBy),
+        if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
+        if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
       };
 
       return await _apiService.get(

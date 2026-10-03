@@ -5,6 +5,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
+import 'package:core/widgets/app_common_table.dart';
 import '../../controllers/audit_report_controller.dart';
 import '../audit_report_detail_screen.dart';
 
@@ -28,231 +29,126 @@ class AuditReportTable extends StatelessWidget {
   // ── Main Audit Reports Data Table Card ─────────────────────────────────────
 
   Widget _buildTableCard(AuditReportController controller) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4.r),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4.r),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Obx(() {
-            final isTableLoading = controller.isLoading.value;
-            final sortedList = controller.sortedAuditList;
+    return Obx(() {
+      final isTableLoading = controller.isLoading.value;
+      final sortedList = controller.sortedAuditList;
 
-            if (sortedList.isEmpty && !isTableLoading) {
-              return Padding(
-                padding: EdgeInsets.all(20.r),
-                child: Center(
-                  child: Text(
-                    'No inventory audit records found.',
-                    style: AppTextStyle.style_14_400(color: AppColors.grey300),
-                  ),
+      if (sortedList.isEmpty && !isTableLoading) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4.r),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          padding: EdgeInsets.all(20.r),
+          child: Center(
+            child: Text(
+              'No inventory audit records found.',
+              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+            ),
+          ),
+        );
+      }
+
+      final itemsToRender = isTableLoading
+          ? List.generate(
+              10,
+              (index) => AuditReportEntry(
+                id: index,
+                auditNumber: 'AUD-LOADING-$index',
+                unitId: 0,
+                unitName: 'Loading Unit',
+                districtName: '',
+                imageUrl: '',
+                auditorId: 0,
+                auditorName: 'Auditor Name',
+                auditDate: '2026-01-01 00:00:00',
+                auditDateDisplay: '01 Jan 2026',
+                auditDay: 'Thu',
+                createdAt: '',
+              ),
+            )
+          : sortedList;
+
+      final expandedIndices = <int>{};
+      for (int i = 0; i < itemsToRender.length; i++) {
+        if (controller.expandedRowIds.contains(itemsToRender[i].id)) {
+          expandedIndices.add(i);
+        }
+      }
+
+      final columns = [
+        AppTableColumn<AuditReportEntry>(
+          key: 'Audit Number',
+          title: 'Audit No',
+          width: 90.w,
+          cellBuilder: (context, entry, index, isExpanded) {
+            return GestureDetector(
+              onTap: () => _navigateToDetail(controller, entry),
+              child: Text(
+                entry.auditNumber,
+                style: AppTextStyle.style_11_700(
+                  color: const Color(0xFF009BD9),
                 ),
-              );
-            }
-
-            final itemsToRender = isTableLoading
-                ? List.generate(
-                    10,
-                    (index) => AuditReportEntry(
-                      id: index,
-                      auditNumber: 'AUD-LOADING-$index',
-                      unitId: 0,
-                      unitName: 'Loading Unit',
-                      districtName: '',
-                      imageUrl: '',
-                      auditorId: 0,
-                      auditorName: 'Auditor Name',
-                      auditDate: '2026-01-01 00:00:00',
-                      auditDateDisplay: '01 Jan 2026',
-                      auditDay: 'Thu',
-                      createdAt: '',
-                    ),
-                  )
-                : sortedList;
-
-            final columnWidths = {
-              0: FixedColumnWidth(90.w),
-              1: FixedColumnWidth(70.w),
-              2: FixedColumnWidth(90.w),
-              3: FixedColumnWidth(85.w),
-            };
-
-            return Skeletonizer(
-              enabled: isTableLoading,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Sticky Header Row matching Store/Unit Inventory Table header
-                  Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    border: TableBorder.symmetric(
-                      inside: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    columnWidths: columnWidths,
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE8F1F8),
-                        ),
-                        children: [
-                          _buildHeaderCell(
-                            controller,
-                            'Audit No',
-                            sortKey: 'Audit Number',
-                          ),
-                          _buildHeaderCell(controller, 'Unit', sortKey: 'Unit'),
-                          _buildHeaderCell(
-                            controller,
-                            'Audit Date',
-                            sortKey: 'Audit Date',
-                          ),
-                          _buildHeaderCell(
-                            controller,
-                            'Audited By',
-                            sortKey: 'Audited By',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: Color(0xFFE0E0E0),
-                  ),
-                  // Table Data Rows
-                  Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    border: TableBorder.symmetric(
-                      inside: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    columnWidths: columnWidths,
-                    children: List.generate(itemsToRender.length, (index) {
-                      final entry = itemsToRender[index];
-                      final isExpanded = controller.expandedRowIds.contains(
-                        entry.id,
-                      );
-
-                      return TableRow(
-                        children: [
-                          // Audit Number (Clickable Link)
-                          GestureDetector(
-                            onTap: () => _navigateToDetail(controller, entry),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6.w,
-                                vertical: 6.h,
-                              ),
-                              child: Text(
-                                entry.auditNumber,
-                                style: AppTextStyle.style_11_700(
-                                  color: const Color(0xFF009BD9),
-                                ),
-                                maxLines: isExpanded ? null : 1,
-                                overflow: isExpanded
-                                    ? null
-                                    : TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          // Unit
-                          _buildDataCell(
-                            entry.unitName,
-                            isExpanded,
-                            () => controller.toggleRowExpansion(entry.id),
-                          ),
-                          // Audit Date
-                          _buildDataCell(
-                            AppDateUtils.formatToShortOrdinalDate(
-                              entry.auditDateDisplay.isNotEmpty
-                                  ? entry.auditDateDisplay
-                                  : entry.auditDate,
-                            ),
-                            isExpanded,
-                            () => controller.toggleRowExpansion(entry.id),
-                          ),
-                          // Audited By
-                          _buildDataCell(
-                            entry.auditorName,
-                            isExpanded,
-                            () => controller.toggleRowExpansion(entry.id),
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ],
+                maxLines: isExpanded ? null : 1,
+                overflow:
+                    isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
               ),
             );
-          }),
+          },
         ),
-      ),
-    );
-  }
-
-  // Header Cell matching Store/Unit Inventory Table header cell & sorting logic
-  Widget _buildHeaderCell(
-    AuditReportController controller,
-    String text, {
-    String? sortKey,
-  }) {
-    final key = sortKey ?? text;
-    final isSorted = controller.sortColumn.value == key;
-    final isAsc = controller.sortAscending.value;
-
-    return InkWell(
-      onTap: () => controller.sortBy(key),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                text,
-                style: AppTextStyle.style_11_700(color: AppColors.black),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (isSorted) ...[
-              SizedBox(width: 2.w),
-              Icon(
-                isAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 11.r,
-                color: AppColors.black,
-              ),
-            ],
-          ],
+        AppTableColumn<AuditReportEntry>(
+          key: 'Unit',
+          title: 'Unit',
+          width: 68.w,
+          valueGetter: (entry) => entry.unitName,
         ),
-      ),
-    );
-  }
-
-  Widget _buildDataCell(
-    String text,
-    bool isExpanded,
-    VoidCallback onTap, {
-    Color? textColor,
-    Color? bgColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: bgColor,
-        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
-        child: Text(
-          text,
-          style: AppTextStyle.style_11_500(color: textColor ?? AppColors.black),
-          maxLines: isExpanded ? null : 1,
-          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        AppTableColumn<AuditReportEntry>(
+          key: 'Audit Date',
+          title: 'Audit Date',
+          width: 95.w,
+          valueGetter: (entry) => AppDateUtils.formatToShortOrdinalDate(
+            entry.auditDateDisplay.isNotEmpty
+                ? entry.auditDateDisplay
+                : entry.auditDate,
+          ),
         ),
-      ),
-    );
+        AppTableColumn<AuditReportEntry>(
+          key: 'Audited By',
+          title: 'Audited By',
+          width: 100.w,
+          valueGetter: (entry) => entry.auditorName,
+        ),
+      ];
+
+      final currentSortKey = controller.sortColumn.value;
+      final currentSortOrder = currentSortKey.isEmpty
+          ? AppTableSortOrder.none
+          : (controller.sortAscending.value
+              ? AppTableSortOrder.ascending
+              : AppTableSortOrder.descending);
+
+      return Skeletonizer(
+        enabled: isTableLoading,
+        child: AppCommonTable<AuditReportEntry>(
+          items: itemsToRender,
+          columns: columns,
+          currentSortColumn: currentSortKey,
+          currentSortOrder: currentSortOrder,
+          onSort: (columnKey, sortOrder) {
+            controller.sortBy(columnKey);
+          },
+          expandedRowIndices: expandedIndices,
+          onRowExpandToggle: (index, isExpanded) {
+            if (index >= 0 && index < itemsToRender.length) {
+              controller.toggleRowExpansion(itemsToRender[index].id);
+            }
+          },
+          headingRowColor: const Color(0xFFDCE5F8),
+          borderColor: Colors.grey.shade300,
+        ),
+      );
+    });
   }
 
   void _navigateToDetail(

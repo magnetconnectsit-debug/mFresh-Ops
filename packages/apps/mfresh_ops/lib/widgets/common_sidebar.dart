@@ -112,9 +112,7 @@ class CommonSidebar extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          isTracking
-                              ? 'Location sharing active'
-                              : 'Offline. Tap to start.',
+                          isTracking ? 'Duty active' : 'Offline. Tap to start.',
                           style: AppTextStyle.style_10_400(
                             color: AppColors.grey500,
                           ),
@@ -179,8 +177,9 @@ class CommonSidebar extends StatelessWidget {
                 if (userPermissions.contains('store_room')) 'M_Store',
                 if (userPermissions.contains('unit_audit_report'))
                   'Audit Report',
-                if (userPermissions.contains('audit_item_rank'))
-                  'Audit Item Rank',
+                if (userPermissions.contains('m_audit_items_list') ||
+                    userPermissions.contains('audit_item_rank'))
+                  'M_Audit_Items_List',
               ];
 
               final infoDirectorySubItems = [
@@ -197,8 +196,7 @@ class CommonSidebar extends StatelessWidget {
               ];
 
               final rolesSubItems = [
-                if (userPermissions.contains('roles_master'))
-                  'Roles Master',
+                if (userPermissions.contains('roles_master')) 'Roles Master',
                 if (userPermissions.contains('responsibilities_master'))
                   'Responsibilities',
                 if (userPermissions.contains('view_responsibilities'))
@@ -338,9 +336,7 @@ class CommonSidebar extends StatelessWidget {
                 barrierDismissible: false,
                 builder: (ctx) => const PopScope(
                   canPop: false,
-                  child: Center(
-                    child: CustomAppLoader(),
-                  ),
+                  child: Center(child: CustomAppLoader()),
                 ),
               );
               try {
@@ -382,15 +378,19 @@ class CommonSidebar extends StatelessWidget {
     final bool isSelected = currentRoute == route;
 
     return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(vertical: -2),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0),
       leading: Icon(
         isSelected ? activeIcon : icon,
         color: isSelected ? AppColors.primary : AppColors.grey300,
+        size: 20.r,
       ),
       title: Text(
         title,
         style: isSelected
-            ? AppTextStyle.style_16_600(color: AppColors.primary)
-            : AppTextStyle.style_16_500(color: AppColors.black),
+            ? AppTextStyle.style_14_600(color: AppColors.primary)
+            : AppTextStyle.style_14_500(color: AppColors.black),
       ),
       selected: isSelected,
       selectedTileColor: AppColors.primary.withValues(alpha: 0.1),
@@ -419,9 +419,14 @@ class CommonSidebar extends StatelessWidget {
     final GlobalKey expansionTileKey = GlobalKey();
 
     return Theme(
-      data: Theme.of(Get.context!).copyWith(dividerColor: Colors.transparent),
+      data: Theme.of(Get.context!).copyWith(
+        dividerColor: Colors.transparent,
+        visualDensity: const VisualDensity(vertical: -2),
+      ),
       child: ExpansionTile(
         key: expansionTileKey,
+        dense: true,
+        visualDensity: const VisualDensity(vertical: -2),
         onExpansionChanged: (expanded) {
           if (expanded) {
             Future.delayed(const Duration(milliseconds: 250), () {
@@ -436,10 +441,10 @@ class CommonSidebar extends StatelessWidget {
             });
           }
         },
-        leading: Icon(icon, color: AppColors.grey300, size: 24.r),
+        leading: Icon(icon, color: AppColors.grey300, size: 20.r),
         title: Text(
           title,
-          style: AppTextStyle.style_16_500(color: AppColors.black),
+          style: AppTextStyle.style_14_500(color: AppColors.black),
         ),
         iconColor: AppColors.grey300,
         collapsedIconColor: AppColors.grey300,
@@ -448,11 +453,12 @@ class CommonSidebar extends StatelessWidget {
         children: subItems
             .map(
               (item) => ListTile(
-                contentPadding: EdgeInsets.only(left: 72.w),
-                visualDensity: VisualDensity.compact,
+                dense: true,
+                visualDensity: const VisualDensity(vertical: -3),
+                contentPadding: EdgeInsets.only(left: 60.w),
                 title: Text(
                   item,
-                  style: AppTextStyle.style_14_400(color: AppColors.black),
+                  style: AppTextStyle.style_13_400(color: AppColors.black),
                 ),
                 onTap: () {
                   Get.back(); // Close drawer
@@ -501,7 +507,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.storeRooms);
                   } else if (item == 'Audit Report') {
                     Get.toNamed(AppRoutes.auditReport);
-                  } else if (item == 'Audit Item Rank') {
+                  } else if (item == 'Audit Item Rank' ||
+                      item == 'M_Audit_Items_List') {
                     Get.toNamed(AppRoutes.auditItemRanks);
                   } else if (item == 'Collections') {
                     Get.toNamed(AppRoutes.collections);

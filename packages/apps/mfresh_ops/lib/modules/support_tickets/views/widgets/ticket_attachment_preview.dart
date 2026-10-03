@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_image_view.dart';
 import 'package:core/widgets/app_common_video_player.dart';
 
@@ -13,7 +15,7 @@ class TicketAttachmentPreview {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Dialog(
-              backgroundColor: Colors.transparent,
+              backgroundColor: AppColors.transparent,
               insetPadding: EdgeInsets.zero,
               child: Stack(
                 alignment: Alignment.center,
@@ -59,10 +61,10 @@ class TicketAttachmentPreview {
                     Positioned(
                       left: 20,
                       child: CircleAvatar(
-                        backgroundColor: Colors.black54,
+                        backgroundColor: AppColors.black.withValues(alpha: 0.54),
                         radius: 20,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.white, size: 18),
                           onPressed: () {
                             pageController.previousPage(
                               duration: const Duration(milliseconds: 300),
@@ -76,10 +78,10 @@ class TicketAttachmentPreview {
                     Positioned(
                       right: 20,
                       child: CircleAvatar(
-                        backgroundColor: Colors.black54,
+                        backgroundColor: AppColors.black.withValues(alpha: 0.54),
                         radius: 20,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
+                          icon: const Icon(Icons.arrow_forward_ios, color: AppColors.white, size: 18),
                           onPressed: () {
                             pageController.nextPage(
                               duration: const Duration(milliseconds: 300),
@@ -93,9 +95,9 @@ class TicketAttachmentPreview {
                     top: 40,
                     right: 20,
                     child: CircleAvatar(
-                      backgroundColor: Colors.black54,
+                      backgroundColor: AppColors.black.withValues(alpha: 0.54),
                       child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: const Icon(Icons.close, color: AppColors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -105,12 +107,12 @@ class TicketAttachmentPreview {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
+                        color: AppColors.black.withValues(alpha: 0.54),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         "${currentIndex + 1} / ${urls.length}",
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        style: AppTextStyle.style_12_500(color: AppColors.white),
                       ),
                     ),
                   ),

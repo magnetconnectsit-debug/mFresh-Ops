@@ -413,55 +413,6 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDropdownField({
-    required String label,
-    required String? value,
-    required List<DropdownMenuItem<String>> items,
-    required Function(String?) onChanged,
-  }) {
-    return SizedBox(
-      height: 32.h,
-      child: DropdownButtonFormField<String>(
-        value: value,
-        items: items,
-        onChanged: onChanged,
-        style: AppTextStyle.style_12_400(color: AppColors.grey900),
-        icon: Icon(Icons.keyboard_arrow_down, size: 20.r, color: Colors.grey),
-        decoration: InputDecoration(
-          label: RichText(
-            text: TextSpan(
-              text: label.replaceAll('*', ''),
-              style: AppTextStyle.style_12_400(color: AppColors.grey200),
-              children: label.contains('*')
-                  ? [
-                      const TextSpan(
-                        text: '*',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ]
-                  : [],
-            ),
-          ),
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor, width: 1.0),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor, width: 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDateField({
     required String label,
     required String? value,

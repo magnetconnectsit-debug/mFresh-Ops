@@ -19,6 +19,7 @@ class CreateTicketController extends GetxController {
 
   final occurredDate = DateTime.now().obs;
   final isLoading = false.obs;
+  final isSubCategoryLoading = false.obs;
   final isCompressingMedia = false.obs;
 
   // Dropdown Selections
@@ -118,22 +119,6 @@ class CreateTicketController extends GetxController {
     }
   }
 
-  void onTemplateSelected(SupportTemplateModel? template) {
-    selectedTemplate.value = template;
-    if (template != null) {
-      subjectController.text = template.templateName;
-      
-      String desc = template.description;
-      if (template.subtasks.isNotEmpty) {
-        if (desc.isNotEmpty) desc += '\n\n';
-        for (int i = 0; i < template.subtasks.length; i++) {
-          desc += '${i + 1}. ${template.subtasks[i]}\n';
-        }
-      }
-      descriptionController.text = desc.trim();
-    }
-  }
-
   Future<void> fetchAssignees() async {
     try {
       final user = _storageService.getUser();
@@ -174,12 +159,15 @@ class CreateTicketController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
+      isSubCategoryLoading.value = true;
       final result = await _supportRepository.getSupportSubCategories(
         categoryId,
       );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
+    } finally {
+      isSubCategoryLoading.value = false;
     }
   }
 
@@ -196,19 +184,52 @@ class CreateTicketController extends GetxController {
   final subjectController = TextEditingController();
   final descriptionController = TextEditingController();
 
+  final subtaskControllers = <TextEditingController>[].obs;
+
+  void addSubtaskField({String text = ''}) {
+    subtaskControllers.add(TextEditingController(text: text));
+  }
+
+  void removeSubtaskField(int index) {
+    if (index >= 0 && index < subtaskControllers.length) {
+      subtaskControllers[index].dispose();
+      subtaskControllers.removeAt(index);
+    }
+  }
+
+  void onTemplateSelected(SupportTemplateModel? template) {
+    selectedTemplate.value = template;
+    if (template != null) {
+      subjectController.text = template.templateName;
+      descriptionController.text = template.description;
+
+      for (var c in subtaskControllers) {
+        c.dispose();
+      }
+      subtaskControllers.clear();
+
+      for (var st in template.subtasks) {
+        if (st.trim().isNotEmpty) {
+          subtaskControllers.add(TextEditingController(text: st.trim()));
+        }
+      }
+    }
+  }
+
   final selectedImages = <XFile>[].obs;
   final selectedVideos = <File>[].obs;
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> selectDate(BuildContext context) async {
+  Future<void> selectDate(BuildContext context, {VoidCallback? onSelected}) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: occurredDate.value,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != occurredDate.value) {
+    if (picked != null) {
       occurredDate.value = picked;
+      onSelected?.call();
     }
   }
 
@@ -325,10 +346,11 @@ class CreateTicketController extends GetxController {
   final showValidationErrors = false.obs;
 
   Future<void> createTicket() async {
-    if (selectedUnit.value == null ||
-        selectedCategory.value == null ||
-        selectedProject.value == null ||
+    if (selectedCategory.value == null ||
+        selectedSubCategory.value == null ||
         selectedAssignee.value == null ||
+        selectedUnit.value == null ||
+        selectedProject.value == null ||
         subjectController.text.trim().isEmpty) {
       showValidationErrors.value = true;
       AppCommonToastMessage.show(
@@ -342,6 +364,11 @@ class CreateTicketController extends GetxController {
     try {
       isLoading.value = true;
       final user = _storageService.getUser();
+
+      final List<String> subtasksList = subtaskControllers
+          .map((c) => c.text.trim())
+          .where((t) => t.isNotEmpty)
+          .toList();
 
       final Map<String, dynamic> data = {
         'unit': selectedUnit.value!.unitId.toString(),
@@ -363,13 +390,17 @@ class CreateTicketController extends GetxController {
         'whatsapp_notification': whatsappNotification.value ? '1' : '0',
         'app_notification': appNotification.value ? '1' : '0',
         'folder_path': 'images/maintenance',
+        'subtasks': subtasksList,
       };
 
       if (selectedTemplate.value != null) {
         data['template_id'] = selectedTemplate.value!.id.toString();
       }
 
-      final formData = dio.FormData.fromMap(data);
+      final formData = dio.FormData.fromMap(
+        data,
+        dio.ListFormat.multiCompatible,
+      );
 
       // Add attachments
       for (var file in selectedImages) {
@@ -431,5 +462,17 @@ class CreateTicketController extends GetxController {
       default:
         return '2';
     }
+  }
+
+  @override
+  void onClose() {
+    reminderController.dispose();
+    subjectController.dispose();
+    descriptionController.dispose();
+    for (var c in subtaskControllers) {
+      c.dispose();
+    }
+    subtaskControllers.clear();
+    super.onClose();
   }
 }

@@ -29,11 +29,36 @@ class _FormLifecycleWrapperState extends State<_FormLifecycleWrapper> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class CreateTaskScreen extends GetView<TasksController> {
+class CreateTaskScreen extends StatefulWidget {
   const CreateTaskScreen({super.key});
 
   @override
+  State<CreateTaskScreen> createState() => _CreateTaskScreenState();
+}
+
+class _CreateTaskScreenState extends State<CreateTaskScreen> {
+  final GlobalKey<MultiSelectDropdownWidgetState> _projectKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _unitKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _groupKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _assigneeKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+
+  final FocusNode _titleFocusNode = FocusNode();
+  final FocusNode _descriptionFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _titleFocusNode.dispose();
+    _descriptionFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = Get.find<TasksController>();
     final TaskItem? task = Get.arguments;
     final isEdit = task != null;
 
@@ -46,6 +71,37 @@ class CreateTaskScreen extends GetView<TasksController> {
       controller.formInitialized.value = true;
     }
 
+    Future<void> pickDateRange() async {
+      final initialRange =
+          controller.selectedStartDate.value != null &&
+              controller.selectedEndDate.value != null
+          ? DateTimeRange(
+              start: controller.selectedStartDate.value!,
+              end: controller.selectedEndDate.value!,
+            )
+          : null;
+      final picked = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2030),
+        initialDateRange: initialRange,
+        builder: (context, child) => Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        ),
+      );
+      if (picked != null) {
+        controller.selectedStartDate.value = picked.start;
+        controller.selectedEndDate.value = picked.end;
+      }
+    }
+
     return _FormLifecycleWrapper(
       onDispose: () {
         controller.formInitialized.value = false;
@@ -53,173 +109,409 @@ class CreateTaskScreen extends GetView<TasksController> {
       },
       child: Scaffold(
         backgroundColor: AppColors.white,
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        topHeader: const CommonShortcutHeader(),
-        title: Obx(
-          () => Text(
-            controller.isReadOnly.value
-                ? 'Task Details'
-                : isEdit
-                ? 'Edit Task'
-                : 'Create New Task',
-            style: AppTextStyle.style_18_700(color: AppColors.black),
+        appBar: AppCommonAppBar(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          topHeader: const CommonShortcutHeader(),
+          title: Obx(
+            () => Text(
+              controller.isReadOnly.value
+                  ? 'Task Details'
+                  : isEdit
+                  ? 'Edit Task'
+                  : 'Create New Task',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
           ),
         ),
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.opaque,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Obx(
-                () => AbsorbPointer(
-                  absorbing: controller.isReadOnly.value,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTextField(
-                        controller: controller.titleController,
-                        label: 'Task Title',
-                      ),
-                      SizedBox(height: 12.h),
-                      _buildTextField(
-                        controller: controller.descriptionController,
-                        label: 'Description',
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 12.h),
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Obx(
+                  () => AbsorbPointer(
+                    absorbing: controller.isReadOnly.value,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTextField(
+                          controller: controller.titleController,
+                          label: 'Task Title',
+                          focusNode: _titleFocusNode,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) =>
+                              _descriptionFocusNode.requestFocus(),
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildTextField(
+                          controller: controller.descriptionController,
+                          label: 'Description',
+                          maxLines: 3,
+                          focusNode: _descriptionFocusNode,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _projectKey.currentState?.openMenu();
+                            });
+                          },
+                        ),
+                        SizedBox(height: 12.h),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Obx(
-                              () => MultiSelectDropdownWidget<TaskProject>(
-                                label: 'Project',
-                                isSingleSelect: true,
-                                showSearch: true,
-                                selectedValues:
-                                    controller.selectedProjectForCreate.value ==
-                                        null
-                                    ? <TaskProject>{}
-                                    : {
-                                        controller
-                                            .selectedProjectForCreate
-                                            .value!,
-                                      },
-                                items: controller.projects
-                                    .map<DropdownMenuItem<TaskProject>>(
-                                      (e) => DropdownMenuItem<TaskProject>(
-                                        value: e,
-                                        child: Text(
-                                          e.projectName,
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Obx(
+                                () => MultiSelectDropdownWidget<TaskProject>(
+                                  key: _projectKey,
+                                  label: 'Project',
+                                  isSingleSelect: true,
+                                  showSearch: true,
+                                  selectedValues:
+                                      controller.selectedProjectForCreate.value ==
+                                          null
+                                      ? <TaskProject>{}
+                                      : {
+                                          controller
+                                              .selectedProjectForCreate
+                                              .value!,
+                                        },
+                                  items: controller.projects
+                                      .map<DropdownMenuItem<TaskProject>>(
+                                        (e) => DropdownMenuItem<TaskProject>(
+                                          value: e,
+                                          child: Text(
+                                            e.projectName,
+                                            style: AppTextStyle.style_12_400(
+                                              color: AppColors.grey900,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (values) =>
+                                      )
+                                      .toList(),
+                                  onChanged: (values) {
                                     controller.selectedProjectForCreate.value =
-                                        values.isEmpty ? null : values.first,
+                                        values.isEmpty ? null : values.first;
+                                    if (values.isNotEmpty) {
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        _unitKey.currentState?.openMenu();
+                                      });
+                                    }
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Obx(
-                              () => MultiSelectDropdownWidget<SupportUnit>(
-                                label: 'Store (Unit)',
-                                isSingleSelect: true,
-                                showSearch: true,
-                                selectedValues:
-                                    controller.selectedUnitForCreate.value ==
-                                        null
-                                    ? <SupportUnit>{}
-                                    : {controller.selectedUnitForCreate.value!},
-                                items: controller.units
-                                    .map<DropdownMenuItem<SupportUnit>>(
-                                      (e) => DropdownMenuItem<SupportUnit>(
-                                        value: e,
-                                        child: Text(
-                                          e.unitName,
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Obx(
+                                () => MultiSelectDropdownWidget<SupportUnit>(
+                                  key: _unitKey,
+                                  label: 'Store (Unit)',
+                                  isSingleSelect: true,
+                                  showSearch: true,
+                                  selectedValues:
+                                      controller.selectedUnitForCreate.value ==
+                                          null
+                                      ? <SupportUnit>{}
+                                      : {controller.selectedUnitForCreate.value!},
+                                  items: controller.units
+                                      .map<DropdownMenuItem<SupportUnit>>(
+                                        (e) => DropdownMenuItem<SupportUnit>(
+                                          value: e,
+                                          child: Text(
+                                            e.unitName,
+                                            style: AppTextStyle.style_12_400(
+                                              color: AppColors.grey900,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (values) =>
+                                      )
+                                      .toList(),
+                                  onChanged: (values) {
                                     controller.selectedUnitForCreate.value =
-                                        values.isEmpty ? null : values.first,
+                                        values.isEmpty ? null : values.first;
+                                    if (values.isNotEmpty) {
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        _groupKey.currentState?.openMenu();
+                                      });
+                                    }
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12.h),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Obx(
-                              () => MultiSelectDropdownWidget<TaskGroup>(
-                                label: 'Security Group',
-                                isSingleSelect: true,
-                                showSearch: true,
-                                selectedValues:
-                                    controller.selectedGroupForCreate.value ==
-                                        null
-                                    ? <TaskGroup>{}
-                                    : {
-                                        controller
-                                            .selectedGroupForCreate
-                                            .value!,
-                                      },
-                                items: controller.groups
-                                    .map<DropdownMenuItem<TaskGroup>>(
-                                      (e) => DropdownMenuItem<TaskGroup>(
-                                        value: e,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Obx(
+                                () => MultiSelectDropdownWidget<TaskGroup>(
+                                  key: _groupKey,
+                                  label: 'Security Group',
+                                  isSingleSelect: true,
+                                  showSearch: true,
+                                  selectedValues:
+                                      controller.selectedGroupForCreate.value ==
+                                          null
+                                      ? <TaskGroup>{}
+                                      : {
+                                          controller
+                                              .selectedGroupForCreate
+                                              .value!,
+                                        },
+                                  items: controller.groups
+                                      .map<DropdownMenuItem<TaskGroup>>(
+                                        (e) => DropdownMenuItem<TaskGroup>(
+                                          value: e,
+                                          child: Text(
+                                            e.roleName,
+                                            style: AppTextStyle.style_12_400(
+                                              color: AppColors.grey900,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (values) {
+                                    controller.onGroupForCreateChanged(
+                                        values.isEmpty ? null : values.first);
+                                    if (values.isNotEmpty) {
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        _assigneeKey.currentState?.openMenu();
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Obx(
+                                () => MultiSelectDropdownWidget<AssigneeModel>(
+                                  key: _assigneeKey,
+                                  label: 'Assignee',
+                                  isSingleSelect: true,
+                                  showSearch: true,
+                                  selectedValues:
+                                      controller
+                                              .selectedAssigneeForCreate
+                                              .value ==
+                                          null
+                                      ? <AssigneeModel>{}
+                                      : {
+                                          controller
+                                              .selectedAssigneeForCreate
+                                              .value!,
+                                        },
+                                  items: controller.assignees
+                                      .map<DropdownMenuItem<AssigneeModel>>(
+                                        (e) => DropdownMenuItem<AssigneeModel>(
+                                          value: e,
+                                          child: Text(
+                                            e.name,
+                                            style: AppTextStyle.style_12_400(
+                                              color: AppColors.grey900,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (values) {
+                                    controller.selectedAssigneeForCreate.value =
+                                        values.isEmpty ? null : values.first;
+                                    if (values.isNotEmpty) {
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        pickDateRange();
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+
+                        // ── Date Range Row (drag-to-select) ──
+                        Obx(() {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildDateTimeField(
+                                  label: 'Start Date',
+                                  icon: Icons.calendar_today_outlined,
+                                  value: controller.selectedStartDate.value != null
+                                      ? AppDateUtils.formatToOrdinalDate(
+                                          controller.selectedStartDate.value!
+                                              .toIso8601String(),
+                                        )
+                                      : null,
+                                  onTap: pickDateRange,
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: _buildDateTimeField(
+                                  label: 'Start Time',
+                                  icon: Icons.keyboard_arrow_down,
+                                  value: controller.selectedStartTime.value
+                                      ?.format(context),
+                                  onTap: () async {
+                                    final time = await showTimePicker(
+                                      context: context,
+                                      initialTime: controller.selectedStartTime.value ?? TimeOfDay.now(),
+                                      builder: (context, child) => MediaQuery(
+                                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                        child: child!,
+                                      ),
+                                    );
+                                    if (time != null) {
+                                      controller.selectedStartTime.value = time;
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                        SizedBox(height: 12.h),
+
+                        Obx(() {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildDateTimeField(
+                                  label: 'End Date',
+                                  icon: Icons.calendar_today_outlined,
+                                  value: controller.selectedEndDate.value != null
+                                      ? AppDateUtils.formatToOrdinalDate(
+                                          controller.selectedEndDate.value!
+                                              .toIso8601String(),
+                                        )
+                                      : null,
+                                  onTap: pickDateRange,
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: _buildDateTimeField(
+                                  label: 'End Time',
+                                  icon: Icons.keyboard_arrow_down,
+                                  value: controller.selectedEndTime.value?.format(
+                                    context,
+                                  ),
+                                  onTap: () async {
+                                    final time = await showTimePicker(
+                                      context: context,
+                                      initialTime: controller.selectedEndTime.value ?? TimeOfDay.now(),
+                                      builder: (context, child) => MediaQuery(
+                                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                        child: child!,
+                                      ),
+                                    );
+                                    if (time != null) {
+                                      controller.selectedEndTime.value = time;
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                        SizedBox(height: 16.h),
+
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
                                         child: Text(
-                                          e.roleName,
+                                          'Photo Required',
                                           style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
+                                            color: AppColors.black,
                                           ),
                                         ),
                                       ),
-                                    )
-                                    .toList(),
-                                onChanged: (values) =>
-                                    controller.onGroupForCreateChanged(
-                                        values.isEmpty ? null : values.first),
+                                      SizedBox(width: 6.w),
+                                      Obx(
+                                        () => _buildSwitch(
+                                          controller.photoRequired.value,
+                                          (val) =>
+                                              controller.photoRequired.value =
+                                                  val,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Approval required',
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.black,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Obx(
+                                        () => _buildSwitch(
+                                          controller.approvalRequired.value,
+                                          (val) =>
+                                              controller.approvalRequired.value =
+                                                  val,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Obx(
-                              () => MultiSelectDropdownWidget<AssigneeModel>(
-                                label: 'Assignee',
+                            if (!isEdit) ...[
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [_buildRecurringTask(context, controller)],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+
+                        Obx(() {
+                          if (!controller.approvalRequired.value) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 10.h),
+                              MultiSelectDropdownWidget<AssigneeModel>(
+                                label: 'Approver Name/ Team',
                                 isSingleSelect: true,
                                 showSearch: true,
                                 selectedValues:
-                                    controller
-                                            .selectedAssigneeForCreate
-                                            .value ==
+                                    controller.selectedApproverForCreate.value ==
                                         null
                                     ? <AssigneeModel>{}
                                     : {
                                         controller
-                                            .selectedAssigneeForCreate
+                                            .selectedApproverForCreate
                                             .value!,
                                       },
-                                items: controller.assignees
+                                items: controller.allAssignees
                                     .map<DropdownMenuItem<AssigneeModel>>(
                                       (e) => DropdownMenuItem<AssigneeModel>(
                                         value: e,
@@ -233,449 +525,195 @@ class CreateTaskScreen extends GetView<TasksController> {
                                     )
                                     .toList(),
                                 onChanged: (values) =>
-                                    controller.selectedAssigneeForCreate.value =
+                                    controller.selectedApproverForCreate.value =
                                         values.isEmpty ? null : values.first,
                               ),
+                            ],
+                          );
+                        }),
+                        SizedBox(height: 24.h),
+
+                        if (isEdit) ...[
+                          SizedBox(height: 20.h),
+                          Text(
+                            'Update Level',
+                            style: AppTextStyle.style_14_700(
+                              color: AppColors.black,
                             ),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // ── Date Range Row (drag-to-select) ──
-                      Obx(() {
-                        Future<void> pickDateRange() async {
-                          final initialRange =
-                              controller.selectedStartDate.value != null &&
-                                  controller.selectedEndDate.value != null
-                              ? DateTimeRange(
-                                  start: controller.selectedStartDate.value!,
-                                  end: controller.selectedEndDate.value!,
-                                )
-                              : null;
-                          final picked = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                            initialDateRange: initialRange,
-                            builder: (context, child) => Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: ColorScheme.light(
-                                  primary: AppColors.primary,
-                                  onPrimary: Colors.white,
-                                  onSurface: Colors.black,
-                                ),
-                              ),
-                              child: child!,
+                          SizedBox(height: 8.h),
+                          Theme(
+                            data: Theme.of(context).copyWith(
+                              unselectedWidgetColor: Colors.grey.shade300,
                             ),
-                          );
-                          if (picked != null) {
-                            controller.selectedStartDate.value = picked.start;
-                            controller.selectedEndDate.value = picked.end;
-                          }
-                        }
-
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: _buildDateTimeField(
-                                label: 'Start Date',
-                                icon: Icons.calendar_today_outlined,
-                                value: controller.selectedStartDate.value != null
-                                    ? AppDateUtils.formatToOrdinalDate(
-                                        controller.selectedStartDate.value!
-                                            .toIso8601String(),
-                                      )
-                                    : null,
-                                onTap: pickDateRange,
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: _buildDateTimeField(
-                                label: 'Start Time',
-                                icon: Icons.keyboard_arrow_down,
-                                value: controller.selectedStartTime.value
-                                    ?.format(context),
-                                onTap: () async {
-                                  final time = await showTimePicker(
-                                    context: context,
-                                    initialTime: controller.selectedStartTime.value ?? TimeOfDay.now(),
-                                    builder: (context, child) => MediaQuery(
-                                      data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-                                      child: child!,
-                                    ),
-                                  );
-                                  if (time != null) {
-                                    controller.selectedStartTime.value = time;
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
-                      SizedBox(height: 12.h),
-
-                      Obx(() {
-                        Future<void> pickDateRange() async {
-                          final initialRange =
-                              controller.selectedStartDate.value != null &&
-                                  controller.selectedEndDate.value != null
-                              ? DateTimeRange(
-                                  start: controller.selectedStartDate.value!,
-                                  end: controller.selectedEndDate.value!,
-                                )
-                              : null;
-                          final picked = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                            initialDateRange: initialRange,
-                            builder: (context, child) => Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: ColorScheme.light(
-                                  primary: AppColors.primary,
-                                  onPrimary: Colors.white,
-                                  onSurface: Colors.black,
-                                ),
-                              ),
-                              child: child!,
-                            ),
-                          );
-                          if (picked != null) {
-                            controller.selectedStartDate.value = picked.start;
-                            controller.selectedEndDate.value = picked.end;
-                          }
-                        }
-
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: _buildDateTimeField(
-                                label: 'End Date',
-                                icon: Icons.calendar_today_outlined,
-                                value: controller.selectedEndDate.value != null
-                                    ? AppDateUtils.formatToOrdinalDate(
-                                        controller.selectedEndDate.value!
-                                            .toIso8601String(),
-                                      )
-                                    : null,
-                                onTap: pickDateRange,
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: _buildDateTimeField(
-                                label: 'End Time',
-                                icon: Icons.keyboard_arrow_down,
-                                value: controller.selectedEndTime.value?.format(
-                                  context,
-                                ),
-                                onTap: () async {
-                                  final time = await showTimePicker(
-                                    context: context,
-                                    initialTime: controller.selectedEndTime.value ?? TimeOfDay.now(),
-                                    builder: (context, child) => MediaQuery(
-                                      data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-                                      child: child!,
-                                    ),
-                                  );
-                                  if (time != null) {
-                                    controller.selectedEndTime.value = time;
-                                  }
-                                },
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
-                      SizedBox(height: 16.h),
-
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Photo Required',
-                                        style: AppTextStyle.style_12_400(
-                                          color: AppColors.black,
-                                        ),
+                            child: Obx(
+                              () => Column(
+                                children: [
+                                  RadioListTile<String>(
+                                    title: Text(
+                                      'This Task Only',
+                                      style: AppTextStyle.style_12_500(
+                                        color: AppColors.black,
                                       ),
                                     ),
-                                    SizedBox(width: 6.w),
-                                    Obx(
-                                      () => _buildSwitch(
-                                        controller.photoRequired.value,
-                                        (val) =>
-                                            controller.photoRequired.value =
-                                                val,
-                                      ),
+                                    value: "0",
+                                    groupValue: controller.updateLevel.value,
+                                    activeColor: const Color(0xFF0066FF),
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                    visualDensity: const VisualDensity(
+                                      horizontal: -4,
+                                      vertical: -4,
                                     ),
-                                  ],
-                                ),
-                                SizedBox(height: 8.h),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Approval required',
-                                        style: AppTextStyle.style_12_400(
-                                          color: AppColors.black,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 6.w),
-                                    Obx(
-                                      () => _buildSwitch(
-                                        controller.approvalRequired.value,
-                                        (val) =>
-                                            controller.approvalRequired.value =
-                                                val,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!isEdit) ...[
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [_buildRecurringTask(context)],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      SizedBox(height: 12.h),
-
-                      Obx(() {
-                        if (!controller.approvalRequired.value) {
-                          return const SizedBox.shrink();
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 10.h),
-                            MultiSelectDropdownWidget<AssigneeModel>(
-                              label: 'Approver Name/ Team',
-                              isSingleSelect: true,
-                              showSearch: true,
-                              selectedValues:
-                                  controller.selectedApproverForCreate.value ==
-                                      null
-                                  ? <AssigneeModel>{}
-                                  : {
-                                      controller
-                                          .selectedApproverForCreate
-                                          .value!,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        controller.updateLevel.value = value;
+                                      }
                                     },
-                              items: controller.allAssignees
-                                  .map<DropdownMenuItem<AssigneeModel>>(
-                                    (e) => DropdownMenuItem<AssigneeModel>(
-                                      value: e,
-                                      child: Text(
-                                        e.name,
-                                        style: AppTextStyle.style_12_400(
-                                          color: AppColors.grey900,
-                                        ),
+                                  ),
+                                  RadioListTile<String>(
+                                    title: Text(
+                                      'Entire Task Series.',
+                                      style: AppTextStyle.style_12_500(
+                                        color: AppColors.black,
                                       ),
                                     ),
-                                  )
-                                  .toList(),
-                              onChanged: (values) =>
-                                  controller.selectedApproverForCreate.value =
-                                      values.isEmpty ? null : values.first,
-                            ),
-                          ],
-                        );
-                      }),
-                      SizedBox(height: 24.h),
-
-                      if (isEdit) ...[
-                        SizedBox(height: 20.h),
-                        Text(
-                          'Update Level',
-                          style: AppTextStyle.style_14_700(
-                            color: AppColors.black,
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Theme(
-                          data: Theme.of(context).copyWith(
-                            unselectedWidgetColor: Colors.grey.shade300,
-                          ),
-                          child: Obx(
-                            () => Column(
-                              children: [
-                                RadioListTile<String>(
-                                  title: Text(
-                                    'This Task Only',
-                                    style: AppTextStyle.style_12_500(
-                                      color: AppColors.black,
+                                    value: "1",
+                                    groupValue: controller.updateLevel.value,
+                                    activeColor: const Color(0xFF0066FF),
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                    visualDensity: const VisualDensity(
+                                      horizontal: -4,
+                                      vertical: -4,
                                     ),
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        controller.updateLevel.value = value;
+                                      }
+                                    },
                                   ),
-                                  value: "0",
-                                  groupValue: controller.updateLevel.value,
-                                  activeColor: const Color(0xFF0066FF),
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  visualDensity: const VisualDensity(
-                                    horizontal: -4,
-                                    vertical: -4,
-                                  ),
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      controller.updateLevel.value = value;
-                                    }
-                                  },
-                                ),
-                                RadioListTile<String>(
-                                  title: Text(
-                                    'Entire Task Series.',
-                                    style: AppTextStyle.style_12_500(
-                                      color: AppColors.black,
-                                    ),
-                                  ),
-                                  value: "1",
-                                  groupValue: controller.updateLevel.value,
-                                  activeColor: const Color(0xFF0066FF),
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  visualDensity: const VisualDensity(
-                                    horizontal: -4,
-                                    vertical: -4,
-                                  ),
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      controller.updateLevel.value = value;
-                                    }
-                                  },
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 24.h),
+                SizedBox(height: 24.h),
 
-              Obx(
-                () => controller.isReadOnly.value
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          SizedBox(
-                            width: 100.w,
-                            child: OutlinedButton(
-                              onPressed: () => Get.back(),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: AppColors.grey100,
+                Obx(
+                  () => controller.isReadOnly.value
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                              width: 100.w,
+                              child: OutlinedButton(
+                                onPressed: () => Get.back(),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: AppColors.grey100,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                padding: EdgeInsets.symmetric(vertical: 10.h),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'Close',
-                                style: AppTextStyle.style_14_600(
-                                  color: AppColors.black,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          SizedBox(
-                            width: 100.w,
-                            child: OutlinedButton(
-                              onPressed: () => Get.back(),
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: AppColors.grey100),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                padding: EdgeInsets.symmetric(vertical: 10.h),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'Cancel',
-                                style: AppTextStyle.style_14_600(
-                                  color: AppColors.black,
+                                child: Text(
+                                  'Close',
+                                  style: AppTextStyle.style_14_600(
+                                    color: AppColors.black,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 16.w),
-                          SizedBox(
-                            width: 130.w,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (isEdit) {
-                                  controller.updateTask(task);
-                                } else {
-                                  controller.createTask();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isEdit
-                                    ? const Color(
-                                        0xFFFF6F00,
-                                      ) // Orange color matching edit task screenshot
-                                    : AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                              width: 100.w,
+                              child: OutlinedButton(
+                                onPressed: () => Get.back(),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: AppColors.grey100),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                padding: EdgeInsets.symmetric(vertical: 10.h),
-                                elevation: 0,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                isEdit ? 'Update Task' : 'Create Task',
-                                style: AppTextStyle.style_14_600(
-                                  color: AppColors.white,
+                                child: Text(
+                                  'Cancel',
+                                  style: AppTextStyle.style_14_600(
+                                    color: AppColors.black,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
+                            SizedBox(width: 16.w),
+                            SizedBox(
+                              width: 130.w,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (isEdit) {
+                                    controller.updateTask(task);
+                                  } else {
+                                    controller.createTask();
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isEdit
+                                      ? const Color(0xFFFF6F00)
+                                      : AppColors.primary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                                  elevation: 0,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  isEdit ? 'Update Task' : 'Create Task',
+                                  style: AppTextStyle.style_14_600(
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     int maxLines = 1,
+    FocusNode? focusNode,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onFieldSubmitted,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
+      focusNode: focusNode,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       textAlignVertical: TextAlignVertical.center,
       decoration: InputDecoration(
         labelText: label,
@@ -770,7 +808,7 @@ class CreateTaskScreen extends GetView<TasksController> {
     );
   }
 
-  Widget _buildRecurringTask(BuildContext context) {
+  Widget _buildRecurringTask(BuildContext context, TasksController controller) {
     return Row(
       children: [
         Expanded(
@@ -783,7 +821,6 @@ class CreateTaskScreen extends GetView<TasksController> {
         Obx(
           () => _buildSwitch(controller.isRecurring.value, (val) async {
             if (val) {
-              // Open Recurrence Dialog
               final result = await Get.dialog<RecurrenceData>(
                 AppointmentRecurrenceDialog(
                   initialData: controller.recurrenceData.value,
@@ -809,7 +846,6 @@ class CreateTaskScreen extends GetView<TasksController> {
               }
             } else {
               controller.isRecurring.value = false;
-              controller.recurrenceData.value = null;
             }
           }),
         ),

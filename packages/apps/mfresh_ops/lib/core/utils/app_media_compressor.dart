@@ -57,7 +57,10 @@ class AppMediaCompressor {
   /// Delete compression cache
   static Future<void> clearCache() async {
     try {
-      await VideoCompress.deleteAllCache();
+      await VideoCompress.deleteAllCache().catchError((e, stack) {
+        debugPrint('Error clearing compressor cache: $e');
+        return null;
+      });
     } catch (e) {
       debugPrint('Error clearing compressor cache: $e');
     }

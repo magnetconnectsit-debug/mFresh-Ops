@@ -1,4 +1,5 @@
 import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_image_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -57,37 +58,37 @@ class TicketDetailsInfoCard extends StatelessWidget {
 
   Widget _statusBlock(String statusVal) {
     String label = _getStatusLabel(statusVal);
-    Color bgColor = Colors.transparent;
-    Color textColor = Colors.black;
+    Color bgColor = AppColors.transparent;
+    Color textColor = AppColors.black;
 
     switch (label) {
       case "New":
-        bgColor = const Color(0xFFFFC000);
-        textColor = Colors.white;
+        bgColor = AppColors.warning;
+        textColor = AppColors.white;
         break;
       case "WIP":
-        bgColor = Colors.white;
-        textColor = Colors.black;
+        bgColor = AppColors.white;
+        textColor = AppColors.black;
         break;
       case "Resolved":
-        bgColor = const Color(0xFF00B050);
-        textColor = Colors.white;
+        bgColor = AppColors.green;
+        textColor = AppColors.white;
         break;
       case "Closed":
-        bgColor = const Color(0xFFC00000);
-        textColor = Colors.white;
+        bgColor = AppColors.red;
+        textColor = AppColors.white;
         break;
       case "Hold":
-        bgColor = const Color(0x9607B8FF);
-        textColor = Colors.black;
+        bgColor = const Color(0xFF4FC3F7);
+        textColor = AppColors.black;
         break;
       case "Awaited":
-        bgColor = const Color(0x9496F1EF);
-        textColor = Colors.black;
+        bgColor = const Color(0xFFB2EBF2);
+        textColor = AppColors.black;
         break;
       default:
-        bgColor = Colors.transparent;
-        textColor = Colors.black;
+        bgColor = AppColors.transparent;
+        textColor = AppColors.black;
     }
 
     return Container(
@@ -95,47 +96,40 @@ class TicketDetailsInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
-        border: bgColor == Colors.white
-            ? Border.all(color: Colors.grey.shade300)
+        border: bgColor == AppColors.white
+            ? Border.all(color: AppColors.borderColor)
             : null,
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
-        ),
+        style: AppTextStyle.style_10_600(color: textColor),
       ),
     );
   }
 
   Widget _priorityBlock(String priorityVal) {
     String label = _getPriorityLabel(priorityVal);
-    Color bgColor = Colors.transparent;
-    Color textColor = Colors.black;
+    Color bgColor = AppColors.transparent;
+    Color textColor = AppColors.black;
 
     switch (label) {
       case "Low":
-        bgColor = Colors.white;
-        textColor = Colors.black;
+        bgColor = AppColors.white;
+        textColor = AppColors.black;
         break;
       case "Normal":
       case "Medium":
-        bgColor = const Color(0xFFFF7A45);
-        textColor = Colors.white;
+        bgColor = AppColors.orange;
+        textColor = AppColors.white;
         break;
       case "High":
-        bgColor = const Color(0xFFFF0000);
-        textColor = Colors.white;
-        break;
       case "Top Priority":
-        bgColor = const Color(0xFFC00000);
-        textColor = Colors.white;
+        bgColor = AppColors.red;
+        textColor = AppColors.white;
         break;
       default:
-        bgColor = Colors.transparent;
-        textColor = Colors.black;
+        bgColor = AppColors.transparent;
+        textColor = AppColors.black;
     }
 
     return Container(
@@ -143,17 +137,13 @@ class TicketDetailsInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
-        border: bgColor == Colors.white
-            ? Border.all(color: Colors.grey.shade300)
+        border: bgColor == AppColors.white
+            ? Border.all(color: AppColors.borderColor)
             : null,
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
-        ),
+        style: AppTextStyle.style_10_600(color: textColor),
       ),
     );
   }
@@ -280,18 +270,16 @@ class TicketDetailsInfoCard extends StatelessWidget {
     return TableRow(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
             leftLabel,
-            style: const TextStyle(
+            style: AppTextStyle.style_11_600(
               color: AppColors.primaryOrange,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
             ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child:
               leftWidget ??
               Tooltip(
@@ -301,24 +289,22 @@ class TicketDetailsInfoCard extends StatelessWidget {
                   leftValue ?? "",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.black87, fontSize: 13),
+                  style: AppTextStyle.style_11_400(color: AppColors.black87),
                 ),
               ),
         ),
         const SizedBox(),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
             rightLabel,
-            style: const TextStyle(
+            style: AppTextStyle.style_11_600(
               color: AppColors.primaryOrange,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
             ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child:
               rightWidget ??
               Tooltip(
@@ -328,7 +314,7 @@ class TicketDetailsInfoCard extends StatelessWidget {
                   rightValue ?? "",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.black87, fontSize: 13),
+                  style: AppTextStyle.style_11_400(color: AppColors.black87),
                 ),
               ),
         ),
@@ -340,24 +326,20 @@ class TicketDetailsInfoCard extends StatelessWidget {
     return TableRow(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Text(
             label,
-            style: const TextStyle(
+            style: AppTextStyle.style_11_600(
               color: AppColors.primaryOrange,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
             ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Text(
             value,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 14,
-              height: 1.3,
+            style: AppTextStyle.style_11_400(
+              color: AppColors.black87,
             ),
           ),
         ),
@@ -369,30 +351,26 @@ class TicketDetailsInfoCard extends StatelessWidget {
     return TableRow(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Text(
             label,
-            style: const TextStyle(
+            style: AppTextStyle.style_11_600(
               color: AppColors.primaryOrange,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
             ),
           ),
         ),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: child),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 5), child: child),
       ],
     );
   }
 
   Widget _buildAttachmentsWidget(BuildContext context, List attachments) {
     if (attachments.isEmpty) {
-      return const Text(
+      return Text(
         "No Attachments",
-        style: TextStyle(
-          color: Colors.grey,
-          fontSize: 12,
-          fontStyle: FontStyle.italic,
-        ),
+        style: AppTextStyle.style_10_400(
+          color: AppColors.grey200,
+        ).copyWith(fontStyle: FontStyle.italic),
       );
     }
     final List<String> urls = attachments.map((e) => e.toString()).toList();
@@ -416,14 +394,14 @@ class TicketDetailsInfoCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: AppColors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.orange, width: 1),
+                border: Border.all(color: AppColors.orange, width: 1),
               ),
               child: const Center(
                 child: Icon(
                   Icons.play_circle_fill,
-                  color: Colors.orange,
+                  color: AppColors.orange,
                   size: 24,
                 ),
               ),
@@ -451,12 +429,12 @@ class TicketDetailsInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF9),
+        color: AppColors.scaffoldBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF29B6F6), width: 1.5),
+        border: Border.all(color: AppColors.timelineBlue, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -535,7 +513,7 @@ class TicketDetailsInfoCard extends StatelessWidget {
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: Color(0xFFEEEEEE), height: 1, thickness: 1),
+            child: Divider(color: AppColors.grey50, height: 1, thickness: 1),
           ),
           Table(
             columnWidths: const {
@@ -558,14 +536,12 @@ class TicketDetailsInfoCard extends StatelessWidget {
           if ((ticket.subtasks ?? []).isNotEmpty) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(color: Color(0xFFEEEEEE), height: 1, thickness: 1),
+              child: Divider(color: AppColors.grey50, height: 1, thickness: 1),
             ),
-            const Text(
+            Text(
               "SUBTASKS",
-              style: TextStyle(
+              style: AppTextStyle.style_11_600(
                 color: AppColors.primaryOrange,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
               ),
             ),
             const SizedBox(height: 8),
@@ -581,19 +557,19 @@ class TicketDetailsInfoCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isDone
-                            ? const Color(0xFF4CAF50)
-                            : Colors.orange.shade100,
+                            ? AppColors.clockIn
+                            : AppColors.orange.withValues(alpha: 0.2),
                         border: Border.all(
                           color: isDone
-                              ? const Color(0xFF4CAF50)
-                              : Colors.orange,
+                              ? AppColors.clockIn
+                              : AppColors.orange,
                           width: 1.5,
                         ),
                       ),
                       child: isDone
                           ? const Icon(
                               Icons.check,
-                              color: Colors.white,
+                              color: AppColors.white,
                               size: 12,
                             )
                           : null,
@@ -602,12 +578,10 @@ class TicketDetailsInfoCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         st.subtask ?? '',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDone ? Colors.grey : Colors.black87,
-                          decoration: isDone
-                              ? TextDecoration.lineThrough
-                              : null,
+                        style: AppTextStyle.style_11_400(
+                          color: isDone ? AppColors.grey200 : AppColors.black87,
+                        ).copyWith(
+                          decoration: isDone ? TextDecoration.lineThrough : null,
                         ),
                       ),
                     ),
@@ -618,18 +592,16 @@ class TicketDetailsInfoCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isDone
-                            ? const Color(0xFFE8F5E9)
-                            : const Color(0xFFFFF3E0),
+                            ? AppColors.secondaryGreen
+                            : AppColors.secondaryOrange,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         isDone ? 'Done' : 'Pending',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                        style: AppTextStyle.style_10_600(
                           color: isDone
-                              ? const Color(0xFF2E7D32)
-                              : const Color(0xFFE65100),
+                              ? AppColors.successDark
+                              : AppColors.orange900,
                         ),
                       ),
                     ),

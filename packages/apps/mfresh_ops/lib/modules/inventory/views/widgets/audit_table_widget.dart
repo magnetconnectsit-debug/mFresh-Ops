@@ -859,32 +859,41 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
                   alignment: Alignment.center,
                   hasRightBorder: false,
                   child: Obx(() {
+                    final qtyStr = widget.controller.auditQtys[widget.item.itemId]?.trim() ?? '';
+                    final qtyNum = double.tryParse(qtyStr) ?? 0.0;
+                    final isRequired = qtyNum > 0;
+
                     final imageFiles =
                         widget.controller.itemImages[widget.item.itemId] ?? [];
-                    return _buildImageCell(context, imageFiles, () {
-                      _showImageSourceSheet(
-                        context: context,
-                        hasExistingImage: imageFiles.isNotEmpty,
-                        imageFiles: imageFiles,
-                        onSelectSource: (source) {
-                          widget.controller.pickImageForAuditItem(
-                            widget.item.itemId,
-                            source,
-                          );
-                        },
-                        onRemoveImageAt: (idx) {
-                          widget.controller.removeImageForAuditItemAt(
-                            widget.item.itemId,
-                            idx,
-                          );
-                        },
-                        onRemoveImage: () {
-                          widget.controller.removeImageForAuditItem(
-                            widget.item.itemId,
-                          );
-                        },
-                      );
-                    });
+                    return _buildImageCell(
+                      context,
+                      imageFiles,
+                      () {
+                        _showImageSourceSheet(
+                          context: context,
+                          hasExistingImage: imageFiles.isNotEmpty,
+                          imageFiles: imageFiles,
+                          onSelectSource: (source) {
+                            widget.controller.pickImageForAuditItem(
+                              widget.item.itemId,
+                              source,
+                            );
+                          },
+                          onRemoveImageAt: (idx) {
+                            widget.controller.removeImageForAuditItemAt(
+                              widget.item.itemId,
+                              idx,
+                            );
+                          },
+                          onRemoveImage: () {
+                            widget.controller.removeImageForAuditItem(
+                              widget.item.itemId,
+                            );
+                          },
+                        );
+                      },
+                      isRequired: isRequired,
+                    );
                   }),
                 ),
               ),
@@ -1122,18 +1131,22 @@ Widget _buildSourceTile({
 Widget _buildImageCell(
   BuildContext context,
   List<File> imageFiles,
-  VoidCallback onTap,
-) {
+  VoidCallback onTap, {
+  bool isRequired = false,
+}) {
   if (imageFiles.isEmpty) {
+    final isError = isRequired;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0F9FF),
+          color: isError ? Colors.red.shade50 : const Color(0xFFF0F9FF),
           borderRadius: BorderRadius.circular(4.r),
-          border: Border.all(color: const Color(0xFFBAE6FD)),
+          border: Border.all(
+            color: isError ? Colors.red.shade300 : const Color(0xFFBAE6FD),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1141,12 +1154,14 @@ Widget _buildImageCell(
             Icon(
               Icons.camera_alt_outlined,
               size: 12.r,
-              color: const Color(0xFF009BD9),
+              color: isError ? Colors.red.shade600 : const Color(0xFF009BD9),
             ),
             SizedBox(width: 3.w),
             Text(
-              'Add',
-              style: AppTextStyle.style_10_600(color: const Color(0xFF009BD9)),
+              isError ? 'Add *' : 'Add',
+              style: AppTextStyle.style_10_600(
+                color: isError ? Colors.red.shade600 : const Color(0xFF009BD9),
+              ),
             ),
           ],
         ),

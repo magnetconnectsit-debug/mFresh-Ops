@@ -152,6 +152,7 @@ class SupportTicketsController extends GetxController {
   // Filters
   final categories = <SupportCategory>[].obs;
   final subCategories = <SupportSubCategory>[].obs;
+  final isSubCategoryLoading = false.obs;
   final projects = <SupportProject>[].obs;
   final units = <SupportUnit>[].obs;
   final assignees = <AssigneeModel>[].obs;
@@ -289,12 +290,15 @@ class SupportTicketsController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
+      isSubCategoryLoading.value = true;
       final result = await _supportRepository.getSupportSubCategories(
         categoryId,
       );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
+    } finally {
+      isSubCategoryLoading.value = false;
     }
   }
 

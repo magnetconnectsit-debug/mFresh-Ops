@@ -29,25 +29,25 @@ class SupportTicketsHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: Colors.grey.shade300),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(6.r),
+                border: Border.all(color: AppColors.borderColor),
               ),
               child: Skeletonizer(
                 enabled: showSkeleton,
                 child: Obx(
                   () => Text(
                     "Total Tickets: ${controller.totalTickets.value}",
-                    style: AppTextStyle.style_14_600(color: AppColors.grey900),
+                    style: AppTextStyle.style_12_600(color: AppColors.grey900),
                   ),
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 5.h),
+        SizedBox(height: 3.h),
         Obx(() {
           if (controller.unitCounts.isEmpty && !showSkeleton) {
             return const SizedBox.shrink();
@@ -77,17 +77,17 @@ class SupportTicketsHeader extends StatelessWidget {
                           int index = entry.key;
                           String label = entry.value;
                           Color color = [
-                            Colors.blue,
-                            Colors.green,
-                            Colors.red,
-                            Colors.orange,
-                            Colors.teal,
+                            AppColors.blue,
+                            AppColors.green,
+                            AppColors.red,
+                            AppColors.orange,
+                            AppColors.secondaryVariant,
                           ][index % 5];
                           return Container(
-                            margin: EdgeInsets.only(right: 8.w),
+                            margin: EdgeInsets.only(right: 6.w),
                             padding: EdgeInsets.symmetric(
-                              horizontal: 10.w,
-                              vertical: 4.h,
+                              horizontal: 6.w,
+                              vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
                               border: Border.all(color: color),
@@ -95,11 +95,7 @@ class SupportTicketsHeader extends StatelessWidget {
                             ),
                             child: Text(
                               label,
-                              style: TextStyle(
-                                color: color,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12.sp,
-                              ),
+                              style: AppTextStyle.style_11_700(color: color),
                             ),
                           );
                         })

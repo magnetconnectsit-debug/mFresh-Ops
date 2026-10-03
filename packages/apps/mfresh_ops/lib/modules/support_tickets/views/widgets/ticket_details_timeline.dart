@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:services/services.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_image_view.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
@@ -68,7 +69,7 @@ class TicketDetailsTimeline extends StatelessWidget {
   ) {
     Get.bottomSheet(
       Material(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -77,7 +78,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             children: [
               ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Take a Photo'),
+              title: Text('Take a Photo', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
               onTap: () {
                 Get.back();
                 controller.captureImage();
@@ -85,7 +86,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choose Photo from Gallery'),
+              title: Text('Choose Photo from Gallery', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
               onTap: () {
                 Get.back();
                 controller.pickImages();
@@ -93,7 +94,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.videocam),
-              title: const Text('Record a Video'),
+              title: Text('Record a Video', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
               onTap: () {
                 Get.back();
                 controller.recordVideo();
@@ -101,7 +102,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.video_library),
-              title: const Text('Choose Video from Gallery'),
+              title: Text('Choose Video from Gallery', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
               onTap: () {
                 Get.back();
                 controller.pickVideo();
@@ -109,7 +110,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.description),
-              title: const Text('Choose Document (PDF/XLS)'),
+              title: Text('Choose Document (PDF/XLS)', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
               onTap: () {
                 Get.back();
                 controller.pickDocument();
@@ -125,15 +126,15 @@ class TicketDetailsTimeline extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF9),
+        color: AppColors.scaffoldBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF29B6F6),
+          color: AppColors.timelineBlue,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -144,11 +145,9 @@ class TicketDetailsTimeline extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 "COMMENTS",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                style: AppTextStyle.style_11_600(
                   color: AppColors.primaryOrange,
                 ),
               ),
@@ -167,11 +166,9 @@ class TicketDetailsTimeline extends StatelessWidget {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         "Mark Internal",
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                        style: AppTextStyle.style_10_500(
                           color: AppColors.primaryOrange,
                         ),
                       ),
@@ -188,12 +185,12 @@ class TicketDetailsTimeline extends StatelessWidget {
                 child: TextField(
                   controller: controller.commentController,
                   maxLines: 2,
-                  style: const TextStyle(fontSize: 14),
+                  style: AppTextStyle.style_12_400(color: AppColors.black),
                   decoration: InputDecoration(
                     hintText: "Write your comment...",
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    hintStyle: AppTextStyle.style_11_400(color: AppColors.grey200),
                     filled: true,
-                    fillColor: const Color(0xFFEEEEEE),
+                    fillColor: AppColors.grey50,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 8,
@@ -221,7 +218,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                           constraints: const BoxConstraints(),
                           icon: const Icon(
                             Icons.link,
-                            color: Colors.blue,
+                            color: AppColors.blue,
                             size: 20,
                           ),
                           onPressed: () => _showCommentMediaSourceOptions(
@@ -272,27 +269,25 @@ class TicketDetailsTimeline extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: AppColors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.attachment,
                     color: AppColors.primaryOrange,
                     size: 14,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     "Upload Files",
-                    style: TextStyle(
+                    style: AppTextStyle.style_10_500(
                       color: AppColors.primaryOrange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -329,7 +324,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                                   constraints: const BoxConstraints(),
                                   icon: const Icon(
                                     Icons.cancel,
-                                    color: Colors.red,
+                                    color: AppColors.red,
                                     size: 18,
                                   ),
                                   onPressed: () =>
@@ -346,14 +341,14 @@ class TicketDetailsTimeline extends StatelessWidget {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withValues(alpha: 0.1),
+                                  color: AppColors.orange.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.orange),
+                                  border: Border.all(color: AppColors.orange),
                                 ),
                                 child: const Center(
                                   child: Icon(
                                     Icons.videocam,
-                                    color: Colors.orange,
+                                    color: AppColors.orange,
                                     size: 24,
                                   ),
                                 ),
@@ -366,7 +361,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                                   constraints: const BoxConstraints(),
                                   icon: const Icon(
                                     Icons.cancel,
-                                    color: Colors.red,
+                                    color: AppColors.red,
                                     size: 18,
                                   ),
                                   onPressed: () =>
@@ -383,14 +378,14 @@ class TicketDetailsTimeline extends StatelessWidget {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withValues(alpha: 0.1),
+                                  color: AppColors.blue.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.blue),
+                                  border: Border.all(color: AppColors.blue),
                                 ),
                                 child: const Center(
                                   child: Icon(
                                     Icons.description,
-                                    color: Colors.blue,
+                                    color: AppColors.blue,
                                     size: 24,
                                   ),
                                 ),
@@ -403,7 +398,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                                   constraints: const BoxConstraints(),
                                   icon: const Icon(
                                     Icons.cancel,
-                                    color: Colors.red,
+                                    color: AppColors.red,
                                     size: 18,
                                   ),
                                   onPressed: () =>
@@ -434,7 +429,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             width: 12,
             height: 12,
             decoration: const BoxDecoration(
-              color: Color(0xFF00C853),
+              color: AppColors.clockIn,
               shape: BoxShape.circle,
             ),
           ),
@@ -494,15 +489,15 @@ class TicketDetailsTimeline extends StatelessWidget {
             bottom: 12,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFBF9),
+            color: AppColors.scaffoldBg,
             border: Border.all(
-              color: const Color(0xFF29B6F6),
+              color: AppColors.timelineBlue,
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: AppColors.black.withValues(alpha: 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -518,24 +513,20 @@ class TicketDetailsTimeline extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
+                        SizedBox(
                           width: 90,
                           child: Text(
                             "ACTIVITY",
-                            style: TextStyle(
+                            style: AppTextStyle.style_11_600(
                               color: AppColors.primaryOrange,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
                             ),
                           ),
                         ),
                         Expanded(
                           child: Text(
                             activityText,
-                            style: const TextStyle(
+                            style: AppTextStyle.style_11_600(
                               color: AppColors.primaryOrange,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -549,7 +540,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                       icon: const Icon(
                         Icons.edit,
                         size: 16,
-                        color: Colors.grey,
+                        color: AppColors.grey100,
                       ),
                       onPressed: () => controller.toggleEditComment(commentId),
                     ),
@@ -561,14 +552,12 @@ class TicketDetailsTimeline extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 90,
                       child: Text(
                         "COMMENTS",
-                        style: TextStyle(
+                        style: AppTextStyle.style_11_600(
                           color: AppColors.primaryOrange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -581,14 +570,12 @@ class TicketDetailsTimeline extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 90,
                       child: Text(
                         "ATTACHMENTS",
-                        style: TextStyle(
+                        style: AppTextStyle.style_11_600(
                           color: AppColors.primaryOrange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -613,17 +600,17 @@ class TicketDetailsTimeline extends StatelessWidget {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withValues(alpha: 0.1),
+                                  color: AppColors.orange.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Colors.orange,
+                                    color: AppColors.orange,
                                     width: 1,
                                   ),
                                 ),
                                 child: const Center(
                                   child: Icon(
                                     Icons.play_circle_fill,
-                                    color: Colors.orange,
+                                    color: AppColors.orange,
                                     size: 24,
                                   ),
                                 ),
@@ -652,10 +639,8 @@ class TicketDetailsTimeline extends StatelessWidget {
                 alignment: Alignment.bottomRight,
                 child: Text(
                   "Updated On: ${c['created_at'] != null ? DateFormat('dd-MM-yy, HH:mm').format(DateTime.parse(c['created_at'])) : ''}",
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w600,
+                  style: AppTextStyle.style_10_500(
+                    color: AppColors.grey200,
                   ),
                 ),
               ),
@@ -666,7 +651,7 @@ class TicketDetailsTimeline extends StatelessWidget {
           const Positioned(
             left: 12,
             top: 0,
-            child: Icon(Icons.bookmark, color: Color(0xFF29B6F6), size: 18),
+            child: Icon(Icons.bookmark, color: AppColors.timelineBlue, size: 18),
           ),
       ],
     );
@@ -674,7 +659,7 @@ class TicketDetailsTimeline extends StatelessWidget {
 
   Widget _buildCommentText(String text) {
     if (!text.contains('@')) {
-      return Text(text, style: const TextStyle(fontSize: 12, height: 1.3));
+      return Text(text, style: AppTextStyle.style_11_400(color: AppColors.black87));
     }
 
     final List<TextSpan> spans = [];
@@ -685,10 +670,8 @@ class TicketDetailsTimeline extends StatelessWidget {
         spans.add(
           TextSpan(
             text: '$word ',
-            style: const TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+            style: AppTextStyle.style_11_600(
+              color: AppColors.blue,
             ),
           ),
         );
@@ -696,13 +679,13 @@ class TicketDetailsTimeline extends StatelessWidget {
         spans.add(
           TextSpan(
             text: '$word ',
-            style: const TextStyle(color: Colors.black87, fontSize: 12),
+            style: AppTextStyle.style_11_400(color: AppColors.black87),
           ),
         );
       }
     }
     return RichText(
-      text: TextSpan(children: spans, style: const TextStyle(height: 1.3)),
+      text: TextSpan(children: spans),
     );
   }
 
@@ -727,12 +710,12 @@ class TicketDetailsTimeline extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFBF9),
-            border: Border.all(color: const Color(0xFF29B6F6), width: 1.5),
+            color: AppColors.scaffoldBg,
+            border: Border.all(color: AppColors.timelineBlue, width: 1.5),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: AppColors.black.withValues(alpha: 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -743,16 +726,16 @@ class TicketDetailsTimeline extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Edit Comment',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: AppTextStyle.style_12_600(color: AppColors.black87),
                   ),
                   const Spacer(),
                   Checkbox(
                     value: isInternal,
                     onChanged: (val) => setState(() => isInternal = val!),
                   ),
-                  const Text('Internal', style: TextStyle(fontSize: 12)),
+                  Text('Internal', style: AppTextStyle.style_11_400(color: AppColors.black87)),
                   const SizedBox(width: 12),
                   Obx(
                     () => controller.isLoading.value
@@ -772,12 +755,10 @@ class TicketDetailsTimeline extends StatelessWidget {
                               newVideos: newVideos,
                               internal: isInternal,
                             ),
-                            child: const Text(
+                            child: Text(
                               'Save',
-                              style: TextStyle(
+                              style: AppTextStyle.style_11_600(
                                 color: AppColors.primaryOrange,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
                               ),
                             ),
                           ),
@@ -788,12 +769,10 @@ class TicketDetailsTimeline extends StatelessWidget {
                       onTap: controller.isLoading.value
                           ? null
                           : () => controller.toggleEditComment(commentId),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                        style: AppTextStyle.style_11_600(
+                          color: AppColors.grey200,
                         ),
                       ),
                     ),
@@ -804,7 +783,7 @@ class TicketDetailsTimeline extends StatelessWidget {
               TextField(
                 controller: editController,
                 maxLines: 3,
-                style: const TextStyle(fontSize: 13),
+                style: AppTextStyle.style_12_400(color: AppColors.black87),
                 decoration: InputDecoration(
                   hintText: 'Enter comment...',
                   border: OutlineInputBorder(
@@ -815,9 +794,9 @@ class TicketDetailsTimeline extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               if (existingImages.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Current Images:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: AppTextStyle.style_11_500(color: AppColors.grey900),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -841,7 +820,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                                 constraints: const BoxConstraints(),
                                 icon: const Icon(
                                   Icons.cancel,
-                                  color: Colors.red,
+                                  color: AppColors.red,
                                   size: 18,
                                 ),
                                 onPressed: () =>
@@ -856,9 +835,9 @@ class TicketDetailsTimeline extends StatelessWidget {
                 const SizedBox(height: 12),
               ],
               if (newImages.isNotEmpty) ...[
-                const Text(
+                Text(
                   'New Images:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: AppTextStyle.style_11_500(color: AppColors.grey900),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -884,7 +863,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                                 constraints: const BoxConstraints(),
                                 icon: const Icon(
                                   Icons.cancel,
-                                  color: Colors.red,
+                                  color: AppColors.red,
                                   size: 18,
                                 ),
                                 onPressed: () =>
@@ -899,9 +878,9 @@ class TicketDetailsTimeline extends StatelessWidget {
                 const SizedBox(height: 12),
               ],
               if (newVideos.isNotEmpty) ...[
-                const Text(
+                Text(
                   'New Videos:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                  style: AppTextStyle.style_11_500(color: AppColors.grey900),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -914,14 +893,14 @@ class TicketDetailsTimeline extends StatelessWidget {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.1),
+                                color: AppColors.orange.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange),
+                                border: Border.all(color: AppColors.orange),
                               ),
                               child: const Center(
                                   child: Icon(
                                     Icons.videocam,
-                                    color: Colors.orange,
+                                    color: AppColors.orange,
                                     size: 24,
                                   ),
                                 ),
@@ -934,7 +913,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                                 constraints: const BoxConstraints(),
                                 icon: const Icon(
                                   Icons.cancel,
-                                  color: Colors.red,
+                                  color: AppColors.red,
                                   size: 18,
                                 ),
                                 onPressed: () =>
@@ -952,7 +931,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                 onTap: () async {
                   Get.bottomSheet(
                     Material(
-                      color: Colors.white,
+                      color: AppColors.white,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
@@ -963,7 +942,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                           children: [
                           ListTile(
                             leading: const Icon(Icons.camera_alt),
-                            title: const Text('Take a Photo'),
+                            title: Text('Take a Photo', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
                             onTap: () async {
                               Get.back();
                               final picked = await ImagePicker().pickImage(
@@ -978,7 +957,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                           ),
                           ListTile(
                             leading: const Icon(Icons.photo_library),
-                            title: const Text('Choose Photo from Gallery'),
+                            title: Text('Choose Photo from Gallery', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
                             onTap: () async {
                               Get.back();
                               final picked = await ImagePicker().pickMultiImage();
@@ -991,7 +970,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                           ),
                           ListTile(
                             leading: const Icon(Icons.videocam),
-                            title: const Text('Record a Video'),
+                            title: Text('Record a Video', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
                             onTap: () async {
                               Get.back();
                               final picked = await ImagePicker().pickVideo(
@@ -1015,7 +994,7 @@ class TicketDetailsTimeline extends StatelessWidget {
                           ),
                           ListTile(
                             leading: const Icon(Icons.video_library),
-                            title: const Text('Choose Video from Gallery'),
+                            title: Text('Choose Video from Gallery', style: AppTextStyle.style_12_400(color: AppColors.grey900)),
                             onTap: () async {
                               Get.back();
                               final picked = await ImagePicker().pickVideo(
@@ -1042,21 +1021,19 @@ class TicketDetailsTimeline extends StatelessWidget {
                     )),
                   );
                 },
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.attachment_rounded,
                       color: AppColors.primaryOrange,
                       size: 16,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
                       "Attach Files",
-                      style: TextStyle(
+                      style: AppTextStyle.style_10_500(
                         color: AppColors.primaryOrange,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -1072,15 +1049,15 @@ class TicketDetailsTimeline extends StatelessWidget {
   Widget _buildHistoryTable(List logs) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF9),
+        color: AppColors.scaffoldBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF29B6F6),
+          color: AppColors.timelineBlue,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1093,7 +1070,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             children: [
               _historyRowTable(log),
               if (idx != logs.length - 1)
-                const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                const Divider(height: 1, color: AppColors.grey50),
             ],
           );
         }).toList(),
@@ -1102,18 +1079,16 @@ class TicketDetailsTimeline extends StatelessWidget {
   }
 
   Widget _historyHeaderTable() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
       child: Row(
         children: [
           Expanded(
             flex: 3,
             child: Text(
               "Date",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: Colors.grey,
+              style: AppTextStyle.style_11_600(
+                color: AppColors.grey200,
               ),
             ),
           ),
@@ -1121,10 +1096,8 @@ class TicketDetailsTimeline extends StatelessWidget {
             flex: 3,
             child: Text(
               "User",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: Colors.grey,
+              style: AppTextStyle.style_11_600(
+                color: AppColors.grey200,
               ),
             ),
           ),
@@ -1132,10 +1105,8 @@ class TicketDetailsTimeline extends StatelessWidget {
             flex: 5,
             child: Text(
               "Action",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                color: Colors.grey,
+              style: AppTextStyle.style_11_600(
+                color: AppColors.grey200,
               ),
             ),
           ),
@@ -1168,17 +1139,13 @@ class TicketDetailsTimeline extends StatelessWidget {
               children: [
                 Text(
                   datePart,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyle.style_10_600(
                     color: AppColors.primaryOrange,
                   ),
                 ),
                 Text(
                   timePart,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyle.style_10_600(
                     color: AppColors.primaryOrange,
                   ),
                 ),
@@ -1189,9 +1156,7 @@ class TicketDetailsTimeline extends StatelessWidget {
             flex: 3,
             child: Text(
               log['user_name'] ?? "-",
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+              style: AppTextStyle.style_10_600(
                 color: AppColors.primaryOrange,
               ),
             ),
@@ -1209,9 +1174,9 @@ class TicketDetailsTimeline extends StatelessWidget {
     final String newVal = log['new_value'] ?? '';
 
     if (action.toLowerCase() == 'create' || action.toLowerCase() == 'created') {
-      return const Text(
+      return Text(
         "Created.",
-        style: TextStyle(fontSize: 11, color: Colors.black87),
+        style: AppTextStyle.style_10_400(color: AppColors.black87),
       );
     }
 
@@ -1225,34 +1190,24 @@ class TicketDetailsTimeline extends StatelessWidget {
 
     return RichText(
       text: TextSpan(
-        style: const TextStyle(
-          fontSize: 11,
-          color: Colors.black87,
-          height: 1.2,
-        ),
+        style: AppTextStyle.style_10_400(color: AppColors.black87),
         children: [
           const TextSpan(text: "Change "),
           TextSpan(
             text: fieldName,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+            style: AppTextStyle.style_10_600(color: AppColors.black),
           ),
           if (oldVal.isNotEmpty) ...[
             const TextSpan(text: " from "),
             TextSpan(
               text: oldVal,
-              style: const TextStyle(color: Colors.black87),
+              style: AppTextStyle.style_10_400(color: AppColors.black87),
             ),
           ],
           const TextSpan(text: " to "),
           TextSpan(
             text: newVal,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+            style: AppTextStyle.style_10_600(color: AppColors.black),
           ),
           const TextSpan(text: "."),
         ],
@@ -1290,12 +1245,10 @@ class TicketDetailsTimeline extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "History",
-                  style: TextStyle(
-                    color: Colors.blueGrey,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyle.style_15_600(
+                    color: AppColors.blue,
                   ),
                 ),
                 const SizedBox(height: 16),

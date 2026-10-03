@@ -290,6 +290,12 @@ class _AddAdditionalItemBodyState extends State<_AddAdditionalItemBody> {
           type: ToastType.error);
       return;
     }
+    if (qty > 0 && _pickedImages.isEmpty) {
+      AppCommonToastMessage.show(
+          message: 'Please add at least one photo since quantity is greater than 0.',
+          type: ToastType.error);
+      return;
+    }
     final unitIdInt =
         int.tryParse(widget.selectedMeasurementId.value) ?? 0;
     final unitOpt = widget.controller.measurementOptions.firstWhereOrNull(

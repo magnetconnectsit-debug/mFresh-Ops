@@ -1,8 +1,30 @@
 import 'package:core/utils/app_export_utils.dart';
+import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:core/constants/app_colors.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
+import 'package:mfresh_ops/widgets/month_range_picker.dart';
+
+class AuditorOption {
+  final int id;
+  final String name;
+
+  AuditorOption({
+    required this.id,
+    required this.name,
+  });
+
+  factory AuditorOption.fromJson(Map<String, dynamic> json) {
+    return AuditorOption(
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      name: json['name']?.toString() ?? '',
+    );
+  }
+}
 
 class UnitOption {
   final int id;
@@ -158,6 +180,12 @@ class AuditItemDetail {
   final String systemQtyLabel;
   final String actualQtyLabel;
   final String differenceQtyLabel;
+  final num? actualPercentage;
+  final String actualPercentageLabel;
+  final String actualPercentageColor;
+  final bool percentageAvailable;
+  final num? variancePercentage;
+  final String variancePercentageLabel;
   final String varianceStatus;
   final String varianceColor;
   final List<String> imageUrls;
@@ -176,6 +204,12 @@ class AuditItemDetail {
     required this.systemQtyLabel,
     required this.actualQtyLabel,
     required this.differenceQtyLabel,
+    this.actualPercentage,
+    this.actualPercentageLabel = '-',
+    this.actualPercentageColor = 'normal',
+    this.percentageAvailable = false,
+    this.variancePercentage,
+    this.variancePercentageLabel = '-',
     required this.varianceStatus,
     required this.varianceColor,
     this.imageUrls = const [],
@@ -222,6 +256,12 @@ class AuditItemDetail {
       systemQtyLabel: json['system_qty_label']?.toString() ?? '${json['system_qty']} ${json['measurement_unit']}',
       actualQtyLabel: json['actual_qty_label']?.toString() ?? '${json['actual_qty']} ${json['measurement_unit']}',
       differenceQtyLabel: json['difference_qty_label']?.toString() ?? '${json['difference_qty']} ${json['measurement_unit']}',
+      actualPercentage: num.tryParse(json['actual_percentage']?.toString() ?? ''),
+      actualPercentageLabel: json['actual_percentage_label']?.toString() ?? '-',
+      actualPercentageColor: json['actual_percentage_color']?.toString() ?? 'normal',
+      percentageAvailable: json['percentage_available'] == true,
+      variancePercentage: num.tryParse(json['variance_percentage']?.toString() ?? ''),
+      variancePercentageLabel: json['variance_percentage_label']?.toString() ?? '-',
       varianceStatus: json['variance_status']?.toString() ?? 'Matched',
       varianceColor: json['variance_color']?.toString() ?? 'normal',
       imageUrls: urls,
@@ -235,6 +275,10 @@ class AdditionalAuditItemDetail {
   final num actualQty;
   final String measurementUnit;
   final String type;
+  final num? actualPercentage;
+  final String actualPercentageLabel;
+  final String actualPercentageColor;
+  final bool percentageAvailable;
   final List<String> imageUrls;
 
   AdditionalAuditItemDetail({
@@ -243,6 +287,10 @@ class AdditionalAuditItemDetail {
     required this.actualQty,
     required this.measurementUnit,
     this.type = 'Unlisted Item',
+    this.actualPercentage,
+    this.actualPercentageLabel = '-',
+    this.actualPercentageColor = 'normal',
+    this.percentageAvailable = false,
     this.imageUrls = const [],
   });
 
@@ -279,6 +327,10 @@ class AdditionalAuditItemDetail {
       actualQty: num.tryParse(json['actual_qty']?.toString() ?? '0') ?? 0,
       measurementUnit: json['measurement_unit']?.toString() ?? json['measurement_unit_name']?.toString() ?? 'pcs',
       type: json['type']?.toString() ?? 'Unlisted Item',
+      actualPercentage: num.tryParse(json['actual_percentage']?.toString() ?? ''),
+      actualPercentageLabel: json['actual_percentage_label']?.toString() ?? '-',
+      actualPercentageColor: json['actual_percentage_color']?.toString() ?? 'normal',
+      percentageAvailable: json['percentage_available'] == true,
       imageUrls: urls,
     );
   }
@@ -304,6 +356,16 @@ class AuditReportController extends GetxController {
   final selectedUnitIds = <int>{}.obs;
   final monthYearController = TextEditingController();
 
+  final auditorOptions = <AuditorOption>[].obs;
+  final selectedAuditorIds = <int>{}.obs;
+
+  final fromDate = RxnString();
+  final toDate = RxnString();
+
+  final selectedYear = RxnInt();
+  final selectedFromMonth = RxnInt();
+  final selectedToMonth = RxnInt();
+
   List<UnitOption> get selectedUnitOptions {
     return unitOptions.where((opt) => selectedUnitIds.contains(opt.id)).toList();
   }
@@ -315,6 +377,236 @@ class AuditReportController extends GetxController {
 
   void clearUnitFilters() {
     selectedUnitIds.clear();
+    fetchAuditReport();
+  }
+
+  List<AuditorOption> get selectedAuditorOptions {
+    return auditorOptions.where((opt) => selectedAuditorIds.contains(opt.id)).toList();
+  }
+
+  void removeAuditorFilter(int auditorId) {
+    selectedAuditorIds.remove(auditorId);
+    fetchAuditReport();
+  }
+
+  void clearAuditorFilters() {
+    selectedAuditorIds.clear();
+    fetchAuditReport();
+  }
+
+  static const List<String> _monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  String _getMonthName(int? monthValue) {
+    if (monthValue != null && monthValue >= 1 && monthValue <= 12) {
+      return _monthNames[monthValue - 1];
+    }
+    return '';
+  }
+
+  String get monthRangeDisplayText {
+    final fromName = _getMonthName(selectedFromMonth.value);
+    final toName = _getMonthName(selectedToMonth.value);
+    final yearStr = selectedYear.value != null ? '${selectedYear.value}' : '';
+
+    if (fromName.isNotEmpty && toName.isNotEmpty) {
+      if (selectedFromMonth.value == selectedToMonth.value) {
+        return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
+      }
+      return yearStr.isNotEmpty
+          ? '$fromName - $toName $yearStr'
+          : '$fromName - $toName';
+    } else if (fromName.isNotEmpty) {
+      return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
+    } else if (toName.isNotEmpty) {
+      return yearStr.isNotEmpty ? '$toName $yearStr' : toName;
+    }
+    return yearStr;
+  }
+
+  String get dateRangeDisplayText {
+    if (fromDate.value != null && toDate.value != null && fromDate.value!.isNotEmpty && toDate.value!.isNotEmpty) {
+      try {
+        final d1 = DateFormat('dd MMM yyyy').format(DateTime.parse(fromDate.value!));
+        final d2 = DateFormat('dd MMM yyyy').format(DateTime.parse(toDate.value!));
+        return '$d1 - $d2';
+      } catch (_) {
+        return '${fromDate.value} - ${toDate.value}';
+      }
+    }
+    return '';
+  }
+
+  String get customDateDisplayText {
+    if (selectedFromMonth.value != null) {
+      return monthRangeDisplayText;
+    }
+    if (fromDate.value != null && fromDate.value!.isNotEmpty) {
+      return dateRangeDisplayText;
+    }
+    return '';
+  }
+
+  void showCustomDateDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+          child: Container(
+            width: 260.w,
+            padding: EdgeInsets.all(16.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Select Custom Date',
+                      style: AppTextStyle.style_13_600(color: AppColors.grey900),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      child: Icon(Icons.close, size: 18.r, color: AppColors.grey500),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 14.h),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 10.w),
+                    side: const BorderSide(color: AppColors.primaryOrange),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.r)),
+                  ),
+                  icon: Icon(Icons.calendar_month_outlined, color: AppColors.primaryOrange, size: 18.r),
+                  label: Text(
+                    'Select Month',
+                    style: AppTextStyle.style_12_600(color: AppColors.primaryOrange),
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    openMonthRangePicker(context);
+                  },
+                ),
+                SizedBox(height: 8.h),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 10.w),
+                    side: const BorderSide(color: AppColors.primaryOrange),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.r)),
+                  ),
+                  icon: Icon(Icons.date_range_outlined, color: AppColors.primaryOrange, size: 18.r),
+                  label: Text(
+                    'Select Date',
+                    style: AppTextStyle.style_12_600(color: AppColors.primaryOrange),
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    openDateRangePicker(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> openDateRangePicker(BuildContext context) async {
+    DateTime initialStart = DateTime.now();
+    DateTime initialEnd = DateTime.now();
+    if (fromDate.value != null && fromDate.value!.isNotEmpty) {
+      try {
+        initialStart = DateTime.parse(fromDate.value!);
+      } catch (_) {}
+    }
+    if (toDate.value != null && toDate.value!.isNotEmpty) {
+      try {
+        initialEnd = DateTime.parse(toDate.value!);
+      } catch (_) {}
+    }
+
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryOrange,
+              onPrimary: AppColors.white,
+              onSurface: AppColors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      selectedYear.value = null;
+      selectedFromMonth.value = null;
+      selectedToMonth.value = null;
+
+      fromDate.value = DateFormat('yyyy-MM-dd').format(picked.start);
+      toDate.value = DateFormat('yyyy-MM-dd').format(picked.end);
+      fetchAuditReport();
+    }
+  }
+
+  Future<void> openMonthRangePicker(BuildContext context) async {
+    final DateTime? initialStart = selectedFromMonth.value != null
+        ? DateTime(
+            selectedYear.value ?? DateTime.now().year,
+            selectedFromMonth.value!,
+          )
+        : null;
+    final DateTime? initialEnd = selectedToMonth.value != null
+        ? DateTime(
+            selectedYear.value ?? DateTime.now().year,
+            selectedToMonth.value!,
+          )
+        : null;
+
+    final DateTimeRange? picked = await showMonthRangePicker(
+      context,
+      initialStartMonth: initialStart,
+      initialEndMonth: initialEnd,
+    );
+
+    if (picked != null) {
+      selectedYear.value = picked.start.year;
+      selectedFromMonth.value = picked.start.month;
+      selectedToMonth.value = picked.end.month;
+
+      final startDate = DateTime(picked.start.year, picked.start.month, 1);
+      final endDate = DateTime(picked.end.year, picked.end.month + 1, 0);
+
+      fromDate.value = DateFormat('yyyy-MM-dd').format(startDate);
+      toDate.value = DateFormat('yyyy-MM-dd').format(endDate);
+      fetchAuditReport();
+    }
+  }
+
+  void clearDateRangeFilter() {
+    fromDate.value = null;
+    toDate.value = null;
+    fetchAuditReport();
+  }
+
+  void clearMonthRangeFilter() {
+    selectedYear.value = null;
+    selectedFromMonth.value = null;
+    selectedToMonth.value = null;
+    fromDate.value = null;
+    toDate.value = null;
     fetchAuditReport();
   }
 
@@ -359,9 +651,15 @@ class AuditReportController extends GetxController {
       final unitIdsParam = selectedUnitIds.isEmpty
           ? null
           : selectedUnitIds.toList();
+      final auditorIdsParam = selectedAuditorIds.isEmpty
+          ? null
+          : selectedAuditorIds.toList();
 
       final response = await _repository.getAuditReport(
         unitId: unitIdsParam,
+        auditedBy: auditorIdsParam,
+        fromDate: fromDate.value,
+        toDate: toDate.value,
       );
 
       if (response != null && response['status'] == true) {
@@ -371,6 +669,14 @@ class AuditReportController extends GetxController {
               .map((e) => UnitOption.fromJson(e))
               .toList();
           unitOptions.assignAll(opts);
+        }
+
+        // Auditor options
+        if (response['auditor_options'] is List) {
+          final opts = (response['auditor_options'] as List)
+              .map((e) => AuditorOption.fromJson(e))
+              .toList();
+          auditorOptions.assignAll(opts);
         }
 
         // Pagination
@@ -651,6 +957,12 @@ class AuditReportController extends GetxController {
 
   void resetFilters() {
     selectedUnitIds.clear();
+    selectedAuditorIds.clear();
+    fromDate.value = null;
+    toDate.value = null;
+    selectedYear.value = null;
+    selectedFromMonth.value = null;
+    selectedToMonth.value = null;
     monthYearController.clear();
     searchController.clear();
     fetchAuditReport();

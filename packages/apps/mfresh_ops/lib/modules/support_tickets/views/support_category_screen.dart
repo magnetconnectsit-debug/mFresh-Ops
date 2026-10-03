@@ -52,11 +52,11 @@ class SupportCategoryScreen extends StatelessWidget {
                             vertical: 6.h,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF16A3B8),
+                            color: AppColors.secondaryBlue,
                             borderRadius: BorderRadius.circular(6.r),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
+                                color: AppColors.black.withValues(alpha: 0.1),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -65,7 +65,7 @@ class SupportCategoryScreen extends StatelessWidget {
                           child: Text(
                             'Add Categories',
                             style: AppTextStyle.style_14_500(
-                              color: Colors.white,
+                              color: AppColors.white,
                             ),
                           ),
                         ),
@@ -87,16 +87,16 @@ class SupportCategoryScreen extends StatelessWidget {
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6.r),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: const BorderSide(color: AppColors.grey300),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6.r),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: const BorderSide(color: AppColors.grey300),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6.r),
                             borderSide: const BorderSide(
-                              color: Color(0xFF16A3B8),
+                              color: AppColors.secondaryBlue,
                             ),
                           ),
                         ),
@@ -106,15 +106,15 @@ class SupportCategoryScreen extends StatelessWidget {
                       // Data Table
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.white,
                           borderRadius: BorderRadius.circular(4.r),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: AppColors.grey300),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4.r),
                           child: Table(
-                            border: TableBorder.symmetric(
-                              inside: BorderSide(color: Colors.grey.shade300),
+                            border: const TableBorder.symmetric(
+                              inside: BorderSide(color: AppColors.grey300),
                             ),
                             columnWidths: {
                               0: FixedColumnWidth(60.w),
@@ -277,11 +277,11 @@ class SupportCategoryScreen extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(4.r),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade400),
+          color: AppColors.white,
+          border: Border.all(color: AppColors.grey400),
           borderRadius: BorderRadius.circular(4.r),
         ),
-        child: Icon(icon, size: 14.r, color: const Color(0xFF64748B)),
+        child: Icon(icon, size: 14.r, color: AppColors.grey600),
       ),
     );
   }
@@ -298,16 +298,16 @@ class SupportCategoryScreen extends StatelessWidget {
         margin: EdgeInsets.only(left: 4.w),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
+          color: isActive ? AppColors.blue : AppColors.grey50,
           border: Border.all(
-            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
+            color: isActive ? AppColors.blue : AppColors.grey300,
           ),
           borderRadius: BorderRadius.circular(4.r),
         ),
         child: Text(
           text,
           style: AppTextStyle.style_12_500(
-            color: isActive ? Colors.white : Colors.blue.shade600,
+            color: isActive ? AppColors.white : AppColors.blue,
           ),
         ),
       ),
@@ -322,11 +322,11 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
-          side: BorderSide(color: Colors.grey.shade300, width: 1),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Add Category', style: AppTextStyle.style_18_700()),
         content: Column(
@@ -373,11 +373,11 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
-          side: BorderSide(color: Colors.grey.shade300, width: 1),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Edit Category', style: AppTextStyle.style_18_700()),
         content: Column(
@@ -425,11 +425,11 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
-          side: BorderSide(color: Colors.grey.shade300, width: 1),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Delete Category', style: AppTextStyle.style_16_700()),
         content: Text(

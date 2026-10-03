@@ -1,4 +1,3 @@
-import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_export_utils.dart';
 import 'package:flutter/material.dart';

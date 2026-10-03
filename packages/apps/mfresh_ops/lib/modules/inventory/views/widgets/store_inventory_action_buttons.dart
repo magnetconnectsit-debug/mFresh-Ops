@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
 import 'store_inventory_dialogs.dart';
 import 'store_required_orders_dialog.dart';
 

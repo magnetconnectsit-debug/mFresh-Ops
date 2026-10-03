@@ -84,108 +84,348 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
   // ── Module Table Filter Card UI ──────────────────────────────────────────────
 
   Widget _buildFilterCard() {
-    const double filterHeight = 28;
-
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      padding: EdgeInsets.fromLTRB(6.w, 8.h, 6.w, 6.h),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(4.r),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(6.r),
+        border: Border.all(color: AppColors.grey50),
       ),
       child: Obx(() {
-        final options = controller.unitOptions;
+        final unitOptions = controller.unitOptions;
         final selectedUnits = controller.selectedUnitOptions;
+
+        final auditorOptions = controller.auditorOptions;
+        final selectedAuditors = controller.selectedAuditorOptions;
+
+        final hasDateFilter = controller.fromDate.value != null && controller.fromDate.value!.isNotEmpty;
+        final hasMonthFilter = controller.selectedFromMonth.value != null;
+        final hasAnyFilter = selectedUnits.isNotEmpty ||
+            selectedAuditors.isNotEmpty ||
+            hasDateFilter ||
+            hasMonthFilter;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            MultiSelectDropdownWidget<int>(
-              label: 'Select Unit',
-              hint: 'Select Unit',
-              isSingleSelect: false,
-              showSelectAll: true,
-              showSearch: true,
-              height: filterHeight.h,
-              selectedValues: controller.selectedUnitIds.toSet(),
-              items: options
-                  .map(
-                    (opt) => DropdownMenuItem<int>(
-                      value: opt.id,
-                      child: Text(
-                        opt.name,
-                        style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+            // Filter Rows
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+
+                final unitWidget = MultiSelectDropdownWidget<int>(
+                  label: 'Unit',
+                  hint: 'Unit',
+                  isSingleSelect: false,
+                  showSelectAll: true,
+                  showSearch: true,
+                  selectedValues: controller.selectedUnitIds.toSet(),
+                  items: unitOptions
+                      .map(
+                        (opt) => DropdownMenuItem<int>(
+                          value: opt.id,
+                          child: Text(
+                            opt.name,
+                            style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    controller.selectedUnitIds.assignAll(values);
+                    controller.fetchAuditReport();
+                  },
+                );
+
+                final auditorWidget = MultiSelectDropdownWidget<int>(
+                  label: 'Audited By',
+                  hint: 'Audited By',
+                  isSingleSelect: false,
+                  showSelectAll: true,
+                  showSearch: true,
+                  selectedValues: controller.selectedAuditorIds.toSet(),
+                  items: auditorOptions
+                      .map(
+                        (opt) => DropdownMenuItem<int>(
+                          value: opt.id,
+                          child: Text(
+                            opt.name,
+                            style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    controller.selectedAuditorIds.assignAll(values);
+                    controller.fetchAuditReport();
+                  },
+                );
+
+                final dateWidget = _buildDatePickerField(context);
+                final monthWidget = _buildMonthPickerField(context);
+
+                if (!isMobile) {
+                  return Row(
+                    children: [
+                      Expanded(child: unitWidget),
+                      SizedBox(width: 4.w),
+                      Expanded(child: auditorWidget),
+                      SizedBox(width: 4.w),
+                      Expanded(child: dateWidget),
+                      SizedBox(width: 4.w),
+                      Expanded(child: monthWidget),
+                    ],
+                  );
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: unitWidget),
+                        SizedBox(width: 4.w),
+                        Expanded(child: auditorWidget),
+                      ],
                     ),
-                  )
-                  .toList(),
-              onChanged: (values) {
-                controller.selectedUnitIds.assignAll(values);
-                controller.fetchAuditReport();
+                    SizedBox(height: 6.h),
+                    Row(
+                      children: [
+                        Expanded(child: dateWidget),
+                        SizedBox(width: 4.w),
+                        Expanded(child: monthWidget),
+                      ],
+                    ),
+                  ],
+                );
               },
             ),
-            if (selectedUnits.isNotEmpty) ...[
-              SizedBox(height: 8.h),
-              Wrap(
-                spacing: 6.w,
-                runSpacing: 4.h,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    'Selected Unit:',
-                    style: AppTextStyle.style_11_600(color: AppColors.grey500),
-                  ),
-                  ...selectedUnits.map(
-                    (unit) => Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
+
+            // Active Filter Chips Section
+            if (hasAnyFilter) ...[
+              SizedBox(height: 6.h),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Active Filters:',
+                      style: AppTextStyle.style_11_600(color: AppColors.grey500),
+                    ),
+                    SizedBox(width: 6.w),
+                    // Unit chips
+                    ...selectedUnits.map(
+                      (unit) => Padding(
+                        padding: EdgeInsets.only(right: 4.w),
+                        child: _buildFilterChip(
+                          label: 'Unit: ${unit.name}',
+                          onRemove: () => controller.removeUnitFilter(unit.id),
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            unit.name,
-                            style: AppTextStyle.style_11_500(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          SizedBox(width: 4.w),
-                          GestureDetector(
-                            onTap: () => controller.removeUnitFilter(unit.id),
-                            child: Icon(
-                              Icons.close,
-                              size: 13.sp,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
+                    ),
+                    // Auditor chips
+                    ...selectedAuditors.map(
+                      (auditor) => Padding(
+                        padding: EdgeInsets.only(right: 4.w),
+                        child: _buildFilterChip(
+                          label: 'Auditor: ${auditor.name}',
+                          onRemove: () => controller.removeAuditorFilter(auditor.id),
+                        ),
                       ),
                     ),
-                  ),
-                  if (selectedUnits.length > 1)
+                    // Date chip
+                    if (hasDateFilter && !hasMonthFilter)
+                      Padding(
+                        padding: EdgeInsets.only(right: 4.w),
+                        child: _buildFilterChip(
+                          label: 'Date: ${controller.dateRangeDisplayText}',
+                          onRemove: () => controller.clearDateRangeFilter(),
+                        ),
+                      ),
+                    // Month chip
+                    if (hasMonthFilter)
+                      Padding(
+                        padding: EdgeInsets.only(right: 4.w),
+                        child: _buildFilterChip(
+                          label: 'Month: ${controller.monthRangeDisplayText}',
+                          onRemove: () => controller.clearMonthRangeFilter(),
+                        ),
+                      ),
+                    // Reset All
                     GestureDetector(
-                      onTap: () => controller.clearUnitFilters(),
+                      onTap: () => controller.resetFilters(),
                       child: Padding(
-                        padding: EdgeInsets.only(left: 4.w),
+                        padding: EdgeInsets.only(left: 4.w, right: 4.w),
                         child: Text(
                           'Clear All',
                           style: AppTextStyle.style_11_500(color: Colors.red),
                         ),
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ],
           ],
         );
       }),
+    );
+  }
+
+  Widget _buildDatePickerField(BuildContext context) {
+    final hasValue = controller.fromDate.value != null && controller.fromDate.value!.isNotEmpty;
+    final displayText = controller.dateRangeDisplayText;
+
+    return InkWell(
+      onTap: () => controller.openDateRangePicker(context),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          label: RichText(
+            text: TextSpan(
+              text: 'Select Date',
+              style: AppTextStyle.style_11_400(color: AppColors.grey200),
+            ),
+          ),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 6.w,
+            vertical: 2.0.h,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(
+              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              width: 1.0,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(
+              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              width: 1.0,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                hasValue ? displayText : 'Select Date',
+                style: hasValue
+                    ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
+                    : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 13.r,
+              color: hasValue ? AppColors.primaryOrange : AppColors.grey300,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthPickerField(BuildContext context) {
+    final hasValue = controller.selectedFromMonth.value != null;
+    final displayText = controller.monthRangeDisplayText;
+
+    return InkWell(
+      onTap: () => controller.openMonthRangePicker(context),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          label: RichText(
+            text: TextSpan(
+              text: 'Select Month',
+              style: AppTextStyle.style_11_400(color: AppColors.grey200),
+            ),
+          ),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 6.w,
+            vertical: 2.0.h,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(
+              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              width: 1.0,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(
+              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              width: 1.0,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                hasValue ? displayText : 'Select Month',
+                style: hasValue
+                    ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
+                    : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.calendar_month_outlined,
+              size: 13.r,
+              color: hasValue ? AppColors.primaryOrange : AppColors.grey300,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: AppTextStyle.style_11_500(
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(width: 4.w),
+          GestureDetector(
+            onTap: onRemove,
+            child: Icon(
+              Icons.close,
+              size: 13.sp,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

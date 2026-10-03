@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/utils/app_text_style.dart';
@@ -29,14 +30,19 @@ class SupportActionButtons extends StatelessWidget {
           if (canAddTicket) ...[
             _actionButton(
               label: "Create Ticket",
-              colors: const [Color(0xFF4FAAD9), Color(0xFF2E89C1)],
+              colors: const [AppColors.secondaryBlue, AppColors.primaryBlue],
               onTap: () => Get.toNamed(AppRoutes.createSupportTicket),
             ),
             SizedBox(width: 4.w),
           ],
           _actionButton(
-            label: "Export Excel",
-            colors: const [Color(0xFF67B27B), Color(0xFF4E9362)],
+            label: "Excel",
+            iconWidget: FaIcon(
+              FontAwesomeIcons.fileExcel,
+              size: 13.r,
+              color: AppColors.white,
+            ),
+            colors: const [AppColors.secondaryGreen, AppColors.primaryGreen],
             onTap: () => controller.exportTickets(),
           ),
           if (canBulkEdit) ...[
@@ -46,7 +52,7 @@ class SupportActionButtons extends StatelessWidget {
                 padding: EdgeInsets.only(left: 4.w),
                 child: _actionButton(
                   label: "Bulk Edit",
-                  colors: const [Color(0xFF1E88E5), Color(0xFF0D47A1)],
+                  colors: const [AppColors.mediumblue, AppColors.blue],
                   onTap: () => _showBulkEditDialog(controller),
                   isDisabled: isDisabled,
                 ),
@@ -64,11 +70,13 @@ class SupportActionButtons extends StatelessWidget {
     required List<Color> colors,
     required VoidCallback onTap,
     bool isDisabled = false,
+    IconData? icon,
+    Widget? iconWidget,
   }) {
     return InkWell(
       onTap: isDisabled ? null : onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDisabled
@@ -77,23 +85,41 @@ class SupportActionButtons extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: BorderRadius.circular(6.r),
           boxShadow: [
             if (!isDisabled)
-              const BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
+              BoxShadow(
+                color: AppColors.black.withValues(alpha: 0.12),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
           ],
         ),
-        child: Text(
-          label,
-          style: AppTextStyle.style_12_600(
-            color: isDisabled
-                ? AppColors.white.withValues(alpha: 0.6)
-                : AppColors.white,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (iconWidget != null) ...[
+              iconWidget,
+              SizedBox(width: 4.w),
+            ] else if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14.r,
+                color: isDisabled
+                    ? AppColors.white.withValues(alpha: 0.6)
+                    : AppColors.white,
+              ),
+              SizedBox(width: 3.w),
+            ],
+            Text(
+              label,
+              style: AppTextStyle.style_11_600(
+                color: isDisabled
+                    ? AppColors.white.withValues(alpha: 0.6)
+                    : AppColors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -111,7 +137,7 @@ class SupportActionButtons extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: 400.w),
           padding: EdgeInsets.all(20.r),
           decoration: BoxDecoration(
-            color: const Color(0xFFFDF9F1),
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: Column(
@@ -126,7 +152,7 @@ class SupportActionButtons extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: () => Get.back(),
-                    child: const Icon(Icons.close, color: Colors.grey),
+                    child: const Icon(Icons.close, color: AppColors.grey100),
                   ),
                 ],
               ),
@@ -207,7 +233,7 @@ class SupportActionButtons extends StatelessWidget {
                       vertical: 10.h,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32),
+                      color: AppColors.successDark,
                       borderRadius: BorderRadius.circular(6.r),
                     ),
                     child: Text(
@@ -260,8 +286,8 @@ class SupportActionButtons extends StatelessWidget {
               height: 34.h,
               padding: EdgeInsets.symmetric(horizontal: 6.w),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade300),
+                color: AppColors.white,
+                border: Border.all(color: AppColors.borderColor),
                 borderRadius: BorderRadius.circular(4.r),
               ),
               child: DropdownButtonHideUnderline(
