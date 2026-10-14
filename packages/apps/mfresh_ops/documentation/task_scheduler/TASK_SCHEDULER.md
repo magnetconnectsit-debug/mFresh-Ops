@@ -1698,17 +1698,3 @@ Returned when the logged-in user lacks necessary operational permission (e.g. at
 4. **Pagination in `AllTasksScreen`**: Currently calls `getTasks(perPage: 10000)` and sorts/slices on client. Server-side pagination should be evaluated as datasets scale.
 5. **Periodic Timer Overhead**: 1-second global timer updates every card simultaneously. Can be optimized with localized ticker widgets.
 
----
-
-## 8. Change Log
-
-| Date | Author | Description of Changes |
-|---|---|---|
-| Oct 2026 | Banamali Nayak | Initial comprehensive documentation created under `documentation/task_scheduler/` covering architecture, permissions, routing, UI states, and dialogs. |
-| Oct 2026 | Banamali Nayak | Expanded Section 6 with complete cURLs, request payload schemas, multi-mode recurrence examples (day, week, month, year), multipart file upload commands, client-side export specs, type discrepancy matrix, and standard error responses. |
-| Oct 2026 | Banamali Nayak | Added dedicated EditTaskScreen (`/edit-task`) for one-time tasks (`recurring_task == "0"`), updated task model with `recurringTask` field, and established conditional edit routing in `TasksController.editTaskDetails`. |
-| Oct 2026 | Antigravity | Updated Top Mode Switcher (`One-Time` vs `Recurring`) and recurrence pattern tab to use standardized `AppCommonConnectedTabBar` with connected active base and concave shoulders. |
-| Oct 2026 | Antigravity | Enclosed `CreateTaskScreen` top tab bar and wizard content inside a bordered container card (`Color(0xFFCBD5E1)`), removed redundant top tab bar from `EditTaskScreen`, and updated dropdowns to `AppCommonMultiSelectDropdown`. |
-| Oct 2026 | Antigravity | Refactored `CreateTaskScreen` card container to hug its content (`mainAxisSize: MainAxisSize.min`) with outer `SingleChildScrollView` ending the box immediately after action buttons, and perfected `AppCommonConnectedTabBar` top corner inheritance without subpixel clipping artifacts. |
-| Oct 2026 | Antigravity | Overhauled `AppCommonConnectedTabBar` to use a clean connected tab bar architecture with root `ClipRRect(10.r)` clipping, eliminating awkward shoulder painters/notches, fixing outer corner poke-outs, and adding crisp vertical borders between active and inactive tabs. |
-
