@@ -12,6 +12,7 @@ class AppImages {
   static const String mapStartIcon = 'assets/icons/start.png';
   static const String mapEndIcon = 'assets/icons/end.png';
   static const String mapStopIcon = 'assets/icons/stop.png';
+  static const String excelIcon = 'assets/icons/excel.png';
 }
 
 

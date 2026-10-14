@@ -34,7 +34,8 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   @override
   void initState() {
     super.initState();
-    final String? bookingId = Get.arguments?['bookingId'] ?? Get.parameters['bookingId'];
+    final String? bookingId =
+        Get.arguments?['bookingId'] ?? Get.parameters['bookingId'];
     if (bookingId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.fetchBookingDetails(bookingId);
@@ -43,8 +44,11 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   }
 
   Future<void> _handlePrint(BookingDetailsModel booking) async {
-    final encryptId = booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId']);
-    
+    final encryptId =
+        booking.encryptBookingId ??
+        (Get.arguments?['encryptBookingId'] ??
+            Get.parameters['encryptBookingId']);
+
     // Use values from controller as source of truth (fetched based on unitId)
     final int rollSize = controller.paperRollSize.value;
     final String pType = controller.printingType.value;
@@ -56,7 +60,13 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       PrintUtil.printSystem(booking, encryptId, rollSize: rollSize);
     } else {
       // Direct Thermal: Try default first, fallback to selector
-      PrintUtil.handleExternalPrint(context, booking, useDefault: true, rollSize: rollSize, encryptedBookingId: encryptId);
+      PrintUtil.handleExternalPrint(
+        context,
+        booking,
+        useDefault: true,
+        rollSize: rollSize,
+        encryptedBookingId: encryptId,
+      );
     }
   }
 
@@ -131,374 +141,653 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                       ),
                     ]);
                   },
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 10.h,
-                    ),
-                    child: Column(
-                      children: [
-                    // Main Ticket Card
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(20.w),
-                      decoration: AppColors.appCardDecoration(
-                        borderColor: AppColors.grey50.withValues(alpha: 0.5),
-                        containerColor: AppColors.white,
-                        borderRadius: 24,
-                        isShadow: true,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Unit & Services Row
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Unit No.: ${booking.unitNo}',
-                                      style: AppTextStyle.style_14_600(color: AppColors.grey400),
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    Text(
-                                      'SERVICES:',
-                                      style: AppTextStyle.style_10_600(color: AppColors.grey300),
-                                    ),
-                                    SizedBox(height: 4.h),
-                                    ...booking.services.map((service) => Padding(
-                                          padding: EdgeInsets.only(bottom: 2.h),
-                                          child: RichText(
-                                            text: TextSpan(
-                                              children: [
-                                                TextSpan(
-                                                  text: '${service.servicesName} : ',
-                                                  style: AppTextStyle.style_11_400(color: AppColors.grey400),
-                                                ),
-                                                TextSpan(
-                                                  text: service.quantity.toString(),
-                                                  style: AppTextStyle.style_11_700(color: AppColors.grey400),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        )),
-                                  ],
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 10.h,
+                        ),
+                        child: Column(
+                          children: [
+                            // Main Ticket Card
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(20.w),
+                              decoration: AppColors.appCardDecoration(
+                                borderColor: AppColors.grey50.withValues(
+                                  alpha: 0.5,
                                 ),
+                                containerColor: AppColors.white,
+                                borderRadius: 24,
+                                isShadow: true,
                               ),
-                              // Orange Icon Box
-                              Container(
-                                width: 100.w,
-                                height: 100.w,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF15A22),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                child: Center(
-                                  child: Image.asset(
-                                    'assets/images/toilet.png',
-                                    width: 70.w,
-                                    height: 70.w,
-                                    color: AppColors.white,
-                                    errorBuilder: (context, error, stackTrace) => Icon(Icons.wc, size: 50.sp, color: AppColors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: 16.h),
-
-                          // Location Section
-                          Text(
-                            'Location',
-                            style: AppTextStyle.style_10_400(color: AppColors.grey200),
-                          ),
-                          Text(
-                            booking.fullAddress,
-                            style: AppTextStyle.style_13_600(color: AppColors.black),
-                          ),
-                          SizedBox(height: 4.h),
-                          Row(
-                            children: [
-                              Text(
-                                'View Address',
-                                style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22)),
-                              ),
-                              SizedBox(width: 12.w),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.navigation, color: const Color(0xFFF15A22), size: 10.sp),
-                                  SizedBox(width: 2.w),
-                                  Text(
-                                    'Get Direction',
-                                    style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22)),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: 24.h),
-
-                          // Dashed Divider with text
-                          Row(
-                            children: [
-                              Expanded(child: _buildDashedLine()),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8.w),
-                                child: Text(
-                                  'SCAN QR AT UNIT',
-                                  style: AppTextStyle.style_8_600(color: AppColors.grey200, spacing: 1),
-                                ),
-                              ),
-                              Expanded(child: _buildDashedLine()),
-                            ],
-                          ),
-
-                          SizedBox(height: 24.h),
-
-                          // Bottom Section: Details & QR
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: 'Amount Paid : ',
-                                            style: AppTextStyle.style_12_400(color: AppColors.grey300),
-                                          ),
-                                          TextSpan(
-                                            text: '₹ ${booking.totalAmount}',
-                                            style: AppTextStyle.style_12_600(color: AppColors.grey400),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    _buildDetailRow('Booking ID', booking.bookingId),
-                                    _buildDetailRow('Booking Date & Time', formatBookingDate(booking.bookingTimeDate).toUpperCase()),
-                                    _buildDetailRow('Payment method', booking.paymentMode == 1 ? 'CASH' : booking.paymentMode == 2 ? 'UPI' : 'EXTERNAL QR'),
-                                    
-                                    SizedBox(height: 16.h),
-                                    
-                                    // Footer links
-                                    Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
-                                      spacing: 8.w,
-                                      runSpacing: 4.h,
-                                      children: [
-                                        Text(
-                                          'Payment details',
-                                          style: AppTextStyle.style_10_600(color: const Color(0xFFF15A22), isUnderline: true),
-                                        ),
-                                        Text(
-                                          'T&C',
-                                          style: AppTextStyle.style_10_600(color: AppColors.grey300, isUnderline: true),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            final encryptId = booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? Get.parameters['encryptBookingId']);
-                                            final int rollSize = int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? '58') ?? 58;
-                                            PrintUtil.shareSystem(booking, encryptId, rollSize: rollSize);
-                                          },
-                                          child: Icon(Icons.share, color: const Color(0xFFF15A22), size: 18.sp),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            final smsPhoneController = TextEditingController();
-                                            Get.dialog(
-                                              Dialog(
-                                                backgroundColor: AppColors.white,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(20.w),
-                                                  child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
+                                  // Unit & Services Row
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Unit No.: ${booking.unitNo}',
+                                              style: AppTextStyle.style_14_600(
+                                                color: AppColors.grey400,
+                                              ),
+                                            ),
+                                            SizedBox(height: 12.h),
+                                            Text(
+                                              'SERVICES:',
+                                              style: AppTextStyle.style_10_600(
+                                                color: AppColors.grey300,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            ...booking.services.map(
+                                              (service) => Padding(
+                                                padding: EdgeInsets.only(
+                                                  bottom: 2.h,
+                                                ),
+                                                child: RichText(
+                                                  text: TextSpan(
                                                     children: [
-                                                      Text('Send Receipt via SMS', style: AppTextStyle.style_14_600(color: AppColors.black)),
-                                                      SizedBox(height: 16.h),
-                                                      AppCommonTextField(
-                                                        controller: smsPhoneController,
-                                                        hintText: 'Enter 10 digit phone number',
-                                                        keyboardType: TextInputType.phone,
-                                                        maxLength: 10,
-                                                      ),
-                                                      SizedBox(height: 16.h),
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.end,
-                                                        children: [
-                                                          TextButton(
-                                                            onPressed: () => Get.back(),
-                                                            child: Text('Cancel', style: AppTextStyle.style_12_600(color: AppColors.grey300)),
-                                                          ),
-                                                          SizedBox(width: 8.w),
-                                                          ElevatedButton(
-                                                            style: ElevatedButton.styleFrom(
-                                                              backgroundColor: const Color(0xFFF15A22),
-                                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                                                      TextSpan(
+                                                        text:
+                                                            '${service.servicesName} : ',
+                                                        style:
+                                                            AppTextStyle.style_11_400(
+                                                              color: AppColors
+                                                                  .grey400,
                                                             ),
-                                                            onPressed: () async {
-                                                              final phone = smsPhoneController.text.trim();
-                                                              if (phone.length == 10) {
-                                                                Get.back();
-                                                                await controller.sendSms(phone);
-                                                              } else {
-                                                                AppCommonToastMessage.show(message: "Enter valid 10 digit number", type: ToastType.error);
-                                                              }
-                                                            },
-                                                            child: Text('Send', style: AppTextStyle.style_12_600(color: AppColors.white)),
-                                                          ),
-                                                        ],
+                                                      ),
+                                                      TextSpan(
+                                                        text: service.quantity
+                                                            .toString(),
+                                                        style:
+                                                            AppTextStyle.style_11_700(
+                                                              color: AppColors
+                                                                  .grey400,
+                                                            ),
                                                       ),
                                                     ],
                                                   ),
                                                 ),
                                               ),
-                                            );
-                                          },
-                                          child: Obx(() {
-                                            final canResend = profileController.user.value?.permissions?.contains('resendReceiptCustomer') ?? false;
-                                            if (!canResend) return const SizedBox.shrink();
-                                            return Icon(Icons.sms_outlined, color: const Color(0xFFF15A22), size: 18.sp);
-                                          }),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
+                                      // Orange Icon Box
+                                      Container(
+                                        width: 100.w,
+                                        height: 100.w,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF15A22),
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Image.asset(
+                                            'assets/images/toilet.png',
+                                            width: 70.w,
+                                            height: 70.w,
+                                            color: AppColors.white,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Icon(
+                                                      Icons.wc,
+                                                      size: 50.sp,
+                                                      color: AppColors.white,
+                                                    ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 16.h),
+
+                                  // Location Section
+                                  Text(
+                                    'Location',
+                                    style: AppTextStyle.style_10_400(
+                                      color: AppColors.grey200,
                                     ),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      Get.dialog(
-                                        Dialog(
-                                          backgroundColor: AppColors.white,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                                          child: Padding(
-                                            padding: EdgeInsets.all(20.w),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
+                                  ),
+                                  Text(
+                                    booking.fullAddress,
+                                    style: AppTextStyle.style_13_600(
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'View Address',
+                                        style: AppTextStyle.style_10_600(
+                                          color: const Color(0xFFF15A22),
+                                        ),
+                                      ),
+                                      SizedBox(width: 12.w),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.navigation,
+                                            color: const Color(0xFFF15A22),
+                                            size: 10.sp,
+                                          ),
+                                          SizedBox(width: 2.w),
+                                          Text(
+                                            'Get Direction',
+                                            style: AppTextStyle.style_10_600(
+                                              color: const Color(0xFFF15A22),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 24.h),
+
+                                  // Dashed Divider with text
+                                  Row(
+                                    children: [
+                                      Expanded(child: _buildDashedLine()),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8.w,
+                                        ),
+                                        child: Text(
+                                          'SCAN QR AT UNIT',
+                                          style: AppTextStyle.style_8_600(
+                                            color: AppColors.grey200,
+                                            spacing: 1,
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(child: _buildDashedLine()),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 24.h),
+
+                                  // Bottom Section: Details & QR
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            RichText(
+                                              text: TextSpan(
+                                                children: [
+                                                  TextSpan(
+                                                    text: 'Amount Paid : ',
+                                                    style:
+                                                        AppTextStyle.style_12_400(
+                                                          color:
+                                                              AppColors.grey300,
+                                                        ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        '₹ ${booking.totalAmount}',
+                                                    style:
+                                                        AppTextStyle.style_12_600(
+                                                          color:
+                                                              AppColors.grey400,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(height: 12.h),
+                                            _buildDetailRow(
+                                              'Booking ID',
+                                              booking.bookingId,
+                                            ),
+                                            _buildDetailRow(
+                                              'Booking Date & Time',
+                                              formatBookingDate(
+                                                booking.bookingTimeDate,
+                                              ).toUpperCase(),
+                                            ),
+                                            _buildDetailRow(
+                                              'Payment method',
+                                              booking.paymentMode == 1
+                                                  ? 'CASH'
+                                                  : booking.paymentMode == 2
+                                                  ? 'UPI'
+                                                  : 'EXTERNAL QR',
+                                            ),
+
+                                            SizedBox(height: 16.h),
+
+                                            // Footer links
+                                            Wrap(
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              spacing: 8.w,
+                                              runSpacing: 4.h,
                                               children: [
                                                 Text(
-                                                  'Scan QR at Unit',
-                                                  style: AppTextStyle.style_14_600(color: AppColors.black),
+                                                  'Payment details',
+                                                  style:
+                                                      AppTextStyle.style_10_600(
+                                                        color: const Color(
+                                                          0xFFF15A22,
+                                                        ),
+                                                        isUnderline: true,
+                                                      ),
                                                 ),
-                                                SizedBox(height: 16.h),
-                                                QrImageView(
-                                                  data: jsonEncode({
-                                                    "BookingID": booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? booking.bookingId),
-                                                    "DeviceID": 'NA',
-                                                    "AccessDate": formatDate(DateTime.now().toString()),
-                                                  }),
-                                                  version: QrVersions.auto,
-                                                  size: 250.w,
+                                                Text(
+                                                  'T&C',
+                                                  style:
+                                                      AppTextStyle.style_10_600(
+                                                        color:
+                                                            AppColors.grey300,
+                                                        isUnderline: true,
+                                                      ),
                                                 ),
-                                                SizedBox(height: 16.h),
-                                                TextButton(
-                                                  onPressed: () => Get.back(),
-                                                  child: Text(
-                                                    'Close',
-                                                    style: AppTextStyle.style_12_600(color: const Color(0xFFF15A22)),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    final encryptId =
+                                                        booking
+                                                            .encryptBookingId ??
+                                                        (Get.arguments?['encryptBookingId'] ??
+                                                            Get.parameters['encryptBookingId']);
+                                                    final int rollSize =
+                                                        int.tryParse(
+                                                          Get.arguments?['paperRollSize']
+                                                                  ?.toString() ??
+                                                              '58',
+                                                        ) ??
+                                                        58;
+                                                    PrintUtil.shareSystem(
+                                                      booking,
+                                                      encryptId,
+                                                      rollSize: rollSize,
+                                                    );
+                                                  },
+                                                  child: Icon(
+                                                    Icons.share,
+                                                    color: const Color(
+                                                      0xFFF15A22,
+                                                    ),
+                                                    size: 18.sp,
                                                   ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    final smsPhoneController =
+                                                        TextEditingController();
+                                                    Get.dialog(
+                                                      Dialog(
+                                                        backgroundColor:
+                                                            AppColors.white,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                20.r,
+                                                              ),
+                                                        ),
+                                                        child: Padding(
+                                                          padding:
+                                                              EdgeInsets.all(
+                                                                20.w,
+                                                              ),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Text(
+                                                                'Send Receipt via SMS',
+                                                                style: AppTextStyle.style_14_600(
+                                                                  color:
+                                                                      AppColors
+                                                                          .black,
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                height: 16.h,
+                                                              ),
+                                                              AppCommonTextField(
+                                                                controller:
+                                                                    smsPhoneController,
+                                                                hintText:
+                                                                    'Enter 10 digit phone number',
+                                                                keyboardType:
+                                                                    TextInputType
+                                                                        .phone,
+                                                                maxLength: 10,
+                                                              ),
+                                                              SizedBox(
+                                                                height: 16.h,
+                                                              ),
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .end,
+                                                                children: [
+                                                                  TextButton(
+                                                                    onPressed: () =>
+                                                                        Get.back(),
+                                                                    child: Text(
+                                                                      'Cancel',
+                                                                      style: AppTextStyle.style_12_600(
+                                                                        color: AppColors
+                                                                            .grey300,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 8.w,
+                                                                  ),
+                                                                  ElevatedButton(
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor:
+                                                                          const Color(
+                                                                            0xFFF15A22,
+                                                                          ),
+                                                                      shape: RoundedRectangleBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(
+                                                                              8.r,
+                                                                            ),
+                                                                      ),
+                                                                    ),
+                                                                    onPressed: () async {
+                                                                      final phone = smsPhoneController
+                                                                          .text
+                                                                          .trim();
+                                                                      if (phone
+                                                                              .length ==
+                                                                          10) {
+                                                                        Get.back();
+                                                                        await controller.sendSms(
+                                                                          phone,
+                                                                        );
+                                                                      } else {
+                                                                        AppCommonToastMessage.show(
+                                                                          message:
+                                                                              "Enter valid 10 digit number",
+                                                                          type:
+                                                                              ToastType.error,
+                                                                        );
+                                                                      }
+                                                                    },
+                                                                    child: Text(
+                                                                      'Send',
+                                                                      style: AppTextStyle.style_12_600(
+                                                                        color: AppColors
+                                                                            .white,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Obx(() {
+                                                    final canResend =
+                                                        profileController
+                                                            .user
+                                                            .value
+                                                            ?.permissions
+                                                            ?.contains(
+                                                              'resendReceiptCustomer',
+                                                            ) ??
+                                                        false;
+                                                    if (!canResend)
+                                                      return const SizedBox.shrink();
+                                                    return Icon(
+                                                      Icons.sms_outlined,
+                                                      color: const Color(
+                                                        0xFFF15A22,
+                                                      ),
+                                                      size: 18.sp,
+                                                    );
+                                                  }),
                                                 ),
                                               ],
                                             ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              Get.dialog(
+                                                Dialog(
+                                                  backgroundColor:
+                                                      AppColors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20.r,
+                                                        ),
+                                                  ),
+                                                  child: ConstrainedBox(
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                          maxWidth: 400,
+                                                        ),
+                                                    child: Padding(
+                                                      padding: EdgeInsets.all(
+                                                        20.w,
+                                                      ),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            'Scan QR at Unit',
+                                                            style:
+                                                                AppTextStyle.style_14_600(
+                                                                  color:
+                                                                      AppColors
+                                                                          .black,
+                                                                ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 16.h,
+                                                          ),
+                                                          QrImageView(
+                                                            data: jsonEncode({
+                                                              "BookingID":
+                                                                  booking
+                                                                      .encryptBookingId ??
+                                                                  (Get.arguments?['encryptBookingId'] ??
+                                                                      booking
+                                                                          .bookingId),
+                                                              "DeviceID": 'NA',
+                                                              "AccessDate":
+                                                                  formatDate(
+                                                                    DateTime.now()
+                                                                        .toString(),
+                                                                  ),
+                                                            }),
+                                                            version:
+                                                                QrVersions.auto,
+                                                            size: 250.w,
+                                                          ),
+                                                          SizedBox(
+                                                            height: 16.h,
+                                                          ),
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Get.back(),
+                                                            child: Text(
+                                                              'Close',
+                                                              style: AppTextStyle.style_12_600(
+                                                                color:
+                                                                    const Color(
+                                                                      0xFFF15A22,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              padding: EdgeInsets.all(4.w),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: AppColors.grey50,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8.r),
+                                              ),
+                                              child: QrImageView(
+                                                data: jsonEncode({
+                                                  "BookingID":
+                                                      booking
+                                                          .encryptBookingId ??
+                                                      (Get.arguments?['encryptBookingId'] ??
+                                                          booking.bookingId),
+                                                  "DeviceID": 'NA',
+                                                  "AccessDate": formatDate(
+                                                    DateTime.now().toString(),
+                                                  ),
+                                                }),
+                                                version: QrVersions.auto,
+                                                size: 80.w,
+                                                padding: EdgeInsets.zero,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(4.w),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: AppColors.grey50),
-                                        borderRadius: BorderRadius.circular(8.r),
+                                        ],
                                       ),
-                                      child: QrImageView(
-                                        data: jsonEncode({
-                                          "BookingID": booking.encryptBookingId ?? (Get.arguments?['encryptBookingId'] ?? booking.bookingId),
-                                          "DeviceID": 'NA',
-                                          "AccessDate": formatDate(DateTime.now().toString()),
-                                        }),
-                                        version: QrVersions.auto,
-                                        size: 80.w,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                    ),
+                                    ],
                                   ),
+                                  Obx(() {
+                                    final canPrint =
+                                        profileController
+                                            .user
+                                            .value
+                                            ?.permissions
+                                            ?.contains('receiptPrint') ??
+                                        false;
+                                    final canReset =
+                                        profileController
+                                            .user
+                                            .value
+                                            ?.permissions
+                                            ?.contains('resetPrint') ??
+                                        false;
+                                    return Padding(
+                                      padding: EdgeInsets.only(top: 16.h),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          if (canReset)
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.red.shade400,
+                                                foregroundColor:
+                                                    AppColors.white,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 16.w,
+                                                  vertical: 8.h,
+                                                ),
+                                                minimumSize: Size(120.w, 36.h),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        8.r,
+                                                      ),
+                                                ),
+                                                elevation: 0,
+                                              ),
+                                              onPressed: () {
+                                                Get.find<StorageService>()
+                                                    .clearDefaultPrinter();
+                                                AppCommonToastMessage.show(
+                                                  message:
+                                                      "Default printer cleared",
+                                                  type: ToastType.success,
+                                                );
+                                              },
+                                              child: Text(
+                                                'Reset Print',
+                                                style:
+                                                    AppTextStyle.style_12_600(
+                                                      color: AppColors.white,
+                                                    ),
+                                              ),
+                                            ),
+                                          if (canPrint)
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF1A9FD9,
+                                                ),
+                                                foregroundColor:
+                                                    AppColors.white,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 16.w,
+                                                  vertical: 8.h,
+                                                ),
+                                                minimumSize: Size(120.w, 36.h),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        8.r,
+                                                      ),
+                                                ),
+                                                elevation: 0,
+                                              ),
+                                              onPressed: () =>
+                                                  _handlePrint(booking),
+                                              child: Text(
+                                                'Print',
+                                                style:
+                                                    AppTextStyle.style_12_600(
+                                                      color: AppColors.white,
+                                                    ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
                                 ],
                               ),
-                            ],
-                          ),
-                          Obx(() {
-                            final canPrint = profileController.user.value?.permissions?.contains('receiptPrint') ?? false;
-                            final canReset = profileController.user.value?.permissions?.contains('resetPrint') ?? false;
-                            return Padding(
-                              padding: EdgeInsets.only(top: 16.h),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  if (canReset)
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red.shade400,
-                                        foregroundColor: AppColors.white,
-                                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                                        minimumSize: Size(120.w, 36.h),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8.r),
-                                        ),
-                                        elevation: 0,
-                                      ),
-                                      onPressed: () {
-                                        Get.find<StorageService>().clearDefaultPrinter();
-                                        AppCommonToastMessage.show(message: "Default printer cleared", type: ToastType.success);
-                                      },
-                                      child: Text(
-                                        'Reset Print',
-                                        style: AppTextStyle.style_12_600(color: AppColors.white),
-                                      ),
-                                      ),
-                                  if (canPrint)
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF1A9FD9),
-                                        foregroundColor: AppColors.white,
-                                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                                        minimumSize: Size(120.w, 36.h),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8.r),
-                                        ),
-                                        elevation: 0,
-                                      ),
-                                      onPressed: () => _handlePrint(booking),
-                                      child: Text(
-                                        'Print',
-                                        style: AppTextStyle.style_12_600(color: AppColors.white),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
+                            ),
+                            SizedBox(height: 40.h),
+                          ],
+                        ),
                       ),
                     ),
-                    SizedBox(height: 40.h),
-                  ],
-                  ),
                   ),
                 );
               }),
@@ -531,7 +820,11 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),

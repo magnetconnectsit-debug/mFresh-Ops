@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:core/widgets/app_common_table.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
 import '../controllers/item_controller.dart';
 import 'package:mfresh_ops/data/models/inventory/item_model.dart';
 import '../../../widgets/common_sidebar.dart';
@@ -27,28 +26,22 @@ class ItemScreen extends StatelessWidget {
         hasBackButton: false,
         showAppDrawer: true,
         topHeader: const CommonShortcutHeader(),
-        title: Obx(
-          () => controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  onChanged: (v) => controller.applyFilters(),
-                  hintText: 'Search Items...',
-                )
-              : Text(
-                  'Items',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-              ),
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Items',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
-          ),
-        ],
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              onChanged: (v) => controller.applyFilters(),
+              hintText: 'Search',
+            ),
+          ],
+        ),
       ),
       drawer: const CommonSidebar(),
       body: Column(
@@ -58,64 +51,17 @@ class ItemScreen extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             child: Row(
               children: [
-                Container(
-                  height: 28.h,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
-                    ),
-                    borderRadius: BorderRadius.circular(4.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () => showItemFormDialog(context, controller),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    ),
-                    child: Text(
-                      'Add Items',
-                      style: AppTextStyle.style_12_600(color: AppColors.white),
-                    ),
-                  ),
+                AppCommonButton(
+                  text: 'Add Items',
+                  buttonColor: AppColors.primaryGreen,
+                  height: 24.h,
+                  width: 110.w,
+                  textSize: 11.sp,
+                  onPressed: () => showItemFormDialog(context, controller),
                 ),
                 SizedBox(width: 12.w),
-                Container(
-                  height: 28.h,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
-                    ),
-                    borderRadius: BorderRadius.circular(4.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () => controller.exportToExcel(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    ),
-                    child: Text(
-                      'Export Excel',
-                      style: AppTextStyle.style_12_600(color: AppColors.white),
-                    ),
-                  ),
+                AppCommonExportButton(
+                  onExportExcel: () => controller.exportToExcel(),
                 ),
               ],
             ),
@@ -125,136 +71,155 @@ class ItemScreen extends StatelessWidget {
               onRefresh: () => controller.onRefresh(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Obx(() {
-                  final isTableLoading = controller.isLoading.value;
-                  final items = isTableLoading 
-                    ? List.generate(
-                        10, 
-                        (index) => ItemModel(
-                          id: 0,
-                          itemName: 'Loading Item Name',
-                          itemId: 'Loading ID',
-                          measurementUnitId: '1',
-                          categoryInv: '1',
-                          lowQnty: '',
-                          lowQntyUnit: '',
+                  final isLoading = controller.isLoading.value;
+                  final items = isLoading
+                      ? List.generate(
+                          10,
+                          (index) => ItemModel(
+                            id: 0,
+                            itemName: 'Loading Item Name',
+                            itemId: 'Loading ID',
+                            measurementUnitId: '1',
+                            categoryInv: '1',
+                            lowQnty: '',
+                            lowQntyUnit: '',
+                          ),
                         )
-                      )
-                    : controller.filteredItems;
+                      : controller.paginatedItems;
 
-                  if (items.isEmpty) {
-                    return Padding(
-                      padding: EdgeInsets.all(32.r),
-                      child: Center(
-                        child: Text('No items found', style: AppTextStyle.style_14_400(color: AppColors.grey300)),
+                  final sortColumn = controller.sortColumn.value;
+                  final isAsc = controller.sortAscending.value;
+                  final currentSortOrder = sortColumn.isEmpty
+                      ? AppTableSortOrder.none
+                      : (isAsc
+                          ? AppTableSortOrder.ascending
+                          : AppTableSortOrder.descending);
+
+                  final startItem = controller.totalEntries == 0
+                      ? 0
+                      : ((controller.currentPage.value - 1) *
+                              controller.perPage.value) +
+                          1;
+                  final endItem =
+                      (controller.currentPage.value * controller.perPage.value)
+                          .clamp(0, controller.totalEntries);
+
+                  final columns = [
+                    AppTableColumn<ItemModel>(
+                      key: 'Sl No',
+                      title: 'Sl No',
+                      width: 65.w,
+                      sortable: false,
+                      cellBuilder: (context, item, index, isExpanded) {
+                        return Text(
+                          '${startItem + index}',
+                          style: AppTextStyle.style_11_500(
+                            color: AppColors.black,
+                          ),
+                        );
+                      },
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Item Name',
+                      title: 'Item Name',
+                      width: 150.w,
+                      valueGetter: (item) => item.itemName,
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Item ID',
+                      title: 'Item ID',
+                      width: 100.w,
+                      valueGetter: (item) => item.itemId,
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Measurement',
+                      title: 'Measurement',
+                      width: 120.w,
+                      valueGetter: (item) => controller.getMeasurementName(
+                        item.measurementUnitId,
                       ),
-                    );
-                  }
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Action',
+                      title: 'Action',
+                      width: 70.w,
+                      sortable: false,
+                      cellBuilder: (context, item, index, isExpanded) {
+                        if (isLoading) return const SizedBox.shrink();
+                        return Center(
+                          child: InkWell(
+                            onTap: () => showItemFormDialog(
+                              context,
+                              controller,
+                              item: item,
+                            ),
+                            child: Icon(
+                              Icons.edit_square,
+                              color: AppColors.primary,
+                              size: 16.r,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ];
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32.w),
-                          child: Skeletonizer(
-                            enabled: isTableLoading,
-                            child: Table(
-                              columnWidths: const {
-                                0: IntrinsicColumnWidth(), // Sl No
-                                1: IntrinsicColumnWidth(), // Item Name
-                                2: IntrinsicColumnWidth(), // Item ID
-                                3: IntrinsicColumnWidth(), // Measurement
-                                4: IntrinsicColumnWidth(), // Action
-                              },
-                              border: TableBorder.all(color: AppColors.grey50, width: 1),
-                              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                              children: [
-                                TableRow(
-                                  decoration: const BoxDecoration(color: AppColors.white),
-                                  children: [
-                                    _buildHeaderCell('Sl No'),
-                                    _buildHeaderCell('Item Name'),
-                                    _buildHeaderCell('Item ID'),
-                                    _buildHeaderCell('Measurement'),
-                                    _buildHeaderCell('Action'),
-                                  ],
-                                ),
-                                ...items.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final item = entry.value;
-                                  return TableRow(
-                                    decoration: const BoxDecoration(color: AppColors.white),
-                                    children: [
-                                      _buildDataCell((index + 1).toString()),
-                                      _buildDataCell(item.itemName),
-                                      _buildDataCell(item.itemId),
-                                      _buildDataCell(controller.getMeasurementName(item.measurementUnitId)),
-                                      isTableLoading ? _buildDataCell('') : _buildEditButton(context, controller, item),
-                                    ],
-                                  );
-                                }),
-                              ],
-                            ),
+                      Container(
+                        margin: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: AppCommonTable<ItemModel>(
+                          items: items,
+                          columns: columns,
+                          currentSortColumn: sortColumn,
+                          currentSortOrder: currentSortOrder,
+                          onSort: (columnKey, sortOrder) =>
+                              controller.sortBy(columnKey),
+                          isLoading: isLoading,
+                          headingRowColor: AppColors.blue50,
+                          headingTextStyle: AppTextStyle.style_11_700(
+                            color: AppColors.black,
                           ),
+                          dataTextStyle: AppTextStyle.style_11_500(
+                            color: AppColors.black,
+                          ),
+                          borderColor: AppColors.borderColor,
+                          headingRowHeight: 20.h,
+                          cellVerticalPadding: 1.h,
+                          cellHorizontalPadding: 4.w,
+                          emptyText: 'No items found',
                         ),
                       ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'Showing 1 to ${controller.filteredItems.length} of ${controller.filteredItems.length} entries',
-                      style: AppTextStyle.style_14_400(color: AppColors.black),
-                    ),
-                    SizedBox(height: 32.h),
-                  ],
-                );
-              }),
+                      SizedBox(height: 8.h),
+                      if (!isLoading && controller.totalEntries > 0)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 4.h,
+                          ),
+                          child: AppTablePagination(
+                            startItem: startItem,
+                            endItem: endItem,
+                            totalItems: controller.totalEntries,
+                            currentPage: controller.currentPage.value,
+                            totalPages: controller.totalPages,
+                            onPageChanged: (page) => controller.goToPage(page),
+                            onPreviousPage: controller.previousPage,
+                            onNextPage: controller.nextPage,
+                          ),
+                        ),
+                      SizedBox(height: 32.h),
+                    ],
+                  );
+                }),
+              ),
             ),
           ),
-        ),
-      ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_700(color: AppColors.black),
-      ),
-    );
-  }
-
-  Widget _buildDataCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_400(color: AppColors.black),
-      ),
-    );
-  }
-
-  Widget _buildEditButton(
-    BuildContext context,
-    ItemController controller,
-    ItemModel item,
-  ) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-      child: Center(
-        child: InkWell(
-          onTap: () => showItemFormDialog(context, controller, item: item),
-          child: Icon(
-            Icons.edit_square,
-            color: AppColors.primary,
-            size: 16.r,
-          ),
-        ),
+        ],
       ),
     );
   }
 }
+

@@ -21,40 +21,45 @@ class AppCommonBottomSheet {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (context) {
-        return Padding(
-          // Handle keyboard and status bar
-          padding: EdgeInsets.only(
-            top: 12.h,
-            left: 16.w,
-            right: 16.w,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // Important: shrink to fit
-            children: [
-              // Drag Handle
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.grey200,
-                    borderRadius: BorderRadius.circular(2.r),
-                  ),
-                ),
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: Padding(
+              // Handle keyboard and status bar
+              padding: EdgeInsets.only(
+                top: 12.h,
+                left: 16.w,
+                right: 16.w,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
               ),
-              SizedBox(height: 16.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Important: shrink to fit
+                children: [
+                  // Drag Handle
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey200,
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
 
-              // Title
-              if (title != null) ...[
-                Text(
-                  title,
-                  style: AppTextStyle.style_18_600(color: AppColors.black),
-                ),
-                SizedBox(height: 16.h),
-              ],
-              Flexible(child: child),
-            ],
+                  // Title
+                  if (title != null) ...[
+                    Text(
+                      title,
+                      style: AppTextStyle.style_18_600(color: AppColors.black),
+                    ),
+                    SizedBox(height: 16.h),
+                  ],
+                  Flexible(child: child),
+                ],
+              ),
+            ),
           ),
         );
       },

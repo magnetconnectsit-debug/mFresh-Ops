@@ -43,21 +43,24 @@ class MapView extends GetView<TrackingService> {
             left: 20.w,
             right: 20.w,
             bottom: 24.h,
-            child: Obx(() {
-              final isTracking = controller.isTracking.value;
-              return Container(
-                padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 15.r,
-                      offset: const Offset(0, 5),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Obx(() {
+                  final isTracking = controller.isTracking.value;
+                  return Container(
+                    padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 15.r,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
                 child: Row(
                   children: [
                     Container(
@@ -112,6 +115,8 @@ class MapView extends GetView<TrackingService> {
               );
             }),
           ),
+        ),
+      ),
         ],
       ),
     );

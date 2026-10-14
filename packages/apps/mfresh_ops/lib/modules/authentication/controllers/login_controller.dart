@@ -8,6 +8,7 @@ import 'package:dev/routes/dev_routes.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
@@ -36,19 +37,6 @@ class LoginController extends GetxController {
     _loadSavedCredentials();
   }
 
-  @override
-  void onReady() {
-    super.onReady();
-    if (kDebugMode &&
-        usernameController.text.isNotEmpty &&
-        passwordController.text.isNotEmpty) {
-      debugPrint(
-        "🚀 [DEBUG AUTO-LOGIN] Attempting auto-login with mobile: ${usernameController.text}",
-      );
-      handleLoginAction();
-    }
-  }
-
   void _loadSavedCredentials() {
     final isRemembered = _storageService.getRememberMe();
     if (isRemembered) {
@@ -64,11 +52,11 @@ class LoginController extends GetxController {
     if (kDebugMode) {
       ///   [Prod Credential]
       usernameController.text = '7873168884';
-      passwordController.text = 'nayak@1234';
+      passwordController.text = 'Zero@7873';
 
       ///  [Test Credential]
       // usernameController.text = '9776888070';
-      // passwordController.text = '1234567890';
+      // passwordController.text = '123456789';
       rememberMe.value = true;
       return;
     }
@@ -281,7 +269,7 @@ class LoginController extends GetxController {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.blue500, width: 2),
+                      border: Border.all(color: AppColors.primary, width: 2),
                     ),
                   ),
                   onCompleted: (pin) {
@@ -292,6 +280,12 @@ class LoginController extends GetxController {
               const SizedBox(height: 32),
               Obx(
                 () => AppCommonButton(
+                  width: double.infinity,
+                  height: 38.h,
+                  textSize: 13.sp,
+                  borderRadius: 8.r,
+                  useGradient: false,
+                  buttonColor: AppColors.primary,
                   text: 'Verify OTP',
                   isLoading: isLoading.value,
                   onPressed: () {

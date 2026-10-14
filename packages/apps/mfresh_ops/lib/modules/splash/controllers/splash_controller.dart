@@ -5,7 +5,7 @@ import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:geolocator/geolocator.dart';
+
 class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
   final AppUpdateService _updateService = Get.find<AppUpdateService>();
@@ -55,14 +55,14 @@ class SplashController extends GetxController {
       _trackingService.startAutoTracking();
       // Proactively fetch latest profile and permissions on startup
       final user = await Get.find<AuthRepository>().fetchProfile();
-      
+
       final roleId = user?.role ?? _storageService.getUser()?.role;
       if (roleId == '1' || roleId == 1) {
         Get.offAllNamed(AppRoutes.home);
       } else {
         Get.offAllNamed(AppRoutes.dailyTasks);
       }
-      
+
       // Trigger the global GPS & permission check on cold start
       Future.delayed(const Duration(milliseconds: 500), () {
         _trackingService.didChangeAppLifecycleState(AppLifecycleState.resumed);

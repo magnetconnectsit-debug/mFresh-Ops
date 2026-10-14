@@ -1,13 +1,9 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/custom_app_loader.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/attendance_log/controllers/attendance_log_controller.dart';
 import 'package:mfresh_ops/data/models/tracking/attendance_breakdown_model.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
   final String employeeName;
@@ -155,36 +151,49 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(7.r),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: 550.w, // 80 + 90 + 90 + 90 + 200
-                        child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildTableHeader(),
-                          timeline.isEmpty
-                              ? Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 32.h),
-                                  child: Center(
-                                    child: Text(
-                                      'No tracking data found.',
-                                      style: AppTextStyle.style_14_400(
-                                          color: AppColors.grey500),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final baseWidth = 550.w;
+                        final availableWidth = constraints.maxWidth.isFinite
+                            ? constraints.maxWidth
+                            : baseWidth;
+                        final scale = availableWidth > baseWidth
+                            ? availableWidth / baseWidth
+                            : 1.0;
+                        final effTotalWidth = baseWidth * scale;
+
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: effTotalWidth,
+                            child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildTableHeader(scale),
+                              timeline.isEmpty
+                                  ? Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 32.h),
+                                      child: Center(
+                                        child: Text(
+                                          'No tracking data found.',
+                                          style: AppTextStyle.style_14_400(
+                                              color: AppColors.grey500),
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      padding: EdgeInsets.zero,
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: timeline.length,
+                                      itemBuilder: (_, i) =>
+                                          _buildTableRow(timeline[i], i, scale),
                                     ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: timeline.length,
-                                  itemBuilder: (_, i) =>
-                                      _buildTableRow(timeline[i], i),
-                                ),
-                        ],
-                      ),
-                    ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -229,7 +238,7 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
     );
   }
 
-  Widget _buildTableHeader() {
+  Widget _buildTableHeader([double scale = 1.0]) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFD4E8D1),
@@ -237,17 +246,17 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
       ),
       child: Row(
         children: [
-          _headerCell('Type', 80),
-          _headerCell('From', 90),
-          _headerCell('To', 90),
-          _headerCell('Duration', 90),
-          _headerCell('Last Location', 200),
+          _headerCell('Type', 80 * scale),
+          _headerCell('From', 90 * scale),
+          _headerCell('To', 90 * scale),
+          _headerCell('Duration', 90 * scale),
+          _headerCell('Last Location', 200 * scale),
         ],
       ),
     );
   }
 
-  Widget _buildTableRow(BreakdownTimeline row, int index) {
+  Widget _buildTableRow(BreakdownTimeline row, int index, [double scale = 1.0]) {
     final isOnline = row.type.toLowerCase() == 'online';
     final pillColor =
         isOnline ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
@@ -269,7 +278,7 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
               children: [
           // Type pill
           SizedBox(
-            width: 80.w,
+            width: 80.w * scale,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
               child: Container(
@@ -287,11 +296,11 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
               ),
             ),
           ),
-          _dataCell(row.from, 90),
-          _dataCell(row.to, 90),
+          _dataCell(row.from, 90 * scale),
+          _dataCell(row.to, 90 * scale),
           // Duration colored
           SizedBox(
-            width: 90.w,
+            width: 90.w * scale,
             child: Padding(
               padding:
                   EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
@@ -302,7 +311,7 @@ class AttendanceBreakdownScreen extends GetView<AttendanceLogController> {
             ),
           ),
           SizedBox(
-            width: 200.w,
+            width: 200.w * scale,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
               child: Text(

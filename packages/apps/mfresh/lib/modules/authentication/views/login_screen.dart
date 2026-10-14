@@ -78,12 +78,17 @@ class LoginScreen extends StatelessWidget {
                             // Mobile or Email Field
                             Obx(
                               () => controller.isEmailLogin.value
-                                  ? AppCommonTextField(
+                                  ? AppLoginTextField(
                                       controller: controller.emailController,
                                       titleText: 'Email',
                                       hintText: 'Enter your email',
                                       isRequired: true,
                                       keyboardType: TextInputType.emailAddress,
+                                      prefixIcon: Icon(
+                                        Icons.email_outlined,
+                                        color: AppColors.black200,
+                                        size: 18.sp,
+                                      ),
                                     )
                                   : PhoneNoTextField(
                                       controller: controller.mobileController,
@@ -97,20 +102,25 @@ class LoginScreen extends StatelessWidget {
                                 visible: !controller.isOtpLogin.value,
                                 child: Column(
                                   children: [
-                                    AppCommonTextField(
+                                    AppLoginTextField(
                                       controller: controller.passwordController,
                                       titleText: 'Password',
                                       isRequired: true,
                                       hintText: 'Enter your password',
                                       obscureText:
                                           controller.obscurePassword.value,
+                                      prefixIcon: Icon(
+                                        Icons.lock_outline_rounded,
+                                        color: AppColors.black200,
+                                        size: 18.sp,
+                                      ),
                                       suffixIcon: IconButton(
                                         icon: Icon(
                                           controller.obscurePassword.value
                                               ? Icons.visibility_off_outlined
                                               : Icons.visibility_outlined,
-                                          color: AppColors.grey400,
-                                          size: 20.sp,
+                                          color: AppColors.black200,
+                                          size: 18.sp,
                                         ),
                                         onPressed:
                                             controller.togglePasswordVisibility,
@@ -183,6 +193,12 @@ class LoginScreen extends StatelessWidget {
                             // Login Button
                             Obx(
                               () => AppCommonButton(
+                                width: double.infinity,
+                                height: 38.h,
+                                textSize: 13.sp,
+                                borderRadius: 8.r,
+                                useGradient: false,
+                                buttonColor: AppColors.primary,
                                 text: 'Login',
                                 isLoading: controller.isLoading.value,
                                 onPressed: controller.login,
@@ -262,7 +278,7 @@ class LoginScreen extends StatelessWidget {
                                   ),
                                   SizedBox(height: 8.h),
                                   Text(
-                                    '© 2024 ALL RIGHTS RESERVED',
+                                    '© 2026 ALL RIGHTS RESERVED',
                                     style: AppTextStyle.style_12_400(
                                       color: AppColors.black200,
                                     ),

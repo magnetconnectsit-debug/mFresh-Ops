@@ -6,11 +6,11 @@ import 'package:core/core.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:mfresh_ops/data/models/revenue_report/comparison_model.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/dashboard/views/widgets/chart_full_screen_viewer.dart';
 import 'package:mfresh_ops/data/models/support/support_dropdown_models.dart';
 import 'dart:ui' as ui;
+
 const _kSeriesColors = [
   Color(0xFF3B82F6), // blue   — Data A
   Color(0xFFEF4444), // red    — Data B
@@ -78,7 +78,10 @@ class _ComparisonViewState extends State<ComparisonView> {
                   // Header
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 6.h,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF9FAFB),
                       borderRadius: BorderRadius.vertical(
@@ -95,7 +98,10 @@ class _ComparisonViewState extends State<ComparisonView> {
                   ),
                   // Body
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 6.h,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -356,8 +362,10 @@ class _SlotRowState extends State<_SlotRow> {
                             slot.selectedUnitNames = v;
                             slot.selectedUnitIds = v.map((name) {
                               final u = units.firstWhere(
-                                  (element) => element.unitName == name,
-                                  orElse: () => SupportUnit(unitId: 0, unitName: name));
+                                (element) => element.unitName == name,
+                                orElse: () =>
+                                    SupportUnit(unitId: 0, unitName: name),
+                              );
                               return u.unitId == 0 ? name : u.unitId.toString();
                             }).toSet();
                           }),
@@ -419,11 +427,8 @@ class _CompactField extends StatelessWidget {
     );
 
     if (onTap == null) return content;
-    
-    return GestureDetector(
-      onTap: onTap,
-      child: content,
-    );
+
+    return GestureDetector(onTap: onTap, child: content);
   }
 }
 
@@ -445,22 +450,31 @@ class _CompactUnit extends StatelessWidget {
       selectedValues: selected,
       height: 24.h,
       items: units
-          .map((u) => DropdownMenuItem(value: u, child: Text(u, style: AppTextStyle.style_10_400(color: AppColors.black))))
+          .map(
+            (u) => DropdownMenuItem(
+              value: u,
+              child: Text(
+                u,
+                style: AppTextStyle.style_10_400(color: AppColors.black),
+              ),
+            ),
+          )
           .toList(),
       onChanged: onChanged,
       customChild: _CompactField(
         label: 'Unit',
-        value: selected.isEmpty 
-            ? 'All Units' 
-            : selected.length == 1 
-                ? selected.first 
-                : '${selected.length} Units',
+        value: selected.isEmpty
+            ? 'All Units'
+            : selected.length == 1
+            ? selected.first
+            : '${selected.length} Units',
         hasValue: selected.isNotEmpty,
         onTap: null,
       ),
     );
   }
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // _ChartCard — legend + multi-series line chart
 // ─────────────────────────────────────────────────────────────────────────────
@@ -512,7 +526,11 @@ class _ChartCardState extends State<_ChartCard> {
                         ),
                       );
                     },
-                    child: Icon(Icons.fullscreen, color: AppColors.grey500, size: 20.r),
+                    child: Icon(
+                      Icons.fullscreen,
+                      color: AppColors.grey500,
+                      size: 20.r,
+                    ),
                   )
                 else
                   const SizedBox(width: 24),
@@ -539,15 +557,18 @@ class _ChartCardState extends State<_ChartCard> {
                       final month = DateFormat('MMM').format(dt);
                       final day = dt.day;
                       String suffix = 'th';
-                      if (day % 10 == 1 && day != 11) suffix = 'st';
-                      else if (day % 10 == 2 && day != 12) suffix = 'nd';
-                      else if (day % 10 == 3 && day != 13) suffix = 'rd';
+                      if (day % 10 == 1 && day != 11)
+                        suffix = 'st';
+                      else if (day % 10 == 2 && day != 12)
+                        suffix = 'nd';
+                      else if (day % 10 == 3 && day != 13)
+                        suffix = 'rd';
                       return '${day}$suffix $month';
                     } catch (_) {
                       return d;
                     }
                   }
-                  
+
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -559,9 +580,14 @@ class _ChartCardState extends State<_ChartCard> {
                       });
                     },
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width - 40.w,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -573,8 +599,13 @@ class _ChartCardState extends State<_ChartCard> {
                                   width: 24.w,
                                   height: 12.h,
                                   decoration: BoxDecoration(
-                                    color: isHidden ? Colors.grey[300] : color.withValues(alpha: 0.2),
-                                    border: Border.all(color: isHidden ? Colors.grey : color, width: 2),
+                                    color: isHidden
+                                        ? Colors.grey[300]
+                                        : color.withValues(alpha: 0.2),
+                                    border: Border.all(
+                                      color: isHidden ? Colors.grey : color,
+                                      width: 2,
+                                    ),
                                     borderRadius: BorderRadius.circular(2.r),
                                   ),
                                 ),
@@ -582,9 +613,16 @@ class _ChartCardState extends State<_ChartCard> {
                                 Flexible(
                                   child: Text(
                                     '${e.label} | ${fmtDate(e.fromDate)} to ${fmtDate(e.toDate)}',
-                                    style: AppTextStyle.style_10_500(color: isHidden ? Colors.grey : AppColors.grey800).copyWith(
-                                      decoration: isHidden ? TextDecoration.lineThrough : null,
-                                    ),
+                                    style:
+                                        AppTextStyle.style_10_500(
+                                          color: isHidden
+                                              ? Colors.grey
+                                              : AppColors.grey800,
+                                        ).copyWith(
+                                          decoration: isHidden
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -597,9 +635,16 @@ class _ChartCardState extends State<_ChartCard> {
                                 Flexible(
                                   child: Text(
                                     'Sum ₹${fmtAmount(e.sumRevenue)}  |  Avg ₹${fmtAmount(e.avgRevenue)}',
-                                    style: AppTextStyle.style_10_500(color: isHidden ? Colors.grey : AppColors.grey800).copyWith(
-                                      decoration: isHidden ? TextDecoration.lineThrough : null,
-                                    ),
+                                    style:
+                                        AppTextStyle.style_10_500(
+                                          color: isHidden
+                                              ? Colors.grey
+                                              : AppColors.grey800,
+                                        ).copyWith(
+                                          decoration: isHidden
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -625,31 +670,6 @@ class _ChartCardState extends State<_ChartCard> {
       ),
     );
   }
-}
-
-class _DashedLinePainter extends CustomPainter {
-  final Color color;
-  _DashedLinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var paint = Paint()
-      ..color = color
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    
-    var max = size.width;
-    var dashWidth = 5.0;
-    var dashSpace = 3.0;
-    double startX = 0;
-    while (startX < max) {
-      canvas.drawLine(Offset(startX, size.height / 2), Offset(startX + dashWidth, size.height / 2), paint);
-      startX += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _TextDotPainter extends FlDotPainter {
@@ -765,52 +785,57 @@ class _LineChartState extends State<_LineChart> {
           color: color,
           barWidth: 3,
           isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) {
-                double yOffset = -18;
-                
-                // Check for overlap with other visible series
-                for (int j = 0; j < widget.comparisons.length; j++) {
-                  if (j == i) continue;
-                  final otherColorIdx = (widget.comparisons[j].comparison - 1).clamp(0, _kSeriesColors.length - 1);
-                  if (widget.hiddenSeries.contains(otherColorIdx)) continue;
-                  
-                  final otherEntry = widget.comparisons[j];
-                  if (index < otherEntry.data.length) {
-                     final otherY = otherEntry.data[index].revenue;
-                     // If they are somewhat close (within 15% of spot y or absolute threshold)
-                     if ((spot.y - otherY).abs() < (spot.y * 0.2 + 500)) {
-                        // Overlapping! Adjust offset based on relative height
-                        if (spot.y > otherY) {
-                           yOffset = -22;
-                        } else if (spot.y < otherY) {
-                           yOffset = 8;
-                        } else {
-                           // Exactly same, use index tie breaker
-                           yOffset = i > j ? -22 : 8;
-                        }
-                     }
+          dotData: FlDotData(
+            show: true,
+            getDotPainter: (spot, percent, barData, index) {
+              double yOffset = -18;
+
+              // Check for overlap with other visible series
+              for (int j = 0; j < widget.comparisons.length; j++) {
+                if (j == i) continue;
+                final otherColorIdx = (widget.comparisons[j].comparison - 1)
+                    .clamp(0, _kSeriesColors.length - 1);
+                if (widget.hiddenSeries.contains(otherColorIdx)) continue;
+
+                final otherEntry = widget.comparisons[j];
+                if (index < otherEntry.data.length) {
+                  final otherY = otherEntry.data[index].revenue;
+                  // If they are somewhat close (within 15% of spot y or absolute threshold)
+                  if ((spot.y - otherY).abs() < (spot.y * 0.2 + 500)) {
+                    // Overlapping! Adjust offset based on relative height
+                    if (spot.y > otherY) {
+                      yOffset = -22;
+                    } else if (spot.y < otherY) {
+                      yOffset = 8;
+                    } else {
+                      // Exactly same, use index tie breaker
+                      yOffset = i > j ? -22 : 8;
+                    }
                   }
                 }
+              }
 
-                final dateStr = entry.data[index].date;
-                String formattedDate = dateStr;
-                try {
-                  final dt = DateTime.parse(dateStr);
-                  final month = DateFormat('MMM').format(dt);
-                  final day = dt.day;
-                  String suffix = 'th';
-                  if (day % 10 == 1 && day != 11) suffix = 'st';
-                  else if (day % 10 == 2 && day != 12) suffix = 'nd';
-                  else if (day % 10 == 3 && day != 13) suffix = 'rd';
-                  formattedDate = '${day}$suffix $month';
-                } catch (_) {}
-                
-                final valStr = '₹${NumberFormat('#,##,###').format(spot.y)} ($formattedDate)';
-                return _TextDotPainter(valStr, color, yOffset);
-              },
-            ),
+              final dateStr = entry.data[index].date;
+              String formattedDate = dateStr;
+              try {
+                final dt = DateTime.parse(dateStr);
+                final month = DateFormat('MMM').format(dt);
+                final day = dt.day;
+                String suffix = 'th';
+                if (day % 10 == 1 && day != 11)
+                  suffix = 'st';
+                else if (day % 10 == 2 && day != 12)
+                  suffix = 'nd';
+                else if (day % 10 == 3 && day != 13)
+                  suffix = 'rd';
+                formattedDate = '${day}$suffix $month';
+              } catch (_) {}
+
+              final valStr =
+                  '₹${NumberFormat('#,##,###').format(spot.y)} ($formattedDate)';
+              return _TextDotPainter(valStr, color, yOffset);
+            },
+          ),
           belowBarData: BarAreaData(
             show: true,
             color: color.withValues(alpha: 0.15),
@@ -842,7 +867,11 @@ class _LineChartState extends State<_LineChart> {
     if (maxY == 0) maxY = 100;
     maxY = maxY * 1.2;
 
-    final fmt = NumberFormat.currency(locale: 'en_IN', symbol: '', decimalDigits: 0);
+    final fmt = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '',
+      decimalDigits: 0,
+    );
 
     // Build date label function
     String dayLabel(String date) {
@@ -864,29 +893,36 @@ class _LineChartState extends State<_LineChart> {
         maxX: (maxX - 1).toDouble().clamp(0, double.infinity),
         lineBarsData: lines,
         extraLinesData: ExtraLinesData(
-          horizontalLines: widget.comparisons.map((e) {
-            final idx = (e.comparison - 1).clamp(0, _kSeriesColors.length - 1);
-            if (widget.hiddenSeries.contains(idx)) return null;
-            final color = _kSeriesColors[idx];
-            return HorizontalLine(
-              y: e.avgRevenue,
-              color: color,
-              strokeWidth: 1.5,
-              dashArray: [5, 3],
-              label: HorizontalLineLabel(
-                show: true,
-                alignment: Alignment.topRight,
-                padding: const EdgeInsets.only(right: 4, bottom: 2),
-                style: TextStyle(
+          horizontalLines: widget.comparisons
+              .map((e) {
+                final idx = (e.comparison - 1).clamp(
+                  0,
+                  _kSeriesColors.length - 1,
+                );
+                if (widget.hiddenSeries.contains(idx)) return null;
+                final color = _kSeriesColors[idx];
+                return HorizontalLine(
+                  y: e.avgRevenue,
                   color: color,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                  backgroundColor: Colors.white.withValues(alpha: 0.7),
-                ),
-                labelResolver: (line) => 'Avg: ₹${NumberFormat('#,##,###.##').format(line.y)}',
-              ),
-            );
-          }).whereType<HorizontalLine>().toList(),
+                  strokeWidth: 1.5,
+                  dashArray: [5, 3],
+                  label: HorizontalLineLabel(
+                    show: true,
+                    alignment: Alignment.topRight,
+                    padding: const EdgeInsets.only(right: 4, bottom: 2),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                      backgroundColor: Colors.white.withValues(alpha: 0.7),
+                    ),
+                    labelResolver: (line) =>
+                        'Avg: ₹${NumberFormat('#,##,###.##').format(line.y)}',
+                  ),
+                );
+              })
+              .whereType<HorizontalLine>()
+              .toList(),
         ),
         showingTooltipIndicators: () {
           List<ShowingTooltipIndicators> indicators = [];
@@ -1127,8 +1163,16 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'en_IN', symbol: '', decimalDigits: 0);
-    final compactFmt = NumberFormat.currency(locale: 'en_IN', symbol: '', decimalDigits: 0);
+    final fmt = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '',
+      decimalDigits: 0,
+    );
+    final compactFmt = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '',
+      decimalDigits: 0,
+    );
 
     String formatDate(String rawDate) {
       try {
@@ -1161,7 +1205,9 @@ class _SummaryCard extends StatelessWidget {
                 children: [
                   TextSpan(
                     text: '${_kSeriesLabels[idx]} ',
-                    style: AppTextStyle.style_11_600(color: _kSeriesColors[idx]),
+                    style: AppTextStyle.style_11_600(
+                      color: _kSeriesColors[idx],
+                    ),
                   ),
                   TextSpan(
                     text: ' ($fromDateStr - $toDateStr) • Unit ${entry.unit}',
@@ -1280,7 +1326,9 @@ class _SummaryCard extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Text(
                         'Unit ${entry.unit}',
-                        style: AppTextStyle.style_11_600(color: AppColors.black),
+                        style: AppTextStyle.style_11_600(
+                          color: AppColors.black,
+                        ),
                       ),
                     ],
                   ),

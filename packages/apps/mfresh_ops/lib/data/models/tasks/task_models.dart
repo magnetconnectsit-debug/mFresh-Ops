@@ -101,6 +101,9 @@ class TaskItem {
   final String? createdByName;
   final String? completedByName;
   final String? project;
+  final String? projectName;
+  final String? unitName;
+  final dynamic selectedGroups;
 
   // Additional fields from daily-tasks
   final String? groupNames;
@@ -110,6 +113,29 @@ class TaskItem {
   final String? approverComment;
   final String? taskDayStatus;
   final String? badgeText;
+  final String? masterStartDate;
+  final String? masterEndDate;
+  final String? seriesStartDate;
+  final String? seriesEndDate;
+  final String? recurringTask;
+  final String? recurrenceStartDate;
+  final String? recurrenceEndDate;
+  final String? seriesEndChoice;
+  final String? monthlyPattern;
+  final String? monthlyWeek;
+  final String? monthlyDayName;
+  final String? yearlyPattern;
+  final String? yearlyMonth;
+  final String? yearlyDay;
+  final String? yearlyWeek;
+  final String? yearlyDayName;
+  final String? yearlyMonth2;
+
+  bool get isRecurring =>
+      recurringTask == '1' ||
+      (recurringTask == null &&
+          frequency.isNotEmpty &&
+          frequency.toLowerCase() != 'none');
 
   TaskItem({
     required this.id,
@@ -149,6 +175,9 @@ class TaskItem {
     this.createdByName,
     this.completedByName,
     this.project,
+    this.projectName,
+    this.unitName,
+    this.selectedGroups,
     this.groupNames,
     this.canStatusBtnClicked,
     this.picture,
@@ -156,21 +185,136 @@ class TaskItem {
     this.approverComment,
     this.taskDayStatus,
     this.badgeText,
+    this.masterStartDate,
+    this.masterEndDate,
+    this.seriesStartDate,
+    this.seriesEndDate,
+    this.recurringTask,
+    this.recurrenceStartDate,
+    this.recurrenceEndDate,
+    this.seriesEndChoice,
+    this.monthlyPattern,
+    this.monthlyWeek,
+    this.monthlyDayName,
+    this.yearlyPattern,
+    this.yearlyMonth,
+    this.yearlyDay,
+    this.yearlyWeek,
+    this.yearlyDayName,
+    this.yearlyMonth2,
   });
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
+    final rawTaskId = json['task_id']?.toString();
+    final rawId = json['id'];
+
+    int parsedTaskId = 0;
+    int parsedInstanceId = json['task_instance_id'] is int
+        ? json['task_instance_id']
+        : (int.tryParse(json['task_instance_id']?.toString() ?? '') ??
+              (json['instance_id'] is int
+                  ? json['instance_id']
+                  : (int.tryParse(json['instance_id']?.toString() ?? '') ??
+                        0)));
+
+    if (rawTaskId != null && rawTaskId.isNotEmpty && rawTaskId != '0') {
+      parsedTaskId = int.tryParse(rawTaskId) ?? 0;
+      if (parsedInstanceId == 0 && rawId != null) {
+        final parsedRawId = rawId is int
+            ? rawId
+            : (int.tryParse(rawId.toString()) ?? 0);
+        if (parsedRawId != parsedTaskId) {
+          parsedInstanceId = parsedRawId;
+        }
+      }
+    }
+
+    if (parsedTaskId == 0 && rawId != null) {
+      parsedTaskId = rawId is int
+          ? rawId
+          : (int.tryParse(rawId.toString()) ?? 0);
+    }
+
+    String parsedGroupId = '';
+    if (json['selected_groups'] is List) {
+      parsedGroupId = (json['selected_groups'] as List).isNotEmpty
+          ? (json['selected_groups'] as List).first.toString()
+          : '';
+    } else if (json['selected_groups'] != null &&
+        json['selected_groups'] != 'null') {
+      parsedGroupId = json['selected_groups'].toString();
+    } else {
+      parsedGroupId =
+          json['s_groupId']?.toString() ?? json['s_groupid']?.toString() ?? '';
+    }
+
+    String? parsedGroupNames;
+    if (json['group_names'] is List) {
+      parsedGroupNames = (json['group_names'] as List).join(', ');
+    } else {
+      parsedGroupNames =
+          json['group_names']?.toString() ?? json['group_name']?.toString();
+    }
+
+    String parsedAssignTo = '';
+    if (json['selected_assignee'] != null &&
+        json['selected_assignee'] != 'null' &&
+        json['selected_assignee'] != 'NA') {
+      parsedAssignTo = json['selected_assignee'].toString();
+    } else if (json['assign_to'] != null &&
+        json['assign_to'] != 'null' &&
+        json['assign_to'] != 'NA') {
+      parsedAssignTo = json['assign_to'].toString();
+    }
+
+    String parsedUnitId = '';
+    if (json['selected_unit'] != null &&
+        json['selected_unit'] != 'null' &&
+        json['selected_unit'] != 'NA') {
+      parsedUnitId = json['selected_unit'].toString();
+    } else {
+      parsedUnitId =
+          json['unitID']?.toString() ?? json['unit_id']?.toString() ?? '';
+    }
+
+    final unitName =
+        json['unit_name']?.toString() ?? json['unitname']?.toString();
+
+    String parsedProjectId = '';
+    if (json['prj_id'] != null &&
+        json['prj_id'] != 'null' &&
+        json['prj_id'] != 'NA') {
+      parsedProjectId = json['prj_id'].toString();
+    } else {
+      parsedProjectId = json['project_id']?.toString() ?? '';
+    }
+
+    final projectName =
+        json['project_name']?.toString() ?? json['project']?.toString();
+
+    final rawIsRecurring = json['is_recurring'];
+    final bool isRec =
+        rawIsRecurring == true ||
+        rawIsRecurring == 1 ||
+        rawIsRecurring == 'true' ||
+        rawIsRecurring == '1' ||
+        json['recurring_task'] == '1' ||
+        json['recurring_task'] == 1 ||
+        (json['frequency'] != null &&
+            json['frequency'].toString().isNotEmpty &&
+            json['frequency'].toString().toLowerCase() != 'none');
+
     return TaskItem(
-      id: json['id'] ?? json['task_id'] ?? 0,
+      id: parsedTaskId,
       taskCode: json['task_code'] ?? '',
-      projectId: json['prj_id']?.toString() ?? json['project_id']?.toString() ?? '',
-      groupId:
-          json['s_groupId']?.toString() ?? json['s_groupid']?.toString() ?? '',
+      projectId: parsedProjectId,
+      groupId: parsedGroupId,
       taskType: json['task_type'] ?? '',
-      unitId: json['unitID']?.toString() ?? json['unit_id']?.toString() ?? '',
-      assignTo: json['assign_to']?.toString() ?? '',
+      unitId: parsedUnitId,
+      assignTo: parsedAssignTo,
       assigneeRole: json['assignee_role']?.toString() ?? '',
-      title: json['title'] ?? '',
-      description: json['desp'] ?? json['description'] ?? '',
+      title: json['title'] ?? json['task_title'] ?? '',
+      description: json['description'] ?? json['desp'] ?? '',
       frequency: json['frequency'] ?? '',
       createdBy: json['created_by']?.toString() ?? '',
       startDate: json['start_date'] ?? json['schedule_date'] ?? '',
@@ -183,28 +327,93 @@ class TaskItem {
       monthDays: json['month_days'] ?? '',
       yearDays: json['year_days'] ?? '',
       occurrences: json['occurrences']?.toString() ?? '',
-      startTime: json['start_time'] ?? '',
-      endTime: json['end_time'] ?? '',
+      startTime: json['start_time'] ?? json['inst_start_time'] ?? '',
+      endTime: json['end_time'] ?? json['inst_end_time'] ?? '',
       instStartTime: json['inst_start_time'] ?? json['start_time'],
       instEndTime: json['inst_end_time'] ?? json['end_time'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
-      taskInstanceId: json['task_instance_id'] ?? 0,
+      taskInstanceId: parsedInstanceId,
       instanceCode: json['instance_code'],
-      scheduleDateTime: json['shedule_date_time'] ?? json['schedule_date_time'] ?? json['start_date_time'] ?? '',
-      status: json['display_status'] ?? json['status'] ?? json['raw_status'] ?? 'pending',
+      scheduleDateTime:
+          json['shedule_date_time'] ??
+          json['schedule_date_time'] ??
+          json['start_date_time'] ??
+          '',
+      status:
+          json['display_status'] ??
+          json['status'] ??
+          json['raw_status'] ??
+          'pending',
       assigneeName: json['assignee_name'],
       approverName: json['approver_name'],
       createdByName: json['createdby_name'],
       completedByName: json['competed_by_name'] ?? json['completed_by_name'],
-      project: json['project'] ?? json['project_name'] ?? json['unit_name'],
-      groupNames: json['group_names'] is List ? (json['group_names'] as List).join(', ') : json['group_names']?.toString() ?? json['group_name'],
-      canStatusBtnClicked: json['canStatusbtnClicked'] ?? json['can_status_button_clicked'],
+      project: projectName ?? unitName,
+      projectName: projectName,
+      unitName: unitName,
+      selectedGroups: json['selected_groups'],
+      groupNames: parsedGroupNames,
+      canStatusBtnClicked:
+          json['canStatusbtnClicked'] ?? json['can_status_button_clicked'],
       picture: json['picture'],
       ucomment: json['ucomment'] ?? json['user_comment'],
       approverComment: json['approver_comment'],
-      taskDayStatus: json['backend_day_status'] ?? json['ui_state'] ?? json['task_day_status'],
-      badgeText: json['badge_text']?.toString() ?? json['badgeText']?.toString(),
+      taskDayStatus:
+          json['backend_day_status'] ??
+          json['ui_state'] ??
+          json['task_day_status'],
+      badgeText:
+          json['badge_text']?.toString() ?? json['badgeText']?.toString(),
+      masterStartDate:
+          json['master_start_date']?.toString() ??
+          json['series_start_date']?.toString() ??
+          json['seriesStartDate']?.toString(),
+      masterEndDate:
+          json['master_end_date']?.toString() ??
+          json['series_end_date']?.toString() ??
+          json['seriesEndDate']?.toString(),
+      seriesStartDate:
+          json['series_start_date']?.toString() ??
+          json['seriesStartDate']?.toString() ??
+          json['master_start_date']?.toString(),
+      seriesEndDate:
+          json['series_end_date']?.toString() ??
+          json['seriesEndDate']?.toString() ??
+          json['master_end_date']?.toString(),
+      recurringTask: isRec ? '1' : '0',
+      recurrenceStartDate:
+          json['recurrence_start_date']?.toString() ??
+          json['recurrenceStartDate']?.toString(),
+      recurrenceEndDate:
+          json['recurrence_end_date']?.toString() ??
+          json['recurrenceEndDate']?.toString(),
+      seriesEndChoice:
+          json['series_end_choice']?.toString() ??
+          json['seriesEndChoice']?.toString(),
+      monthlyPattern:
+          json['monthlyPattern']?.toString() ??
+          json['monthly_pattern']?.toString(),
+      monthlyWeek:
+          json['monthly_week']?.toString() ?? json['monthlyWeek']?.toString(),
+      monthlyDayName:
+          json['monthly_day_name']?.toString() ??
+          json['monthlyDayName']?.toString(),
+      yearlyPattern:
+          json['yearlyPattern']?.toString() ??
+          json['yearly_pattern']?.toString(),
+      yearlyMonth:
+          json['yearly_month']?.toString() ?? json['yearlyMonth']?.toString(),
+      yearlyDay:
+          json['yearly_day']?.toString() ?? json['yearlyDay']?.toString(),
+      yearlyWeek:
+          json['yearly_week']?.toString() ?? json['yearlyWeek']?.toString(),
+      yearlyDayName:
+          json['yearly_dayName']?.toString() ??
+          json['yearly_day_name']?.toString() ??
+          json['yearlyDayName']?.toString(),
+      yearlyMonth2:
+          json['yearly_month2']?.toString() ?? json['yearlyMonth2']?.toString(),
     );
   }
 
@@ -246,12 +455,33 @@ class TaskItem {
     String? createdByName,
     String? completedByName,
     String? project,
+    String? projectName,
+    String? unitName,
+    dynamic selectedGroups,
     String? groupNames,
     bool? canStatusBtnClicked,
     dynamic picture,
     String? ucomment,
     String? approverComment,
     String? taskDayStatus,
+    String? badgeText,
+    String? masterStartDate,
+    String? masterEndDate,
+    String? seriesStartDate,
+    String? seriesEndDate,
+    String? recurringTask,
+    String? recurrenceStartDate,
+    String? recurrenceEndDate,
+    String? seriesEndChoice,
+    String? monthlyPattern,
+    String? monthlyWeek,
+    String? monthlyDayName,
+    String? yearlyPattern,
+    String? yearlyMonth,
+    String? yearlyDay,
+    String? yearlyWeek,
+    String? yearlyDayName,
+    String? yearlyMonth2,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -291,12 +521,33 @@ class TaskItem {
       createdByName: createdByName ?? this.createdByName,
       completedByName: completedByName ?? this.completedByName,
       project: project ?? this.project,
+      projectName: projectName ?? this.projectName,
+      unitName: unitName ?? this.unitName,
+      selectedGroups: selectedGroups ?? this.selectedGroups,
       groupNames: groupNames ?? this.groupNames,
       canStatusBtnClicked: canStatusBtnClicked ?? this.canStatusBtnClicked,
       picture: picture ?? this.picture,
       ucomment: ucomment ?? this.ucomment,
       approverComment: approverComment ?? this.approverComment,
       taskDayStatus: taskDayStatus ?? this.taskDayStatus,
+      badgeText: badgeText ?? this.badgeText,
+      masterStartDate: masterStartDate ?? this.masterStartDate,
+      masterEndDate: masterEndDate ?? this.masterEndDate,
+      seriesStartDate: seriesStartDate ?? this.seriesStartDate,
+      seriesEndDate: seriesEndDate ?? this.seriesEndDate,
+      recurringTask: recurringTask ?? this.recurringTask,
+      recurrenceStartDate: recurrenceStartDate ?? this.recurrenceStartDate,
+      recurrenceEndDate: recurrenceEndDate ?? this.recurrenceEndDate,
+      seriesEndChoice: seriesEndChoice ?? this.seriesEndChoice,
+      monthlyPattern: monthlyPattern ?? this.monthlyPattern,
+      monthlyWeek: monthlyWeek ?? this.monthlyWeek,
+      monthlyDayName: monthlyDayName ?? this.monthlyDayName,
+      yearlyPattern: yearlyPattern ?? this.yearlyPattern,
+      yearlyMonth: yearlyMonth ?? this.yearlyMonth,
+      yearlyDay: yearlyDay ?? this.yearlyDay,
+      yearlyWeek: yearlyWeek ?? this.yearlyWeek,
+      yearlyDayName: yearlyDayName ?? this.yearlyDayName,
+      yearlyMonth2: yearlyMonth2 ?? this.yearlyMonth2,
     );
   }
 }

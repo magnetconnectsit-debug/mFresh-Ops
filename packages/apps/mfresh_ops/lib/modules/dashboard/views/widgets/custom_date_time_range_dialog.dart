@@ -53,12 +53,15 @@ class CustomDateTimeRangeDialog extends StatefulWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
         backgroundColor: AppColors.white,
         insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-        child: Container(
-          width: 440.w,
-          padding: EdgeInsets.all(20.r),
-          child: CustomDateTimeRangeDialog(
-            initialStart: initialStart,
-            initialEnd: initialEnd,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(20.r),
+            child: CustomDateTimeRangeDialog(
+              initialStart: initialStart,
+              initialEnd: initialEnd,
+            ),
           ),
         ),
       ),

@@ -1,9 +1,22 @@
+// region Imports
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+// endregion
 
-class MultiSelectDropdownWidget<T> extends StatefulWidget {
+// region AppCommonMultiSelectDropdown Class
+/// A standardized, reusable multi-select and single-select popup dropdown widget.
+///
+/// Features:
+/// - Floating label with required asterisk support
+/// - Search filter inside menu with clean item capitalization
+/// - "Select All" option for multi-select mode
+/// - Single-select mode with auto-close and checkmark indicator
+/// - Compact responsive height and customizable vertical padding
+class AppCommonMultiSelectDropdown<T> extends StatefulWidget {
+  // region Properties
   final String? label;
   final String? title;
   final Set<T> selectedValues;
@@ -19,12 +32,12 @@ class MultiSelectDropdownWidget<T> extends StatefulWidget {
   final TextStyle? selectedTextStyle;
   final Widget? customChild;
 
-  /// Controls the dropdown box height across ALL modules.
-  /// InputDecorator height ≈ text height + (2 × this value).
-  /// Increase this to make the box taller, decrease to make it shorter.
-  static const double _defaultVerticalPadding = 3.0;
+  /// Controls the dropdown box height across all modules.
+  static const double _defaultVerticalPadding = 1.0;
+  // endregion
 
-  const MultiSelectDropdownWidget({
+  // region Constructor
+  const AppCommonMultiSelectDropdown({
     super.key,
     this.label,
     this.title,
@@ -41,14 +54,24 @@ class MultiSelectDropdownWidget<T> extends StatefulWidget {
     this.selectedTextStyle,
     this.customChild,
   });
+  // endregion
 
   @override
-  State<MultiSelectDropdownWidget<T>> createState() =>
-      MultiSelectDropdownWidgetState<T>();
+  State<AppCommonMultiSelectDropdown<T>> createState() =>
+      AppCommonMultiSelectDropdownState<T>();
 }
+// endregion
 
-class MultiSelectDropdownWidgetState<T>
-    extends State<MultiSelectDropdownWidget<T>> {
+// region Type Alias for Backward Compatibility
+/// Backward-compatible alias for [AppCommonMultiSelectDropdown].
+typedef MultiSelectDropdownWidget<T> = AppCommonMultiSelectDropdown<T>;
+typedef MultiSelectDropdownWidgetState<T> = AppCommonMultiSelectDropdownState<T>;
+// endregion
+
+// region AppCommonMultiSelectDropdownState Class
+class AppCommonMultiSelectDropdownState<T>
+    extends State<AppCommonMultiSelectDropdown<T>> {
+  // region Menu Interaction
   Future<void> openMenu() async {
     if (!mounted || widget.isLoading) return;
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
@@ -87,283 +110,186 @@ class MultiSelectDropdownWidgetState<T>
       ],
     );
   }
+  // endregion
 
+  // region Build Method
   @override
   Widget build(BuildContext context) {
-    Widget dropdownContent = InkWell(
-      onTap: openMenu,
-      child:
-          widget.customChild ??
-          (widget.height != null
-              ? Container(
-                  height: widget.height,
-                  padding: EdgeInsets.symmetric(horizontal: 8.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    border: Border.all(
-                      color: widget.hasError
-                          ? AppColors.red
-                          : AppColors.borderColor,
-                      width: widget.hasError ? 1.5 : 1.0,
-                    ),
-                    borderRadius: BorderRadius.circular(4.r),
+    final effectiveLabel = widget.label ?? widget.title;
+
+    Widget inputChild = InputDecorator(
+      decoration: InputDecoration(
+        label: effectiveLabel != null
+            ? RichText(
+                text: TextSpan(
+                  text: effectiveLabel.replaceAll('*', ''),
+                  style: AppTextStyle.style_11_400(
+                    color: AppColors.grey200,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.selectedValues.isEmpty
-                              ? (widget.isLoading
-                                  ? (widget.hint ?? 'Loading...')
-                                  : (widget.hint ?? 'Select'))
-                              : widget.isSingleSelect
-                              ? (() {
-                                  if (widget.items.isEmpty)
-                                    return widget.hint ?? 'Select';
-                                  final matches = widget.items.where((item) {
-                                    if (item.value ==
-                                        widget.selectedValues.first)
-                                      return true;
-                                    if (item.value is String ||
-                                        item.value is num) {
-                                      return item.value
-                                              .toString()
-                                              .trim()
-                                              .toLowerCase() ==
-                                          widget.selectedValues.first
-                                              .toString()
-                                              .trim()
-                                              .toLowerCase();
-                                    }
-                                    return false;
-                                  });
-                                  if (matches.isEmpty)
-                                    return widget.hint ?? 'Select';
-                                  final item = matches.first;
-                                  if (item.child is Text) {
-                                    return (item.child as Text).data ??
-                                        'Selected';
-                                  }
-                                  return 'Selected';
-                                })()
-                              : (() {
-                                  if (widget.items.isEmpty)
-                                    return '${widget.selectedValues.length} selected';
-                                  final matchedNames = <String>[];
-                                  for (final val in widget.selectedValues) {
-                                    final matches = widget.items.where((item) {
-                                      if (item.value == val) return true;
-                                      if (item.value is String ||
-                                          item.value is num) {
-                                        return item.value
-                                                .toString()
-                                                .trim()
-                                                .toLowerCase() ==
-                                            val.toString().trim().toLowerCase();
-                                      }
-                                      return false;
-                                    });
-                                    if (matches.isNotEmpty) {
-                                      final item = matches.first;
-                                      if (item.child is Text) {
-                                        final textData =
-                                            (item.child as Text).data;
-                                        if (textData != null &&
-                                            textData.isNotEmpty) {
-                                          matchedNames.add(textData);
-                                        }
-                                      }
-                                    }
-                                  }
-                                  if (matchedNames.isEmpty)
-                                    return '${widget.selectedValues.length} selected';
-                                  if (matchedNames.length ==
-                                          widget.items.length &&
-                                      widget.items.length > 1) {
-                                    return 'All Selected (${widget.items.length})';
-                                  }
-                                  return matchedNames.join(', ');
-                                })(),
-                          style: widget.selectedValues.isEmpty
-                              ? AppTextStyle.style_12_400(
-                                  color: AppColors.grey300,
-                                ).copyWith(fontSize: 11.sp)
-                              : (widget.selectedTextStyle ??
-                                    AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    ).copyWith(fontSize: 11.sp)),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      widget.isLoading
-                          ? SizedBox(
-                              height: 12.r,
-                              width: 12.r,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.primary,
-                              ),
-                            )
-                          : Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: AppColors.grey300,
-                              size: 16.r,
+                  children: effectiveLabel.contains('*')
+                      ? [
+                          TextSpan(
+                            text: '*',
+                            style: AppTextStyle.style_11_400(
+                              color: AppColors.red,
                             ),
-                    ],
-                  ),
-                )
-              : InputDecorator(
-                  decoration: InputDecoration(
-                    label: widget.label != null
-                        ? RichText(
-                            text: TextSpan(
-                              text: widget.label!.replaceAll('*', ''),
-                              style: AppTextStyle.style_11_400(
-                                color: AppColors.grey200,
-                              ),
-                              children: widget.label!.contains('*')
-                                  ? [
-                                      TextSpan(
-                                        text: '*',
-                                        style: AppTextStyle.style_11_400(
-                                          color: AppColors.red,
-                                        ),
-                                      ),
-                                    ]
-                                  : [],
-                            ),
-                          )
-                        : null,
-                    floatingLabelBehavior: widget.label != null
-                        ? FloatingLabelBehavior.always
-                        : FloatingLabelBehavior.never,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 6.w,
-                      vertical:
-                          MultiSelectDropdownWidget._defaultVerticalPadding.h,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                      borderSide: BorderSide(
-                        color: widget.hasError
-                            ? AppColors.red
-                            : AppColors.borderColor,
-                        width: widget.hasError ? 1.5 : 1.0,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                      borderSide: BorderSide(
-                        color: widget.hasError
-                            ? AppColors.red
-                            : AppColors.borderColor,
-                        width: widget.hasError ? 1.5 : 1.0,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                      borderSide: BorderSide(
-                        color: widget.hasError
-                            ? AppColors.red
-                            : AppColors.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.selectedValues.isEmpty
-                              ? (widget.isLoading
-                                  ? (widget.hint ?? 'Loading...')
-                                  : (widget.hint ?? 'Select'))
-                              : widget.isSingleSelect
-                              ? (() {
-                                  if (widget.items.isEmpty)
-                                    return widget.hint ?? 'Select';
-                                  final matches = widget.items.where((item) {
-                                    if (item.value ==
-                                        widget.selectedValues.first)
-                                      return true;
-                                    if (item.value is String ||
-                                        item.value is num) {
-                                      return item.value
-                                              .toString()
-                                              .trim()
-                                              .toLowerCase() ==
-                                          widget.selectedValues.first
-                                              .toString()
-                                              .trim()
-                                              .toLowerCase();
-                                    }
-                                    return false;
-                                  });
-                                  if (matches.isEmpty)
-                                    return widget.hint ?? 'Select';
-                                  final item = matches.first;
-                                  if (item.child is Text) {
-                                    return (item.child as Text).data ??
-                                        'Selected';
+                          ),
+                        ]
+                      : [],
+                ),
+              )
+            : null,
+        floatingLabelBehavior: effectiveLabel != null
+            ? FloatingLabelBehavior.always
+            : FloatingLabelBehavior.never,
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 6.w,
+          vertical: AppCommonMultiSelectDropdown._defaultVerticalPadding.h,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(
+            color: widget.hasError ? AppColors.red : AppColors.borderColor,
+            width: widget.hasError ? 1.5 : 1.0,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(
+            color: widget.hasError ? AppColors.red : AppColors.borderColor,
+            width: widget.hasError ? 1.5 : 1.0,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4.r),
+          borderSide: BorderSide(
+            color: widget.hasError ? AppColors.red : AppColors.primary,
+            width: 1.5,
+          ),
+        ),
+      ),
+      child: SizedBox(
+        height: 18.h,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                widget.selectedValues.isEmpty
+                    ? (widget.isLoading
+                        ? (widget.hint ?? 'Loading...')
+                        : (widget.hint ?? 'Select'))
+                    : widget.isSingleSelect
+                        ? (() {
+                            if (widget.items.isEmpty) {
+                              return widget.hint ?? 'Select';
+                            }
+                            final matches = widget.items.where((item) {
+                              if (item.value == widget.selectedValues.first) {
+                                return true;
+                              }
+                              if (item.value is String || item.value is num) {
+                                return item.value.toString().trim().toLowerCase() ==
+                                    widget.selectedValues.first
+                                        .toString()
+                                        .trim()
+                                        .toLowerCase();
+                              }
+                              return false;
+                            });
+                            if (matches.isEmpty) return widget.hint ?? 'Select';
+                            final item = matches.first;
+                            if (item.child is Text) {
+                              return (item.child as Text).data ?? 'Selected';
+                            }
+                            return 'Selected';
+                          })()
+                        : (() {
+                            if (widget.items.isEmpty) {
+                              return '${widget.selectedValues.length} selected';
+                            }
+                            final matchedNames = <String>[];
+                            for (final val in widget.selectedValues) {
+                              final matches = widget.items.where((item) {
+                                if (item.value == val) return true;
+                                if (item.value is String || item.value is num) {
+                                  return item.value.toString().trim().toLowerCase() ==
+                                      val.toString().trim().toLowerCase();
+                                }
+                                return false;
+                              });
+                              if (matches.isNotEmpty) {
+                                final item = matches.first;
+                                if (item.child is Text) {
+                                  final textData = (item.child as Text).data;
+                                  if (textData != null && textData.isNotEmpty) {
+                                    matchedNames.add(textData);
                                   }
-                                  return 'Selected';
-                                })()
-                              : '${widget.selectedValues.length} selected',
-                          style: widget.selectedValues.isEmpty
-                              ? AppTextStyle.style_12_400(
-                                  color: AppColors.grey300,
-                                ).copyWith(fontSize: 11.sp)
-                              : (widget.selectedTextStyle ??
-                                    AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    )),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      SizedBox(width: 4.w),
-                      widget.isLoading
-                          ? SizedBox(
-                              height: 12.r,
-                              width: 12.r,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.primary,
-                              ),
-                            )
-                          : Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: AppColors.grey300,
-                              size: 16.r,
-                            ),
-                    ],
+                                }
+                              }
+                            }
+                            if (matchedNames.isEmpty) {
+                              return '${widget.selectedValues.length} selected';
+                            }
+                            if (matchedNames.length == widget.items.length &&
+                                widget.items.length > 1) {
+                              return 'All Selected (${widget.items.length})';
+                            }
+                            return matchedNames.join(', ');
+                          })(),
+                style: widget.selectedValues.isEmpty
+                    ? AppTextStyle.style_12_400(
+                        color: AppColors.grey300,
+                      )
+                    : (widget.selectedTextStyle ??
+                        AppTextStyle.style_12_400(
+                          color: AppColors.grey900,
+                        )),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+            SizedBox(width: 4.w),
+            widget.isLoading
+                ? SizedBox(
+                    height: 12.r,
+                    width: 12.r,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
+                  )
+                : Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.grey300,
+                    size: 16.r,
                   ),
-                )),
+          ],
+        ),
+      ),
     );
 
-    if (widget.title != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(bottom: 6.h),
-            child: Text(
-              widget.title!,
-              style: AppTextStyle.style_12_500(color: AppColors.black300),
-            ),
-          ),
-          dropdownContent,
-        ],
+    if (widget.height != null) {
+      inputChild = SizedBox(
+        height: widget.height,
+        child: inputChild,
       );
     }
-    return dropdownContent;
-  }
-}
 
+    return InkWell(
+      onTap: openMenu,
+      child: widget.customChild ?? inputChild,
+    );
+  }
+  // endregion
+}
+// endregion
+
+// region _MultiSelectMenuContent Class
 class _MultiSelectMenuContent<T> extends StatefulWidget {
+  // region Properties
   final String? label;
   final String? title;
   final Set<T> selectedValues;
@@ -373,7 +299,9 @@ class _MultiSelectMenuContent<T> extends StatefulWidget {
   final bool isSingleSelect;
   final bool showSelectAll;
   final double width;
+  // endregion
 
+  // region Constructor
   const _MultiSelectMenuContent({
     super.key,
     this.label,
@@ -386,18 +314,24 @@ class _MultiSelectMenuContent<T> extends StatefulWidget {
     required this.showSelectAll,
     required this.width,
   });
+  // endregion
 
   @override
   State<_MultiSelectMenuContent<T>> createState() =>
       _MultiSelectMenuContentState<T>();
 }
+// endregion
 
+// region _MultiSelectMenuContentState Class
 class _MultiSelectMenuContentState<T>
     extends State<_MultiSelectMenuContent<T>> {
+  // region State Variables
   late final TextEditingController _searchController;
   late final ScrollController _scrollController;
   late Set<T> _tempSelected;
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void initState() {
     super.initState();
@@ -406,6 +340,15 @@ class _MultiSelectMenuContentState<T>
     _tempSelected = Set<T>.from(widget.selectedValues);
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+  // endregion
+
+  // region Helpers
   bool _isItemSelected(T? value) {
     if (value == null) return false;
     if (_tempSelected.contains(value)) return true;
@@ -428,14 +371,9 @@ class _MultiSelectMenuContentState<T>
       return word[0].toUpperCase() + word.substring(1);
     }).join(' ');
   }
+  // endregion
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
+  // region Build Method
   @override
   Widget build(BuildContext context) {
     List<DropdownMenuItem<T>> displayedItems = widget.items;
@@ -588,9 +526,13 @@ class _MultiSelectMenuContentState<T>
                       if (widget.isSingleSelect) {
                         return InkWell(
                           onTap: () {
-                            _tempSelected.clear();
-                            if (value != null) {
-                              _tempSelected.add(value as T);
+                            if (isSelected) {
+                              _tempSelected.clear();
+                            } else {
+                              _tempSelected.clear();
+                              if (value != null) {
+                                _tempSelected.add(value as T);
+                              }
                             }
                             final selectedSet = Set<T>.from(_tempSelected);
                             Navigator.of(context).pop();
@@ -693,27 +635,21 @@ class _MultiSelectMenuContentState<T>
           if (!widget.isSingleSelect)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: Size(double.infinity, 30.h),
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
+              child: AppCommonButton(
+                text: 'Done',
+                height: 30.h,
+                width: double.infinity,
+                borderRadius: 4.r,
                 onPressed: () {
                   widget.onChanged(Set<T>.from(_tempSelected));
                   Navigator.pop(context);
                 },
-                child: Text(
-                  'Done',
-                  style: AppTextStyle.style_12_500(color: AppColors.white),
-                ),
               ),
             ),
         ],
       ),
     );
   }
+  // endregion
 }
+// endregion

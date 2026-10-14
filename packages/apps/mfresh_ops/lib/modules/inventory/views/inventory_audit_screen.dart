@@ -38,29 +38,22 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        title: Obx(
-          () => controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search Item or Category...',
-                  onChanged: (v) => controller.searchQuery.value = v,
-                )
-              : Text(
-                  'Inventory Audit',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-              ),
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Inventory Audit',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
-          ),
-        ],
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) => controller.searchQuery.value = v,
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 12.r),
@@ -69,11 +62,11 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> {
             return _buildUnitSelectionView(context, controller);
           }
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const AuditFilterWidget(),
               SizedBox(height: 12.h),
-              const Flexible(child: AuditTableWidget()),
+              const Expanded(child: AuditTableWidget()),
               SizedBox(height: 30.h),
             ],
           );

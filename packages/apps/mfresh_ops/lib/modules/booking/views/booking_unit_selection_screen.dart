@@ -1,21 +1,14 @@
 import 'dart:convert';
 
-import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_images.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/custom_app_loader.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/booking/controllers/booking_unit_selection_controller.dart';
-// import 'package:mfresh_ops/modules/booking/views/widgets/search_bar_tool.dart';
 import 'package:mfresh_ops/modules/booking/views/widgets/unit_card.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/user.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -32,8 +25,6 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
   final controller = Get.put(BookingUnitSelectionController());
   final profileController = Get.put(ProfileController());
   final plutusService = Get.find<PlutusService>();
-
-  DateTime? _lastPressedTime;
 
   @override
   void initState() {
@@ -53,24 +44,6 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
       }
     } catch (e) {
       debugPrint("BINDING EXCEPTION: $e");
-    }
-  }
-
-  Future<bool> _onWillPop() async {
-    final currentTime = DateTime.now();
-    final isBackPressed =
-        _lastPressedTime == null ||
-        currentTime.difference(_lastPressedTime!) > const Duration(seconds: 2);
-
-    if (isBackPressed) {
-      _lastPressedTime = currentTime;
-      AppCommonToastMessage.show(
-        message: 'Press back again to exit',
-        type: ToastType.info,
-      );
-      return false;
-    } else {
-      return true;
     }
   }
 

@@ -69,7 +69,7 @@ class MyTaskHandler extends TaskHandler {
   final Battery _battery = Battery();
   final Connectivity _connectivity = Connectivity();
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin();
   final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 15),
@@ -92,7 +92,6 @@ class MyTaskHandler extends TaskHandler {
   DateTime? _lastDiskWriteAt;
   Timer? _notificationUpdateTimer;
   DateTime? _lastNotificationShownTime;
-
   // endregion
 
   String _networkType(List<ConnectivityResult> results) {
@@ -134,16 +133,16 @@ class MyTaskHandler extends TaskHandler {
 
       // Initialize local notifications inside background isolate
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
       const InitializationSettings initializationSettings =
-          InitializationSettings(
-            android: initializationSettingsAndroid,
-            iOS: DarwinInitializationSettings(
-              requestSoundPermission: false,
-              requestBadgePermission: false,
-              requestAlertPermission: false,
-            ),
-          );
+      InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: DarwinInitializationSettings(
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestAlertPermission: false,
+        ),
+      );
       await _localNotificationsPlugin.initialize(
         settings: initializationSettings,
       );
@@ -151,19 +150,18 @@ class MyTaskHandler extends TaskHandler {
 
     _notificationUpdateTimer = Timer.periodic(
       const Duration(minutes: 5),
-      (_) => _updateNotificationSafely(),
+          (_) => _updateNotificationSafely(),
     );
 
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
-      results,
-    ) {
-      final isOnline = results.any(
-        (result) => result != ConnectivityResult.none,
-      );
-      if (isOnline) {
-        unawaited(_syncOfflineCache());
-      }
-    });
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((results,) {
+          final isOnline = results.any(
+                (result) => result != ConnectivityResult.none,
+          );
+          if (isOnline) {
+            unawaited(_syncOfflineCache());
+          }
+        });
 
     _startLocationStream();
   }
@@ -178,7 +176,7 @@ class MyTaskHandler extends TaskHandler {
             forceLocationManager: _useLocationManagerFallback,
           ),
         ).listen(
-          (Position position) async {
+              (Position position) async {
             _latestPosition = position;
             _latestPositionAt = position.timestamp;
 
@@ -231,7 +229,8 @@ class MyTaskHandler extends TaskHandler {
     if (_lastProcessedLocationTime == null ||
         DateTime.now().difference(_lastProcessedLocationTime!) >
             const Duration(seconds: 40)) {
-      debugPrint('Location stream appears stalled. Restarting location stream...');
+      debugPrint(
+          'Location stream appears stalled. Restarting location stream...');
       _useLocationManagerFallback = !_useLocationManagerFallback;
       _startLocationStream();
     }
@@ -378,14 +377,17 @@ class MyTaskHandler extends TaskHandler {
       final uri = '${AppConfig.baseUrl}${AppConstants.trackingBulkSync}';
 
       // Sort entries by time so oldest locations sync first
-      final entries = box.toMap().entries.toList()
+      final entries = box
+          .toMap()
+          .entries
+          .toList()
         ..sort((a, b) => a.value.locationTime.compareTo(b.value.locationTime));
 
       // Process in batches of bulkSyncBatchSize (matches foreground behaviour)
       for (
-        var i = 0;
-        i < entries.length;
-        i += TrackingConstants.bulkSyncBatchSize
+      var i = 0;
+      i < entries.length;
+      i += TrackingConstants.bulkSyncBatchSize
       ) {
         final end = (i + TrackingConstants.bulkSyncBatchSize > entries.length)
             ? entries.length
@@ -394,18 +396,19 @@ class MyTaskHandler extends TaskHandler {
 
         final locationsPayload = batchEntries
             .map(
-              (e) => {
-                'latitude': e.value.latitude,
-                'longitude': e.value.longitude,
-                'accuracy': e.value.accuracy,
-                'speed': e.value.speed,
-                'heading': e.value.heading,
-                'battery': e.value.battery,
-                'is_charging': e.value.isCharging,
-                'network_type': e.value.networkType,
-                'location_time': e.value.locationTime,
-              },
-            )
+              (e) =>
+          {
+            'latitude': e.value.latitude,
+            'longitude': e.value.longitude,
+            'accuracy': e.value.accuracy,
+            'speed': e.value.speed,
+            'heading': e.value.heading,
+            'battery': e.value.battery,
+            'is_charging': e.value.isCharging,
+            'network_type': e.value.networkType,
+            'location_time': e.value.locationTime,
+          },
+        )
             .toList();
 
         try {
@@ -452,7 +455,7 @@ class MyTaskHandler extends TaskHandler {
       final connectivityResults = await _connectivity.checkConnectivity();
       final isOffline =
           connectivityResults.isEmpty ||
-          connectivityResults.contains(ConnectivityResult.none);
+              connectivityResults.contains(ConnectivityResult.none);
       final locationDataToCache = await _createLocationData(pos);
 
       if (isOffline) {
@@ -472,7 +475,8 @@ class MyTaskHandler extends TaskHandler {
       );
 
       debugPrint(
-        'Upload details - session_id: $sessionId, hasToken: ${token != null}, deviceId: $deviceId',
+        'Upload details - session_id: $sessionId, hasToken: ${token !=
+            null}, deviceId: $deviceId',
       );
 
       if (sessionId == null ||
@@ -579,7 +583,8 @@ class MyTaskHandler extends TaskHandler {
     );
   }
 
-  LocationSettings _streamLocationSettings({bool forceLocationManager = false}) {
+  LocationSettings _streamLocationSettings(
+      {bool forceLocationManager = false}) {
     if (Platform.isAndroid) {
       return AndroidSettings(
         accuracy: LocationAccuracy.bestForNavigation,
@@ -622,9 +627,9 @@ class MyTaskHandler extends TaskHandler {
 
     final isFresh =
         latestPosition != null &&
-        latestAt != null &&
-        DateTime.now().difference(latestAt) <=
-            TrackingConstants.stalePositionThreshold;
+            latestAt != null &&
+            DateTime.now().difference(latestAt) <=
+                TrackingConstants.stalePositionThreshold;
 
     if (isFresh &&
         latestPosition.accuracy <=
@@ -666,7 +671,7 @@ class MyTaskHandler extends TaskHandler {
           ).difference(DateTime.parse(last.locationTime));
 
           double accuracyDiff =
-              ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
+          ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
           if (dist < 5.0 &&
               timeDiff < TrackingConstants.stationaryHeartbeatMaxInterval &&
               accuracyDiff < 15.0) {
@@ -684,7 +689,7 @@ class MyTaskHandler extends TaskHandler {
     } catch (_) {}
   }
 
-  // endregion
+// endregion
 }
 // endregion
 
@@ -756,18 +761,40 @@ class OpsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 690),
-      builder: (context, child) => GetMaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'mFresh Ops',
-        theme: ThemeData(primaryColor: AppColors.primary),
-        builder: (context, child) {
-          return Stack(children: [child!, const FloatingLoggerButton()]);
-        },
-        initialRoute: AppRoutes.splash,
-        getPages: AppPages.pages,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final view = View.of(context);
+        final pixelRatio = view.devicePixelRatio > 0 ? view.devicePixelRatio : 1.0;
+        final double width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : view.physicalSize.width / pixelRatio;
+        final double height = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+            ? constraints.maxHeight
+            : view.physicalSize.height / pixelRatio;
+        final shortestSide = width < height ? width : height;
+        final isTablet = shortestSide >= 600;
+        final isLandscape = width > height;
+
+        final Size designSize = isTablet
+            ? (isLandscape ? const Size(1194, 834) : const Size(834, 1194))
+            : (isLandscape ? const Size(690, 360) : const Size(360, 690));
+
+        return ScreenUtilInit(
+          designSize: designSize,
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) => GetMaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'mFresh Ops',
+            theme: ThemeData(primaryColor: AppColors.primary),
+            builder: (context, child) {
+              return Stack(children: [child!, const FloatingLoggerButton()]);
+            },
+            initialRoute: AppRoutes.splash,
+            getPages: AppPages.pages,
+          ),
+        );
+      },
     );
   }
 }

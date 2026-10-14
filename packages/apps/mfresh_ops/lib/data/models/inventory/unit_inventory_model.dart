@@ -31,6 +31,11 @@ class UnitInventoryModel {
   final String? currentOrderQty;
   final bool canRequestOrder;
   final bool canReceiveOrder;
+  final String actualQty;
+  final String differenceQty;
+  final String differenceQtyLabel;
+  final String differenceQtyColor;
+  final String auditStatus;
 
   UnitInventoryModel({
     required this.id,
@@ -61,6 +66,11 @@ class UnitInventoryModel {
     this.currentOrderQty,
     this.canRequestOrder = false,
     this.canReceiveOrder = false,
+    this.actualQty = '-',
+    this.differenceQty = '-',
+    this.differenceQtyLabel = '-',
+    this.differenceQtyColor = '',
+    this.auditStatus = '',
   });
 
   bool get isQntyLow {
@@ -138,6 +148,11 @@ class UnitInventoryModel {
       currentOrderQty: json['current_order_qty']?.toString(),
       canRequestOrder: json['can_request_order'] == true,
       canReceiveOrder: json['can_receive_order'] == true,
+      actualQty: json['actual_qty']?.toString() ?? (json['actual_qty_value'] != null ? '${json['actual_qty_value']} ${json['display_unit'] ?? ''}'.trim() : '-'),
+      differenceQty: json['difference_qty']?.toString() ?? json['difference_qty_label']?.toString() ?? '-',
+      differenceQtyLabel: json['difference_qty_label']?.toString() ?? '-',
+      differenceQtyColor: json['difference_qty_color']?.toString() ?? '',
+      auditStatus: json['audit_status']?.toString() ?? '',
     );
   }
 }

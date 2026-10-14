@@ -34,9 +34,12 @@ class CreateDepositScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Form(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16.w),
+            child: Form(
           key: controller.formKey,
           child: Container(
             decoration: BoxDecoration(
@@ -178,7 +181,9 @@ class CreateDepositScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildLabel(String text) {

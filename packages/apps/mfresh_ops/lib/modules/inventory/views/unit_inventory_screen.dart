@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
@@ -72,24 +71,22 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
           showAppDrawer: true,
           hasBackButton: false,
           topHeader: const CommonShortcutHeader(),
-          title: controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search Unit or Item...',
-                  onChanged: (v) => controller.applyFilters(),
-                )
-              : Text(
-                  'Unit Inventory',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-          actions: [
-            IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
+          toolbarHeight: 45.h,
+          title: Row(
+            children: [
+              Text(
+                'Unit Inventory',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
               ),
-            ),
-          ],
+              const Spacer(),
+              AppCommonSearchBar(
+                width: 140.w,
+                controller: controller.searchController,
+                hintText: 'Search',
+                onChanged: (v) => controller.applyFilters(),
+              ),
+            ],
+          ),
         ),
         drawer: const CommonSidebar(),
         body: AppRefreshIndicator(
@@ -123,43 +120,9 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
         child: Row(
           children: [
             if (canExport) ...[
-              SizedBox(
-                height: 24.h,
-                child: ElevatedButton(
-                  onPressed: controller.isExporting.value
-                      ? null
-                      : () => controller.exportToExcel(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF389D6A),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 6.w),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4.r)),
-                    elevation: 1,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: controller.isExporting.value
-                      ? SizedBox(
-                          width: 12.r,
-                          height: 12.r,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.file_download_outlined,
-                                size: 13.r, color: Colors.white),
-                            SizedBox(width: 2.w),
-                            Text('Excel',
-                                style: AppTextStyle.style_10_600(
-                                    color: Colors.white)),
-                          ],
-                        ),
-                ),
+              AppCommonExportButton(
+                onExportExcel: () => controller.exportToExcel(),
+                isLoading: controller.isExporting.value,
               ),
               SizedBox(width: 4.w),
             ],
@@ -175,8 +138,8 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
                   onPressed: () =>
                       UnitRequiredOrdersDialog.show(context: context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6F42C1),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.purple,
+                    foregroundColor: AppColors.white,
                     padding: EdgeInsets.symmetric(horizontal: 4.w),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4.r)),
@@ -185,7 +148,7 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text('Request Orders',
-                      style: AppTextStyle.style_10_600(color: Colors.white)),
+                      style: AppTextStyle.style_10_600(color: AppColors.white)),
                 ),
               );
             }),
@@ -195,8 +158,8 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
               child: ElevatedButton(
                 onPressed: () => Get.toNamed(AppRoutes.unitInventoryAudit),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE8890C),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.orange,
+                  foregroundColor: AppColors.white,
                   padding: EdgeInsets.symmetric(horizontal: 6.w),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4.r)),
@@ -208,10 +171,10 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.fact_check_outlined,
-                        size: 12.r, color: Colors.white),
+                        size: 12.r, color: AppColors.white),
                     SizedBox(width: 2.w),
                     Text('Audit',
-                        style: AppTextStyle.style_10_600(color: Colors.white)),
+                        style: AppTextStyle.style_10_600(color: AppColors.white)),
                   ],
                 ),
               ),
@@ -222,21 +185,22 @@ class _UnitInventoryScreenState extends State<UnitInventoryScreen> {
               height: 24.h,
               padding: EdgeInsets.symmetric(horizontal: 3.w),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade300),
+                color: AppColors.white,
+                border: Border.all(color: AppColors.borderColor),
                 borderRadius: BorderRadius.circular(4.r),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
                   value: controller.itemsPerPage.value,
-                  icon: Icon(Icons.arrow_drop_down, size: 14.r),
+                  icon: Icon(Icons.arrow_drop_down, size: 14.r, color: AppColors.black),
                   isDense: true,
                   padding: EdgeInsets.zero,
                   style: AppTextStyle.style_10_500(color: AppColors.black),
                   items: const [10, 25, 50, 100].map((int val) {
                     return DropdownMenuItem<int>(
                       value: val,
-                      child: Text('$val / page'),
+                      child: Text('$val / page',
+                          style: AppTextStyle.style_10_500(color: AppColors.black)),
                     );
                   }).toList(),
                   onChanged: (val) {

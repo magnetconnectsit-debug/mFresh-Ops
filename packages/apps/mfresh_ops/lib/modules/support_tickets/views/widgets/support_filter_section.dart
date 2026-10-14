@@ -1,7 +1,5 @@
 // region SupportFilterSection
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -9,7 +7,6 @@ import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 
-import 'multi_select_dropdown.dart';
 
 // region SupportFilterSection Class
 class SupportFilterSection extends StatelessWidget {
@@ -37,7 +34,6 @@ class SupportFilterSection extends StatelessWidget {
       final canFilterUnit = userPermissions.contains(
         'filter_unit_suport_ticket',
       );
-      final canFilterGlobal = userPermissions.contains('filter_global');
       final canFilterCategory = userPermissions.contains(
         'filter_category_support_ticket',
       );
@@ -74,12 +70,13 @@ class SupportFilterSection extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    // region ASSIGNEE (multi-select)
-                    if (canFilterAssignee) ...[
-                      MultiSelectDropdownWidget<AssigneeModel>(
-                        label: "Assignee",
-                        selectedValues: controller.selectedAssignees.toSet(),
-                        items: controller.assigneeOptions
+                    // region CATEGORY & SUB CATEGORY
+                    if (canFilterCategory) ...[
+                      MultiSelectDropdownWidget<SupportCategory>(
+                        label: "Category",
+                        isSingleSelect: true,
+                        selectedValues: controller.selectedCategories.toSet(),
+                        items: controller.categoryOptions
                             .map(
                               (opt) => DropdownMenuItem(
                                 value: opt.value,
@@ -94,13 +91,43 @@ class SupportFilterSection extends StatelessWidget {
                             )
                             .toList(),
                         onChanged: (values) {
-                          controller.selectedAssignees.assignAll(
-                            values.toList(),
-                          );
+                          controller.selectedCategories.assignAll(values.toList());
+                          if (values.isNotEmpty) {
+                            controller.fetchSubCategories(
+                              values.first.categoryId,
+                            );
+                          } else {
+                            controller.subCategories.clear();
+                            controller.selectedSubCategories.clear();
+                          }
                           controller.applyFilters();
                         },
-                        showSearch: true,
                       ),
+                      MultiSelectDropdownWidget<SupportSubCategory>(
+                        label: "Sub Category",
+                        isLoading: controller.isSubCategoryLoading.value,
+                        isSingleSelect: false,
+                        selectedValues: controller.selectedSubCategories.toSet(),
+                        items: controller.subCategoryOptions
+                            .map(
+                              (opt) => DropdownMenuItem(
+                                value: opt.value,
+                                child: Text(
+                                  opt.label,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.grey900,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (values) {
+                          controller.selectedSubCategories.assignAll(values.toList());
+                          controller.applyFilters();
+                        },
+                      ),
+
                     ],
                     // endregion
 
@@ -155,12 +182,12 @@ class SupportFilterSection extends StatelessWidget {
                     ),
                     // endregion
 
-                    // region CATEGORY
-                    if (canFilterCategory) ...[
-                      MultiSelectDropdownWidget<SupportCategory>(
-                        label: "Category",
-                        selectedValues: controller.selectedCategories.toSet(),
-                        items: controller.categoryOptions
+                    // region ASSIGNEE (multi-select)
+                    if (canFilterAssignee) ...[
+                      MultiSelectDropdownWidget<AssigneeModel>(
+                        label: "Assignee",
+                        selectedValues: controller.selectedAssignees.toSet(),
+                        items: controller.assigneeOptions
                             .map(
                               (opt) => DropdownMenuItem(
                                 value: opt.value,
@@ -175,48 +202,12 @@ class SupportFilterSection extends StatelessWidget {
                             )
                             .toList(),
                         onChanged: (values) {
-                          controller.selectedCategories.assignAll(values.toList());
-                          if (values.isNotEmpty) {
-                            controller.fetchSubCategories(
-                              values.first.categoryId,
-                            );
-                          } else {
-                            controller.subCategories.clear();
-                            controller.selectedSubCategory.value = null;
-                          }
+                          controller.selectedAssignees.assignAll(
+                            values.toList(),
+                          );
                           controller.applyFilters();
                         },
-                      ),
-                      // endregion
-
-                      // region SUB CATEGORY
-                      MultiSelectDropdownWidget<SupportSubCategory>(
-                        label: "Sub Category",
-                        isLoading: controller.isSubCategoryLoading.value,
-                        isSingleSelect: true,
-                        selectedValues:
-                            controller.selectedSubCategory.value != null
-                            ? {controller.selectedSubCategory.value!}
-                            : {},
-                        items: controller.subCategoryOptions
-                            .map(
-                              (opt) => DropdownMenuItem(
-                                value: opt.value,
-                                child: Text(
-                                  opt.label,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey900,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (values) {
-                          controller.selectedSubCategory.value =
-                              values.isNotEmpty ? values.first : null;
-                          controller.applyFilters();
-                        },
+                        showSearch: true,
                       ),
                     ],
                     // endregion
@@ -245,6 +236,35 @@ class SupportFilterSection extends StatelessWidget {
                           controller.applyFilters();
                         },
                         showSearch: true,
+                      ),
+                    ],
+                    // endregion
+
+                    // region PROJECT
+                    if (canFilterProject) ...[
+                      MultiSelectDropdownWidget<SupportProject>(
+                        label: "Project",
+                        selectedValues: controller.selectedProjects.toSet(),
+                        items: controller.projectOptions
+                            .map(
+                              (opt) => DropdownMenuItem(
+                                value: opt.value,
+                                child: Text(
+                                  opt.label,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.grey900,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (values) {
+                          controller.selectedProjects.assignAll(
+                            values.toList(),
+                          );
+                          controller.applyFilters();
+                        },
                       ),
                     ],
                     // endregion
@@ -319,131 +339,101 @@ class SupportFilterSection extends StatelessWidget {
                       ),
                     ],
                     // endregion
-                  ],
-                ),
-                // endregion
 
-                // region PROJECT + ACTION BUTTONS ROW
-                if (canFilterProject)
-                  Padding(
-                    padding: EdgeInsets.only(top: 3.h),
-                    child: IntrinsicHeight(
+                    // region ACTION BUTTONS (RESET / SAVE FILTER)
+                    Align(
+                      alignment: Alignment.topCenter,
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
-                            child: MultiSelectDropdownWidget<SupportProject>(
-                              label: "Project",
-                              selectedValues: controller.selectedProjects.toSet(),
-                              items: controller.projectOptions
-                                  .map(
-                                    (opt) => DropdownMenuItem(
-                                      value: opt.value,
-                                      child: Text(
-                                        opt.label,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTextStyle.style_12_400(
-                                          color: AppColors.grey900,
-                                        ),
-                                      ),
+                            child: Material(
+                              color: AppColors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(4.r),
+                                onTap: () => controller.resetFilters(),
+                                child: Container(
+                                  height: 20.h,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        AppColors.grey200,
+                                        AppColors.grey300,
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
                                     ),
-                                  )
-                                  .toList(),
-                              onChanged: (values) {
-                                controller.selectedProjects.assignAll(
-                                  values.toList(),
-                                );
-                                controller.applyFilters();
-                              },
-                            ),
-                          ),
-                          SizedBox(width: 4.w),
-                          Expanded(
-                            child: Row(
-                              children: [
-                                // RESET BUTTON
-                                Expanded(
-                                  child: Material(
-                                    color: AppColors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(6.r),
-                                      onTap: () => controller.resetFilters(),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [AppColors.grey200, AppColors.grey300],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
-                                          borderRadius: BorderRadius.circular(6.r),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          "RESET",
-                                          style: AppTextStyle.style_11_600(
-                                            color: AppColors.white,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
+                                    borderRadius: BorderRadius.circular(4.r),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "RESET",
+                                    style: AppTextStyle.style_11_600(
+                                      color: AppColors.white,
                                     ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                if (canSaveFilter) ...[
-                                  SizedBox(width: 4.w),
-                                  // SAVE FILTER BUTTON
-                                  Expanded(
-                                    child: Obx(
-                                      () => InkWell(
-                                        onTap: controller.isSavingFilter.value
-                                            ? null
-                                            : () => _showSaveFilterDialog(context, controller),
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: controller.isSavingFilter.value
-                                                  ? [
-                                                      AppColors.grey100,
-                                                      AppColors.grey300,
-                                                    ]
-                                                  : [AppColors.successDark, AppColors.green],
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                            ),
-                                            borderRadius: BorderRadius.circular(6.r),
-                                          ),
-                                          child: controller.isSavingFilter.value
-                                              ? SizedBox(
-                                                  width: 10.r,
-                                                  height: 10.r,
-                                                  child: const CircularProgressIndicator(
-                                                    strokeWidth: 1.5,
-                                                    color: AppColors.white,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  'Save Filter',
-                                                  style: AppTextStyle.style_11_500(
-                                                    color: AppColors.white,
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                              ),
                             ),
                           ),
+                          if (canSaveFilter) ...[
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: Obx(
+                                () => InkWell(
+                                  onTap: controller.isSavingFilter.value
+                                      ? null
+                                      : () => _showSaveFilterDialog(
+                                          context,
+                                          controller,
+                                        ),
+                                  child: Container(
+                                    height: 20.h,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: controller.isSavingFilter.value
+                                            ? [
+                                                AppColors.grey100,
+                                                AppColors.grey300,
+                                              ]
+                                            : [
+                                                AppColors.successDark,
+                                                AppColors.green,
+                                              ],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    child: controller.isSavingFilter.value
+                                        ? SizedBox(
+                                            width: 10.r,
+                                            height: 10.r,
+                                            child: const CircularProgressIndicator(
+                                              strokeWidth: 1.5,
+                                              color: AppColors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            'Save Filter',
+                                            style: AppTextStyle.style_11_500(
+                                              color: AppColors.white,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                  ),
+                    // endregion
+                  ],
+                ),
                 // endregion
-
-                // region Quick Filters Row
                 if (canSaveFilter) ...[
                   SizedBox(height: 3.h),
                   Obx(() {

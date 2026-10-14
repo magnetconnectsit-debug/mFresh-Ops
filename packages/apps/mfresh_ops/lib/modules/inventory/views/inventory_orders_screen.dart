@@ -41,26 +41,22 @@ class _InventoryOrdersScreenState extends State<InventoryOrdersScreen> {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        title: Obx(() {
-          return controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search order or item...',
-                  onChanged: (v) => controller.allOrders.refresh(),
-                )
-              : Text(
-                  'Inventory Orders',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                );
-        }),
-        actions: [
-          Obx(() => IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                ),
-              )),
-        ],
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Inventory Orders',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) => controller.allOrders.refresh(),
+            ),
+          ],
+        ),
       ),
       drawer: const CommonSidebar(),
       body: AppRefreshIndicator(

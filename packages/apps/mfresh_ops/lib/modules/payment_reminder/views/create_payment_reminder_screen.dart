@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_reminder_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/widgets/reminder_setup_dialog.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/widgets/edit_reminder_date_dialog.dart';
 
@@ -43,7 +39,11 @@ class CreatePaymentReminderScreen extends StatelessWidget {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 24.h),
-          child: Container(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Container(
             padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -382,8 +382,9 @@ class CreatePaymentReminderScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ));
+}
 
   Widget _buildTextField({
     required TextEditingController controller,

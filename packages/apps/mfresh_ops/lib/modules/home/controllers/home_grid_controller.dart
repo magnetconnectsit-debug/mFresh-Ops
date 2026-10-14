@@ -141,11 +141,6 @@ class HomeGridController extends GetxController {
           permissionKey: 'All_Task',
         ),
         GridSubAction(
-          title: 'Filter',
-          icon: Icons.filter_alt_outlined,
-          route: AppRoutes.dailyTaskFilter,
-        ),
-        GridSubAction(
           title: 'Month',
           icon: Icons.calendar_month_outlined,
           route: AppRoutes.dailyTaskFilter,
@@ -330,6 +325,12 @@ class HomeGridController extends GetxController {
           icon: Icons.account_box,
           route: AppRoutes.accountSubscription,
           permissionKey: 'Account_subscription_panel',
+        ),
+        GridSubAction(
+          title: 'Asset Category',
+          icon: Icons.category_outlined,
+          route: AppRoutes.assetCategory,
+          permissionKey: 'asset_category_panel',
         ),
         GridSubAction(
           title: 'Brands',

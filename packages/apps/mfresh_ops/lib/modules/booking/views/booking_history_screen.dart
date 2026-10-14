@@ -40,7 +40,10 @@ class BookingHistoryScreen extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () => controller.refreshData(),
-          child: Column(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
             children: [
               if (controller.showFilters) ...[
                 Padding(
@@ -133,9 +136,11 @@ class BookingHistoryScreen extends StatelessWidget {
               ),
             ],
           ),
-        );
-      }),
+        ),
+      ),
     );
+  }),
+);
   }
 }
 

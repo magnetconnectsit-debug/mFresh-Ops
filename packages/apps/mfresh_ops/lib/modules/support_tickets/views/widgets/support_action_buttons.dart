@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:core/widgets/app_common_dropdown_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:core/constants/app_colors.dart';
 
 class SupportActionButtons extends StatelessWidget {
   final SupportTicketsController controller;
@@ -35,15 +33,8 @@ class SupportActionButtons extends StatelessWidget {
             ),
             SizedBox(width: 4.w),
           ],
-          _actionButton(
-            label: "Excel",
-            iconWidget: FaIcon(
-              FontAwesomeIcons.fileExcel,
-              size: 13.r,
-              color: AppColors.white,
-            ),
-            colors: const [AppColors.secondaryGreen, AppColors.primaryGreen],
-            onTap: () => controller.exportTickets(),
+          AppCommonExportButton(
+            onExportExcel: () => controller.exportTickets(),
           ),
           if (canBulkEdit) ...[
             Obx(() {
@@ -76,7 +67,9 @@ class SupportActionButtons extends StatelessWidget {
     return InkWell(
       onTap: isDisabled ? null : onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+        height: 24.h,
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: 8.w),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDisabled

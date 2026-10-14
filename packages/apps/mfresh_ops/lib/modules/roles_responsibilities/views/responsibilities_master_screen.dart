@@ -9,8 +9,6 @@ import 'package:mfresh_ops/modules/roles_responsibilities/controllers/responsibi
 import 'package:mfresh_ops/modules/roles_responsibilities/views/add_responsibility_screen.dart';
 import 'package:mfresh_ops/modules/roles_responsibilities/views/widgets/simple_html_renderer.dart';
 
-import 'package:core/widgets/app_common_search_bar.dart';
-
 class ResponsibilitiesMasterScreen extends StatelessWidget {
   const ResponsibilitiesMasterScreen({super.key});
 
@@ -27,34 +25,13 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        toolbarHeight: 45.h,
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchCtrl,
-                    hintText: 'Search role...',
-                    onChanged: (v) => controller.searchQuery.value = v,
-                  ),
-                )
-              : Text(
-                  'Responsibility Master',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
+        showSearchBar: true,
+        searchController: controller.searchCtrl,
+        onSearchChanged: (v) => controller.searchQuery.value = v,
+        title: Text(
+          'Responsibility Master',
+          style: AppTextStyle.style_16_700(color: AppColors.black),
         ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 24.sp,
-              ),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
@@ -127,30 +104,38 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(4.r),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    minWidth:
-                                        MediaQuery.of(context).size.width -
-                                        24.w,
-                                  ),
-                                  child: Table(
-                                    defaultVerticalAlignment:
-                                        TableCellVerticalAlignment.middle,
-                                    border: TableBorder.symmetric(
-                                      inside: BorderSide(
-                                        color: Colors.grey.shade300,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final baseWidth = 60.w + 95.w + 230.w + 230.w + 75.w;
+                                  final availableWidth = constraints.maxWidth.isFinite
+                                      ? constraints.maxWidth
+                                      : (MediaQuery.of(context).size.width - 24.w);
+                                  final scale = availableWidth > baseWidth
+                                      ? availableWidth / baseWidth
+                                      : 1.0;
+
+                                  return SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        minWidth: availableWidth,
                                       ),
-                                    ),
-                                    columnWidths: {
-                                      0: FixedColumnWidth(60.w),
-                                      1: FixedColumnWidth(95.w),
-                                      2: FixedColumnWidth(230.w),
-                                      3: FixedColumnWidth(230.w),
-                                      4: FixedColumnWidth(75.w),
-                                    },
-                                    children: [
+                                      child: Table(
+                                        defaultVerticalAlignment:
+                                            TableCellVerticalAlignment.middle,
+                                        border: TableBorder.symmetric(
+                                          inside: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        columnWidths: {
+                                          0: FixedColumnWidth(60.w * scale),
+                                          1: FixedColumnWidth(95.w * scale),
+                                          2: FixedColumnWidth(230.w * scale),
+                                          3: FixedColumnWidth(230.w * scale),
+                                          4: FixedColumnWidth(75.w * scale),
+                                        },
+                                        children: [
                                       // Header Row
                                       TableRow(
                                         decoration: const BoxDecoration(
@@ -180,16 +165,28 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
                                       // Data Rows
                                       ...list.asMap().entries.map((entry) {
                                         final item = entry.value;
-                                        final originalIdx = controller.responsibilities.indexOf(item);
+                                        final originalIdx = controller
+                                            .responsibilities
+                                            .indexOf(item);
                                         final slNo = originalIdx != -1
                                             ? originalIdx + 1
-                                            : (controller.currentPage.value - 1) * controller.perPage.value + entry.key + 1;
-                                        final isExpanded = controller.isRowExpanded(item.id);
-                                        void toggleRow() => controller.toggleRowExpansion(item.id);
+                                            : (controller.currentPage.value -
+                                                          1) *
+                                                      controller.perPage.value +
+                                                  entry.key +
+                                                  1;
+                                        final isExpanded = controller
+                                            .isRowExpanded(item.id);
+                                        void toggleRow() => controller
+                                            .toggleRowExpansion(item.id);
 
                                         return TableRow(
                                           children: [
-                                            _buildDataCell('$slNo', isExpanded: isExpanded, onTap: toggleRow),
+                                            _buildDataCell(
+                                              '$slNo',
+                                              isExpanded: isExpanded,
+                                              onTap: toggleRow,
+                                            ),
                                             _buildDataCell(
                                               item.roleName ?? '-',
                                               isExpanded: isExpanded,
@@ -225,10 +222,12 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                          );
-                        }),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    }),
                         SizedBox(height: 12.h),
 
                         // Pagination Footer
@@ -246,41 +245,15 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
                                 totalItems,
                               );
 
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Showing $startItem to $endItem of $totalItems entries',
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.black,
-                                ),
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildPaginationButton(
-                                    '←',
-                                    false,
-                                    controller.previousPage,
-                                  ),
-                                  ...List.generate(controller.totalPages, (
-                                    idx,
-                                  ) {
-                                    final pageNum = idx + 1;
-                                    return _buildPaginationButton(
-                                      '$pageNum',
-                                      controller.currentPage.value == pageNum,
-                                      () => controller.goToPage(pageNum),
-                                    );
-                                  }),
-                                  _buildPaginationButton(
-                                    '→',
-                                    false,
-                                    controller.nextPage,
-                                  ),
-                                ],
-                              ),
-                            ],
+                          return AppTablePagination(
+                            startItem: startItem,
+                            endItem: endItem,
+                            totalItems: totalItems,
+                            currentPage: controller.currentPage.value,
+                            totalPages: controller.totalPages,
+                            onPageChanged: (page) => controller.goToPage(page),
+                            onPreviousPage: controller.previousPage,
+                            onNextPage: controller.nextPage,
                           );
                         }),
                       ],
@@ -355,7 +328,10 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Container(
         alignment: Alignment.centerLeft,
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: isExpanded ? 5.h : 3.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: 8.w,
+          vertical: isExpanded ? 5.h : 3.h,
+        ),
         child: Text(
           text,
           style: AppTextStyle.style_12_400(color: AppColors.black),
@@ -383,7 +359,10 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Container(
           alignment: Alignment.centerLeft,
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: isExpanded ? 5.h : 3.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8.w,
+            vertical: isExpanded ? 5.h : 3.h,
+          ),
           child: Text(
             '-',
             style: AppTextStyle.style_12_400(color: AppColors.grey400),
@@ -473,34 +452,6 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPaginationButton(
-    String text,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4.r),
-      child: Container(
-        margin: EdgeInsets.only(left: 4.w),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
-          border: Border.all(
-            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_500(
-            color: isActive ? Colors.white : Colors.blue.shade600,
-          ),
-        ),
-      ),
-    );
-  }
-
   void _confirmDelete(
     BuildContext context,
     ResponsibilitiesMasterController controller,
@@ -519,9 +470,12 @@ class ResponsibilitiesMasterScreen extends StatelessWidget {
           'Delete Responsibility',
           style: AppTextStyle.style_16_700(color: AppColors.black),
         ),
-        content: Text(
-          'Are you sure you want to delete responsibility for role "${item.roleName ?? ""}"?',
-          style: AppTextStyle.style_14_400(color: AppColors.black),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(
+            'Are you sure you want to delete responsibility for role "${item.roleName ?? ""}"?',
+            style: AppTextStyle.style_14_400(color: AppColors.black),
+          ),
         ),
         actions: [
           TextButton(

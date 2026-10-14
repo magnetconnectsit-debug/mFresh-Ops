@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
 import 'package:mfresh_ops/modules/roles_responsibilities/controllers/add_responsibility_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class AddResponsibilityScreen extends StatelessWidget {
   final ResponsibilityItem? responsibilityItem;
@@ -51,7 +49,11 @@ class AddResponsibilityScreen extends StatelessWidget {
             top: 4.h,
             bottom: 16.h,
           ),
-          child: Column(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
@@ -246,6 +248,7 @@ class AddResponsibilityScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+    ));
+}
 }

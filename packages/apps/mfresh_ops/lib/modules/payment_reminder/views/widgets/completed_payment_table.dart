@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
-import 'package:mfresh_ops/modules/tasks/views/widgets/all_tasks_table_elements.dart';
 
 class CompletedPaymentTable extends StatefulWidget {
   final CompletedPaymentController controller;
@@ -220,7 +219,7 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
                         ),
                         children: [
                           for (final col in _kColumns)
-                            AllTasksHeaderCell(
+                            _PaymentTableHeaderCell(
                               text: col,
                               onTap: () => widget.controller.toggleSort(col),
                               isSorted:
@@ -249,63 +248,63 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
 
                         return TableRow(
                           children: [
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text:
                                   '${(widget.controller.currentPage.value - 1) * widget.controller.perPage.value + index + 1}',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: item.forDesc ?? '-',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: item.to ?? '-',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: assigneeDisplay,
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: item.expenseHead ?? '-',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: item.subHead ?? '-',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: item.costCenter ?? '-',
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: _formatDate(item.dueDate),
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: _formatDate(item.endDate),
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: _formatDate(item.notificationDate),
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: _formatTime(item.notificationTime),
                               isExpanded: isExpanded,
                               onTap: toggleRow,
                             ),
-                            AllTasksDataCell(
+                            _PaymentTableDataCell(
                               text: _formatCompletedAt(item.completedAt),
                               isExpanded: isExpanded,
                               onTap: toggleRow,
@@ -326,6 +325,80 @@ class _CompletedPaymentTableState extends State<CompletedPaymentTable> {
           );
         }),
       ],
+    );
+  }
+}
+
+class _PaymentTableHeaderCell extends StatelessWidget {
+  final String text;
+  final VoidCallback? onTap;
+  final bool isSorted;
+  final bool sortAscending;
+
+  const _PaymentTableHeaderCell({
+    required this.text,
+    this.onTap,
+    this.isSorted = false,
+    this.sortAscending = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: AppTextStyle.style_12_700(color: AppColors.black),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (isSorted) ...[
+              SizedBox(width: 2.w),
+              Icon(
+                sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 13.sp,
+                color: AppColors.black,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentTableDataCell extends StatelessWidget {
+  final String text;
+  final bool isExpanded;
+  final VoidCallback onTap;
+
+  const _PaymentTableDataCell({
+    required this.text,
+    required this.isExpanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+        child: Text(
+          text,
+          style: AppTextStyle.style_12_400(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
     );
   }
 }

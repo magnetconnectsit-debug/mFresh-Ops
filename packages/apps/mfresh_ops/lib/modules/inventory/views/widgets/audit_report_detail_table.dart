@@ -98,15 +98,6 @@ class AuditReportDetailTable extends StatelessWidget {
                   valueGetter: (item) => item.categoryName,
                 ),
                 AppTableColumn<AuditItemDetail>(
-                  key: 'image',
-                  title: 'Image',
-                  width: 60.w,
-                  sortable: false,
-                  cellBuilder: (context, item, index, isExpanded) {
-                    return _buildImageCell(context, item.imageUrls);
-                  },
-                ),
-                AppTableColumn<AuditItemDetail>(
                   key: 'systemqty',
                   title: 'System Qty',
                   width: 85.w,
@@ -128,30 +119,6 @@ class AuditReportDetailTable extends StatelessWidget {
                   },
                 ),
                 AppTableColumn<AuditItemDetail>(
-                  key: 'difference',
-                  title: 'Difference',
-                  width: 85.w,
-                  cellColorGetter: (item) {
-                    final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
-                    return isShortage ? const Color(0xFFFFEBEE) : null;
-                  },
-                  cellBuilder: (context, item, index, isExpanded) {
-                    return _buildDifferenceCell(item, isExpanded);
-                  },
-                ),
-                AppTableColumn<AuditItemDetail>(
-                  key: 'percentage',
-                  title: 'Stock %',
-                  width: 90.w,
-                  cellColorGetter: (item) {
-                    final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
-                    return isShortage ? const Color(0xFFFFEBEE) : null;
-                  },
-                  cellBuilder: (context, item, index, isExpanded) {
-                    return _buildPercentageCell(item, isExpanded);
-                  },
-                ),
-                AppTableColumn<AuditItemDetail>(
                   key: 'result',
                   title: 'Result',
                   width: 85.w,
@@ -161,6 +128,15 @@ class AuditReportDetailTable extends StatelessWidget {
                   },
                   cellBuilder: (context, item, index, isExpanded) {
                     return _buildResultCell(item, isExpanded);
+                  },
+                ),
+                AppTableColumn<AuditItemDetail>(
+                  key: 'image',
+                  title: 'Image',
+                  width: 60.w,
+                  sortable: false,
+                  cellBuilder: (context, item, index, isExpanded) {
+                    return _buildImageCell(context, item.imageUrls);
                   },
                 ),
               ];
@@ -253,34 +229,6 @@ class AuditReportDetailTable extends StatelessWidget {
     );
   }
 
-  Widget _buildDifferenceCell(
-    AuditItemDetail item,
-    bool isExpanded,
-  ) {
-    final isShortage = item.varianceColor == 'red' || item.differenceQty < 0;
-    final isExcess = item.varianceColor == 'green' || item.differenceQty > 0;
-
-    Color textColor = AppColors.black;
-    String text = item.differenceQtyLabel;
-    FontWeight fontWeight = FontWeight.w500;
-
-    if (isShortage) {
-      textColor = const Color(0xFFD32F2F);
-      fontWeight = FontWeight.w700;
-    } else if (isExcess) {
-      text = '+${item.differenceQtyLabel}';
-    }
-
-    return Text(
-      text,
-      style: AppTextStyle.style_11_500(color: textColor).copyWith(
-        fontWeight: fontWeight,
-      ),
-      maxLines: isExpanded ? null : 1,
-      overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-    );
-  }
-
   Widget _buildResultCell(
     AuditItemDetail item,
     bool isExpanded,
@@ -304,43 +252,6 @@ class AuditReportDetailTable extends StatelessWidget {
       text,
       style: AppTextStyle.style_11_500(color: textColor).copyWith(
         fontWeight: fontWeight,
-      ),
-      maxLines: isExpanded ? null : 1,
-      overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildPercentageCell(
-    AuditItemDetail item,
-    bool isExpanded,
-  ) {
-    final label = item.actualPercentageLabel;
-    final colorStr = item.actualPercentageColor.toLowerCase();
-    final isShortage = colorStr == 'red' || colorStr == 'danger' || item.varianceColor == 'red' || item.differenceQty < 0;
-
-    Color textColor = AppColors.grey900;
-
-    if (isShortage) {
-      textColor = const Color(0xFFC62828);
-    } else if (colorStr == 'green' || colorStr == 'success') {
-      textColor = const Color(0xFF2E7D32);
-    } else if (colorStr == 'orange' || colorStr == 'warning') {
-      textColor = const Color(0xFFEF6C00);
-    }
-
-    if (!item.percentageAvailable || label == '-' || label.isEmpty) {
-      return Text(
-        '-',
-        style: AppTextStyle.style_11_400(
-          color: isShortage ? const Color(0xFFC62828) : AppColors.grey500,
-        ),
-      );
-    }
-
-    return Text(
-      label,
-      style: AppTextStyle.style_11_600(color: textColor).copyWith(
-        fontWeight: isShortage ? FontWeight.w700 : FontWeight.w600,
       ),
       maxLines: isExpanded ? null : 1,
       overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,

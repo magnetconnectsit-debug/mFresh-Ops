@@ -5,6 +5,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
@@ -58,28 +59,20 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
               return Padding(
                 padding: EdgeInsets.only(right: 16.w),
                 child: Center(
-                  child: SizedBox(
+                  child: AppCommonButton(
+                    text: 'Create Task',
+                    buttonColor: const Color(0xFF16A3B8),
+                    textColor: Colors.white,
                     height: 24.h,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Get.find<TasksController>().formInitialized.value =
-                            false;
-                        Get.toNamed(AppRoutes.createTask);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A3B8),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        elevation: 1,
-                      ),
-                      child: Text(
-                        'Create Task',
-                        style: AppTextStyle.style_12_500(color: Colors.white),
-                      ),
-                    ),
+                    textSize: 12.sp,
+                    borderRadius: 4.r,
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    useGradient: false,
+                    onPressed: () {
+                      Get.find<TasksController>().formInitialized.value =
+                          false;
+                      Get.toNamed(AppRoutes.createTask);
+                    },
                   ),
                 ),
               );
@@ -95,7 +88,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       drawer: const CommonSidebar(),
       body: RefreshIndicator(
         onRefresh: () => controller.pullToRefresh(),
-        child: Obx(() {
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Obx(() {
           final bool isInitialLoading =
               controller.isLoading.value && controller.tasks.isEmpty;
 
@@ -387,7 +383,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           );
         }),
       ),
-    );
+    ),
+  ),
+);
   }
 
   DateTime? _parseDateTime(String? dateStr) {

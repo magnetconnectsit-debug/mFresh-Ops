@@ -66,7 +66,6 @@ class AdminCollectionsTable extends StatelessWidget {
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
                       children: controller.filteredCollections.asMap().entries.map((entry) {
-                        final index = entry.key;
                         final row = entry.value;
 
                         return Row(
@@ -148,7 +147,6 @@ class AdminCollectionsTable extends StatelessWidget {
 
     // Actual Cell
     Color actualBg = AppColors.collectionPink;
-    final bool isEmpty = metric == null || metric.actualNum == 0;
     String actualText = currencyFormat.format(metric?.actualNum ?? 0);
 
     // Dashboard Cell

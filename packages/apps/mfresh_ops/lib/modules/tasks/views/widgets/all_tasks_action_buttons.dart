@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
@@ -21,39 +20,26 @@ class AllTasksActionButtons extends StatelessWidget {
     return Row(
       children: [
         if (canCreateTask) ...[
-          SizedBox(
+          AppCommonButton(
+            text: 'Create Task',
+            buttonColor: const Color(0xFF16A3B8),
+            textColor: Colors.white,
             height: 24.h,
-            child: ElevatedButton(
-              onPressed: () {
-                Get.find<TasksController>().formInitialized.value = false;
-                Get.toNamed(AppRoutes.createTask);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF16A3B8),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                elevation: 1,
-              ),
-              child: Text('Create Task', style: AppTextStyle.style_12_500(color: Colors.white)),
-            ),
+            textSize: 12.sp,
+            borderRadius: 4.r,
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            useGradient: false,
+            onPressed: () {
+              Get.find<TasksController>().formInitialized.value = false;
+              Get.toNamed(AppRoutes.createTask);
+            },
           ),
           SizedBox(width: 8.w),
         ],
         if (canExportTask)
-          SizedBox(
-            height: 24.h,
-            child: ElevatedButton(
-              onPressed: () => controller.exportTasks(isPdf: false),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF389D6A),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                elevation: 1,
-              ),
-              child: Text('Export Excel', style: AppTextStyle.style_12_500(color: Colors.white)),
-            ),
+          AppCommonExportButton(
+            onExportExcel: () => controller.exportTasks(isPdf: false),
+            onExportPdf: () => controller.exportTasks(isPdf: true),
           ),
         const Spacer(),
         Obx(

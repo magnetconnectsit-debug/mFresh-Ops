@@ -26,7 +26,6 @@ class StorageService extends GetxService {
   static const String _lastPrinterNameKey = 'last_printer_name';
   static const String _defaultPrinterAddressKey = 'default_printer_address';
   static const String _defaultPrinterNameKey = 'default_printer_name';
-  static const String _homeGridOrderKey = 'home_grid_order';
 
   late final Box<dynamic> _authBox;
   late final Box<dynamic> _userBox;

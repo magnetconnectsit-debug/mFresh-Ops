@@ -1,14 +1,9 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_search_bar.dart';
-import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import '../controllers/audit_report_controller.dart';
 import 'widgets/audit_report_table.dart';
 
@@ -38,28 +33,22 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        title: Obx(
-          () => controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search audit no, unit, auditor...',
-                  onChanged: (_) => controller.applySearch(),
-                )
-              : Text(
-                  'Inventory Audit Report',
-                  style: AppTextStyle.style_16_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: controller.toggleSearch,
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-              ),
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Inventory Audit Report',
+              style: AppTextStyle.style_16_700(color: AppColors.black),
             ),
-          ),
-        ],
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (_) => controller.applySearch(),
+            ),
+          ],
+        ),
       ),
       drawer: const CommonSidebar(),
       body: AppRefreshIndicator(

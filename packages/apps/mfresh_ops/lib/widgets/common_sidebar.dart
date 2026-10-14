@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -187,6 +186,8 @@ class CommonSidebar extends StatelessWidget {
                   'Assets & Products',
                 if (userPermissions.contains('Account_subscription_panel'))
                   'Account Details',
+                if (userPermissions.contains('asset_category_panel'))
+                  'Asset Category',
                 if (userPermissions.contains('c_directory_panel'))
                   'Contact Directory',
                 if (userPermissions.contains('brand_details'))
@@ -520,6 +521,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.assetsProducts);
                   } else if (item == 'Account Details') {
                     Get.toNamed(AppRoutes.accountSubscription);
+                  } else if (item == 'Asset Category') {
+                    Get.toNamed(AppRoutes.assetCategory);
                   } else if (item == 'Contact Directory') {
                     Get.toNamed(AppRoutes.infoDirectory);
                   } else if (item == 'MContact_Brands') {

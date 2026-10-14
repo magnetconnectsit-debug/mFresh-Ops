@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_reminder_controller.dart';
@@ -184,7 +183,9 @@ class _ReminderSetupDialogState extends State<ReminderSetupDialog> {
         ? (_selectedDays.isEmpty ? null : _selectedDays.join(','))
         : null;
 
-    final formattedTimeStr = tempTime != null ? _format12HourTime(tempTime!) : '';
+    final formattedTimeStr = tempTime != null
+        ? _format12HourTime(tempTime!)
+        : '';
 
     return RecurrenceData(
       frequency: _frequency,
@@ -635,15 +636,6 @@ class _ReminderSetupDialogState extends State<ReminderSetupDialog> {
     );
   }
 
-  // ────────────────────────── Helpers ──────────────────────────
-
-  OutlineInputBorder _fieldBorder({Color color = const Color(0xffDEE2E6)}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(4.r),
-      borderSide: BorderSide(color: color),
-    );
-  }
-
   Widget _buildFrequencyTab(String label, String value) {
     final isSelected = _frequency == value;
     return InkWell(
@@ -1016,7 +1008,9 @@ class _ReminderSetupDialogState extends State<ReminderSetupDialog> {
               final now = DateTime.now();
               final today = DateTime(now.year, now.month, now.day);
               final rawInitial = date ?? today;
-              final initialDate = rawInitial.isBefore(today) ? today : rawInitial;
+              final initialDate = rawInitial.isBefore(today)
+                  ? today
+                  : rawInitial;
               final selected = await showDatePicker(
                 context: context,
                 initialDate: initialDate,

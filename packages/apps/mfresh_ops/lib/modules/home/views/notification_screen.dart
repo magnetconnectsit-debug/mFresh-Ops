@@ -24,14 +24,19 @@ class NotificationScreen extends StatelessWidget {
       ),
       body: notifications.isEmpty
           ? _buildEmptyState()
-          : ListView.separated(
-              padding: EdgeInsets.all(20.r),
-              itemCount: notifications.length,
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return _buildNotificationCard(notification);
-              },
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: ListView.separated(
+                  padding: EdgeInsets.all(20.r),
+                  itemCount: notifications.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    return _buildNotificationCard(notification);
+                  },
+                ),
+              ),
             ),
     );
   }

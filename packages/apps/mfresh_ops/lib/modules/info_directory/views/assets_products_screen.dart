@@ -26,36 +26,24 @@ class AssetsProductsScreen extends GetView<AssetsProductsController> {
         topHeader: const CommonShortcutHeader(),
         hasBackButton: false,
         toolbarHeight: 45.h,
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchController,
-                    hintText: 'Search contacts...',
-                    onChanged: (v) {
-                      controller.searchQuery.value = v;
-                      controller.applyFilters();
-                    },
-                  ),
-                )
-              : Text(
-                  'All assets',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 26.sp,
-              ),
+        title: Row(
+          children: [
+            Text(
+              'All assets',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
-          ),
-        ],
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) {
+                controller.searchQuery.value = v;
+                controller.applyFilters();
+              },
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Stack(
@@ -70,33 +58,20 @@ class AssetsProductsScreen extends GetView<AssetsProductsController> {
                   SizedBox(height: 6.h),
                   Row(
                     children: [
-                      SizedBox(
-                        height: 24.h,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final result = await Get.toNamed(
-                              AppRoutes.createAsset,
-                            );
-                            if (result == true) {
-                              controller.fetchAssets();
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF16A3B8),
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(horizontal: 12.w),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            elevation: 1,
-                          ),
-                          child: Text(
-                            'Create Asset',
-                            style: AppTextStyle.style_12_500(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
+                      AppCommonButton(
+                        text: 'Create Asset',
+                        icon: Icons.add,
+                        buttonColor: const Color(0xFF16A3B8),
+                        height: 22.h,
+                        textSize: 11.sp,
+                        onPressed: () async {
+                          final result = await Get.toNamed(
+                            AppRoutes.createAsset,
+                          );
+                          if (result == true) {
+                            controller.fetchAssets();
+                          }
+                        },
                       ),
                       const Spacer(),
                       Obx(
@@ -140,7 +115,7 @@ class AssetsProductsScreen extends GetView<AssetsProductsController> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 6.h),
                   Expanded(child: AssetsProductsTable(controller: controller)),
                 ],
               ),

@@ -9,6 +9,36 @@ import 'package:core/widgets/app_image_view.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_audit_controller.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+class _AuditTableWidths extends InheritedWidget {
+  final double itemColWidth;
+  final double categoryColWidth;
+  final double actualQtyColWidth;
+  final double imagesColWidth;
+  final double totalTableWidth;
+
+  const _AuditTableWidths({
+    required this.itemColWidth,
+    required this.categoryColWidth,
+    required this.actualQtyColWidth,
+    required this.imagesColWidth,
+    required this.totalTableWidth,
+    required super.child,
+  });
+
+  static _AuditTableWidths? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<_AuditTableWidths>();
+  }
+
+  @override
+  bool updateShouldNotify(_AuditTableWidths oldWidget) {
+    return itemColWidth != oldWidget.itemColWidth ||
+        categoryColWidth != oldWidget.categoryColWidth ||
+        actualQtyColWidth != oldWidget.actualQtyColWidth ||
+        imagesColWidth != oldWidget.imagesColWidth ||
+        totalTableWidth != oldWidget.totalTableWidth;
+  }
+}
+
 class AuditTableWidget extends StatelessWidget {
   static double get itemColWidth => 105.w;
   static double get categoryColWidth => 85.w;
@@ -39,6 +69,7 @@ class AuditTableWidget extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Container(
+      width: double.infinity,
       height: 200.h,
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -83,6 +114,7 @@ class AuditTableWidget extends StatelessWidget {
     );
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(6.r),
@@ -91,9 +123,10 @@ class AuditTableWidget extends StatelessWidget {
       child: Skeletonizer(
         enabled: true,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
+              width: double.infinity,
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               decoration: BoxDecoration(
                 color: const Color(0xFF009BD9),
@@ -135,41 +168,71 @@ class AuditTableWidget extends StatelessWidget {
             _buildPillTabsBar(controller),
             Divider(height: 1, color: Colors.grey.shade300),
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: totalTableWidth,
-                  child: Column(
-                    children: [
-                      _buildTableHeaderGrid(controller),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: Column(
-                            children: List.generate(dummyItems.length, (index) {
-                              final item = dummyItems[index];
-                              return Column(
-                                children: [
-                                  if (index > 0)
-                                    Divider(
-                                      height: 1,
-                                      thickness: 1,
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  _AuditRowGridTile(
-                                    index: index,
-                                    item: item,
-                                    controller: controller,
-                                  ),
-                                ],
-                              );
-                            }),
-                          ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth.isFinite
+                      ? constraints.maxWidth
+                      : totalTableWidth;
+                  final scale = availableWidth > totalTableWidth
+                      ? availableWidth / totalTableWidth
+                      : 1.0;
+                  final effItemColWidth = itemColWidth * scale;
+                  final effCategoryColWidth = categoryColWidth * scale;
+                  final effActualQtyColWidth = actualQtyColWidth * scale;
+                  final effImagesColWidth = imagesColWidth * scale;
+                  final effTotalWidth = effItemColWidth +
+                      effCategoryColWidth +
+                      effActualQtyColWidth +
+                      effImagesColWidth;
+
+                  return _AuditTableWidths(
+                    itemColWidth: effItemColWidth,
+                    categoryColWidth: effCategoryColWidth,
+                    actualQtyColWidth: effActualQtyColWidth,
+                    imagesColWidth: effImagesColWidth,
+                    totalTableWidth: effTotalWidth,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: effTotalWidth,
+                        height: constraints.hasBoundedHeight
+                            ? constraints.maxHeight
+                            : null,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildTableHeaderGrid(controller),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.vertical,
+                                child: Column(
+                                  children: List.generate(dummyItems.length, (index) {
+                                    final item = dummyItems[index];
+                                    return Column(
+                                      children: [
+                                        if (index > 0)
+                                          Divider(
+                                            height: 1,
+                                            thickness: 1,
+                                            color: Colors.grey.shade200,
+                                          ),
+                                        _AuditRowGridTile(
+                                          index: index,
+                                          item: item,
+                                          controller: controller,
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -180,6 +243,7 @@ class AuditTableWidget extends StatelessWidget {
 
   Widget _buildNoItemsState() {
     return Container(
+      width: double.infinity,
       height: 160.h,
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -204,6 +268,7 @@ class AuditTableWidget extends StatelessWidget {
     InventoryAuditController controller,
   ) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(6.r),
@@ -217,11 +282,11 @@ class AuditTableWidget extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Cyan Section Banner Header
           Container(
+            width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
             decoration: BoxDecoration(
               color: const Color(0xFF009BD9),
@@ -267,89 +332,115 @@ class AuditTableWidget extends StatelessWidget {
           Divider(height: 1, color: Colors.grey.shade300),
 
           // 3. Audit Data Table
-          Flexible(
-            fit: FlexFit.loose,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: totalTableWidth,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTableHeaderGrid(controller),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Obx(() {
-                          final items = controller.filteredTabAuditItems;
-                          final additionals = controller.additionalAuditItems;
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : totalTableWidth;
+                final scale = availableWidth > totalTableWidth
+                    ? availableWidth / totalTableWidth
+                    : 1.0;
+                final effItemColWidth = itemColWidth * scale;
+                final effCategoryColWidth = categoryColWidth * scale;
+                final effActualQtyColWidth = actualQtyColWidth * scale;
+                final effImagesColWidth = imagesColWidth * scale;
+                final effTotalWidth = effItemColWidth +
+                    effCategoryColWidth +
+                    effActualQtyColWidth +
+                    effImagesColWidth;
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Additional items added via dialog
-                              ...additionals.asMap().entries.map((entry) {
-                                final idx = entry.key;
-                                final add = entry.value;
+                return _AuditTableWidths(
+                  itemColWidth: effItemColWidth,
+                  categoryColWidth: effCategoryColWidth,
+                  actualQtyColWidth: effActualQtyColWidth,
+                  imagesColWidth: effImagesColWidth,
+                  totalTableWidth: effTotalWidth,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: effTotalWidth,
+                      height: constraints.hasBoundedHeight
+                          ? constraints.maxHeight
+                          : null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildTableHeaderGrid(controller),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.vertical,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Obx(() {
+                                final items = controller.filteredTabAuditItems;
+                                final additionals = controller.additionalAuditItems;
+
                                 return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _AdditionalAuditItemRowTile(
-                                      key: ValueKey('add_$idx'),
-                                      index: idx,
-                                      item: add,
-                                      controller: controller,
-                                    ),
-                                    Divider(
-                                      height: 1,
-                                      thickness: 1,
-                                      color: Colors.grey.shade200,
-                                    ),
+                                    // Additional items added via dialog
+                                    ...additionals.asMap().entries.map((entry) {
+                                      final idx = entry.key;
+                                      final add = entry.value;
+                                      return Column(
+                                        children: [
+                                          _AdditionalAuditItemRowTile(
+                                            key: ValueKey('add_$idx'),
+                                            index: idx,
+                                            item: add,
+                                            controller: controller,
+                                          ),
+                                          Divider(
+                                            height: 1,
+                                            thickness: 1,
+                                            color: Colors.grey.shade200,
+                                          ),
+                                        ],
+                                      );
+                                    }),
+                                    if (items.isEmpty && additionals.isEmpty)
+                                      Padding(
+                                        padding: EdgeInsets.all(20.h),
+                                        child: Center(
+                                          child: Text(
+                                            'No items in this tab category.',
+                                            style: AppTextStyle.style_12_400(
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      ...List.generate(items.length, (index) {
+                                        final item = items[index];
+                                        return Column(
+                                          children: [
+                                            if (index > 0 || additionals.isNotEmpty)
+                                              Divider(
+                                                height: 1,
+                                                thickness: 1,
+                                                color: Colors.grey.shade200,
+                                              ),
+                                            _AuditRowGridTile(
+                                              key: ValueKey(item.itemId),
+                                              index: index,
+                                              item: item,
+                                              controller: controller,
+                                            ),
+                                          ],
+                                        );
+                                      }),
                                   ],
                                 );
                               }),
-                              if (items.isEmpty && additionals.isEmpty)
-                                Padding(
-                                  padding: EdgeInsets.all(20.h),
-                                  child: Center(
-                                    child: Text(
-                                      'No items in this tab category.',
-                                      style: AppTextStyle.style_12_400(
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else
-                                ...List.generate(items.length, (index) {
-                                  final item = items[index];
-                                  return Column(
-                                    children: [
-                                      if (index > 0 || additionals.isNotEmpty)
-                                        Divider(
-                                          height: 1,
-                                          thickness: 1,
-                                          color: Colors.grey.shade200,
-                                        ),
-                                      _AuditRowGridTile(
-                                        key: ValueKey(item.itemId),
-                                        index: index,
-                                        item: item,
-                                        controller: controller,
-                                      ),
-                                    ],
-                                  );
-                                }),
-                            ],
-                          );
-                        }),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -468,55 +559,65 @@ class AuditTableWidget extends StatelessWidget {
   }
 
   Widget _buildTableHeaderGrid(InventoryAuditController controller) {
-    return Container(
-      height: 32.h,
-      color: const Color(0xFF009BD9),
-      child: Obx(
-        () => Row(
-          children: [
-            SizedBox(
-              width: itemColWidth,
-              child: _headerCell(
-                'Item',
-                controller,
-                columnKey: 'item',
-                alignment: Alignment.centerLeft,
-              ),
+    return Builder(
+      builder: (context) {
+        final widths = _AuditTableWidths.of(context);
+        final wItem = widths?.itemColWidth ?? itemColWidth;
+        final wCategory = widths?.categoryColWidth ?? categoryColWidth;
+        final wActual = widths?.actualQtyColWidth ?? actualQtyColWidth;
+        final wImages = widths?.imagesColWidth ?? imagesColWidth;
+
+        return Container(
+          height: 32.h,
+          color: const Color(0xFF009BD9),
+          child: Obx(
+            () => Row(
+              children: [
+                SizedBox(
+                  width: wItem,
+                  child: _headerCell(
+                    'Item',
+                    controller,
+                    columnKey: 'item',
+                    alignment: Alignment.centerLeft,
+                  ),
+                ),
+                SizedBox(
+                  width: wCategory,
+                  child: _headerCell(
+                    'Category',
+                    controller,
+                    columnKey: 'category',
+                    alignment: Alignment.centerLeft,
+                  ),
+                ),
+                SizedBox(
+                  width: wActual,
+                  child: _headerCell(
+                    'Actual Qty',
+                    controller,
+                    columnKey: 'actualQty',
+                    alignment: Alignment.center,
+                    hasRightBorder: true,
+                    enableSort: false,
+                  ),
+                ),
+                SizedBox(
+                  width: wImages,
+                  child: _headerCell(
+                    'Images',
+                    controller,
+                    columnKey: 'image',
+                    alignment: Alignment.center,
+                    hasRightBorder: false,
+                    enableSort: false,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(
-              width: categoryColWidth,
-              child: _headerCell(
-                'Category',
-                controller,
-                columnKey: 'category',
-                alignment: Alignment.centerLeft,
-              ),
-            ),
-            SizedBox(
-              width: actualQtyColWidth,
-              child: _headerCell(
-                'Actual Qty',
-                controller,
-                columnKey: 'actualQty',
-                alignment: Alignment.center,
-                hasRightBorder: true,
-                enableSort: false,
-              ),
-            ),
-            SizedBox(
-              width: imagesColWidth,
-              child: _headerCell(
-                'Images',
-                controller,
-                columnKey: 'image',
-                alignment: Alignment.center,
-                hasRightBorder: false,
-                enableSort: false,
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -587,10 +688,16 @@ class _AdditionalAuditItemRowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final widths = _AuditTableWidths.of(context);
+    final wItem = widths?.itemColWidth ?? AuditTableWidget.itemColWidth;
+    final wCategory = widths?.categoryColWidth ?? AuditTableWidget.categoryColWidth;
+    final wActual = widths?.actualQtyColWidth ?? AuditTableWidget.actualQtyColWidth;
+    final wImages = widths?.imagesColWidth ?? AuditTableWidget.imagesColWidth;
+
     final qtyStr = item.actualQty % 1 == 0
         ? item.actualQty.toInt().toString()
         : item.actualQty.toStringAsFixed(2);
-    final displayQty = '${qtyStr} ${item.measurementUnitName}';
+    final displayQty = '$qtyStr ${item.measurementUnitName}';
 
     return Container(
       color: const Color(0xFFEFF6FF),
@@ -600,7 +707,7 @@ class _AdditionalAuditItemRowTile extends StatelessWidget {
           children: [
             // Item Name
             SizedBox(
-              width: AuditTableWidget.itemColWidth,
+              width: wItem,
               child: _cell(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -612,7 +719,7 @@ class _AdditionalAuditItemRowTile extends StatelessWidget {
             ),
             // Category Badge
             SizedBox(
-              width: AuditTableWidget.categoryColWidth,
+              width: wCategory,
               child: _cell(
                 alignment: Alignment.centerLeft,
                 child: Container(
@@ -631,7 +738,7 @@ class _AdditionalAuditItemRowTile extends StatelessWidget {
             ),
             // Actual Qty with Unit Name
             SizedBox(
-              width: AuditTableWidget.actualQtyColWidth,
+              width: wActual,
               child: _cell(
                 alignment: Alignment.center,
                 hasRightBorder: true,
@@ -645,7 +752,7 @@ class _AdditionalAuditItemRowTile extends StatelessWidget {
             ),
             // Item Image + Delete Action
             SizedBox(
-              width: AuditTableWidget.imagesColWidth,
+              width: wImages,
               child: _cell(
                 alignment: Alignment.center,
                 hasRightBorder: false,
@@ -755,6 +862,11 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
   @override
   Widget build(BuildContext context) {
     final textCtrl = widget.controller.qtyControllers[widget.item.itemId];
+    final widths = _AuditTableWidths.of(context);
+    final wItem = widths?.itemColWidth ?? AuditTableWidget.itemColWidth;
+    final wCategory = widths?.categoryColWidth ?? AuditTableWidget.categoryColWidth;
+    final wActual = widths?.actualQtyColWidth ?? AuditTableWidget.actualQtyColWidth;
+    final wImages = widths?.imagesColWidth ?? AuditTableWidget.imagesColWidth;
 
     return InkWell(
       onTap: () {
@@ -770,7 +882,7 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
             children: [
               // Item Name
               SizedBox(
-                width: AuditTableWidget.itemColWidth,
+                width: wItem,
                 child: _cell(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -785,7 +897,7 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
               ),
               // Category Name
               SizedBox(
-                width: AuditTableWidget.categoryColWidth,
+                width: wCategory,
                 child: _cell(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -800,15 +912,15 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
               ),
               // Actual Qty
               SizedBox(
-                width: AuditTableWidget.actualQtyColWidth,
+                width: wActual,
                 child: _cell(
                   alignment: Alignment.center,
                   hasRightBorder: true,
                   child: Center(
                     child: SizedBox(
-                      width: AuditTableWidget.actualQtyColWidth > 20.w
-                          ? AuditTableWidget.actualQtyColWidth - 10.w
-                          : AuditTableWidget.actualQtyColWidth,
+                      width: wActual > 20.w
+                          ? wActual - 10.w
+                          : wActual,
                       height: 25.h,
                       child: TextField(
                         controller: textCtrl,
@@ -854,7 +966,7 @@ class _AuditRowGridTileState extends State<_AuditRowGridTile> {
               ),
               // Item Images
               SizedBox(
-                width: AuditTableWidget.imagesColWidth,
+                width: wImages,
                 child: _cell(
                   alignment: Alignment.center,
                   hasRightBorder: false,
@@ -933,12 +1045,15 @@ void _showImageSourceSheet({
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => Container(
-      padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
+    builder: (ctx) => Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Container(
+          padding: EdgeInsets.all(20.r),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1092,7 +1207,9 @@ void _showImageSourceSheet({
         ],
       ),
     ),
-  );
+  ),
+),
+);
 }
 
 Widget _buildSourceTile({

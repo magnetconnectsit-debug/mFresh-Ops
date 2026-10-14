@@ -220,6 +220,12 @@ class AppConstants {
   static const String assetProductDelete = 'asset-product/delete';
   static const String assetProductProjects = 'asset-product/projects';
 
+  // Asset Category
+  static const String assetCategoryList = 'asset-category/list';
+  static const String assetCategoryStore = 'asset-category/store';
+  static const String assetCategoryUpdate = 'asset-category/update';
+  static const String assetCategoryDelete = 'asset-category/delete';
+
   // Account & Subscription
   static const String accountSubscriptionList = 'account-subscription/list';
   static const String accountList = 'account-list';

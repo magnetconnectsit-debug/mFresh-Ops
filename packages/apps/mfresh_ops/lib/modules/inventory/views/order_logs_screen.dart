@@ -40,26 +40,22 @@ class _OrderLogsScreenState extends State<OrderLogsScreen> {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        title: Obx(() {
-          return controller.isSearching.value
-              ? AppCommonSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'Search order ID, item name...',
-                  onChanged: (v) => controller.allLogs.refresh(),
-                )
-              : Text(
-                  'Order Receive Logs',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                );
-        }),
-        actions: [
-          Obx(() => IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                ),
-              )),
-        ],
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Order Receive Logs',
+              style: AppTextStyle.style_16_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) => controller.allLogs.refresh(),
+            ),
+          ],
+        ),
       ),
       drawer: const CommonSidebar(),
       body: AppRefreshIndicator(

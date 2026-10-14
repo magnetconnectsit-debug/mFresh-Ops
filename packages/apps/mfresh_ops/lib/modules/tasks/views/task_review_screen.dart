@@ -6,6 +6,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_image_view.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,7 +36,11 @@ class TaskReviewScreen extends GetView<TasksController> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.r),
-        child: Column(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -87,42 +92,28 @@ class TaskReviewScreen extends GetView<TasksController> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
+                    child: AppCommonButton(
+                      text: 'Reject',
+                      buttonColor: AppColors.red,
+                      textColor: AppColors.white,
+                      height: 44.h,
+                      textSize: 15.sp,
+                      borderRadius: 8.r,
+                      useGradient: false,
                       onPressed: () => Get.back(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Reject',
-                        style: AppTextStyle.style_15_600(
-                          color: AppColors.white,
-                        ),
-                      ),
                     ),
                   ),
                   SizedBox(width: 16.w),
                   Expanded(
-                    child: ElevatedButton(
+                    child: AppCommonButton(
+                      text: 'Approve',
+                      buttonColor: AppColors.success,
+                      textColor: AppColors.white,
+                      height: 44.h,
+                      textSize: 15.sp,
+                      borderRadius: 8.r,
+                      useGradient: false,
                       onPressed: () => Get.back(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Approve',
-                        style: AppTextStyle.style_15_600(
-                          color: AppColors.white,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -153,22 +144,15 @@ class TaskReviewScreen extends GetView<TasksController> {
                   ),
                   SizedBox(width: 8.w),
                   Expanded(
-                    child: ElevatedButton(
+                    child: AppCommonButton(
+                      text: 'Submit',
+                      buttonColor: AppColors.info,
+                      textColor: AppColors.white,
+                      height: 44.h,
+                      textSize: 14.sp,
+                      borderRadius: 8.r,
+                      useGradient: false,
                       onPressed: () => Get.back(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.info,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 12.h),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Submit',
-                        style: AppTextStyle.style_14_600(
-                          color: AppColors.white,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -178,8 +162,10 @@ class TaskReviewScreen extends GetView<TasksController> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildImageItem(dynamic item, VoidCallback onDelete) {
     final bool isUrl = item is String;
@@ -320,17 +306,16 @@ class TaskReviewScreen extends GetView<TasksController> {
     Color textColor,
     VoidCallback onTap,
   ) {
-    return ElevatedButton(
+    return AppCommonButton(
+      text: text,
+      buttonColor: bgColor,
+      textColor: textColor,
+      height: 44.h,
+      textSize: 12.sp,
+      borderRadius: 8.r,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      useGradient: false,
       onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: bgColor,
-        foregroundColor: textColor,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-        minimumSize: Size(0, 44.h),
-      ),
-      child: Text(text, style: AppTextStyle.style_12_600(color: textColor)),
     );
   }
 }

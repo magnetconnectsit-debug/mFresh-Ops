@@ -1,10 +1,8 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 
@@ -247,57 +245,38 @@ class TicketDetailsHeader extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Obx(
-                      () => SizedBox(
+                      () => AppCommonButton(
+                        text: "Save",
+                        isLoading: controller.isSubtaskLoading.value,
                         width: 120,
                         height: 40,
-                        child: ElevatedButton(
-                          onPressed: controller.isSubtaskLoading.value
-                              ? null
-                              : () async {
-                                  final all = controllers
-                                      .map((c) => c.text.trim())
-                                      .where((t) => t.isNotEmpty)
-                                      .toList();
-                                  if (all.isEmpty) {
-                                    AppCommonToastMessage.show(
-                                      message: 'Please add at least one subtask',
-                                      type: ToastType.error,
-                                    );
-                                    return;
-                                  }
-                                  final success = await controller.createSubtasks(all);
-                                  if (success) {
-                                    Get.back();
-                                    AppCommonToastMessage.show(
-                                      message: 'Subtasks saved successfully',
-                                      type: ToastType.success,
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.blue,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: controller.isSubtaskLoading.value
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.white,
-                                  ),
-                                )
-                              : Text(
-                                  'Save',
-                                  style: AppTextStyle.style_12_600(
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                        ),
+                        textSize: 12,
+                        borderRadius: 8,
+                        buttonColor: AppColors.blue,
+                        useGradient: false,
+                        onPressed: controller.isSubtaskLoading.value
+                            ? null
+                            : () async {
+                                final all = controllers
+                                    .map((c) => c.text.trim())
+                                    .where((t) => t.isNotEmpty)
+                                    .toList();
+                                if (all.isEmpty) {
+                                  AppCommonToastMessage.show(
+                                    message: 'Please add at least one subtask',
+                                    type: ToastType.error,
+                                  );
+                                  return;
+                                }
+                                final success = await controller.createSubtasks(all);
+                                if (success) {
+                                  Get.back();
+                                  AppCommonToastMessage.show(
+                                    message: 'Subtasks saved successfully',
+                                    type: ToastType.success,
+                                  );
+                                }
+                              },
                       ),
                     ),
                   ),

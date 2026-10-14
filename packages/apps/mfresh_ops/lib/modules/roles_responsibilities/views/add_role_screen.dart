@@ -41,7 +41,11 @@ class AddRoleScreen extends StatelessWidget {
         top: false,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(left: 12.w, right: 12.w, top: 4.h, bottom: 16.h),
-          child: Column(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -159,6 +163,7 @@ class AddRoleScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ));
+}
 }

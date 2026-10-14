@@ -22,8 +22,10 @@ Future<void> showMContactBrandDialog(BuildContext context, MContactBrandsControl
         borderRadius: BorderRadius.circular(12.r),
         side: const BorderSide(color: AppColors.borderColor, width: 1),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(20.r),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
         child: Form(
           key: controller.formKey,
           child: Column(
@@ -107,5 +109,6 @@ Future<void> showMContactBrandDialog(BuildContext context, MContactBrandsControl
         ),
       ),
     ),
-  );
+  ),
+);
 }

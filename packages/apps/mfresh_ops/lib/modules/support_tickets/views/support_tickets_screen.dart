@@ -35,44 +35,24 @@ class SupportTicketsScreen extends StatelessWidget {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        toolbarHeight: 35.h,
+        toolbarHeight: 40.h,
         title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 4.h, bottom: 2.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchController,
-                    focusNode: controller.searchFocusNode,
-                    hintText: 'Search tickets locally...',
-                    onChanged: (v) => controller.searchQuery.value = v,
-                    autofocus: true,
-                    onClose: () {
-                      controller.searchController.clear();
-                      controller.searchQuery.value = '';
-                      controller.toggleSearch();
-                    },
-                  ),
-                )
-              : Row(
-                  children: [
-                    Text(
-                      "Support Tickets (${controller.totalTickets.value})",
-                      style: AppTextStyle.style_16_700(color: AppColors.black),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(Icons.search, color: AppColors.black, size: 22.sp),
-                      onPressed: () {
-                        if (!controller.isSearching.value) {
-                          controller.toggleSearch();
-                        }
-                      },
-                    ),
-                  ],
-                ),
+          () => Row(
+            children: [
+              Text(
+                "Support Tickets (${controller.totalTickets.value})",
+                style: AppTextStyle.style_16_700(color: AppColors.black),
+              ),
+              const Spacer(),
+              AppCommonSearchBar(
+                width: 140.w,
+                controller: controller.searchController,
+                focusNode: controller.searchFocusNode,
+                hintText: 'Search',
+                onChanged: (v) => controller.searchQuery.value = v,
+              ),
+            ],
+          ),
         ),
       ),
       drawer: const CommonSidebar(),

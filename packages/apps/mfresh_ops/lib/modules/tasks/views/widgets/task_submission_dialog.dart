@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_image_view.dart';
+import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_common_textfield.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
@@ -30,8 +32,10 @@ class TaskSubmissionDialog extends StatelessWidget {
       insetPadding: EdgeInsets.symmetric(horizontal: 30.w),
       backgroundColor: AppColors.white,
       surfaceTintColor: AppColors.transparent,
-      child: SingleChildScrollView(
-        child: Container(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: SingleChildScrollView(
+          child: Container(
           padding: EdgeInsets.all(16.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -201,7 +205,7 @@ class TaskSubmissionDialog extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              if (!isReview && !isReadOnly)
+                              if (!isReadOnly && (entry.value is! String || !isReview))
                                 Positioned(
                                   top: 2,
                                   right: 2,
@@ -222,7 +226,7 @@ class TaskSubmissionDialog extends StatelessWidget {
                           ),
                         );
                       }),
-                      if (!isReview && !isReadOnly)
+                      if (!isReadOnly)
                         GestureDetector(
                           onTap: () => controller.pickImage(),
                           child: _buildUploadPlaceholder(),
@@ -232,32 +236,18 @@ class TaskSubmissionDialog extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 12.h),
-              Text(
-                'Comments',
-                style: AppTextStyle.style_12_700(color: AppColors.black),
-              ),
-              SizedBox(height: 6.h),
+              SizedBox(height: 14.h),
               _buildCommentField(
                 controller: controller.commentController,
-                hintText: 'Enter Comments',
+                label: 'Comments',
                 enabled: !isReview && !isReadOnly,
-                backgroundColor: (isReview || isReadOnly)
-                    ? AppColors.grey50.withValues(alpha: 0.5)
-                    : AppColors.white,
               ),
 
-              SizedBox(height: 12.h),
-              Text(
-                'Approver Comments',
-                style: AppTextStyle.style_12_700(color: AppColors.black),
-              ),
-              SizedBox(height: 6.h),
+              SizedBox(height: 14.h),
               _buildCommentField(
                 controller: controller.approverCommentController,
-                hintText: '',
+                label: 'Approver Comments',
                 enabled: isReview && !isReadOnly,
-                backgroundColor: (isReview && !isReadOnly) ? AppColors.white : const Color(0xFFF8F9FA),
               ),
 
               SizedBox(height: 16.h),
@@ -273,44 +263,21 @@ class TaskSubmissionDialog extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildCommentField({
     required TextEditingController controller,
-    required String hintText,
+    required String label,
     bool enabled = true,
-    Color backgroundColor = AppColors.white,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(6.r),
-      ),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        minLines: 2,
-        maxLines: 5,
-        style: AppTextStyle.style_10_400(color: AppColors.black),
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: AppTextStyle.style_10_400(color: AppColors.grey300),
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-        ),
-      ),
+    return AppCommonTextField(
+      controller: controller,
+      labelText: label,
+      hintText: 'Enter $label',
+      enabled: enabled,
+      maxLines: 4,
     );
   }
 
@@ -342,47 +309,24 @@ class TaskSubmissionDialog extends StatelessWidget {
 
   Widget _buildSubmissionActions(TasksController controller) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Expanded(
-          child: SizedBox(
-            height: 32.h,
-            child: ElevatedButton(
-              onPressed: () => controller.submitTask(task, isUpdate: true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC3545), // Red
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-              ),
-              child: Text(
-                'Update',
-                style: AppTextStyle.style_12_600(color: Colors.white),
-              ),
-            ),
-          ),
+        AppCommonButton(
+          text: 'Update',
+          height: 24.h,
+          width: 80.w,
+          useGradient: false,
+          buttonColor: const Color(0xFFDC3545),
+          onPressed: () => controller.submitTask(task, isUpdate: true),
         ),
         SizedBox(width: 12.w),
-        Expanded(
-          child: SizedBox(
-            height: 32.h,
-            child: ElevatedButton(
-              onPressed: () => controller.submitTask(task),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF198754), // Green
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-              ),
-              child: Text(
-                'Submit',
-                style: AppTextStyle.style_12_600(color: Colors.white),
-              ),
-            ),
-          ),
+        AppCommonButton(
+          text: 'Submit',
+          height: 24.h,
+          width: 80.w,
+          useGradient: false,
+          buttonColor: const Color(0xFF198754),
+          onPressed: () => controller.submitTask(task),
         ),
       ],
     );
@@ -390,47 +334,24 @@ class TaskSubmissionDialog extends StatelessWidget {
 
   Widget _buildReviewActions(TasksController controller) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Expanded(
-          child: SizedBox(
-            height: 32.h,
-            child: ElevatedButton(
-              onPressed: () => controller.rejectTask(task.taskInstanceId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC3545), // Red
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-              ),
-              child: Text(
-                'Reject',
-                style: AppTextStyle.style_12_600(color: Colors.white),
-              ),
-            ),
-          ),
+        AppCommonButton(
+          text: 'Reject',
+          height: 24.h,
+          width: 80.w,
+          useGradient: false,
+          buttonColor: const Color(0xFFDC3545),
+          onPressed: () => controller.rejectTask(task.taskInstanceId),
         ),
         SizedBox(width: 12.w),
-        Expanded(
-          child: SizedBox(
-            height: 32.h,
-            child: ElevatedButton(
-              onPressed: () => controller.approveTask(task.taskInstanceId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF198754), // Green
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-              ),
-              child: Text(
-                'Approve',
-                style: AppTextStyle.style_12_600(color: Colors.white),
-              ),
-            ),
-          ),
+        AppCommonButton(
+          text: 'Approve',
+          height: 24.h,
+          width: 80.w,
+          useGradient: false,
+          buttonColor: const Color(0xFF198754),
+          onPressed: () => controller.approveTask(task.taskInstanceId),
         ),
       ],
     );

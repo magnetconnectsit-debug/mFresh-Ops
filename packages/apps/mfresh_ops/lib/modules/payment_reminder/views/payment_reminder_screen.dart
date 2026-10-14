@@ -30,36 +30,24 @@ class PaymentReminderScreen extends StatelessWidget {
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
         toolbarHeight: 45.h,
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchController,
-                    hintText: 'Search payment reminders...',
-                    onChanged: (v) {
-                      controller.searchQuery.value = v;
-                      controller.applyFilters();
-                    },
-                  ),
-                )
-              : Text(
-                  'Scheduler',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 26.sp,
-              ),
+        title: Row(
+          children: [
+            Text(
+              'Scheduler',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
-          ),
-        ],
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) {
+                controller.searchQuery.value = v;
+                controller.applyFilters();
+              },
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -91,7 +79,7 @@ class PaymentReminderScreen extends StatelessWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 PaymentReminderFilterCard(controller: controller),
-
+                SizedBox(height: 4.h),
                 // Action Buttons (Add Reminder & Rows per Page)
                 Row(
                   children: [
@@ -161,6 +149,7 @@ class PaymentReminderScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                SizedBox(height: 4.h),
 
                 // Table
                 PaymentReminderTable(controller: controller),

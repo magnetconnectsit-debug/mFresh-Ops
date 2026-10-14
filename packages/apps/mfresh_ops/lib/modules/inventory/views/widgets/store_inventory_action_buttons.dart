@@ -1,8 +1,7 @@
-import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'store_inventory_dialogs.dart';
@@ -53,28 +52,8 @@ class StoreInventoryActionButtons extends StatelessWidget {
               SizedBox(width: 4.w),
             ],
             if (canExport) ...[
-              SizedBox(
-                height: 24.h,
-                child: ElevatedButton(
-                  onPressed: () => controller.exportToExcel(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF389D6A),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 4.w),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                    elevation: 1,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.file_download_outlined, size: 12.r, color: Colors.white),
-                      SizedBox(width: 2.w),
-                      Text('Excel', style: AppTextStyle.style_10_600(color: Colors.white)),
-                    ],
-                  ),
-                ),
+              AppCommonExportButton(
+                onExportExcel: () => controller.exportToExcel(),
               ),
               SizedBox(width: 4.w),
             ],

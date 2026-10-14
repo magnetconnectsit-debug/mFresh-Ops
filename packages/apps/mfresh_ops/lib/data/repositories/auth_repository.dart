@@ -117,12 +117,6 @@ class AuthRepository extends GetxService {
       debugPrint("Error fetching real FCM token: $e");
     }
 
-    if (isDev) {
-      deviceId = "BP2A.250605.031.A3";
-      deviceInfo["imei_no"] = "BP2A.250605.031.A3";
-      fcmToken = "firebase_token";
-    }
-
     return {
       'device_id': deviceId,
       'fcm_token': fcmToken,

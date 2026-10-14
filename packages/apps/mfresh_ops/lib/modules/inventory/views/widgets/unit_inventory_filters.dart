@@ -1,11 +1,9 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class UnitInventoryFilters extends StatelessWidget {
   const UnitInventoryFilters({super.key});
@@ -44,13 +42,7 @@ class UnitInventoryFilters extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 4.h),
-                  child: Text(
-                    'Filters',
-                    style: AppTextStyle.style_14_600(color: AppColors.black),
-                  ),
-                ),
+                SizedBox(height: 8.h,),
                 GridView(
                   padding: EdgeInsets.zero,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

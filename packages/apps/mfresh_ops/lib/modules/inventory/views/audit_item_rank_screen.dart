@@ -64,28 +64,22 @@ class AuditItemRankScreen extends StatelessWidget {
           hasBackButton: false,
           showAppDrawer: true,
           topHeader: const CommonShortcutHeader(),
-          title: Obx(
-            () => controller.isSearching.value
-                ? AppCommonSearchBar(
-                    controller: controller.searchController,
-                    onChanged: (v) => controller.applyFilters(),
-                    hintText: 'Search Audit Item Rank...',
-                  )
-                : Text(
-                    'Audit Item Rank',
-                    style: AppTextStyle.style_18_700(color: AppColors.black),
-                  ),
-          ),
-          actions: [
-            Obx(
-              () => IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                ),
+          toolbarHeight: 45.h,
+          title: Row(
+            children: [
+              Text(
+                'Audit Item Rank',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
               ),
-            ),
-          ],
+              const Spacer(),
+              AppCommonSearchBar(
+                width: 140.w,
+                controller: controller.searchController,
+                onChanged: (v) => controller.applyFilters(),
+                hintText: 'Search',
+              ),
+            ],
+          ),
         ),
         drawer: const CommonSidebar(),
         body: Column(
@@ -340,53 +334,56 @@ class AuditItemRankScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(20.r),
           side: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Add Audit Item Rank',
-                style: AppTextStyle.style_18_700(color: AppColors.black),
-              ),
-              SizedBox(height: 20.h),
-              AppCommonTextField(
-                controller: controller.rankNameController,
-                titleText: 'Rank Name',
-                hintText: 'e.g. Audit Daily',
-              ),
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyle.style_14_600(
-                        color: AppColors.grey300,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add Audit Item Rank',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
+                SizedBox(height: 20.h),
+                AppCommonTextField(
+                  controller: controller.rankNameController,
+                  titleText: 'Rank Name',
+                  hintText: 'e.g. Audit Daily',
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.grey300,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Obx(
-                    () => AppCommonButton(
-                      text: 'Submit',
-                      width: 100.w,
-                      height: 36.h,
-                      isLoading: controller.isSubmitting.value,
-                      onPressed: () async {
-                        final success = await controller.addAuditItemRank();
-                        if (success && dialogContext.mounted) {
-                          Navigator.of(dialogContext).pop();
-                        }
-                      },
+                    SizedBox(width: 12.w),
+                    Obx(
+                      () => AppCommonButton(
+                        text: 'Submit',
+                        width: 100.w,
+                        height: 36.h,
+                        isLoading: controller.isSubmitting.value,
+                        onPressed: () async {
+                          final success = await controller.addAuditItemRank();
+                          if (success && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -408,56 +405,59 @@ class AuditItemRankScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(20.r),
           side: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Edit Audit Item Rank',
-                style: AppTextStyle.style_18_700(color: AppColors.black),
-              ),
-              SizedBox(height: 20.h),
-              AppCommonTextField(
-                controller: nameController,
-                titleText: 'Rank Name',
-                hintText: 'e.g. Audit Daily',
-              ),
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyle.style_14_600(
-                        color: AppColors.grey300,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Edit Audit Item Rank',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
+                ),
+                SizedBox(height: 20.h),
+                AppCommonTextField(
+                  controller: nameController,
+                  titleText: 'Rank Name',
+                  hintText: 'e.g. Audit Daily',
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyle.style_14_600(
+                          color: AppColors.grey300,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Obx(
-                    () => AppCommonButton(
-                      text: 'Update',
-                      width: 100.w,
-                      height: 36.h,
-                      isLoading: controller.isSubmitting.value,
-                      onPressed: () async {
-                        final success = await controller.editAuditItemRank(
-                          model,
-                          nameController.text,
-                        );
-                        if (success && dialogContext.mounted) {
-                          Navigator.of(dialogContext).pop();
-                        }
-                      },
+                    SizedBox(width: 12.w),
+                    Obx(
+                      () => AppCommonButton(
+                        text: 'Update',
+                        width: 100.w,
+                        height: 36.h,
+                        isLoading: controller.isSubmitting.value,
+                        onPressed: () async {
+                          final success = await controller.editAuditItemRank(
+                            model,
+                            nameController.text,
+                          );
+                          if (success && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -455,9 +455,11 @@ class AuditReportController extends GetxController {
       builder: (ctx) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-          child: Container(
-            width: 260.w,
-            padding: EdgeInsets.all(16.r),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16.r),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -512,9 +514,10 @@ class AuditReportController extends GetxController {
               ],
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 
   Future<void> openDateRangePicker(BuildContext context) async {

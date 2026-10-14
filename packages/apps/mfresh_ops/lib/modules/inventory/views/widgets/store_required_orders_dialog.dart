@@ -10,6 +10,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/utils/app_common_toast_message.dart';
+import 'package:core/widgets/app_common_table.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
@@ -37,7 +39,13 @@ class StoreRequiredOrdersDialog extends StatefulWidget {
           clipBehavior: Clip.antiAlias,
           child: SizedBox(
             width: double.infinity,
-            child: StoreRequiredOrdersDialog(bulkPreviewSection: bulkPreviewSection),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 800,
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: StoreRequiredOrdersDialog(bulkPreviewSection: bulkPreviewSection),
+            ),
           ),
         );
       },
@@ -426,14 +434,14 @@ class _StoreRequiredOrdersDialogState
 
         // Visible Dialog Body
         Container(
-          color: Colors.white,
+          color: AppColors.white,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header Row
+              // Header Row (Fixed)
               Container(
-                color: const Color(0xFFEBF3FA),
+                color: AppColors.blue50,
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -441,266 +449,126 @@ class _StoreRequiredOrdersDialogState
                     Expanded(
                       child: Text(
                         dialogTitle,
-                        style: AppTextStyle.style_12_700(color: const Color(0xFF1E3A5F)),
+                        style: AppTextStyle.style_12_700(color: AppColors.black),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Info Notice Banner
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F7FA),
-                        border: Border.all(color: const Color(0xFFB2EBF2)),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: Text(
-                        'Required quantities for all Stores. Zero-quantity items are not included.',
-                        style: AppTextStyle.style_11_500(color: const Color(0xFF006064)),
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-
-                    // Data Table Section
-                    if (!_isLoadingPreview && itemsData.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        child: Center(
-                          child: Text(
-                            'No required store orders found.',
-                            style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                          ),
+              Flexible(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Info Notice Banner (Fixed)
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.blue50,
+                          border: Border.all(color: AppColors.blue100),
+                          borderRadius: BorderRadius.circular(4.r),
                         ),
-                      )
-                    else
-                      Skeletonizer(
-                        enabled: _isLoadingPreview,
-                        child: Container(
-                          color: Colors.white,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Fixed Header Table
-                                Table(
-                                  columnWidths: tableColumnWidths,
-                                  border: TableBorder.all(
-                                    color: const Color(0xFFE0E0E0),
-                                    width: 1,
-                                  ),
-                                  children: [
-                                    TableRow(
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF0288D1),
-                                      ),
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 8.w, vertical: 8.h),
-                                          child: Text(
-                                            'Item',
-                                            textAlign: TextAlign.center,
-                                            style: AppTextStyle.style_11_700(
-                                                color: Colors.white),
-                                          ),
-                                        ),
-                                        ...stores.map(
-                                          (st) => Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 6.w, vertical: 8.h),
-                                            child: Text(
-                                              st,
-                                              textAlign: TextAlign.center,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppTextStyle.style_11_700(
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 6.w, vertical: 8.h),
-                                          child: Text(
-                                            'Total',
-                                            textAlign: TextAlign.center,
-                                            style: AppTextStyle.style_11_700(
-                                                color: Colors.white),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                        child: Text(
+                          'Required quantities for all Stores. Zero-quantity items are not included.',
+                          style: AppTextStyle.style_11_500(color: AppColors.info),
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
 
-                                // Scrollable Data Table
-                                ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.42,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.vertical,
-                                    physics: const BouncingScrollPhysics(),
-                                    child: Table(
-                                      columnWidths: tableColumnWidths,
-                                      border: TableBorder.all(
-                                        color: const Color(0xFFE0E0E0),
-                                        width: 1,
-                                      ),
-                                      children: itemsData.asMap().entries.map((entry) {
-                                        final idx = entry.key;
-                                        final itemData = entry.value;
-                                        final rowBgColor = idx % 2 == 0
-                                            ? Colors.white
-                                            : const Color(0xFFFAFAFA);
-
-                                        return TableRow(
-                                          decoration: BoxDecoration(color: rowBgColor),
-                                          children: [
-                                            // Item Name Column
-                                            Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 8.w, vertical: 6.h),
-                                              child: Text(
-                                                itemData.itemName,
-                                                style: AppTextStyle.style_11_600(
-                                                    color: const Color(0xFF2C3E50)),
-                                              ),
-                                            ),
-
-                                            // Store Qty Columns
-                                            ...stores.map((st) {
-                                              final qty = itemData.storeQtyMap[st] ?? 0;
-                                              return Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 6.w, vertical: 6.h),
-                                                child: Text(
-                                                  '${_formatQty(qty)} ${itemData.displayUnit}',
-                                                  textAlign: TextAlign.center,
-                                                  style: AppTextStyle.style_11_400(
-                                                      color: const Color(0xFF2C3E50)),
-                                                ),
-                                              );
-                                            }),
-
-                                            // Total Column
-                                            Container(
-                                              color: const Color(0xFFF7F2E9),
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 6.w, vertical: 6.h),
-                                              child: Text(
-                                                '${_formatQty(itemData.totalQty)} ${itemData.displayUnit}',
-                                                textAlign: TextAlign.center,
-                                                style: AppTextStyle.style_11_600(
-                                                    color: const Color(0xFF2C3E50)),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                      // Data Table Section (Only Table Data Rows Scroll internally)
+                      if (!_isLoadingPreview && itemsData.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          child: Center(
+                            child: Text(
+                              'No required store orders found.',
+                              style: AppTextStyle.style_12_400(color: AppColors.grey500),
                             ),
                           ),
+                        )
+                      else
+                        Flexible(
+                          child: AppCommonTable<_RequestOrderItemData>(
+                            items: itemsData,
+                            columns: [
+                              AppTableColumn<_RequestOrderItemData>(
+                                key: 'Item',
+                                title: 'Item',
+                                width: 140.w,
+                                valueGetter: (item) => item.itemName,
+                              ),
+                              ...stores.map(
+                                (sName) => AppTableColumn<_RequestOrderItemData>(
+                                  key: sName,
+                                  title: sName,
+                                  width: 95.w,
+                                  valueGetter: (item) {
+                                    final qty = item.storeQtyMap[sName] ?? 0;
+                                    return '${_formatQty(qty)} ${item.displayUnit}';
+                                  },
+                                ),
+                              ),
+                              AppTableColumn<_RequestOrderItemData>(
+                                key: 'Total',
+                                title: 'Total',
+                                width: 90.w,
+                                cellColorGetter: (item) => AppColors.yellow50,
+                                valueGetter: (item) =>
+                                    '${_formatQty(item.totalQty)} ${item.displayUnit}',
+                              ),
+                            ],
+                            headingRowColor: AppColors.blue50,
+                            headingTextStyle:
+                                AppTextStyle.style_11_700(color: AppColors.black),
+                            dataTextStyle:
+                                AppTextStyle.style_11_500(color: AppColors.black),
+                            borderColor: AppColors.borderColor,
+                            headingRowHeight: 20.h,
+                            cellVerticalPadding: 1.h,
+                            cellHorizontalPadding: 4.w,
+                            emptyText: 'No required store orders found.',
+                            isLoading: _isLoadingPreview,
+                          ),
                         ),
-                      ),
-                    SizedBox(height: 12.h),
+                      SizedBox(height: 12.h),
 
-                    // Action Buttons Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        // Share Button
-                        Builder(
-                          builder: (btnContext) => SizedBox(
-                            height: 30.h,
-                            child: ElevatedButton.icon(
+                      // Action Buttons Row (Fixed at bottom)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Builder(
+                            builder: (btnContext) => AppCommonButton(
+                              text: 'Share',
+                              height: 28.h,
+                              buttonColor: AppColors.primaryGreen,
+                              icon: Icons.share,
                               onPressed: _isSubmitting
                                   ? null
                                   : () => _shareTableImage(btnContext),
-                              icon: Icon(Icons.share,
-                                  size: 14.r, color: Colors.white),
-                              label: Text(
-                                'Share',
-                                style: AppTextStyle.style_11_600(
-                                    color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF198754),
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5.r),
-                                ),
-                                elevation: 0,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 8.w),
-
-                        // Order Button
-                        SizedBox(
-                          height: 30.h,
-                          child: ElevatedButton(
+                          SizedBox(width: 8.w),
+                          AppCommonButton(
+                            text: 'Order',
+                            height: 28.h,
+                            buttonColor: AppColors.primary,
+                            isLoading: _isSubmitting,
+                            icon: Icons.check,
                             onPressed: _isSubmitting ? null : _submitBulkOrder,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0D6EFD),
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 12.w),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5.r),
-                              ),
-                              elevation: 0,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: _isSubmitting
-                                ? SizedBox(
-                                    width: 14.r,
-                                    height: 14.r,
-                                    child: const CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.check,
-                                          size: 14.r, color: Colors.white),
-                                      SizedBox(width: 4.w),
-                                      Text(
-                                        'Order',
-                                        style: AppTextStyle.style_11_600(
-                                            color: Colors.white),
-                                      ),
-                                    ],
-                                  ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        ],
-      );
-    }
+      ],
+    );
+  }
 }

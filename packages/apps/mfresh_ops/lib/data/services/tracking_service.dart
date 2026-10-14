@@ -136,33 +136,33 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
-    
+
     unawaited(_enforceLocationServicesOnResume());
     unawaited(_restoreTrackingOnResume());
   }
 
   Future<void> _enforceLocationServicesOnResume() async {
     try {
-       final token = _storageService.getToken();
-       if (token == null || token.isEmpty) return; 
+      final token = _storageService.getToken();
+      if (token == null || token.isEmpty) return;
 
-       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-       if (!serviceEnabled) {
-          _showGpsDisabledDialog();
-       } else {
-          _closeGpsDisabledDialog();
-          
-          final fgGranted = await ph.Permission.location.isGranted;
-          final bgGranted = await ph.Permission.locationAlways.isGranted;
-          if (!fgGranted || !bgGranted) {
-             if (Get.currentRoute != AppRoutes.locationPermission) {
-                Get.offAllNamed(AppRoutes.locationPermission);
-             }
+      if (!serviceEnabled) {
+        _showGpsDisabledDialog();
+      } else {
+        _closeGpsDisabledDialog();
+
+        final fgGranted = await ph.Permission.location.isGranted;
+        final bgGranted = await ph.Permission.locationAlways.isGranted;
+        if (!fgGranted || !bgGranted) {
+          if (Get.currentRoute != AppRoutes.locationPermission) {
+            Get.offAllNamed(AppRoutes.locationPermission);
           }
-       }
+        }
+      }
     } catch (e) {
-       debugPrint("Error enforcing location services on resume: $e");
+      debugPrint("Error enforcing location services on resume: $e");
     }
   }
 
@@ -170,7 +170,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   void _showGpsDisabledDialog() {
     if (_isGpsDialogShowing) return;
     _isGpsDialogShowing = true;
-    
+
     Get.dialog(
       PopScope(
         canPop: false,
@@ -514,15 +514,21 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         );
 
         if (emp != null) {
-          final dynamic dutyRaw = emp['is_on_duty'] ?? emp['is_duty_on'] ?? emp['duty_status'];
-          active = dutyRaw == 1 || dutyRaw == '1' || dutyRaw == true || dutyRaw == 'true';
+          final dynamic dutyRaw =
+              emp['is_on_duty'] ?? emp['is_duty_on'] ?? emp['duty_status'];
+          active =
+              dutyRaw == 1 ||
+              dutyRaw == '1' ||
+              dutyRaw == true ||
+              dutyRaw == 'true';
           newSessionId = emp['session_id'] != null
               ? int.tryParse(emp['session_id'].toString())
               : null;
         }
 
         final intendedStatus = _storageService.getIntendedTrackingStatus();
-        if (intendedStatus == true && (sessionId.value != null && sessionId.value! > 0)) {
+        if (intendedStatus == true &&
+            (sessionId.value != null && sessionId.value! > 0)) {
           // Local active session takes priority to prevent accidental stop on resume
           active = true;
         }
@@ -563,32 +569,34 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     if (!permission.isGranted) return;
 
     _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = _locationService.getPositionStream().listen((
-      pos,
-    ) async {
-      currentPosition.value = pos;
+    _positionStreamSubscription = _locationService.getPositionStream().listen(
+      (pos) async {
+        currentPosition.value = pos;
 
-      // Ownership Architecture: Verify Background is NOT actively the owner
-      final bool isBgOwner =
-          await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
-      if (isTracking.value && !isBgOwner) {
-        if (pos.accuracy > TrackingConstants.maxAcceptableAccuracyMeters) {
-          _cacheLocationSafely(await _createLocationData(pos));
-          return;
-        }
+        // Ownership Architecture: Verify Background is NOT actively the owner
+        final bool isBgOwner =
+            await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
+        if (isTracking.value && !isBgOwner) {
+          if (pos.accuracy > TrackingConstants.maxAcceptableAccuracyMeters) {
+            _cacheLocationSafely(await _createLocationData(pos));
+            return;
+          }
 
-        if (TrackingConstants.shouldSyncMovement(
-          lastProcessedPosition: _lastQueuedPosition,
-          currentPosition: pos,
-        )) {
-          _enqueueLocation(pos);
+          if (TrackingConstants.shouldSyncMovement(
+            lastProcessedPosition: _lastQueuedPosition,
+            currentPosition: pos,
+          )) {
+            _enqueueLocation(pos);
+          }
         }
-      }
-    }, onError: (error) {
-      debugPrint('Foreground location stream error: $error');
-      // Automatically restart stream if it crashes (e.g. network switch on Android)
-      Future.delayed(const Duration(seconds: 5), _startLocationUpdates);
-    }, cancelOnError: false);
+      },
+      onError: (error) {
+        debugPrint('Foreground location stream error: $error');
+        // Automatically restart stream if it crashes (e.g. network switch on Android)
+        Future.delayed(const Duration(seconds: 5), _startLocationUpdates);
+      },
+      cancelOnError: false,
+    );
   }
 
   void _startForegroundUpdateTimer() {
@@ -877,7 +885,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'tracking_service_v5',
         channelName: 'Duty Tracking Service',
-        channelDescription: 'Maintains location tracking active during duty hours',
+        channelDescription:
+            'Maintains location tracking active during duty hours',
         channelImportance: NotificationChannelImportance.MIN,
         priority: NotificationPriority.MIN,
         isSticky: true,

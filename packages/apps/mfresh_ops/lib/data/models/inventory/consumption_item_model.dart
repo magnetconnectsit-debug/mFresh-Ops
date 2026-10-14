@@ -31,7 +31,7 @@ class ConsumptionItemModel {
 
   factory ConsumptionItemModel.fromJson(Map<String, dynamic> json) {
     final rawDate = json['date_of_consumption']?.toString() ?? '';
-    final formattedDate = AppDateUtils.formatToOrdinalDate(rawDate);
+    final formattedDate = AppDateUtils.formatToShortOrdinalDate(rawDate);
 
     return ConsumptionItemModel(
       id: json['id'] is int

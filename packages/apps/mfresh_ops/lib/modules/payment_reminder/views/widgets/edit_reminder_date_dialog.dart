@@ -3,10 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:intl/intl.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_reminder_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class EditReminderDateDialog extends StatelessWidget {
   final CreatePaymentReminderController controller;
@@ -24,10 +22,13 @@ class EditReminderDateDialog extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
         backgroundColor: AppColors.white,
         insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-        child: Container(
-          width: 440.w,
-          padding: EdgeInsets.all(16.r),
-          child: EditReminderDateDialog(controller: controller),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.r),
+            child: EditReminderDateDialog(controller: controller),
+          ),
         ),
       ),
     );

@@ -1,13 +1,10 @@
 import 'dart:io';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_audit_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class AddItemDialog extends StatefulWidget {
   final InventoryAuditController controller;
@@ -78,104 +75,109 @@ class _AddItemDialogState extends State<AddItemDialog> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.all(20.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
+      builder: (ctx) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Container(
+            padding: EdgeInsets.all(20.r),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
             ),
-            SizedBox(height: 16.h),
-            Text(
-              'Select Image Source',
-              style: AppTextStyle.style_15_700(color: AppColors.black),
-            ),
-            SizedBox(height: 18.h),
-            Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickImage(ImageSource.camera);
-                    },
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF009BD9).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: const Color(0xFF009BD9).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.camera_alt_outlined,
-                            color: const Color(0xFF009BD9),
-                            size: 28.r,
-                          ),
-                          SizedBox(height: 6.h),
-                          Text(
-                            'Camera',
-                            style: AppTextStyle.style_13_600(color: AppColors.black),
-                          ),
-                        ],
-                      ),
-                    ),
+                Container(
+                  width: 36.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickImage(ImageSource.gallery);
-                    },
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                SizedBox(height: 16.h),
+                Text(
+                  'Select Image Source',
+                  style: AppTextStyle.style_15_700(color: AppColors.black),
+                ),
+                SizedBox(height: 18.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _pickImage(ImageSource.camera);
+                        },
                         borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF009BD9).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: const Color(0xFF009BD9).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.camera_alt_outlined,
+                                color: const Color(0xFF009BD9),
+                                size: 28.r,
+                              ),
+                              SizedBox(height: 6.h),
+                              Text(
+                                'Camera',
+                                style: AppTextStyle.style_13_600(color: AppColors.black),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.photo_library_outlined,
-                            color: const Color(0xFF10B981),
-                            size: 28.r,
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _pickImage(ImageSource.gallery);
+                        },
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                            ),
                           ),
-                          SizedBox(height: 6.h),
-                          Text(
-                            'Gallery',
-                            style: AppTextStyle.style_13_600(color: AppColors.black),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.photo_library_outlined,
+                                color: const Color(0xFF10B981),
+                                size: 28.r,
+                              ),
+                              SizedBox(height: 6.h),
+                              Text(
+                                'Gallery',
+                                style: AppTextStyle.style_13_600(color: AppColors.black),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
+                SizedBox(height: 10.h),
               ],
             ),
-            SizedBox(height: 10.h),
-          ],
+          ),
         ),
       ),
     );
@@ -242,9 +244,11 @@ class _AddItemDialogState extends State<AddItemDialog> {
       ),
       backgroundColor: Colors.white,
       insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: Container(
-        width: 380.w,
-        padding: EdgeInsets.all(16.r),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.r),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -554,6 +558,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

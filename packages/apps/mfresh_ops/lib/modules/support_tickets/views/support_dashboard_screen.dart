@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -96,19 +98,16 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(
-                height: 28,
-                child: ElevatedButton.icon(
-                  onPressed: controller.resetFilters,
-                  icon: const Icon(Icons.refresh, size: 14),
-                  label: Text('Reset', style: AppTextStyle.style_11_400(color: AppColors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.grey600,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
+              AppCommonButton(
+                text: 'Reset',
+                icon: Icons.refresh,
+                buttonColor: AppColors.grey600,
+                textColor: AppColors.white,
+                height: 28.h,
+                textSize: 11.sp,
+                borderRadius: 6.r,
+                useGradient: false,
+                onPressed: controller.resetFilters,
               ),
             ],
           ),
@@ -717,29 +716,28 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
+                      child: AppCommonButton(
+                        text: 'Apply Filters',
+                        buttonColor: AppColors.blue,
+                        textColor: AppColors.white,
+                        height: 38.h,
+                        textSize: 12.sp,
+                        borderRadius: 8.r,
+                        useGradient: false,
                         onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.blue,
-                          foregroundColor: AppColors.white,
-                        ),
-                        child: Text(
-                          'Apply Filters',
-                          style: AppTextStyle.style_12_700(color: AppColors.white),
-                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton(
+                      child: AppCommonButton(
+                        text: 'Reset',
+                        variant: ButtonVariant.outline,
+                        height: 38.h,
+                        textSize: 12.sp,
+                        borderRadius: 8.r,
+                        textColor: AppColors.black87,
+                        borderColor: AppColors.grey200,
                         onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.black87,
-                        ),
-                        child: Text(
-                          'Reset',
-                          style: AppTextStyle.style_12_400(color: AppColors.black87),
-                        ),
                       ),
                     ),
                   ],

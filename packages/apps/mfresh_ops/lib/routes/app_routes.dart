@@ -14,7 +14,9 @@ abstract class AppRoutes {
   static const supportSubCategory = '/support-subcategory';
   static const supportProjects = '/support-projects';
   static const supportTemplate = '/support-template';
+  static const createTemplate = '/create-template';
   static const createTask = '/create-task';
+  static const editTask = '/edit-task';
   static const createSupportTicket = '/create-support-ticket';
   static const ticketDetails = '/ticket-details';
   static const taskReview = '/task-review';
@@ -55,6 +57,7 @@ abstract class AppRoutes {
   static const createContact = '/create-contact';
   static const contactBrands = '/contact-brands';
   static const contactCompanies = '/contact-companies';
+  static const assetCategory = '/asset-category';
 
   // Assets & Products Module
   static const assetsProducts = '/assets-products';

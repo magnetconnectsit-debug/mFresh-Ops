@@ -8,8 +8,6 @@ import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
 import 'package:mfresh_ops/modules/roles_responsibilities/controllers/roles_master_controller.dart';
 
-import 'package:core/widgets/app_common_search_bar.dart';
-
 class RolesMasterScreen extends StatelessWidget {
   const RolesMasterScreen({super.key});
 
@@ -26,34 +24,13 @@ class RolesMasterScreen extends StatelessWidget {
         showAppDrawer: true,
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
-        toolbarHeight: 45.h,
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchCtrl,
-                    hintText: 'Search role name...',
-                    onChanged: (v) => controller.searchQuery.value = v,
-                  ),
-                )
-              : Text(
-                  'Roles Master',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
+        showSearchBar: true,
+        searchController: controller.searchCtrl,
+        onSearchChanged: (v) => controller.searchQuery.value = v,
+        title: Text(
+          'Roles Master',
+          style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 24.sp,
-              ),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
@@ -64,7 +41,12 @@ class RolesMasterScreen extends StatelessWidget {
                   onRefresh: () => controller.fetchRoles(),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(left: 12.w, right: 12.w, top: 0, bottom: 4.h),
+                    padding: EdgeInsets.only(
+                      left: 12.w,
+                      right: 12.w,
+                      top: 0,
+                      bottom: 4.h,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -81,11 +63,14 @@ class RolesMasterScreen extends StatelessWidget {
                               isSmall: true,
                               borderRadius: 4.r,
                               padding: EdgeInsets.symmetric(horizontal: 8.w),
-                              onPressed: () => _showAddEditRoleDialog(context, controller),
+                              onPressed: () =>
+                                  _showAddEditRoleDialog(context, controller),
                             ),
                             Text(
                               'Roles Master',
-                              style: AppTextStyle.style_11_400(color: AppColors.grey400),
+                              style: AppTextStyle.style_11_400(
+                                color: AppColors.grey400,
+                              ),
                             ),
                           ],
                         ),
@@ -101,7 +86,9 @@ class RolesMasterScreen extends StatelessWidget {
                               child: Center(
                                 child: Text(
                                   'No roles found',
-                                  style: AppTextStyle.style_14_500(color: AppColors.grey300),
+                                  style: AppTextStyle.style_14_500(
+                                    color: AppColors.grey300,
+                                  ),
                                 ),
                               ),
                             );
@@ -116,9 +103,12 @@ class RolesMasterScreen extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(4.r),
                               child: Table(
-                                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                defaultVerticalAlignment:
+                                    TableCellVerticalAlignment.middle,
                                 border: TableBorder.symmetric(
-                                  inside: BorderSide(color: Colors.grey.shade300),
+                                  inside: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 columnWidths: {
                                   0: FixedColumnWidth(80.w),
@@ -128,28 +118,53 @@ class RolesMasterScreen extends StatelessWidget {
                                 children: [
                                   // Header Row
                                   TableRow(
-                                    decoration: const BoxDecoration(color: Color(0xFFF1F5F9)),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFF1F5F9),
+                                    ),
                                     children: [
-                                      _buildSortableHeaderCell('Sl.No', 'id', controller),
-                                      _buildSortableHeaderCell('Role Name', 'roleName', controller),
-                                      _buildHeaderCell('Action', align: Alignment.center),
+                                      _buildSortableHeaderCell(
+                                        'Sl.No',
+                                        'id',
+                                        controller,
+                                      ),
+                                      _buildSortableHeaderCell(
+                                        'Role Name',
+                                        'roleName',
+                                        controller,
+                                      ),
+                                      _buildHeaderCell(
+                                        'Action',
+                                        align: Alignment.center,
+                                      ),
                                     ],
                                   ),
                                   // Data Rows
                                   ...rolesList.asMap().entries.map((entry) {
                                     final role = entry.value;
-                                    final originalIdx = controller.roles.indexOf(role);
+                                    final originalIdx = controller.roles
+                                        .indexOf(role);
                                     final slNo = originalIdx != -1
                                         ? originalIdx + 1
-                                        : (controller.currentPage.value - 1) * controller.perPage.value + entry.key + 1;
+                                        : (controller.currentPage.value - 1) *
+                                                  controller.perPage.value +
+                                              entry.key +
+                                              1;
 
                                     return TableRow(
                                       children: [
                                         _buildDataCell('$slNo'),
                                         _buildDataCell(role.roleName),
                                         _buildActionCell(
-                                          onEdit: () => _showAddEditRoleDialog(context, controller, roleItem: role),
-                                          onDelete: () => _confirmDelete(context, controller, role),
+                                          onEdit: () => _showAddEditRoleDialog(
+                                            context,
+                                            controller,
+                                            roleItem: role,
+                                          ),
+                                          onDelete: () => _confirmDelete(
+                                            context,
+                                            controller,
+                                            role,
+                                          ),
                                         ),
                                       ],
                                     );
@@ -164,32 +179,26 @@ class RolesMasterScreen extends StatelessWidget {
                         // Pagination Footer
                         Obx(() {
                           final totalItems = controller.filteredRoles.length;
-                          final startItem = totalItems == 0 ? 0 : ((controller.currentPage.value - 1) * controller.perPage.value) + 1;
-                          final endItem = (startItem + controller.perPage.value - 1).clamp(0, totalItems);
+                          final startItem = totalItems == 0
+                              ? 0
+                              : ((controller.currentPage.value - 1) *
+                                        controller.perPage.value) +
+                                    1;
+                          final endItem =
+                              (startItem + controller.perPage.value - 1).clamp(
+                                0,
+                                totalItems,
+                              );
 
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Showing $startItem to $endItem of $totalItems entries',
-                                style: AppTextStyle.style_12_400(color: AppColors.black),
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildPaginationButton('←', false, controller.previousPage),
-                                  ...List.generate(controller.totalPages, (idx) {
-                                    final pageNum = idx + 1;
-                                    return _buildPaginationButton(
-                                      '$pageNum',
-                                      controller.currentPage.value == pageNum,
-                                      () => controller.goToPage(pageNum),
-                                    );
-                                  }),
-                                  _buildPaginationButton('→', false, controller.nextPage),
-                                ],
-                              ),
-                            ],
+                          return AppTablePagination(
+                            startItem: startItem,
+                            endItem: endItem,
+                            totalItems: totalItems,
+                            currentPage: controller.currentPage.value,
+                            totalPages: controller.totalPages,
+                            onPageChanged: (page) => controller.goToPage(page),
+                            onPreviousPage: controller.previousPage,
+                            onNextPage: controller.nextPage,
                           );
                         }),
                       ],
@@ -201,7 +210,11 @@ class RolesMasterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSortableHeaderCell(String text, String columnKey, RolesMasterController controller) {
+  Widget _buildSortableHeaderCell(
+    String text,
+    String columnKey,
+    RolesMasterController controller,
+  ) {
     return Obx(() {
       final isSorted = controller.sortColumn.value == columnKey;
       final sortAscending = controller.sortAscending.value;
@@ -233,7 +246,10 @@ class RolesMasterScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildHeaderCell(String text, {Alignment align = Alignment.centerLeft}) {
+  Widget _buildHeaderCell(
+    String text, {
+    Alignment align = Alignment.centerLeft,
+  }) {
     return Container(
       alignment: align,
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
@@ -255,7 +271,10 @@ class RolesMasterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCell({required VoidCallback onEdit, required VoidCallback onDelete}) {
+  Widget _buildActionCell({
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
+  }) {
     return Container(
       alignment: Alignment.center,
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h),
@@ -272,7 +291,11 @@ class RolesMasterScreen extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade400),
                 borderRadius: BorderRadius.circular(4.r),
               ),
-              child: Icon(Icons.edit_outlined, size: 13.r, color: const Color(0xFF64748B)),
+              child: Icon(
+                Icons.edit_outlined,
+                size: 13.r,
+                color: const Color(0xFF64748B),
+              ),
             ),
           ),
           SizedBox(width: 6.w),
@@ -286,7 +309,11 @@ class RolesMasterScreen extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade400),
                 borderRadius: BorderRadius.circular(4.r),
               ),
-              child: Icon(Icons.delete_outline, size: 13.r, color: const Color(0xFFDC3545)),
+              child: Icon(
+                Icons.delete_outline,
+                size: 13.r,
+                color: const Color(0xFFDC3545),
+              ),
             ),
           ),
         ],
@@ -294,27 +321,11 @@ class RolesMasterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPaginationButton(String text, bool isActive, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4.r),
-      child: Container(
-        margin: EdgeInsets.only(left: 4.w),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
-          border: Border.all(color: isActive ? Colors.blue.shade600 : Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_500(color: isActive ? Colors.white : Colors.blue.shade600),
-        ),
-      ),
-    );
-  }
-
-  void _showAddEditRoleDialog(BuildContext context, RolesMasterController controller, {RoleItem? roleItem}) {
+  void _showAddEditRoleDialog(
+    BuildContext context,
+    RolesMasterController controller, {
+    RoleItem? roleItem,
+  }) {
     controller.roleNameCtrl.text = roleItem?.roleName ?? '';
     final isEdit = roleItem != null;
 
@@ -327,21 +338,30 @@ class RolesMasterScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.r),
           side: BorderSide(color: Colors.grey.shade300),
         ),
-        title: Text(isEdit ? 'Edit Role' : 'Add Role', style: AppTextStyle.style_16_700(color: AppColors.black)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppCommonTextField(
-              controller: controller.roleNameCtrl,
-              titleText: 'Role Name *',
-              hintText: 'Enter role name',
-            ),
-          ],
+        title: Text(
+          isEdit ? 'Edit Role' : 'Add Role',
+          style: AppTextStyle.style_16_700(color: AppColors.black),
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppCommonTextField(
+                controller: controller.roleNameCtrl,
+                titleText: 'Role Name *',
+                hintText: 'Enter role name',
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: AppTextStyle.style_14_500(color: AppColors.grey300)),
+            child: Text(
+              'Cancel',
+              style: AppTextStyle.style_14_500(color: AppColors.grey300),
+            ),
           ),
           AppCommonButton(
             text: isEdit ? 'Update' : 'Save',
@@ -364,7 +384,11 @@ class RolesMasterScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, RolesMasterController controller, RoleItem role) {
+  void _confirmDelete(
+    BuildContext context,
+    RolesMasterController controller,
+    RoleItem role,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -374,19 +398,34 @@ class RolesMasterScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.r),
           side: BorderSide(color: Colors.grey.shade300),
         ),
-        title: Text('Delete Role', style: AppTextStyle.style_16_700(color: AppColors.black)),
-        content: Text('Are you sure you want to delete role "${role.roleName}"?', style: AppTextStyle.style_14_400(color: AppColors.black)),
+        title: Text(
+          'Delete Role',
+          style: AppTextStyle.style_16_700(color: AppColors.black),
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(
+            'Are you sure you want to delete role "${role.roleName}"?',
+            style: AppTextStyle.style_14_400(color: AppColors.black),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: AppTextStyle.style_14_500(color: AppColors.grey300)),
+            child: Text(
+              'Cancel',
+              style: AppTextStyle.style_14_500(color: AppColors.grey300),
+            ),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
               controller.deleteRole(role.id);
             },
-            child: Text('Delete', style: AppTextStyle.style_14_600(color: const Color(0xFFDC3545))),
+            child: Text(
+              'Delete',
+              style: AppTextStyle.style_14_600(color: const Color(0xFFDC3545)),
+            ),
           ),
         ],
       ),

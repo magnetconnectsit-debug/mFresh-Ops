@@ -24,42 +24,27 @@ class AccountSubscriptionScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
       appBar: AppCommonAppBar(
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchCtrl,
-                    hintText: 'Search...',
-                    onChanged: (v) {
-                      controller.applyFilters(debounce: true);
-                    },
-                  ),
-                )
-              : Text(
-                  'All Account Logins',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
+        title: Row(
+          children: [
+            Text(
+              'All Account Logins',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchCtrl,
+              hintText: 'Search',
+              onChanged: (v) {
+                controller.applyFilters(debounce: true);
+              },
+            ),
+          ],
         ),
         hasBackButton: false,
         showAppDrawer: true,
         topHeader: const CommonShortcutHeader(),
         toolbarHeight: 45.h,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 8.w),
-            child: IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Obx(
-                () => Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                  color: AppColors.black,
-                  size: 26.sp,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Stack(

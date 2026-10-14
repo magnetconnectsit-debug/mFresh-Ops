@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class CreateAccountSubscriptionScreen extends StatelessWidget {
@@ -29,9 +27,12 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
         showAppDrawer: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
-          child: Container(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
+              child: Container(
             padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -345,8 +346,9 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ));
+}
 
   Widget _buildTextField({
     required TextEditingController ctrl,

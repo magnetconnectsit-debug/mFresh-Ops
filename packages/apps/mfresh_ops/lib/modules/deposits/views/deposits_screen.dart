@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
@@ -55,26 +54,8 @@ class DepositsScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        height: 24.h,
-                        child: ElevatedButton(
-                          onPressed: controller.exportToExcel,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF389D6A), // Greenish
-                            foregroundColor: AppColors.white,
-                            padding: EdgeInsets.symmetric(horizontal: 12.w),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            elevation: 1,
-                          ),
-                          child: Text(
-                            'Export Excel',
-                            style: AppTextStyle.style_12_500(
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
+                      AppCommonExportButton(
+                        onExportExcel: controller.exportToExcel,
                       ),
                       if (permissions.contains('deposit_onboarding')) ...[
                         SizedBox(width: 8.w),

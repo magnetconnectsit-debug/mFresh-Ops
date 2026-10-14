@@ -281,10 +281,11 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        width: 360,
-        child: Column(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             isSelectingYear ? _buildYearSelector() : _buildMonthGrid(),
@@ -335,7 +336,8 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

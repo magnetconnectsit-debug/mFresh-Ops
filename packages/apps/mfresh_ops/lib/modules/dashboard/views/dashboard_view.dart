@@ -160,8 +160,6 @@ class _DashboardViewState extends State<DashboardView> {
 
                               // Custom Date Range
                               if (controller.rxStartDate.value != null && controller.rxEndDate.value != null) {
-                                final startDt = DateTime.tryParse(controller.rxStartDate.value!);
-                                final endDt = DateTime.tryParse(controller.rxEndDate.value!);
                                 
                                 final dateRangeStr = AppDateUtils.formatDateRangeOrdinal(
                                   controller.rxStartDate.value,
@@ -241,7 +239,6 @@ class _DashboardViewState extends State<DashboardView> {
                         final bool isLoading = controller.rxIsLoading.value;
                     final data = controller.rxDashboardData.value;
 
-              final displayData = data;
               final hasDateFilter = controller.rxDateFilter.value != null ||
                   (controller.rxStartDate.value != null && controller.rxEndDate.value != null);
               final hasMonthFilter = controller.rxMonthFilter.value != null ||

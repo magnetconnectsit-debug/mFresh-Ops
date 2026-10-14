@@ -12,7 +12,6 @@ class FloatingLoggerButton extends StatefulWidget {
 }
 
 class _FloatingLoggerButtonState extends State<FloatingLoggerButton> {
-  OverlayEntry? _overlayEntry;
   Offset _offset = const Offset(0, 100);
   final settings = Get.find<SettingsService>();
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/custom_app_loader.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 enum AppTableSortOrder { none, ascending, descending }
 
@@ -13,7 +15,13 @@ class AppTableColumn<T> {
   final double minWidth;
   final bool sortable;
   final AlignmentGeometry alignment;
-  final Widget Function(BuildContext context, T item, int index, bool isExpanded)? cellBuilder;
+  final Widget Function(
+    BuildContext context,
+    T item,
+    int index,
+    bool isExpanded,
+  )?
+  cellBuilder;
   final String Function(T item)? valueGetter;
   final Color? Function(T item)? cellColorGetter;
 
@@ -152,6 +160,13 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
   String? _internalSortColumn;
   AppTableSortOrder _internalSortOrder = AppTableSortOrder.none;
 
+  double _activeWidthScale = 1.0;
+
+  double _getEffectiveColWidth(int colIndex, [double? defaultWidth]) {
+    final base = _widths[colIndex] ?? defaultWidth ?? 100.w;
+    return base * _activeWidthScale;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -177,7 +192,8 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
     if (widget.columns != null) {
       for (int i = 0; i < widget.columns!.length; i++) {
         final col = widget.columns![i];
-        final oldCol = (oldWidget?.columns != null && i < oldWidget!.columns!.length)
+        final oldCol =
+            (oldWidget?.columns != null && i < oldWidget!.columns!.length)
             ? oldWidget.columns![i]
             : null;
         final customW = widget.columnWidths?[i];
@@ -248,8 +264,9 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
 
     if (widget.currentSortColumn == null) {
       setState(() {
-        _internalSortColumn =
-            nextOrder == AppTableSortOrder.none ? null : columnKey;
+        _internalSortColumn = nextOrder == AppTableSortOrder.none
+            ? null
+            : columnKey;
         _internalSortOrder = nextOrder;
       });
     }
@@ -260,16 +277,16 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
   @override
   Widget build(BuildContext context) {
     final effectiveBorderColor = widget.borderColor ?? AppColors.borderColor;
-    final effectiveHeaderBg =
-        widget.headingRowColor ?? const Color(0xFFDCE5F8);
-    final effectiveHeaderBorder =
-        widget.headingBorderColor ?? AppColors.white;
+    final effectiveHeaderBg = widget.headingRowColor ?? const Color(0xFFDCE5F8);
+    final effectiveHeaderBorder = widget.headingBorderColor ?? AppColors.white;
 
-    final numColumns = widget.columns?.length ??
+    final numColumns =
+        widget.columns?.length ??
         widget.columnTitles?.length ??
         (widget.rows?.isNotEmpty == true ? widget.rows![0].length : 0);
 
-    final hasItems = (widget.items != null && widget.items!.isNotEmpty) ||
+    final hasItems =
+        (widget.items != null && widget.items!.isNotEmpty) ||
         (widget.rows != null && widget.rows!.isNotEmpty);
 
     return Container(
@@ -284,10 +301,13 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
           builder: (context, constraints) {
             final hasBoundedHeight =
                 constraints.maxHeight != double.infinity &&
-                    constraints.maxHeight > 0;
+                constraints.maxHeight > 0;
             final headerHeight = widget.headingRowHeight ?? 24.h;
             final double? availableBodyHeight = hasBoundedHeight
-                ? (constraints.maxHeight - headerHeight).clamp(0.0, double.infinity)
+                ? (constraints.maxHeight - headerHeight).clamp(
+                    0.0,
+                    double.infinity,
+                  )
                 : null;
 
             double totalTableWidth = 0;
@@ -299,122 +319,153 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
               totalTableWidth += (numColumns - 1) * sepW;
             }
 
+            final bool canExpand = constraints.maxWidth.isFinite && constraints.maxWidth > totalTableWidth;
+            final double effectiveTableWidth = canExpand ? constraints.maxWidth : totalTableWidth;
+            _activeWidthScale = canExpand && totalTableWidth > 0 ? (effectiveTableWidth / totalTableWidth) : 1.0;
+
             Widget bodyContent;
-            if (!hasItems && !widget.isLoading) {
+            if (widget.isLoading && !hasItems) {
+              bodyContent = _buildSkeletonRows(
+                numColumns,
+                effectiveTableWidth,
+                availableBodyHeight,
+                effectiveBorderColor,
+              );
+            } else if (!hasItems && !widget.isLoading) {
               bodyContent = _buildEmptyWidget(numColumns);
             } else if (widget.items != null) {
-              bodyContent = _buildTypedRows(effectiveBorderColor, availableBodyHeight, totalTableWidth);
+              bodyContent = _buildTypedRows(
+                effectiveBorderColor,
+                availableBodyHeight,
+                effectiveTableWidth,
+              );
             } else if (widget.rows != null) {
-              bodyContent = _buildRawRows(effectiveBorderColor, availableBodyHeight, totalTableWidth);
+              bodyContent = _buildRawRows(
+                effectiveBorderColor,
+                availableBodyHeight,
+                effectiveTableWidth,
+              );
             } else {
               bodyContent = const SizedBox.shrink();
             }
 
+            if (widget.isLoading && hasItems) {
+              bodyContent = Skeletonizer(enabled: true, child: bodyContent);
+            }
+
             final headerRow = RepaintBoundary(
               child: Container(
-              height: widget.headingRowHeight ?? 24.h,
-              decoration: BoxDecoration(
-                color: effectiveHeaderBg,
-                border: Border(
-                  bottom: BorderSide(color: effectiveHeaderBorder, width: 1),
+                height: widget.headingRowHeight ?? 24.h,
+                decoration: BoxDecoration(
+                  color: effectiveHeaderBg,
+                  border: Border(
+                    bottom: BorderSide(color: effectiveHeaderBorder, width: 1),
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (int colIndex = 0; colIndex < numColumns; colIndex++) ...[
-                    Builder(
-                      builder: (context) {
-                        final colDef = widget.columns != null &&
-                                colIndex < widget.columns!.length
-                            ? widget.columns![colIndex]
-                            : null;
-                        final title = colDef?.title ??
-                            (widget.columnTitles != null &&
-                                    colIndex < widget.columnTitles!.length
-                                ? widget.columnTitles![colIndex]
-                                : 'Col $colIndex');
-                        final sortKey = colDef?.key ?? title;
-                        final isSortable = colDef?.sortable ?? true;
-                        final colWidth = _widths[colIndex] ?? 100.w;
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (
+                      int colIndex = 0;
+                      colIndex < numColumns;
+                      colIndex++
+                    ) ...[
+                      Builder(
+                        builder: (context) {
+                          final colDef =
+                              widget.columns != null &&
+                                  colIndex < widget.columns!.length
+                              ? widget.columns![colIndex]
+                              : null;
+                          final title =
+                              colDef?.title ??
+                              (widget.columnTitles != null &&
+                                      colIndex < widget.columnTitles!.length
+                                  ? widget.columnTitles![colIndex]
+                                  : 'Col $colIndex');
+                          final sortKey = colDef?.key ?? title;
+                          final isSortable = colDef?.sortable ?? true;
+                          final colWidth = _getEffectiveColWidth(colIndex);
 
-                        final isSorted = _activeSortColumn == sortKey;
-                        final currentOrder =
-                            isSorted ? _activeSortOrder : AppTableSortOrder.none;
+                          final isSorted = _activeSortColumn == sortKey;
+                          final currentOrder = isSorted
+                              ? _activeSortOrder
+                              : AppTableSortOrder.none;
 
-                        return SizedBox(
-                          width: colWidth,
-                          child: InkWell(
-                            onTap: isSortable
-                                ? () => _handleSortTap(sortKey)
-                                : null,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6.w,
-                                vertical: 2.h,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: colDef?.headerWidget ??
-                                        Text(
-                                          title,
-                                          style: widget.headingTextStyle ??
-                                              AppTextStyle.style_11_700(
-                                                color: AppColors.black4,
-                                              ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                  ),
-                                  if (isSortable) ...[
-                                    SizedBox(width: 2.w),
-                                    _buildSortIcon(currentOrder),
+                          return SizedBox(
+                            width: colWidth,
+                            child: InkWell(
+                              onTap: isSortable
+                                  ? () => _handleSortTap(sortKey)
+                                  : null,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6.w,
+                                  vertical: 2.h,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child:
+                                          colDef?.headerWidget ??
+                                          Text(
+                                            title,
+                                            style:
+                                                widget.headingTextStyle ??
+                                                AppTextStyle.style_11_700(
+                                                  color: AppColors.black4,
+                                                ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                    ),
+                                    if (isSortable) ...[
+                                      SizedBox(width: 2.w),
+                                      _buildSortIcon(currentOrder),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildColumnSeparator(
-                      colIndex,
-                      numColumns,
-                      (widget.columns != null && colIndex < widget.columns!.length)
-                          ? widget.columns![colIndex].minWidth
-                          : 40.0,
-                      effectiveHeaderBorder,
-                      isHeader: true,
-                    ),
+                          );
+                        },
+                      ),
+                      _buildColumnSeparator(
+                        colIndex,
+                        numColumns,
+                        (widget.columns != null &&
+                                colIndex < widget.columns!.length)
+                            ? widget.columns![colIndex].minWidth
+                            : 40.0,
+                        effectiveHeaderBorder,
+                        isHeader: true,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          );
-
-          final horizontalView = SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize:
-                  hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
-              children: [
-                headerRow,
-                bodyContent,
-              ],
-            ),
-          );
-
-          if (hasBoundedHeight) {
-            return SizedBox(
-              height: constraints.maxHeight,
-              child: horizontalView,
             );
-          }
 
-          return horizontalView;
+            final horizontalView = SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: hasBoundedHeight
+                    ? MainAxisSize.max
+                    : MainAxisSize.min,
+                children: [headerRow, bodyContent],
+              ),
+            );
+
+            if (hasBoundedHeight) {
+              return SizedBox(
+                height: constraints.maxHeight,
+                child: horizontalView,
+              );
+            }
+
+            return horizontalView;
           },
         ),
       ),
@@ -426,23 +477,11 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
   Widget _buildSortIcon(AppTableSortOrder order) {
     switch (order) {
       case AppTableSortOrder.ascending:
-        return Icon(
-          Icons.arrow_upward,
-          size: 12.r,
-          color: AppColors.black4,
-        );
+        return Icon(Icons.arrow_upward, size: 14.r, color: AppColors.black);
       case AppTableSortOrder.descending:
-        return Icon(
-          Icons.arrow_downward,
-          size: 12.r,
-          color: AppColors.black4,
-        );
+        return Icon(Icons.arrow_downward, size: 14.r, color: AppColors.black);
       case AppTableSortOrder.none:
-        return Icon(
-          Icons.unfold_more,
-          size: 12.r,
-          color: AppColors.black200,
-        );
+        return Icon(Icons.unfold_more, size: 14.r, color: AppColors.black.withValues(alpha: 0.55));
     }
   }
 
@@ -475,20 +514,15 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
           cursor: SystemMouseCursors.resizeColumn,
           child: SizedBox(
             width: sepWidth,
-            child: Center(
-              child: Container(
-                width: 1.5,
-                color: borderColor,
-              ),
-            ),
+            child: Center(child: Container(width: 1.5, color: borderColor)),
           ),
         ),
       );
     }
 
-    return Container(
+    return SizedBox(
       width: sepWidth,
-      color: borderColor,
+      child: Center(child: Container(width: 1.0, color: borderColor)),
     );
   }
 
@@ -498,12 +532,13 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
     double totalWidth = 0;
     final double sepW = widget.enableColumnResizing ? 8.w : 1.0;
     for (int i = 0; i < numColumns; i++) {
-      totalWidth += (_widths[i] ?? 100.w) + sepW;
+      totalWidth += _getEffectiveColWidth(i) + sepW;
     }
 
     return SizedBox(
       width: totalWidth > 0 ? totalWidth : 300.w,
-      child: widget.emptyWidget ??
+      child:
+          widget.emptyWidget ??
           Padding(
             padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
             child: Center(
@@ -513,6 +548,101 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
               ),
             ),
           ),
+    );
+  }
+
+  // Loading & Skeleton State
+
+  Widget _buildSkeletonRows(
+    int numColumns,
+    double totalWidth,
+    double? availableHeight,
+    Color borderColor,
+  ) {
+    const int skeletonCount = 5;
+    final rowHeight = widget.headingRowHeight ?? 24.h;
+
+    final Widget skeletonList = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: List.generate(skeletonCount, (rowIndex) {
+        final isEven = rowIndex % 2 == 0;
+        final rowBg = widget.showStripedRows && !isEven
+            ? AppColors.boxColor2
+            : AppColors.white;
+
+        return RepaintBoundary(
+          child: Container(
+            decoration: BoxDecoration(
+              color: rowBg,
+              border: Border(bottom: BorderSide(color: borderColor)),
+            ),
+            child: IntrinsicHeight(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: rowHeight),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (
+                      int colIndex = 0;
+                      colIndex < numColumns;
+                      colIndex++
+                    ) ...[
+                      Builder(
+                        builder: (context) {
+                          final colWidth = _getEffectiveColWidth(colIndex);
+                          return Container(
+                            width: colWidth,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: widget.cellHorizontalPadding ?? 6.w,
+                              vertical: widget.cellVerticalPadding ?? 4.h,
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Loading Task Item',
+                              style: AppTextStyle.style_11_400(
+                                color: AppColors.black,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        },
+                      ),
+                      _buildColumnSeparator(
+                        colIndex,
+                        numColumns,
+                        40.0,
+                        borderColor,
+                        isHeader: false,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+
+    return Skeletonizer(
+      enabled: true,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: totalWidth > 0 ? totalWidth : 300.w,
+            child: skeletonList,
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.white.withValues(alpha: 0.15),
+              child: const Center(child: CustomAppLoader(size: 36)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -535,15 +665,11 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
       );
     }
 
-    final rowHeight = widget.headingRowHeight ?? 24.h;
-    final hasExpandedRows = _activeExpandedRows.isNotEmpty;
-
     return SizedBox(
       width: totalWidth,
       height: availableHeight,
       child: ListView.builder(
         itemCount: items.length,
-        itemExtent: hasExpandedRows ? null : rowHeight,
         padding: EdgeInsets.zero,
         physics: const AlwaysScrollableScrollPhysics(),
         itemBuilder: (context, rowIndex) {
@@ -559,16 +685,15 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
     final isEven = rowIndex % 2 == 0;
     final customDecoration = widget.rowDecorationBuilder?.call(item, rowIndex);
     final customBg = widget.rowColorBuilder?.call(item, rowIndex);
-    final rowBg = customBg ??
+    final rowBg =
+        customBg ??
         (widget.showStripedRows && !isEven
             ? AppColors.boxColor2
             : AppColors.white);
 
     final defaultDecoration = BoxDecoration(
       color: rowBg,
-      border: Border(
-        bottom: BorderSide(color: borderColor),
-      ),
+      border: Border(bottom: BorderSide(color: borderColor)),
     );
 
     final activeDecoration = customDecoration ?? defaultDecoration;
@@ -582,7 +707,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
           Builder(
             builder: (context) {
               final col = cols[colIndex];
-              final colWidth = _widths[colIndex] ?? col.width ?? 100.w;
+              final colWidth = _getEffectiveColWidth(colIndex, col.width);
               final cellBgColor = col.cellColorGetter?.call(item);
 
               Widget cellContent;
@@ -599,7 +724,8 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
                     : (item.toString());
                 cellContent = Text(
                   textValue,
-                  style: widget.dataTextStyle ??
+                  style:
+                      widget.dataTextStyle ??
                       AppTextStyle.style_11_500(color: AppColors.black),
                   maxLines: isExpanded ? null : 1,
                   overflow: isExpanded
@@ -631,12 +757,12 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
       ],
     );
 
-    final Widget sizedRowFlex = isExpanded
-        ? IntrinsicHeight(child: rowFlex)
-        : SizedBox(
-            height: widget.headingRowHeight ?? 24.h,
-            child: rowFlex,
-          );
+    final Widget sizedRowFlex = IntrinsicHeight(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: widget.headingRowHeight ?? 24.h),
+        child: rowFlex,
+      ),
+    );
 
     final rowContent = Container(
       color: effectiveBgColor,
@@ -657,9 +783,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
             Positioned.fill(
               child: IgnorePointer(
                 child: Container(
-                  decoration: BoxDecoration(
-                    border: activeDecoration.border,
-                  ),
+                  decoration: BoxDecoration(border: activeDecoration.border),
                 ),
               ),
             ),
@@ -687,15 +811,11 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
       );
     }
 
-    final rowHeight = widget.headingRowHeight ?? 24.h;
-    final hasExpandedRows = _activeExpandedRows.isNotEmpty;
-
     return SizedBox(
       width: totalWidth,
       height: availableHeight,
       child: ListView.builder(
         itemCount: rawRows.length,
-        itemExtent: hasExpandedRows ? null : rowHeight,
         padding: EdgeInsets.zero,
         physics: const AlwaysScrollableScrollPhysics(),
         itemBuilder: (context, rowIndex) {
@@ -721,7 +841,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
           Builder(
             builder: (context) {
               final cellVal = colIndex < row.length ? row[colIndex] : '';
-              final colWidth = _widths[colIndex] ?? 100.w;
+              final colWidth = _getEffectiveColWidth(colIndex);
 
               Widget cellContent;
               if (cellVal is Widget) {
@@ -729,7 +849,8 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
               } else {
                 cellContent = Text(
                   cellVal.toString(),
-                  style: widget.dataTextStyle ??
+                  style:
+                      widget.dataTextStyle ??
                       AppTextStyle.style_11_500(color: AppColors.black),
                   maxLines: isExpanded ? null : 1,
                   overflow: isExpanded
@@ -759,12 +880,12 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
       ],
     );
 
-    final Widget sizedRowFlex = isExpanded
-        ? IntrinsicHeight(child: rowFlex)
-        : SizedBox(
-            height: widget.headingRowHeight ?? 24.h,
-            child: rowFlex,
-          );
+    final Widget sizedRowFlex = IntrinsicHeight(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: widget.headingRowHeight ?? 24.h),
+        child: rowFlex,
+      ),
+    );
 
     return RepaintBoundary(
       child: Stack(
@@ -780,9 +901,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
             child: IgnorePointer(
               child: Container(
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: borderColor),
-                  ),
+                  border: Border(bottom: BorderSide(color: borderColor)),
                 ),
               ),
             ),

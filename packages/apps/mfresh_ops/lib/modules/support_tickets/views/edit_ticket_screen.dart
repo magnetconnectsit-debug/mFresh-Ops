@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -5,12 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
-import 'widgets/multi_select_dropdown.dart';
 
 class EditTicketScreen extends StatelessWidget {
   const EditTicketScreen({super.key});
@@ -39,9 +35,7 @@ class EditTicketScreen extends StatelessWidget {
                 TextSpan(
                   text:
                       "# ${controller.ticketDetail.value?.caseId ?? controller.ticketDetail.value?.id ?? ''}",
-                  style: AppTextStyle.style_15_600(
-                    color: AppColors.black,
-                  ),
+                  style: AppTextStyle.style_15_600(color: AppColors.black),
                 ),
               ],
             ),
@@ -49,242 +43,280 @@ class EditTicketScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildFormGrid(context, controller),
-                    SizedBox(height: 10.h),
-
-                    _buildTextField(
-                      controller.subjectController,
-                      label: "Subject*",
-                      hint: "Subject Line",
-                      maxLines: 2,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 12.h,
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFormGrid(context, controller),
+                        SizedBox(height: 14.h),
 
-                    SizedBox(height: 10.h),
+                        // ── Divider ──
+                        Container(height: 0.5.h, color: AppColors.borderColor),
+                        SizedBox(height: 14.h),
 
-                    _buildTextField(
-                      controller.descriptionController,
-                      label: "Description",
-                      hint: "Description here",
-                      maxLines: 4,
-                    ),
+                        _buildTextField(
+                          controller.subjectController,
+                          label: "Subject*",
+                          hint: "Subject Line",
+                          maxLines: 2,
+                        ),
 
-                    // ─── Subtasks Section ─────────────────────────────
-                    Obx(() {
-                      final subtasks =
-                          controller.ticketDetail.value?.subtasks ?? [];
-                      if (subtasks.isEmpty) return const SizedBox.shrink();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: 12.h),
-                          Text(
-                            "Sub Tasks",
-                            style: AppTextStyle.style_11_600(
-                              color: AppColors.primaryOrange,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.grey50,
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Column(
-                              children: subtasks.asMap().entries.map((entry) {
-                                final st = entry.value;
-                                final isLast = entry.key == subtasks.length - 1;
-                                return Obx(() {
-                                  final isChecked = controller.isSubtaskChecked(
-                                    st.id,
-                                  );
-                                  return Column(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8.w,
-                                          vertical: 2.h,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Checkbox(
-                                              value: isChecked,
-                                              activeColor:
-                                                  AppColors.primaryOrange,
-                                              materialTapTargetSize:
-                                                  MaterialTapTargetSize
-                                                      .shrinkWrap,
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              onChanged: (v) => controller
-                                                  .toggleSubtaskCheck(st.id),
+                        SizedBox(height: 10.h),
+
+                        _buildTextField(
+                          controller.descriptionController,
+                          label: "Description",
+                          hint: "Description here",
+                          maxLines: 4,
+                        ),
+
+                        // ─── Subtasks Section ─────────────────────────────
+                        Obx(() {
+                          final subtasks =
+                              controller.ticketDetail.value?.subtasks ?? [];
+                          if (subtasks.isEmpty) return const SizedBox.shrink();
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 12.h),
+                              Text(
+                                "Sub Tasks",
+                                style: AppTextStyle.style_11_600(
+                                  color: AppColors.primaryOrange,
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey50,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Column(
+                                  children: subtasks.asMap().entries.map((
+                                    entry,
+                                  ) {
+                                    final st = entry.value;
+                                    final isLast =
+                                        entry.key == subtasks.length - 1;
+                                    return Obx(() {
+                                      final isChecked = controller
+                                          .isSubtaskChecked(st.id);
+                                      return Column(
+                                        children: [
+                                          Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 8.w,
+                                              vertical: 2.h,
                                             ),
-                                            Expanded(
-                                              child: Text(
-                                                st.subtask ?? '',
-                                                style: AppTextStyle.style_11_400(
-                                                  color: isChecked
-                                                      ? AppColors.grey500
-                                                      : AppColors.black87,
-                                                ).copyWith(
-                                                  decoration: isChecked
-                                                      ? TextDecoration.lineThrough
-                                                      : null,
+                                            child: Row(
+                                              children: [
+                                                Checkbox(
+                                                  value: isChecked,
+                                                  activeColor:
+                                                      AppColors.primaryOrange,
+                                                  materialTapTargetSize:
+                                                      MaterialTapTargetSize
+                                                          .shrinkWrap,
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                  onChanged: (v) => controller
+                                                      .toggleSubtaskCheck(
+                                                        st.id,
+                                                      ),
                                                 ),
-                                              ),
-                                            ),
-                                            // Status badge
-                                            Container(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 5.w,
-                                                vertical: 2.h,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isChecked
-                                                    ? AppColors.green.withValues(alpha: 0.1)
-                                                    : AppColors.orange.withValues(alpha: 0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(4.r),
-                                              ),
-                                              child: Text(
-                                                isChecked ? 'Done' : 'Pending',
-                                                style: AppTextStyle.style_10_700(
-                                                  color: isChecked
-                                                      ? AppColors.successDark
-                                                      : AppColors.orange,
-                                                ).copyWith(fontSize: 9.sp),
-                                              ),
-                                            ),
-                                            SizedBox(width: 4.w),
-                                            // Delete icon
-                                            InkWell(
-                                              onTap:
-                                                  controller
-                                                      .isSubtaskLoading
-                                                      .value
-                                                  ? null
-                                                  : () {
-                                                      Get.dialog(
-                                                        AlertDialog(
-                                                          shape: RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  12.r,
-                                                                ),
-                                                          ),
-                                                          title: Text(
-                                                            'Delete Subtask',
-                                                            style: AppTextStyle.style_14_700(
-                                                              color: AppColors.black87,
-                                                            ),
-                                                          ),
-                                                          content: Text(
-                                                            'Delete "${st.subtask}"?',
-                                                            style: AppTextStyle.style_12_400(
-                                                              color: AppColors.black87,
-                                                            ),
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () =>
-                                                                  Get.back(),
-                                                              child: Text(
-                                                                'Cancel',
-                                                                style: AppTextStyle.style_12_400(
-                                                                  color: AppColors.black87,
+                                                Expanded(
+                                                  child: Text(
+                                                    st.subtask ?? '',
+                                                    style:
+                                                        AppTextStyle.style_11_400(
+                                                          color: isChecked
+                                                              ? AppColors
+                                                                    .grey500
+                                                              : AppColors
+                                                                    .black87,
+                                                        ).copyWith(
+                                                          decoration: isChecked
+                                                              ? TextDecoration
+                                                                    .lineThrough
+                                                              : null,
+                                                        ),
+                                                  ),
+                                                ),
+                                                // Status badge
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 5.w,
+                                                    vertical: 2.h,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isChecked
+                                                        ? AppColors.green
+                                                              .withValues(
+                                                                alpha: 0.1,
+                                                              )
+                                                        : AppColors.orange
+                                                              .withValues(
+                                                                alpha: 0.1,
+                                                              ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4.r,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    isChecked
+                                                        ? 'Done'
+                                                        : 'Pending',
+                                                    style:
+                                                        AppTextStyle.style_10_700(
+                                                          color: isChecked
+                                                              ? AppColors
+                                                                    .successDark
+                                                              : AppColors
+                                                                    .orange,
+                                                        ).copyWith(
+                                                          fontSize: 9.sp,
+                                                        ),
+                                                  ),
+                                                ),
+                                                SizedBox(width: 4.w),
+                                                // Delete icon
+                                                InkWell(
+                                                  onTap:
+                                                      controller
+                                                          .isSubtaskLoading
+                                                          .value
+                                                      ? null
+                                                      : () {
+                                                          Get.dialog(
+                                                            AlertDialog(
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12.r,
+                                                                    ),
+                                                              ),
+                                                              title: Text(
+                                                                'Delete Subtask',
+                                                                style: AppTextStyle.style_14_700(
+                                                                  color: AppColors
+                                                                      .black87,
                                                                 ),
                                                               ),
-                                                            ),
-                                                            TextButton(
-                                                              onPressed: () async {
-                                                                Get.back();
-                                                                final success =
-                                                                    await controller
-                                                                        .deleteSubtask(
+                                                              content: Text(
+                                                                'Delete "${st.subtask}"?',
+                                                                style: AppTextStyle.style_12_400(
+                                                                  color: AppColors
+                                                                      .black87,
+                                                                ),
+                                                              ),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed: () =>
+                                                                      Get.back(),
+                                                                  child: Text(
+                                                                    'Cancel',
+                                                                    style: AppTextStyle.style_12_400(
+                                                                      color: AppColors
+                                                                          .black87,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                TextButton(
+                                                                  onPressed: () async {
+                                                                    Get.back();
+                                                                    final success =
+                                                                        await controller.deleteSubtask(
                                                                           st.id,
                                                                         );
-                                                                if (success) {
-                                                                  AppCommonToastMessage.show(
-                                                                    message:
-                                                                        'Subtask deleted successfully',
-                                                                    type: ToastType
-                                                                        .success,
-                                                                  );
-                                                                }
-                                                              },
-                                                              child: Text(
-                                                                'Delete',
-                                                                style: AppTextStyle.style_12_700(
-                                                                  color: AppColors.red,
+                                                                    if (success) {
+                                                                      AppCommonToastMessage.show(
+                                                                        message:
+                                                                            'Subtask deleted successfully',
+                                                                        type: ToastType
+                                                                            .success,
+                                                                      );
+                                                                    }
+                                                                  },
+                                                                  child: Text(
+                                                                    'Delete',
+                                                                    style: AppTextStyle.style_12_700(
+                                                                      color: AppColors
+                                                                          .red,
+                                                                    ),
+                                                                  ),
                                                                 ),
-                                                              ),
+                                                              ],
                                                             ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    },
-                                              child: Padding(
-                                                padding: EdgeInsets.all(4.r),
-                                                child: Icon(
-                                                  Icons.delete_outline,
-                                                  color: AppColors.red,
-                                                  size: 16.r,
+                                                          );
+                                                        },
+                                                  child: Padding(
+                                                    padding: EdgeInsets.all(
+                                                      4.r,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.delete_outline,
+                                                      color: AppColors.red,
+                                                      size: 16.r,
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (!isLast)
-                                        Divider(
-                                          height: 1,
-                                          color: AppColors.grey200,
-                                        ),
-                                    ],
-                                  );
-                                });
-                              }).toList(),
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            '✓ Check a subtask to mark it as completed (esubtask)',
-                            style: AppTextStyle.style_10_400(
-                              color: AppColors.grey500,
-                            ).copyWith(
-                              fontSize: 9.sp,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
+                                          ),
+                                          if (!isLast)
+                                            Divider(
+                                              height: 1,
+                                              color: AppColors.grey200,
+                                            ),
+                                        ],
+                                      );
+                                    });
+                                  }).toList(),
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                '✓ Check a subtask to mark it as completed (esubtask)',
+                                style:
+                                    AppTextStyle.style_10_400(
+                                      color: AppColors.grey500,
+                                    ).copyWith(
+                                      fontSize: 9.sp,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                Container(
+                  padding: EdgeInsets.all(16.r),
+                  color: AppColors.white,
+                  child: _buildBottomActions(controller),
+                ),
+              ],
             ),
-            Container(
-              padding: EdgeInsets.all(16.r),
-              color: AppColors.white,
-              child: _buildBottomActions(controller),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _twoFieldRow({
-    required Widget leftChild,
-    required Widget rightChild,
-  }) {
+  Widget _twoFieldRow({required Widget leftChild, required Widget rightChild}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -353,15 +385,14 @@ class EditTicketScreen extends StatelessWidget {
                   : {},
               items: controller.assignees
                   .map(
-                    (item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(item.name),
-                    ),
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.name)),
                   )
                   .toList(),
               onChanged: (values) {
-                controller.selectedAssignee.value =
-                    values.isNotEmpty ? values.first : null;
+                controller.selectedAssignee.value = values.isNotEmpty
+                    ? values.first
+                    : null;
               },
             ),
           ),
@@ -408,8 +439,9 @@ class EditTicketScreen extends StatelessWidget {
                   )
                   .toList(),
               onChanged: (values) {
-                controller.selectedSubCategory.value =
-                    values.isNotEmpty ? values.first : null;
+                controller.selectedSubCategory.value = values.isNotEmpty
+                    ? values.first
+                    : null;
               },
             ),
           ),
@@ -432,8 +464,9 @@ class EditTicketScreen extends StatelessWidget {
                   )
                   .toList(),
               onChanged: (values) {
-                controller.selectedPriority.value =
-                    values.isNotEmpty ? values.first : null;
+                controller.selectedPriority.value = values.isNotEmpty
+                    ? values.first
+                    : null;
               },
             ),
             rightChild: MultiSelectDropdownWidget<SupportProject>(
@@ -453,8 +486,9 @@ class EditTicketScreen extends StatelessWidget {
                   )
                   .toList(),
               onChanged: (values) {
-                controller.selectedProject.value =
-                    values.isNotEmpty ? values.first : null;
+                controller.selectedProject.value = values.isNotEmpty
+                    ? values.first
+                    : null;
               },
             ),
           ),
@@ -477,8 +511,9 @@ class EditTicketScreen extends StatelessWidget {
                   )
                   .toList(),
               onChanged: (values) {
-                controller.selectedUnit.value =
-                    values.isNotEmpty ? values.first : null;
+                controller.selectedUnit.value = values.isNotEmpty
+                    ? values.first
+                    : null;
               },
             ),
             rightChild: _buildFollowUpField(
@@ -494,10 +529,7 @@ class EditTicketScreen extends StatelessWidget {
               controller,
               label: "Reminder",
             ),
-            rightChild: _readOnlyBox(
-              "Created By",
-              controller.createdByName,
-            ),
+            rightChild: _readOnlyBox("Created By", controller.createdByName),
           ),
           SizedBox(height: 10.h),
           _twoFieldRow(
@@ -593,8 +625,9 @@ class EditTicketScreen extends StatelessWidget {
                         ).format(controller.followUpDate.value!)
                       : "dd-mm-yyyy HH:mm",
                   style: controller.followUpDate.value == null
-                      ? AppTextStyle.style_12_400(color: AppColors.grey300)
-                          .copyWith(fontSize: 11.sp)
+                      ? AppTextStyle.style_12_400(
+                          color: AppColors.grey300,
+                        ).copyWith(fontSize: 11.sp)
                       : AppTextStyle.style_12_400(color: AppColors.grey900),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
@@ -628,21 +661,20 @@ class EditTicketScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Obx(
-                () {
-                  final text = controller.displayReminder.value;
-                  final isPlaceholder = text == 'Reminder';
-                  return Text(
-                    text,
-                    style: isPlaceholder
-                        ? AppTextStyle.style_12_400(color: AppColors.grey300)
-                            .copyWith(fontSize: 11.sp)
-                        : AppTextStyle.style_12_400(color: AppColors.grey900),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  );
-                },
-              ),
+              child: Obx(() {
+                final text = controller.displayReminder.value;
+                final isPlaceholder = text == 'Reminder';
+                return Text(
+                  text,
+                  style: isPlaceholder
+                      ? AppTextStyle.style_12_400(
+                          color: AppColors.grey300,
+                        ).copyWith(fontSize: 11.sp)
+                      : AppTextStyle.style_12_400(color: AppColors.grey900),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                );
+              }),
             ),
             SizedBox(width: 4.w),
             Icon(
@@ -671,11 +703,12 @@ class EditTicketScreen extends StatelessWidget {
         builder: (context, setModalState) {
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.r),
+              borderRadius: BorderRadius.circular(16.r),
             ),
-            backgroundColor: AppColors.scaffoldBg,
+            backgroundColor: AppColors.white,
+            elevation: 4,
             child: Padding(
-              padding: EdgeInsets.all(16.r),
+              padding: EdgeInsets.all(18.r),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -686,69 +719,96 @@ class EditTicketScreen extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            "Reminder/ Notifications",
+                            "Reminder / Notifications",
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyle.style_13_600(
-                              color: AppColors.black87,
+                            style: AppTextStyle.style_14_600(
+                              color: AppColors.grey900,
                             ),
                           ),
                         ),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => Get.back(),
-                          icon: const Icon(Icons.close),
+                        InkWell(
+                          onTap: () => Get.back(),
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Padding(
+                            padding: EdgeInsets.all(4.r),
+                            child: Icon(
+                              Icons.close,
+                              size: 18.r,
+                              color: AppColors.grey600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     SizedBox(height: 16.h),
                     Text(
                       "Notification Type:",
-                      style: AppTextStyle.style_11_600(
-                        color: AppColors.primaryOrange,
+                      style: AppTextStyle.style_12_500(
+                        color: AppColors.grey900,
                       ),
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: 8.h),
                     Row(
                       children: [
-                        const FaIcon(
-                          FontAwesomeIcons.whatsapp,
-                          color: AppColors.green,
-                          size: 18,
+                        InkWell(
+                          onTap: () =>
+                              setModalState(() => tempWhatsApp = !tempWhatsApp),
+                          borderRadius: BorderRadius.circular(6.r),
+                          child: Row(
+                            children: [
+                              const FaIcon(
+                                FontAwesomeIcons.whatsapp,
+                                color: AppColors.green,
+                                size: 18,
+                              ),
+                              SizedBox(width: 4.w),
+                              SizedBox(
+                                width: 24.w,
+                                height: 24.h,
+                                child: Checkbox(
+                                  value: tempWhatsApp,
+                                  activeColor: AppColors.primary,
+                                  onChanged: (v) => setModalState(
+                                    () => tempWhatsApp = v ?? false,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        SizedBox(width: 4.w),
-                        Checkbox(
-                          value: tempWhatsApp,
-                          activeColor: AppColors.primaryOrange,
-                          onChanged: (v) =>
-                              setModalState(() => tempWhatsApp = v!),
-                        ),
-                        SizedBox(width: 12.w),
-                        const Icon(
-                          Icons.notifications,
-                          color: AppColors.grey600,
-                          size: 18,
-                        ),
-                        SizedBox(width: 4.w),
-                        Checkbox(
-                          value: tempApp,
-                          activeColor: AppColors.primaryOrange,
-                          onChanged: (v) => setModalState(() => tempApp = v!),
+                        SizedBox(width: 20.w),
+                        InkWell(
+                          onTap: () => setModalState(() => tempApp = !tempApp),
+                          borderRadius: BorderRadius.circular(6.r),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.notifications_active,
+                                color: AppColors.grey700,
+                                size: 18,
+                              ),
+                              SizedBox(width: 4.w),
+                              SizedBox(
+                                width: 24.w,
+                                height: 24.h,
+                                child: Checkbox(
+                                  value: tempApp,
+                                  activeColor: AppColors.primary,
+                                  onChanged: (v) =>
+                                      setModalState(() => tempApp = v ?? false),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 12.h),
-                    Text(
-                      "Date & Time:",
-                      style: AppTextStyle.style_11_700(
-                        color: AppColors.primaryOrange,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: 16.h),
                     Row(
                       children: [
                         Expanded(
                           child: _modalPickerBox(
+                            label: "Date",
                             text: DateFormat("dd MMM, yyyy").format(tempDate),
                             icon: Icons.calendar_today_outlined,
                             onTap: () async {
@@ -768,17 +828,20 @@ class EditTicketScreen extends StatelessWidget {
                             },
                           ),
                         ),
-                        SizedBox(width: 8.w),
+                        SizedBox(width: 10.w),
                         Expanded(
                           child: _modalPickerBox(
+                            label: "Time",
                             text: tempTime.format(context),
-                            icon: Icons.access_time,
+                            icon: Icons.access_time_rounded,
                             onTap: () async {
                               final picked = await showTimePicker(
                                 context: context,
                                 initialTime: tempTime,
                                 builder: (context, child) => MediaQuery(
-                                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                  data: MediaQuery.of(
+                                    context,
+                                  ).copyWith(alwaysUse24HourFormat: false),
                                   child: child!,
                                 ),
                               );
@@ -792,52 +855,36 @@ class EditTicketScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 20.h),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 10.h),
-                              side: const BorderSide(color: AppColors.grey400),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                            ),
-                            onPressed: () => Get.back(),
-                            child: Text(
-                              "Cancel",
-                              style: AppTextStyle.style_12_400(
-                                color: AppColors.black87,
-                              ),
-                            ),
-                          ),
+                        AppCommonButton(
+                          text: "Cancel",
+                          variant: ButtonVariant.outline,
+                          height: 32.h,
+                          textSize: 13.sp,
+                          borderRadius: 8.r,
+                          textColor: AppColors.black,
+                          borderColor: AppColors.borderColor,
+                          onPressed: () => Get.back(),
                         ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.green,
-                              padding: EdgeInsets.symmetric(vertical: 10.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                            ),
-                            onPressed: () {
-                              controller.reminderDate.value = tempDate;
-                              controller.reminderTime.value = tempTime;
-                              controller.whatsappNotification.value =
-                                  tempWhatsApp;
-                              controller.appNotification.value = tempApp;
-                              controller.displayReminder.value =
-                                  "${DateFormat("dd MMM").format(tempDate)} ${tempTime.format(context)}";
-                              Get.back();
-                            },
-                            child: Text(
-                              "Apply",
-                              style: AppTextStyle.style_12_400(
-                                color: AppColors.white,
-                              ),
-                            ),
-                          ),
+                        SizedBox(width: 10.w),
+                        AppCommonButton(
+                          text: "Apply",
+                          height: 32.h,
+                          textSize: 13.sp,
+                          borderRadius: 8.r,
+                          buttonColor: AppColors.primary,
+                          useGradient: false,
+                          onPressed: () {
+                            controller.reminderDate.value = tempDate;
+                            controller.reminderTime.value = tempTime;
+                            controller.whatsappNotification.value =
+                                tempWhatsApp;
+                            controller.appNotification.value = tempApp;
+                            controller.displayReminder.value =
+                                "${DateFormat("dd MMM").format(tempDate)} ${tempTime.format(context)}";
+                            Get.back();
+                          },
                         ),
                       ],
                     ),
@@ -852,31 +899,27 @@ class EditTicketScreen extends StatelessWidget {
   }
 
   Widget _modalPickerBox({
+    required String label,
     required String text,
     required IconData icon,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: AppColors.grey50,
-          borderRadius: BorderRadius.circular(10.r),
-        ),
+      child: InputDecorator(
+        decoration: _pickerInputDecoration(label: label),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: Text(
                 text,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyle.style_11_400(
-                  color: AppColors.black87,
-                ),
+                style: AppTextStyle.style_12_400(color: AppColors.grey900),
               ),
             ),
-            Icon(icon, size: 12.r, color: AppColors.grey600),
+            SizedBox(width: 4.w),
+            Icon(icon, size: 16.r, color: AppColors.grey300),
           ],
         ),
       ),
@@ -897,7 +940,7 @@ class EditTicketScreen extends StatelessWidget {
                   TextSpan(
                     text: '*',
                     style: AppTextStyle.style_11_400(color: AppColors.red),
-                  )
+                  ),
                 ]
               : [],
         ),
@@ -929,59 +972,6 @@ class EditTicketScreen extends StatelessWidget {
     );
   }
 
-  InputDecoration _inputDecoration(
-    String label, {
-    String? hint,
-    bool hasError = false,
-    int maxLines = 1,
-  }) {
-    return InputDecoration(
-      label: RichText(
-        text: TextSpan(
-          text: label.replaceAll('*', ''),
-          style: AppTextStyle.style_11_400(color: AppColors.grey200),
-          children: label.contains('*')
-              ? [
-                  TextSpan(
-                    text: '*',
-                    style: AppTextStyle.style_11_400(color: AppColors.red),
-                  )
-                ]
-              : [],
-        ),
-      ),
-      floatingLabelBehavior: FloatingLabelBehavior.always,
-      hintText: hint,
-      hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: 6.w,
-        vertical: maxLines == 1 ? 3.h : 6.h,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4.r),
-        borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
-          width: hasError ? 1.5 : 1.0,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4.r),
-        borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
-          width: hasError ? 1.5 : 1.0,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4.r),
-        borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.primary,
-          width: 1.5,
-        ),
-      ),
-      isDense: true,
-    );
-  }
-
   Widget _buildTextField(
     TextEditingController controller, {
     required String label,
@@ -989,16 +979,11 @@ class EditTicketScreen extends StatelessWidget {
     int maxLines = 1,
     bool hasError = false,
   }) {
-    return TextFormField(
+    return AppCommonTextField(
       controller: controller,
+      labelText: label,
+      hintText: hint ?? '',
       maxLines: maxLines,
-      style: AppTextStyle.style_12_400(color: AppColors.black),
-      decoration: _inputDecoration(
-        label,
-        hint: hint,
-        hasError: hasError,
-        maxLines: maxLines,
-      ),
     );
   }
 
@@ -1007,54 +992,30 @@ class EditTicketScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Obx(
-          () => TextButton(
+          () => AppCommonButton(
+            text: "Cancel",
+            variant: ButtonVariant.outline,
+            height: 32.h,
+            textSize: 13.sp,
+            borderRadius: 8.r,
+            textColor: AppColors.black,
+            borderColor: AppColors.borderColor,
             onPressed: controller.isLoading.value ? null : () => Get.back(),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
-              minimumSize: Size(0, 32.h),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                side: BorderSide(color: AppColors.borderColor),
-              ),
-            ),
-            child: Text(
-              "Cancel",
-              style: AppTextStyle.style_13_400(color: AppColors.black),
-            ),
           ),
         ),
         SizedBox(width: 10.w),
         Obx(
-          () => ElevatedButton(
+          () => AppCommonButton(
+            text: "Submit",
+            isLoading: controller.isLoading.value,
+            height: 32.h,
+            textSize: 13.sp,
+            borderRadius: 8.r,
+            buttonColor: AppColors.primary,
+            useGradient: false,
             onPressed: controller.isLoading.value
                 ? null
                 : () => controller.saveTicket(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: controller.isLoading.value
-                  ? AppColors.grey200
-                  : AppColors.primary,
-              foregroundColor: AppColors.white,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 6.h),
-              minimumSize: Size(0, 32.h),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
-            child: controller.isLoading.value
-                ? SizedBox(
-                    width: 14.r,
-                    height: 14.r,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.white,
-                    ),
-                  )
-                : Text(
-                    "Submit",
-                    style: AppTextStyle.style_13_600(color: AppColors.white),
-                  ),
           ),
         ),
       ],

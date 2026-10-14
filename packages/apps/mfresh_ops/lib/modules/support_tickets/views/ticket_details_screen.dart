@@ -45,18 +45,23 @@ class TicketDetailsScreen extends GetView<TicketDetailsController> {
 
           return RefreshIndicator(
             onRefresh: () => controller.fetchTicketDetails(),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TicketDetailsHeader(ticket: ticket, controller: controller),
-                  const SizedBox(height: 12),
-                  TicketDetailsInfoCard(ticket: ticket, controller: controller),
-                  const SizedBox(height: 12),
-                  TicketDetailsTimeline(ticket: ticket, controller: controller),
-                  const SizedBox(height: 60),
-                ],
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TicketDetailsHeader(ticket: ticket, controller: controller),
+                      const SizedBox(height: 12),
+                      TicketDetailsInfoCard(ticket: ticket, controller: controller),
+                      const SizedBox(height: 12),
+                      TicketDetailsTimeline(ticket: ticket, controller: controller),
+                      const SizedBox(height: 60),
+                    ],
+                  ),
+                ),
               ),
             ),
           );

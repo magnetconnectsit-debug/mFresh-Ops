@@ -10,6 +10,9 @@ import 'package:mfresh_ops/modules/info_directory/views/create_account_subscript
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
+import 'package:mfresh_ops/modules/info_directory/views/asset_category_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/controllers/asset_category_controller.dart';
+import 'package:mfresh_ops/data/repositories/asset_category_repository.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/payment_reminder_screen.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/completed_payment_screen.dart';
@@ -40,6 +43,7 @@ import 'package:mfresh_ops/modules/tasks/views/all_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_task_filter_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/create_task_screen.dart';
+import 'package:mfresh_ops/modules/tasks/views/edit_task_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/task_review_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_tickets_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_dashboard_screen.dart';
@@ -84,6 +88,7 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_category_
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_subcategory_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_projects_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_template_screen.dart';
+import 'package:mfresh_ops/modules/support_tickets/views/create_template_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_template_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_dashboard_controller.dart';
 import 'package:mfresh_ops/modules/booking/views/booking_confirmed_screen.dart';
@@ -152,6 +157,11 @@ class AppPages {
       binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
     ),
     GetPage(
+      name: AppRoutes.editTask,
+      page: () => const EditTaskScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
+    GetPage(
       name: AppRoutes.taskReview,
       page: () => const TaskReviewScreen(),
       binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
@@ -201,6 +211,13 @@ class AppPages {
     GetPage(
       name: AppRoutes.supportTemplate,
       page: () => const SupportTemplateScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportTemplateController()),
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.createTemplate,
+      page: () => const CreateTemplateScreen(),
       binding: BindingsBuilder(
         () => Get.lazyPut(() => SupportTemplateController()),
       ),
@@ -347,6 +364,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.contactCompanies,
       page: () => const MContactCompaniesScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.assetCategory,
+      page: () => const AssetCategoryScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AssetCategoryRepository());
+        Get.lazyPut(() => AssetCategoryController());
+      }),
     ),
     GetPage(
       name: AppRoutes.assetsProducts,

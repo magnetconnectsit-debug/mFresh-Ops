@@ -19,6 +19,10 @@ class AssetProductModel {
   final List<String> othersImg;
   final List<String> warrantyImg;
   final String createdAt;
+  final String assetCategoryName;
+  final String productOwnerName;
+  final String assetCategoryId;
+  final String assignedTo;
 
   AssetProductModel({
     required this.id,
@@ -41,6 +45,10 @@ class AssetProductModel {
     required this.othersImg,
     required this.warrantyImg,
     required this.createdAt,
+    this.assetCategoryName = 'NA',
+    this.productOwnerName = 'NA',
+    this.assetCategoryId = 'NA',
+    this.assignedTo = 'NA',
   });
 
   factory AssetProductModel.fromJson(Map<String, dynamic> json) {
@@ -72,6 +80,10 @@ class AssetProductModel {
       othersImg: _parseList(json['othersimg']),
       warrantyImg: _parseList(json['warrantyimg']),
       createdAt: json['created_at']?.toString() ?? '',
+      assetCategoryName: json['asset_category_name']?.toString() ?? 'NA',
+      productOwnerName: json['product_owner_name']?.toString() ?? 'NA',
+      assetCategoryId: json['asset_category_id']?.toString() ?? 'NA',
+      assignedTo: json['assigned_to']?.toString() ?? 'NA',
     );
   }
 

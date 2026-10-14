@@ -1,10 +1,10 @@
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/data/models/assignee_model.dart';
+import 'package:mfresh_ops/data/models/info_directory/asset_category_model.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class AssetsProductsFilters extends StatelessWidget {
   final AssetsProductsController controller;
@@ -27,69 +27,123 @@ class AssetsProductsFilters extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Obx(
-              () => MultiSelectDropdownWidget<String>(
-                label: 'Item Type',
-                isSingleSelect: true,
-                selectedValues: controller.selectedItemType.value.isNotEmpty
-                    ? {controller.selectedItemType.value}
-                    : {},
-                items: controller.availableItemTypes
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (values) {
-                  controller.selectedItemType.value = values.isNotEmpty
-                      ? values.first
-                      : '';
-                  controller.applyFilters();
-                },
-              ),
-            ),
-          ),
-          const Spacer(),
-        ],
-      ),
-    );
-  }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isTablet = constraints.maxWidth >= 600;
 
-  Widget _buildSearchField(
-    String hint,
-    TextEditingController textController,
-    Function(String) onChanged,
-  ) {
-    return TextField(
-      controller: textController,
-      onChanged: onChanged,
-      style: AppTextStyle.style_12_400(color: AppColors.grey900),
-      decoration: InputDecoration(
-        labelText: hint,
-        hintText: 'Search',
-        hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: 1.0,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: 1.0,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-        ),
+          final itemTypeDropdown = Obx(
+            () => MultiSelectDropdownWidget<String>(
+              label: 'Item Type',
+              hint: 'Item Type',
+              isSingleSelect: true,
+              selectedValues: controller.selectedItemType.value.isNotEmpty
+                  ? {controller.selectedItemType.value}
+                  : {},
+              items: controller.availableItemTypes
+                  .map(
+                    (t) => DropdownMenuItem(
+                      value: t,
+                      child: Text(
+                        t,
+                        style: AppTextStyle.style_12_500(
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedItemType.value =
+                    values.isNotEmpty ? values.first : '';
+                controller.applyFilters();
+              },
+            ),
+          );
+
+          final categoryDropdown = Obx(
+            () => MultiSelectDropdownWidget<AssetCategoryModel>(
+              label: 'Category',
+              hint: 'Category',
+              isLoading: controller.isFiltersLoading.value,
+              selectedValues: controller.selectedCategories.toSet(),
+              items: controller.availableCategories
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(
+                        c.assetCatName,
+                        style: AppTextStyle.style_12_500(
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedCategories.assignAll(values);
+                controller.applyFilters();
+              },
+            ),
+          );
+
+          final assigneeDropdown = Obx(
+            () => MultiSelectDropdownWidget<AssigneeModel>(
+              label: 'Assignee',
+              hint: 'Assignee',
+              isLoading: controller.isFiltersLoading.value,
+              selectedValues: controller.selectedAssignees.toSet(),
+              items: controller.availableAssignees
+                  .map(
+                    (a) => DropdownMenuItem(
+                      value: a,
+                      child: Text(
+                        a.name,
+                        style: AppTextStyle.style_12_500(
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (values) {
+                controller.selectedAssignees.assignAll(values);
+                controller.applyFilters();
+              },
+            ),
+          );
+
+          if (isTablet) {
+            return Row(
+              children: [
+                Expanded(child: itemTypeDropdown),
+                SizedBox(width: 8.w),
+                Expanded(child: categoryDropdown),
+                SizedBox(width: 8.w),
+                Expanded(child: assigneeDropdown),
+              ],
+            );
+          }
+
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: itemTypeDropdown),
+                  SizedBox(width: 8.w),
+                  Expanded(child: categoryDropdown),
+                ],
+              ),
+              SizedBox(height: 6.h),
+              Row(
+                children: [
+                  Expanded(child: assigneeDropdown),
+                  SizedBox(width: 8.w),
+                  const Expanded(child: SizedBox()),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

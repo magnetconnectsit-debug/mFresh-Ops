@@ -70,7 +70,7 @@ class BookingDetailsController extends GetxController {
               // Only try to find price if it's missing or zero
               if (item.price.isEmpty || item.price == '0' || item.price == '0.0' || item.price == '0.00') {
                 final match = unitServices.firstWhereOrNull(
-                  (s) => (s.serviceName ?? '').trim().toLowerCase() == item.servicesName.trim().toLowerCase(),
+                  (s) => (s.serviceName).trim().toLowerCase() == item.servicesName.trim().toLowerCase(),
                 );
                 if (match != null) {
                   enrichedServices.add(item.copyWith(price: match.price.toString()));

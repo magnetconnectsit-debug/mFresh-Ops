@@ -19,8 +19,6 @@ import 'package:mfresh/data/repositories/user_repository.dart';
 import 'package:mfresh/routes/app_pages.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:mfresh/services/notification_service.dart';
-import 'package:path_provider/path_provider.dart';
-
 import 'package:services/api_services.dart';
 import 'package:services/app_update_service.dart';
 import 'package:services/connectivity_service.dart';
@@ -117,8 +115,6 @@ Future<void> initServices() async {
   Get.put(PhonePeService());
   await Get.putAsync(() => NotificationService().init());
   Get.put(AppUpdateService());
-
-
 
   debugPrint('All services initialized.');
 }

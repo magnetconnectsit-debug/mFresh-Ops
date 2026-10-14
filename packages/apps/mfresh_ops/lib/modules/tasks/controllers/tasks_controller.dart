@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:core/constants/app_colors.dart';
 import 'package:core/core.dart';
 import 'package:core/utils/app_export_utils.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -18,6 +15,7 @@ import 'package:dio/dio.dart' as dio;
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_submission_dialog.dart';
+import 'package:mfresh_ops/modules/tasks/views/widgets/edit_recurring_task_choice_dialog.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 class TasksController extends GetxController {
@@ -26,8 +24,10 @@ class TasksController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
 
   final activeTab = 0.obs; // 0 for Active, 1 for Completed
-  final isListView = false.obs; // false: detailed view (default), true: list view (compact)
-  final expandedTaskId = Rxn<String>(); // Track currently expanded task key in List View
+  final isListView =
+      false.obs; // false: detailed view (default), true: list view (compact)
+  final expandedTaskId =
+      Rxn<String>(); // Track currently expanded task key in List View
 
   void toggleExpandedTask(String taskKey) {
     if (expandedTaskId.value == taskKey) {
@@ -38,7 +38,9 @@ class TasksController extends GetxController {
   }
 
   final isLoading = false.obs;
-  final isRefreshing = false.obs; // Silent background refresh (no full-screen loader)
+  final isFormSubmitting = false.obs;
+  final isRefreshing =
+      false.obs; // Silent background refresh (no full-screen loader)
 
   // region Data Lists
   final tasks = <TaskItem>[].obs;
@@ -114,56 +116,62 @@ class TasksController extends GetxController {
   }
 
   static const _statusSortOrder = {
-    'pending': 1, 'in_progress': 2, 'review': 3, 'under_review': 3,
-    'completed': 4, 'approved': 5, 'rejected': 6,
+    'pending': 1,
+    'in_progress': 2,
+    'review': 3,
+    'under_review': 3,
+    'completed': 4,
+    'approved': 5,
+    'rejected': 6,
   };
 
   List<TaskItem> get sortedTasks {
     if (sortColumn.value.isEmpty) return tasks;
-    final result = List<TaskItem>.from(tasks)..sort((a, b) {
-      int cmp = 0;
-      switch (sortColumn.value) {
-        case 'Task ID':
-          cmp = _compareStrings(
-            '${a.taskCode}_${a.taskInstanceId}',
-            '${b.taskCode}_${b.taskInstanceId}',
-          );
-          break;
-        case 'Project':
-          cmp = _compareStrings(a.project, b.project);
-          break;
-        case 'Task':
-          cmp = _compareStrings(a.title, b.title);
-          break;
-        case 'Created On':
-          cmp = _compareDates(a.createdAt, b.createdAt);
-          break;
-        case 'Created By':
-          cmp = _compareStrings(a.createdByName, b.createdByName);
-          break;
-        case 'Task Type':
-          cmp = _compareStrings(a.taskType, b.taskType);
-          break;
-        case 'Assignee':
-          cmp = _compareStrings(a.assigneeName, b.assigneeName);
-          break;
-        case 'Started From':
-          cmp = _compareDates(a.scheduleDateTime, b.scheduleDateTime);
-          break;
-        case 'Completed By':
-          cmp = _compareStrings(a.completedByName, b.completedByName);
-          break;
-        case 'Status':
-          final aIdx = _statusSortOrder[a.status.toLowerCase()] ?? 99;
-          final bIdx = _statusSortOrder[b.status.toLowerCase()] ?? 99;
-          cmp = aIdx.compareTo(bIdx);
-          break;
-        case 'Approver Name':
-          cmp = _compareStrings(a.approverName, b.approverName);
-          break;
-      }
-      return sortAscending.value ? cmp : -cmp;
-    });
+    final result = List<TaskItem>.from(tasks)
+      ..sort((a, b) {
+        int cmp = 0;
+        switch (sortColumn.value) {
+          case 'Task ID':
+            cmp = _compareStrings(
+              '${a.taskCode}_${a.taskInstanceId}',
+              '${b.taskCode}_${b.taskInstanceId}',
+            );
+            break;
+          case 'Project':
+            cmp = _compareStrings(a.project, b.project);
+            break;
+          case 'Task':
+            cmp = _compareStrings(a.title, b.title);
+            break;
+          case 'Created On':
+            cmp = _compareDates(a.createdAt, b.createdAt);
+            break;
+          case 'Created By':
+            cmp = _compareStrings(a.createdByName, b.createdByName);
+            break;
+          case 'Task Type':
+            cmp = _compareStrings(a.taskType, b.taskType);
+            break;
+          case 'Assignee':
+            cmp = _compareStrings(a.assigneeName, b.assigneeName);
+            break;
+          case 'Started From':
+            cmp = _compareDates(a.scheduleDateTime, b.scheduleDateTime);
+            break;
+          case 'Completed By':
+            cmp = _compareStrings(a.completedByName, b.completedByName);
+            break;
+          case 'Status':
+            final aIdx = _statusSortOrder[a.status.toLowerCase()] ?? 99;
+            final bIdx = _statusSortOrder[b.status.toLowerCase()] ?? 99;
+            cmp = aIdx.compareTo(bIdx);
+            break;
+          case 'Approver Name':
+            cmp = _compareStrings(a.approverName, b.approverName);
+            break;
+        }
+        return sortAscending.value ? cmp : -cmp;
+      });
     return result;
   }
   // endregion
@@ -269,14 +277,16 @@ class TasksController extends GetxController {
     tasks.clear();
     dailyTasks.clear();
     allDailyTasks.clear();
-    
+
     // Refresh the user profile to sync permissions
     try {
       if (Get.isRegistered<AuthRepository>()) {
         await Get.find<AuthRepository>().fetchProfile();
       }
     } catch (e) {
-      debugPrint('TasksController: Failed to refresh profile on pull to refresh: $e');
+      debugPrint(
+        'TasksController: Failed to refresh profile on pull to refresh: $e',
+      );
     }
 
     await fetchAllData();
@@ -318,8 +328,17 @@ class TasksController extends GetxController {
     if (filterData != null) {
       List<int> parseIds(String key) {
         final val = filterData[key];
-        if (val == null || val.toString().trim().isEmpty || val.toString().trim().toUpperCase() == 'NA') return [];
-        return val.toString().split(',').map((e) => int.tryParse(e.trim())).whereType<int>().toList();
+        if (val == null ||
+            val.toString().trim().isEmpty ||
+            val.toString().trim().toUpperCase() == 'NA') {
+          return [];
+        }
+        return val
+            .toString()
+            .split(',')
+            .map((e) => int.tryParse(e.trim()))
+            .whereType<int>()
+            .toList();
       }
 
       final savedProjectIds = parseIds('project_id');
@@ -327,10 +346,18 @@ class TasksController extends GetxController {
       final savedAssigneeIds = parseIds('assignee_id');
       final savedGroupIds = parseIds('s_groupID');
 
-      selectedProjects.assignAll(projects.where((p) => savedProjectIds.contains(p.projectId)));
-      selectedUnits.assignAll(units.where((u) => savedUnitIds.contains(u.unitId)));
-      selectedAssignees.assignAll(assignees.where((a) => savedAssigneeIds.contains(a.id)));
-      selectedGroups.assignAll(groups.where((g) => savedGroupIds.contains(g.id)));
+      selectedProjects.assignAll(
+        projects.where((p) => savedProjectIds.contains(p.projectId)),
+      );
+      selectedUnits.assignAll(
+        units.where((u) => savedUnitIds.contains(u.unitId)),
+      );
+      selectedAssignees.assignAll(
+        assignees.where((a) => savedAssigneeIds.contains(a.id)),
+      );
+      selectedGroups.assignAll(
+        groups.where((g) => savedGroupIds.contains(g.id)),
+      );
     }
   }
 
@@ -373,11 +400,9 @@ class TasksController extends GetxController {
         if (groupId == null && selectedGroups.isNotEmpty) {
           groupId = selectedGroups.map((e) => e.id).join(',');
         }
-        final data = await _commonRepository.getAllAssignees(
-          groupId: groupId,
-        );
+        final data = await _commonRepository.getAllAssignees(groupId: groupId);
         assignees.assignAll(data);
-        
+
         if (groupId == null) {
           allAssignees.assignAll(data);
         } else if (allAssignees.isEmpty) {
@@ -410,24 +435,38 @@ class TasksController extends GetxController {
         groups: selectedGroups.map((group) => group.id).toList(),
       );
       if (response != null) {
-        var filteredTasks = response.tasks.where((task) => task.title.trim().toUpperCase() != 'NA').toList();
+        var filteredTasks = response.tasks
+            .where((task) => task.title.trim().toUpperCase() != 'NA')
+            .toList();
 
         // Apply client-side filters (project, group, unit, assignee)
         if (selectedProjects.isNotEmpty) {
-          final projectIds = selectedProjects.map((p) => p.projectId.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => projectIds.contains(task.projectId.toString())).toList();
+          final projectIds = selectedProjects
+              .map((p) => p.projectId.toString())
+              .toSet();
+          filteredTasks = filteredTasks
+              .where((task) => projectIds.contains(task.projectId.toString()))
+              .toList();
         }
         if (selectedGroups.isNotEmpty) {
           final groupIds = selectedGroups.map((g) => g.id.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => groupIds.contains(task.groupId.toString())).toList();
+          filteredTasks = filteredTasks
+              .where((task) => groupIds.contains(task.groupId.toString()))
+              .toList();
         }
         if (selectedUnits.isNotEmpty) {
           final unitIds = selectedUnits.map((u) => u.unitId.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => unitIds.contains(task.unitId.toString())).toList();
+          filteredTasks = filteredTasks
+              .where((task) => unitIds.contains(task.unitId.toString()))
+              .toList();
         }
         if (selectedAssignees.isNotEmpty) {
-          final assigneeIds = selectedAssignees.map((a) => a.id.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => assigneeIds.contains(task.assignTo.toString())).toList();
+          final assigneeIds = selectedAssignees
+              .map((a) => a.id.toString())
+              .toSet();
+          filteredTasks = filteredTasks
+              .where((task) => assigneeIds.contains(task.assignTo.toString()))
+              .toList();
         }
 
         // Sort in order of Active -> Overdue -> Upcoming
@@ -469,22 +508,36 @@ class TasksController extends GetxController {
         groups: selectedGroups.map((group) => group.id).toList(),
       );
       if (response != null) {
-        var filteredTasks = response.tasks.where((task) => task.title.trim().toUpperCase() != 'NA').toList();
+        var filteredTasks = response.tasks
+            .where((task) => task.title.trim().toUpperCase() != 'NA')
+            .toList();
         if (selectedProjects.isNotEmpty) {
-          final projectIds = selectedProjects.map((p) => p.projectId.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => projectIds.contains(task.projectId.toString())).toList();
+          final projectIds = selectedProjects
+              .map((p) => p.projectId.toString())
+              .toSet();
+          filteredTasks = filteredTasks
+              .where((task) => projectIds.contains(task.projectId.toString()))
+              .toList();
         }
         if (selectedGroups.isNotEmpty) {
           final groupIds = selectedGroups.map((g) => g.id.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => groupIds.contains(task.groupId.toString())).toList();
+          filteredTasks = filteredTasks
+              .where((task) => groupIds.contains(task.groupId.toString()))
+              .toList();
         }
         if (selectedUnits.isNotEmpty) {
           final unitIds = selectedUnits.map((u) => u.unitId.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => unitIds.contains(task.unitId.toString())).toList();
+          filteredTasks = filteredTasks
+              .where((task) => unitIds.contains(task.unitId.toString()))
+              .toList();
         }
         if (selectedAssignees.isNotEmpty) {
-          final assigneeIds = selectedAssignees.map((a) => a.id.toString()).toSet();
-          filteredTasks = filteredTasks.where((task) => assigneeIds.contains(task.assignTo.toString())).toList();
+          final assigneeIds = selectedAssignees
+              .map((a) => a.id.toString())
+              .toSet();
+          filteredTasks = filteredTasks
+              .where((task) => assigneeIds.contains(task.assignTo.toString()))
+              .toList();
         }
         filteredTasks.sort((a, b) {
           final orderA = _getTaskSortOrder(a);
@@ -514,14 +567,20 @@ class TasksController extends GetxController {
     try {
       return DateTime.parse(task.endDate).toLocal();
     } catch (_) {}
-    
+
     final date = _parseDateTime(task.endDate);
     if (date == null) return null;
-    
+
     if (task.endTime.isNotEmpty) {
       final time = _parseTimeOfDay(task.endTime);
       if (time != null) {
-        return DateTime(date.year, date.month, date.day, time.hour, time.minute).toLocal();
+        return DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        ).toLocal();
       }
     }
     return date.toLocal();
@@ -530,10 +589,12 @@ class TasksController extends GetxController {
   int _getTaskSortOrder(TaskItem task) {
     final statusLower = task.status.toLowerCase().trim();
     final dayStatusLower = task.taskDayStatus?.toLowerCase().trim() ?? '';
-    
-    final isCompletedOrApproved = statusLower == 'completed' || statusLower == 'approved';
-    final isReviewOrUnderReview = statusLower == 'review' || statusLower == 'under_review';
-    
+
+    final isCompletedOrApproved =
+        statusLower == 'completed' || statusLower == 'approved';
+    final isReviewOrUnderReview =
+        statusLower == 'review' || statusLower == 'under_review';
+
     bool isUpcoming = false;
     bool isOverdue = false;
     bool isActive = false;
@@ -545,7 +606,9 @@ class TasksController extends GetxController {
         isActive = dayStatusLower == 'active';
       } else {
         final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
-        isUpcoming = scheduleDateTime != null && DateTime.now().isBefore(scheduleDateTime);
+        isUpcoming =
+            scheduleDateTime != null &&
+            DateTime.now().isBefore(scheduleDateTime);
         if (!isUpcoming) {
           if (statusLower == 'overdue') {
             isOverdue = true;
@@ -568,10 +631,6 @@ class TasksController extends GetxController {
     return 3;
   }
 
-  void _updateDisplayedDailyTasks() {
-    // Pagination removed
-  }
-
   void loadMoreDailyTasks() {
     // Pagination removed
   }
@@ -589,7 +648,9 @@ class TasksController extends GetxController {
       );
 
       if (response != null) {
-        final fetchedTasks = response.data.where((task) => task.title.trim().toUpperCase() != 'NA').toList();
+        final fetchedTasks = response.data
+            .where((task) => task.title.trim().toUpperCase() != 'NA')
+            .toList();
         fetchedTasks.sort((a, b) {
           final aDate = DateTime.tryParse(a.createdAt);
           final bDate = DateTime.tryParse(b.createdAt);
@@ -607,15 +668,20 @@ class TasksController extends GetxController {
 
         totalRecords.value = fetchedTasks.length;
         totalPages.value = (totalRecords.value / perPage.value).ceil();
-        
+
         // Clamp current page to valid range
         if (currentPage.value > totalPages.value) {
-          currentPage.value = totalPages.value.clamp(1, double.infinity).toInt();
+          currentPage.value = totalPages.value
+              .clamp(1, double.infinity)
+              .toInt();
         }
 
         final startIndex = (currentPage.value - 1) * perPage.value;
-        final endIndex = (startIndex + perPage.value).clamp(0, totalRecords.value);
-        
+        final endIndex = (startIndex + perPage.value).clamp(
+          0,
+          totalRecords.value,
+        );
+
         final paginatedTasks = fetchedTasks.sublist(startIndex, endIndex);
         tasks.assignAll(paginatedTasks);
         hasMore.value = currentPage.value < totalPages.value;
@@ -629,58 +695,99 @@ class TasksController extends GetxController {
 
   Map<String, dynamic> _getRecurrencePayload(RecurrenceData rec) {
     final Map<String, dynamic> result = {};
+    result["recurring_task"] = true;
     result["frequency"] = rec.frequency;
     result["repeat_interval"] = rec.repeatInterval;
-    result["occurrences"] = rec.occurrences;
-    result["selected_days"] = rec.selectedDays;
-    
-    // Default placeholders
-    result["month_days"] = null;
-    result["year_days"] = null;
-    result["yearlyPattern"] = null;
-    result["yearly_month"] = null;
-    result["yearly_day"] = null;
-    result["yearly_week"] = null;
-    result["yearly_dayName"] = null;
-    result["yearly_month2"] = null;
 
     if (rec.frequency == 'day') {
-      result["selected_days"] = null;
+      if (rec.selectedDays == 'Mon,Tue,Wed,Thu,Fri') {
+        result["every_weekday"] = true;
+        result["selected_days"] = "Mon,Tue,Wed,Thu,Fri";
+      }
     } else if (rec.frequency == 'week') {
-      // already has selected_days e.g. "Wed,Sat"
+      if (rec.selectedDays != null && rec.selectedDays!.isNotEmpty) {
+        result["selected_days"] = rec.selectedDays;
+      }
     } else if (rec.frequency == 'month') {
-      if (rec.monthlyMode == 'day') {
-        result["month_days"] = rec.monthDay?.toString();
-        result["selected_days"] = null;
-        result["repeat_interval"] = rec.monthInterval;
+      final isMonthlyDay = rec.monthlyMode == 'day' ||
+          (rec.monthlyMode == null && rec.monthDay != null);
+      if (isMonthlyDay) {
+        result["monthlyPattern"] = "day";
+        result["month_days"] = rec.monthDay ?? 1;
+        result["repeat_interval"] = rec.monthInterval ?? rec.repeatInterval;
       } else {
-        // week-wise: selected_days should be e.g. "First,Mon"
-        final weekdayShort = rec.monthWeekday != null && rec.monthWeekday!.length >= 3
-            ? rec.monthWeekday!.substring(0, 3)
-            : null;
-        result["selected_days"] = "${rec.monthOrdinal},$weekdayShort";
-        result["month_days"] = null;
-        result["repeat_interval"] = rec.monthInterval;
+        final weekdayShort =
+            rec.monthWeekday != null && rec.monthWeekday!.length >= 3
+                ? rec.monthWeekday!.substring(0, 3)
+                : 'Mon';
+        final ordinal = rec.monthOrdinal ?? 'First';
+        result["monthlyPattern"] = "the";
+        result["selected_days"] = "$ordinal,$weekdayShort";
+        result["monthly_week"] = ordinal;
+        result["monthly_day_name"] = weekdayShort;
+        result["repeat_interval"] = rec.monthInterval ?? rec.repeatInterval;
       }
     } else if (rec.frequency == 'year') {
-      result["repeat_interval"] = rec.yearlyInterval;
-      if (rec.yearlyMode == 'on') {
+      result["repeat_interval"] = rec.yearlyInterval ?? rec.repeatInterval;
+      final isYearlyOn = rec.yearlyMode == 'on' ||
+          (rec.yearlyMode == null && rec.yearlyMonth != null);
+      if (isYearlyOn) {
+        final monthShort =
+            rec.yearlyMonth != null && rec.yearlyMonth!.length >= 3
+                ? rec.yearlyMonth!.substring(0, 3)
+                : 'Jan';
+        final day = rec.yearlyDay ?? 1;
         result["yearlyPattern"] = "on";
-        result["yearly_month"] = rec.yearlyMonth != null && rec.yearlyMonth!.length >= 3
-            ? rec.yearlyMonth!.substring(0, 3)
-            : null;
-        result["yearly_day"] = rec.yearlyDay?.toString();
+        result["year_days"] = "on,$monthShort,$day";
+        result["yearly_month"] = monthShort;
+        result["yearly_day"] = day;
       } else {
+        final ordinal = rec.yearlyOrdinal ?? 'First';
+        final weekdayShort =
+            rec.yearlyWeekday != null && rec.yearlyWeekday!.length >= 3
+                ? rec.yearlyWeekday!.substring(0, 3)
+                : 'Mon';
+        final monthShort =
+            rec.yearlyTheMonth != null && rec.yearlyTheMonth!.length >= 3
+                ? rec.yearlyTheMonth!.substring(0, 3)
+                : 'Jan';
         result["yearlyPattern"] = "the";
-        result["yearly_month2"] = rec.yearlyTheMonth != null && rec.yearlyTheMonth!.length >= 3
-            ? rec.yearlyTheMonth!.substring(0, 3)
-            : null;
-        result["yearly_week"] = rec.yearlyOrdinal;
-        result["yearly_dayName"] = rec.yearlyWeekday != null && rec.yearlyWeekday!.length >= 3
-            ? rec.yearlyWeekday!.substring(0, 3)
-            : null;
+        result["year_days"] = "the,$ordinal,$weekdayShort,$monthShort";
+        result["yearly_week"] = ordinal;
+        result["yearly_dayName"] = weekdayShort;
+        result["yearly_month2"] = monthShort;
       }
     }
+
+    // Range of Recurrence
+    result["series_start_date"] = AppDateUtils.formatToApiDate(
+      rec.startDate.toIso8601String(),
+    );
+    final isEndBy = rec.seriesEndChoice == 'by' ||
+        rec.seriesEndChoice == 'end_by' ||
+        (rec.seriesEndChoice == null && rec.endByDate != null);
+
+    result["series_end_choice"] = isEndBy ? 'by' : 'after';
+    if (isEndBy && rec.endByDate != null) {
+      result["series_end_date"] = AppDateUtils.formatToApiDate(
+        rec.endByDate!.toIso8601String(),
+      );
+    } else if (!isEndBy && rec.occurrences != null) {
+      result["occurrences"] = rec.occurrences;
+    }
+
+    // Each Recurrence
+    final recStart = rec.recurrenceStartDate ?? rec.startDate;
+    final recEnd = rec.recurrenceEndDate ?? recStart;
+    result["recurrence_start_date"] = AppDateUtils.formatToApiDate(
+      recStart.toIso8601String(),
+    );
+    result["recurrence_end_date"] = AppDateUtils.formatToApiDate(
+      recEnd.toIso8601String(),
+    );
+    result["start_time"] = rec.startTime;
+    result["end_time"] = rec.endTime;
+
     return result;
   }
 
@@ -690,115 +797,148 @@ class TasksController extends GetxController {
       payload = taskData;
     } else {
       if (titleController.text.trim().isEmpty) {
-        AppCommonToastMessage.show(message: 'Please enter task title', type: ToastType.warning);
+        AppCommonToastMessage.show(
+          message: 'Please enter task title',
+          type: ToastType.warning,
+        );
         return;
       }
       if (selectedProjectForCreate.value == null) {
-        AppCommonToastMessage.show(message: 'Please select a project', type: ToastType.warning);
+        AppCommonToastMessage.show(
+          message: 'Please select a project',
+          type: ToastType.warning,
+        );
         return;
       }
 
-      final startDateVal = isRecurring.value && recurrenceData.value != null
-          ? recurrenceData.value!.startDate
-          : selectedStartDate.value;
-          
-      if (startDateVal == null) {
-        AppCommonToastMessage.show(message: 'Please select a start date', type: ToastType.warning);
+      // Assignment validation: At least one of assignee, allgroup, store
+      if (selectedAssigneeForCreate.value == null &&
+          selectedGroupForCreate.value == null &&
+          selectedUnitForCreate.value == null) {
+        AppCommonToastMessage.show(
+          message: 'Please select an Assignee, Security Group, or Store (Unit)',
+          type: ToastType.warning,
+        );
         return;
       }
 
-      String? startTimeStr;
-      String? endTimeStr;
-      if (isRecurring.value && recurrenceData.value != null) {
-        startTimeStr = recurrenceData.value!.startTime;
-        endTimeStr = recurrenceData.value!.endTime;
-      } else {
-        if (selectedStartTime.value != null) {
-          final hour = selectedStartTime.value!.hourOfPeriod == 0 ? 12 : selectedStartTime.value!.hourOfPeriod;
-          final minute = selectedStartTime.value!.minute.toString().padLeft(2, '0');
-          final period = selectedStartTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
-          startTimeStr = '$hour:$minute $period';
-        }
-        if (selectedEndTime.value != null) {
-          final hour = selectedEndTime.value!.hourOfPeriod == 0 ? 12 : selectedEndTime.value!.hourOfPeriod;
-          final minute = selectedEndTime.value!.minute.toString().padLeft(2, '0');
-          final period = selectedEndTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
-          endTimeStr = '$hour:$minute $period';
-        }
+      if (approvalRequired.value && selectedApproverForCreate.value == null) {
+        AppCommonToastMessage.show(
+          message: 'Please select an approver',
+          type: ToastType.warning,
+        );
+        return;
       }
-
-      final endDateVal = isRecurring.value && recurrenceData.value != null
-          ? recurrenceData.value!.endByDate
-          : selectedEndDate.value;
 
       payload = <String, dynamic>{
-        "task_title": titleController.text,
-        "description": descriptionController.text,
-        "project": selectedProjectForCreate.value?.projectId.toString(),
-        "store": selectedUnitForCreate.value?.unitId.toString(),
-        "allgroup": selectedGroupForCreate.value?.id.toString(),
-        "assignee": selectedAssigneeForCreate.value?.id.toString(),
-        "start_date": AppDateUtils.formatToApiDate(startDateVal.toIso8601String()),
-        "end_date": endDateVal != null ? AppDateUtils.formatToApiDate(endDateVal.toIso8601String()) : null,
-        "photo_required": photoRequired.value ? "on" : "off",
-        "approval_required": approvalRequired.value ? "on" : "off",
-        "approver": approvalRequired.value ? selectedApproverForCreate.value?.id.toString() : null,
-        "recurring_task": isRecurring.value ? "1" : "0",
-        
-        // Default placeholder fields
-        "year_days": null,
-        "month_days": null,
-        "yearlyPattern": null,
-        "yearly_month": null,
-        "yearly_day": null,
-        "yearly_week": null,
-        "yearly_dayName": null,
-        "yearly_month2": null,
+        "task_title": titleController.text.trim(),
+        "description": descriptionController.text.trim(),
+        "project": selectedProjectForCreate.value!.projectId,
+        "recurring_task": isRecurring.value,
+        "photo_required": photoRequired.value,
+        "approval_required": approvalRequired.value,
       };
+
+      // Assignee > Group > Unit
+      if (selectedAssigneeForCreate.value != null) {
+        payload["assignee"] = selectedAssigneeForCreate.value!.id;
+      }
+      if (selectedGroupForCreate.value != null) {
+        payload["allgroup"] = [selectedGroupForCreate.value!.id];
+      }
+      if (selectedUnitForCreate.value != null) {
+        payload["store"] = selectedUnitForCreate.value!.unitId;
+      }
+
+      if (approvalRequired.value && selectedApproverForCreate.value != null) {
+        payload["approver"] = selectedApproverForCreate.value!.id;
+      }
 
       if (isRecurring.value && recurrenceData.value != null) {
         final rec = recurrenceData.value!;
         final recPayload = _getRecurrencePayload(rec);
         payload.addAll(recPayload);
-        payload["start_time"] = startTimeStr;
-        payload["end_time"] = endTimeStr;
       } else {
-        payload["frequency"] = null;
-        payload["repeat_interval"] = null;
-        payload["start_time"] = startTimeStr;
-        payload["end_time"] = endTimeStr;
-        payload["selected_days"] = null;
-        payload["occurrences"] = null;
+        // One Time Task
+        final startDateVal = selectedStartDate.value ?? DateTime.now();
+        final endDateVal = selectedEndDate.value ?? startDateVal;
+        payload["start_date"] = AppDateUtils.formatToApiDate(
+          startDateVal.toIso8601String(),
+        );
+        payload["end_date"] = AppDateUtils.formatToApiDate(
+          endDateVal.toIso8601String(),
+        );
+
+        String? startTimeStr;
+        String? endTimeStr;
+        if (selectedStartTime.value != null) {
+          startTimeStr = formatTimeOfDay(selectedStartTime.value);
+        }
+        if (selectedEndTime.value != null) {
+          endTimeStr = formatTimeOfDay(selectedEndTime.value);
+        }
+        if (startTimeStr != null) {
+          payload["start_time"] = startTimeStr;
+        }
+        if (endTimeStr != null) {
+          payload["end_time"] = endTimeStr;
+        }
       }
     }
 
     try {
       debugPrint("CREATE TASK PAYLOAD: $payload");
-      isLoading.value = true;
+      isFormSubmitting.value = true;
       final response = await _taskRepository.createTask(payload);
       if (response != null && response['status'] == true) {
+        isFormSubmitting.value = false;
         Get.back();
-        AppCommonToastMessage.show(message: 'Task created successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: response['message'] ?? 'Task created successfully',
+          type: ToastType.success,
+        );
         fetchInitialList();
+      } else {
+        final errorMsg = response != null && response['message'] != null
+            ? response['message'].toString()
+            : 'Failed to create task';
+        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to create task: $e', type: ToastType.error);
+      String errorMsg = 'Failed to create task';
+      if (e is dio.DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMsg = data['message'].toString();
+        } else {
+          errorMsg = e.message ?? e.toString();
+        }
+      } else {
+        errorMsg = e.toString();
+      }
+      AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
     } finally {
-      isLoading.value = false;
+      isFormSubmitting.value = false;
     }
   }
 
   Future<void> submitTask(TaskItem task, {bool isUpdate = false}) async {
     if (commentController.text.trim().isEmpty) {
-      AppCommonToastMessage.show(message: 'Please enter a comment.', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'Please enter a comment.',
+        type: ToastType.warning,
+      );
       return;
     }
-    
+
     if (task.photoRequired == '1' && attachments.isEmpty) {
-      AppCommonToastMessage.show(message: 'A photo is required for this task.', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'A photo is required for this task.',
+        type: ToastType.warning,
+      );
       return;
     }
-    
+
     try {
       isLoading.value = true;
       final formData = dio.FormData.fromMap({
@@ -822,13 +962,15 @@ class TasksController extends GetxController {
               options: dio.Options(responseType: dio.ResponseType.bytes),
             );
             final fileName = file.split('/').last;
-            formData.files.add(MapEntry(
-              'taskimages[]',
-              dio.MultipartFile.fromBytes(
-                fileResponse.data,
-                filename: fileName,
+            formData.files.add(
+              MapEntry(
+                'taskimages[]',
+                dio.MultipartFile.fromBytes(
+                  fileResponse.data,
+                  filename: fileName,
+                ),
               ),
-            ));
+            );
           } catch (e) {
             debugPrint('Failed to download existing image: $e');
           }
@@ -840,10 +982,13 @@ class TasksController extends GetxController {
           : await _taskRepository.submitTask(formData);
 
       if (response != null && response['status'] == true) {
-        isLoading.value = false; // Clear before closing so list screen never shows spinner
+        isLoading.value =
+            false; // Clear before closing so list screen never shows spinner
         Get.back();
         AppCommonToastMessage.show(
-          message: response['message'] ?? 'Task ${isUpdate ? 'updated' : 'submitted'} successfully',
+          message:
+              response['message'] ??
+              'Task ${isUpdate ? 'updated' : 'submitted'} successfully',
           type: ToastType.success,
         );
         _refreshDailyTasksSilently();
@@ -860,7 +1005,10 @@ class TasksController extends GetxController {
 
   Future<void> approveTask(int instanceId) async {
     if (approverCommentController.text.trim().isEmpty) {
-      AppCommonToastMessage.show(message: 'Please enter a comment before approving.', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'Please enter a comment before approving.',
+        type: ToastType.warning,
+      );
       return;
     }
     try {
@@ -879,35 +1027,25 @@ class TasksController extends GetxController {
               await dio.MultipartFile.fromFile(file.path),
             ),
           );
-        } else if (file is String) {
-          try {
-            final fileResponse = await dio.Dio().get(
-              file,
-              options: dio.Options(responseType: dio.ResponseType.bytes),
-            );
-            final fileName = file.split('/').last;
-            formData.files.add(MapEntry(
-              'taskimages[]',
-              dio.MultipartFile.fromBytes(
-                fileResponse.data,
-                filename: fileName,
-              ),
-            ));
-          } catch (e) {
-            debugPrint('Failed to download existing image: $e');
-          }
         }
       }
 
       final response = await _taskRepository.approveTask(formData);
       if (response != null && response['status'] == true) {
-        isLoading.value = false; // Clear before closing so list screen never shows spinner
+        isLoading.value =
+            false; // Clear before closing so list screen never shows spinner
         Get.back();
-        AppCommonToastMessage.show(message: 'Task approved successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Task approved successfully',
+          type: ToastType.success,
+        );
         _refreshDailyTasksSilently();
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to approve task: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to approve task: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -915,7 +1053,10 @@ class TasksController extends GetxController {
 
   Future<void> rejectTask(int instanceId) async {
     if (approverCommentController.text.trim().isEmpty) {
-      AppCommonToastMessage.show(message: 'Please enter a comment before rejecting.', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'Please enter a comment before rejecting.',
+        type: ToastType.warning,
+      );
       return;
     }
     try {
@@ -934,41 +1075,34 @@ class TasksController extends GetxController {
               await dio.MultipartFile.fromFile(file.path),
             ),
           );
-        } else if (file is String) {
-          try {
-            final fileResponse = await dio.Dio().get(
-              file,
-              options: dio.Options(responseType: dio.ResponseType.bytes),
-            );
-            final fileName = file.split('/').last;
-            formData.files.add(MapEntry(
-              'taskimages[]',
-              dio.MultipartFile.fromBytes(
-                fileResponse.data,
-                filename: fileName,
-              ),
-            ));
-          } catch (e) {
-            debugPrint('Failed to download existing image: $e');
-          }
         }
       }
 
       final response = await _taskRepository.rejectTask(formData);
       if (response != null && response['status'] == true) {
-        isLoading.value = false; // Clear before closing so list screen never shows spinner
+        isLoading.value =
+            false; // Clear before closing so list screen never shows spinner
         Get.back();
-        AppCommonToastMessage.show(message: 'Task rejected successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: 'Task rejected successfully',
+          type: ToastType.success,
+        );
         _refreshDailyTasksSilently();
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to reject task: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to reject task: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> deleteTaskInstance(TaskItem task, {String deleteLevel = "0"}) async {
+  Future<void> deleteTaskInstance(
+    TaskItem task, {
+    String deleteLevel = "0",
+  }) async {
     try {
       isLoading.value = true;
       final response = await _taskRepository.deleteTask(
@@ -977,13 +1111,20 @@ class TasksController extends GetxController {
         deleteLevel: deleteLevel,
       );
       if (response != null && response['status'] == true) {
-        isLoading.value = false; // Clear before closing so list screen never shows spinner
+        isLoading.value =
+            false; // Clear before closing so list screen never shows spinner
         Get.back();
-        AppCommonToastMessage.show(message: response['message'] ?? 'Task deleted successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: response['message'] ?? 'Task deleted successfully',
+          type: ToastType.success,
+        );
         _refreshDailyTasksSilently();
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to delete task: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to delete task: $e',
+        type: ToastType.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -998,7 +1139,18 @@ class TasksController extends GetxController {
     try {
       DateTime dt = DateTime.parse(dateStr).toLocal();
       List<String> months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       String day = dt.day.toString().padLeft(2, '0');
       String month = months[dt.month - 1];
@@ -1022,7 +1174,10 @@ class TasksController extends GetxController {
   Future<void> exportTasks({bool isPdf = false}) async {
     try {
       if (tasks.isEmpty) {
-        AppCommonToastMessage.show(message: 'No tasks to export', type: ToastType.info);
+        AppCommonToastMessage.show(
+          message: 'No tasks to export',
+          type: ToastType.info,
+        );
         return;
       }
 
@@ -1072,19 +1227,20 @@ class TasksController extends GetxController {
         );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to export tasks: $e', type: ToastType.error);
+      AppCommonToastMessage.show(
+        message: 'Failed to export tasks: $e',
+        type: ToastType.error,
+      );
     }
   }
   // endregion
 
   Future<void> editTaskDetails(TaskItem task, {bool readOnly = false}) async {
     isReadOnly.value = readOnly;
+    isFormSubmitting.value = false;
     try {
       isLoading.value = true;
-      Get.dialog(
-        const CustomAppLoader(),
-        barrierDismissible: false,
-      );
+      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
       // Allow dialog to push before making fast network requests
       await Future.delayed(const Duration(milliseconds: 50));
 
@@ -1100,7 +1256,20 @@ class TasksController extends GetxController {
         final data = response.data!.taskInstanceId == 0
             ? response.data!.copyWith(taskInstanceId: task.taskInstanceId)
             : response.data!;
-        Get.toNamed(AppRoutes.createTask, arguments: data);
+
+        // Pre-fetch meta dropdown lists if empty so dropdowns bind properly
+        if (projects.isEmpty) await fetchProjects();
+        if (groups.isEmpty) await fetchGroups();
+        if (units.isEmpty) await fetchUnits();
+        if (allAssignees.isEmpty) await fetchAssignees();
+
+        // If recurring_task is "0" (or non-recurring), show EditTaskScreen; otherwise show choice dialog
+        if (data.recurringTask == '0' || !data.isRecurring) {
+          updateLevel.value = "0";
+          Get.toNamed(AppRoutes.editTask, arguments: data);
+        } else {
+          showEditRecurringChoiceDialog(data);
+        }
       } else {
         AppCommonToastMessage.show(
           message: 'Failed to fetch task details for edit',
@@ -1118,13 +1287,31 @@ class TasksController extends GetxController {
     }
   }
 
-  Future<void> fetchTaskSubmissionDetails(TaskItem task, {required bool isReview, bool readOnly = false}) async {
+  void showEditRecurringChoiceDialog(TaskItem task) {
+    Get.dialog(
+      EditRecurringTaskChoiceDialog(
+        task: task,
+        onThisTaskOnly: () {
+          updateLevel.value = "0";
+          Get.toNamed(AppRoutes.editTask, arguments: task);
+        },
+        onEntireSeries: () {
+          updateLevel.value = "1";
+          Get.toNamed(AppRoutes.editTask, arguments: task);
+        },
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  Future<void> fetchTaskSubmissionDetails(
+    TaskItem task, {
+    required bool isReview,
+    bool readOnly = false,
+  }) async {
     try {
       isLoading.value = true;
-      Get.dialog(
-        const CustomAppLoader(),
-        barrierDismissible: false,
-      );
+      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
       // Allow dialog to push before making fast network requests
       await Future.delayed(const Duration(milliseconds: 50));
 
@@ -1145,8 +1332,10 @@ class TasksController extends GetxController {
             ? response.data!.copyWith(taskInstanceId: task.taskInstanceId)
             : response.data!;
         commentController.text = data.ucomment ?? '';
-        approverCommentController.text = data.approverComment == "NA" ? "" : (data.approverComment ?? '');
-        
+        approverCommentController.text = data.approverComment == "NA"
+            ? ""
+            : (data.approverComment ?? '');
+
         // Parse and add existing pictures
         if (data.picture != null) {
           try {
@@ -1159,11 +1348,17 @@ class TasksController extends GetxController {
                 parsedPics = jsonDecode(picStr);
               }
             }
-            final String baseImgUrl = "${_storageService.getBaseUrl().replaceAll('/api/', '/')}/uploads/taskuploads/";
+            final String baseImgUrl =
+                "${_storageService.getBaseUrl().replaceAll('/api/', '/')}/uploads/taskuploads/";
             for (var pic in parsedPics) {
               if (pic is String && pic.isNotEmpty) {
-                final String rawUrl = pic.startsWith('http') ? pic : "$baseImgUrl$pic";
-                final normalizedUrl = rawUrl.replaceAll(RegExp(r'(?<!:)/+'), '/');
+                final String rawUrl = pic.startsWith('http')
+                    ? pic
+                    : "$baseImgUrl$pic";
+                final normalizedUrl = rawUrl.replaceAll(
+                  RegExp(r'(?<!:)/+'),
+                  '/',
+                );
                 attachments.add(normalizedUrl);
               }
             }
@@ -1172,7 +1367,13 @@ class TasksController extends GetxController {
           }
         }
 
-        Get.dialog(TaskSubmissionDialog(task: data, isReview: isReview, isReadOnly: readOnly));
+        Get.dialog(
+          TaskSubmissionDialog(
+            task: data,
+            isReview: isReview,
+            isReadOnly: readOnly,
+          ),
+        );
       } else {
         AppCommonToastMessage.show(
           message: 'Failed to fetch task details',
@@ -1210,14 +1411,19 @@ class TasksController extends GetxController {
   final selectedEndTime = Rxn<TimeOfDay>();
   final recurrenceData = Rxn<RecurrenceData>();
   final formInitialized = false.obs;
-  final updateLevel = "0".obs; // "0" for This Task Only, "1" for Entire Task Series
+  final updateLevel =
+      "0".obs; // "0" for This Task Only, "1" for Entire Task Series
 
   TimeOfDay? parseTimeOfDay(String? timeStr) {
     if (timeStr == null || timeStr.isEmpty) return null;
     try {
       final clean = timeStr.trim().toUpperCase();
       final isPm = clean.endsWith('PM');
-      final parts = clean.replaceAll('AM', '').replaceAll('PM', '').trim().split(':');
+      final parts = clean
+          .replaceAll('AM', '')
+          .replaceAll('PM', '')
+          .trim()
+          .split(':');
       int hour = int.parse(parts[0]);
       int minute = int.parse(parts[1]);
       if (isPm && hour < 12) hour += 12;
@@ -1244,13 +1450,28 @@ class TasksController extends GetxController {
 
     String cleaned = dateStr.replaceAll(',', '').trim();
     try {
-      List<String> parts = cleaned.contains('-') ? cleaned.split(RegExp(r'[-\s]+')) : cleaned.split(RegExp(r'\s+'));
+      List<String> parts = cleaned.contains('-')
+          ? cleaned.split(RegExp(r'[-\s]+'))
+          : cleaned.split(RegExp(r'\s+'));
       if (parts.length >= 3) {
         int? day = int.tryParse(parts[0]);
         int? year = int.tryParse(parts[2]);
         final monthStr = parts[1].toLowerCase();
         int? month;
-        final monthsList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        final monthsList = [
+          'jan',
+          'feb',
+          'mar',
+          'apr',
+          'may',
+          'jun',
+          'jul',
+          'aug',
+          'sep',
+          'oct',
+          'nov',
+          'dec',
+        ];
         for (int i = 0; i < monthsList.length; i++) {
           if (monthStr.startsWith(monthsList[i])) {
             month = i + 1;
@@ -1283,101 +1504,259 @@ class TasksController extends GetxController {
     return null;
   }
 
-  void initializeFormForEdit(TaskItem task) {
+  void initializeFormForEdit(TaskItem task, {bool thisOccurrenceOnly = false}) {
     titleController.text = task.title;
     descriptionController.text = task.description;
-    
+
     try {
       selectedProjectForCreate.value = projects.firstWhere(
-        (p) => p.projectName.toLowerCase() == task.project?.toLowerCase() || p.projectId.toString() == task.projectId
+        (p) =>
+            p.projectId.toString() == task.projectId ||
+            p.projectName.toLowerCase() ==
+                (task.projectName ?? task.project)?.toLowerCase(),
       );
     } catch (_) {
-      selectedProjectForCreate.value = null;
+      if (task.projectId.isNotEmpty &&
+          task.projectId != '0' &&
+          task.projectId != 'null' &&
+          task.projectId != 'NA') {
+        final fallback = TaskProject(
+          projectId: int.tryParse(task.projectId) ?? 0,
+          projectName: task.projectName ?? task.project ?? '',
+        );
+        if (!projects.any((p) => p.projectId == fallback.projectId)) {
+          projects.add(fallback);
+        }
+        selectedProjectForCreate.value = fallback;
+      } else {
+        selectedProjectForCreate.value = null;
+      }
     }
 
     try {
       selectedUnitForCreate.value = units.firstWhere(
-        (u) => u.unitId.toString() == task.unitId
+        (u) =>
+            u.unitId.toString() == task.unitId ||
+            (task.unitName != null &&
+                u.unitName.toLowerCase() == task.unitName!.toLowerCase()),
       );
     } catch (_) {
-      selectedUnitForCreate.value = null;
+      if (task.unitId.isNotEmpty &&
+          task.unitId != '0' &&
+          task.unitId != 'null' &&
+          task.unitId != 'NA') {
+        final fallback = SupportUnit(
+          unitId: int.tryParse(task.unitId) ?? 0,
+          unitName: task.unitName ?? task.unitId,
+        );
+        if (!units.any((u) => u.unitId == fallback.unitId)) {
+          units.add(fallback);
+        }
+        selectedUnitForCreate.value = fallback;
+      } else {
+        selectedUnitForCreate.value = null;
+      }
     }
 
     try {
       selectedGroupForCreate.value = groups.firstWhere(
-        (g) => g.id.toString() == task.groupId || g.roleName.toLowerCase() == task.groupNames?.toLowerCase()
+        (g) =>
+            g.id.toString() == task.groupId ||
+            (task.groupNames != null &&
+                g.roleName.toLowerCase() == task.groupNames!.toLowerCase()),
       );
     } catch (_) {
-      selectedGroupForCreate.value = null;
+      if (task.groupId.isNotEmpty &&
+          task.groupId != '0' &&
+          task.groupId != 'null' &&
+          task.groupId != 'NA') {
+        final fallback = TaskGroup(
+          id: int.tryParse(task.groupId) ?? 0,
+          type: '',
+          roleName: task.groupNames ?? '',
+          roleVal: '0',
+          roleFor: '0',
+          createdAt: '',
+          updatedAt: '',
+        );
+        if (!groups.any((g) => g.id == fallback.id)) {
+          groups.add(fallback);
+        }
+        selectedGroupForCreate.value = fallback;
+      } else {
+        selectedGroupForCreate.value = null;
+      }
     }
 
-    try {
-      selectedAssigneeForCreate.value = assignees.firstWhere(
-        (a) => a.id.toString() == task.assignTo || a.name.toLowerCase() == task.assigneeName?.toLowerCase()
-      );
-    } catch (_) {
+    if (task.assignTo.isNotEmpty &&
+        task.assignTo != '0' &&
+        task.assignTo != 'null' &&
+        task.assignTo != 'NA') {
+      try {
+        selectedAssigneeForCreate.value = assignees.firstWhere(
+          (a) =>
+              a.id.toString() == task.assignTo ||
+              (task.assigneeName != null &&
+                  a.name.toLowerCase() == task.assigneeName!.toLowerCase()),
+        );
+      } catch (_) {
+        final fallback = AssigneeModel(
+          id: int.tryParse(task.assignTo) ?? 0,
+          name: task.assigneeName ?? '',
+        );
+        if (!assignees.any((a) => a.id == fallback.id)) {
+          assignees.add(fallback);
+        }
+        selectedAssigneeForCreate.value = fallback;
+      }
+    } else {
       selectedAssigneeForCreate.value = null;
     }
 
-    try {
-      selectedApproverForCreate.value = assignees.firstWhere(
-        (a) => a.id.toString() == task.approverId || a.name.toLowerCase() == task.approverName?.toLowerCase()
-      );
-    } catch (_) {
+    if ((task.approvalRequired == "1" || task.approvalRequired == "on") &&
+        task.approverId.isNotEmpty &&
+        task.approverId != '0' &&
+        task.approverId != 'null' &&
+        task.approverId != 'NA') {
+      try {
+        selectedApproverForCreate.value = allAssignees.firstWhere(
+          (a) =>
+              a.id.toString() == task.approverId ||
+              (task.approverName != null &&
+                  a.name.toLowerCase() == task.approverName!.toLowerCase()),
+        );
+      } catch (_) {
+        final fallback = AssigneeModel(
+          id: int.tryParse(task.approverId) ?? 0,
+          name: task.approverName ?? '',
+        );
+        if (!allAssignees.any((a) => a.id == fallback.id)) {
+          allAssignees.add(fallback);
+        }
+        selectedApproverForCreate.value = fallback;
+      }
+    } else {
       selectedApproverForCreate.value = null;
     }
 
-    photoRequired.value = task.photoRequired == "1" || task.photoRequired == "on";
-    approvalRequired.value = task.approvalRequired == "1" || task.approvalRequired == "on";
-    isRecurring.value = task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
+    photoRequired.value =
+        task.photoRequired == "1" || task.photoRequired == "on" || task.photoRequired == "true";
+    approvalRequired.value =
+        task.approvalRequired == "1" || task.approvalRequired == "on" || task.approvalRequired == "true";
+    isRecurring.value =
+        task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
 
-    if (task.startDate.isNotEmpty && task.startDate != 'NA') {
-      try {
-        selectedStartDate.value = DateTime.parse(task.startDate);
-      } catch (_) {
-        selectedStartDate.value = _parseDateTime(task.scheduleDateTime);
-      }
+    if (updateLevel.value == "1" && !thisOccurrenceOnly) {
+      updateLevel.value = "1";
     } else {
-      selectedStartDate.value = _parseDateTime(task.scheduleDateTime);
+      updateLevel.value = "0";
     }
 
-    if (task.endDate.isNotEmpty && task.endDate != 'NA') {
-      try {
-        selectedEndDate.value = DateTime.parse(task.endDate);
-      } catch (_) {
-        selectedEndDate.value = null;
-      }
-    } else {
-      selectedEndDate.value = null;
+    final seriesStartStr = (task.seriesStartDate != null &&
+            task.seriesStartDate!.isNotEmpty &&
+            task.seriesStartDate != 'NA')
+        ? task.seriesStartDate!
+        : ((task.masterStartDate != null &&
+                task.masterStartDate!.isNotEmpty &&
+                task.masterStartDate != 'NA')
+            ? task.masterStartDate!
+            : (task.startDate.isNotEmpty && task.startDate != 'NA'
+                ? task.startDate
+                : task.scheduleDateTime));
+
+    final seriesEndStr = (task.seriesEndDate != null &&
+            task.seriesEndDate!.isNotEmpty &&
+            task.seriesEndDate != 'NA')
+        ? task.seriesEndDate!
+        : ((task.masterEndDate != null &&
+                task.masterEndDate!.isNotEmpty &&
+                task.masterEndDate != 'NA')
+            ? task.masterEndDate!
+            : (task.endDate.isNotEmpty && task.endDate != 'NA'
+                ? task.endDate
+                : null));
+
+    final startStr = (thisOccurrenceOnly || !isRecurring.value)
+        ? (task.startDate.isNotEmpty && task.startDate != 'NA'
+            ? task.startDate
+            : (task.scheduleDateTime.isNotEmpty
+                ? task.scheduleDateTime
+                : seriesStartStr))
+        : seriesStartStr;
+    selectedStartDate.value = parseTaskDate(startStr);
+
+    final endStr = (thisOccurrenceOnly || !isRecurring.value)
+        ? (task.endDate.isNotEmpty && task.endDate != 'NA'
+            ? task.endDate
+            : (task.startDate.isNotEmpty && task.startDate != 'NA'
+                ? task.startDate
+                : seriesEndStr))
+        : seriesEndStr;
+    selectedEndDate.value = parseTaskDate(endStr);
+
+    final sTime = (thisOccurrenceOnly || !isRecurring.value)
+        ? (task.instStartTime != null && task.instStartTime!.isNotEmpty
+            ? task.instStartTime!
+            : task.startTime)
+        : (task.startTime.isNotEmpty
+            ? task.startTime
+            : (task.instStartTime ?? ''));
+    if (sTime.isNotEmpty) {
+      selectedStartTime.value = parseTimeOfDay(sTime);
     }
 
-    if (task.startTime.isNotEmpty) {
-      selectedStartTime.value = _parseTimeOfDay(task.startTime);
-    }
-    if (task.endTime.isNotEmpty) {
-      selectedEndTime.value = _parseTimeOfDay(task.endTime);
+    final eTime = (thisOccurrenceOnly || !isRecurring.value)
+        ? (task.instEndTime != null && task.instEndTime!.isNotEmpty
+            ? task.instEndTime!
+            : task.endTime)
+        : (task.endTime.isNotEmpty
+            ? task.endTime
+            : (task.instEndTime ?? ''));
+    if (eTime.isNotEmpty) {
+      selectedEndTime.value = parseTimeOfDay(eTime);
     }
 
-    updateLevel.value = "0"; // Default to "This Task Only"
     formInitialized.value = true;
+  }
+
+  DateTime? parseTaskDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty || dateStr == 'NA') return null;
+    try {
+      return DateTime.parse(dateStr);
+    } catch (_) {
+      try {
+        return DateTime.parse(dateStr.replaceAll(' ', 'T'));
+      } catch (_) {
+        return _parseDateTime(dateStr);
+      }
+    }
   }
 
   Future<void> updateTask(TaskItem task) async {
     if (titleController.text.trim().isEmpty) {
-      AppCommonToastMessage.show(message: 'Please enter task title', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'Please enter task title',
+        type: ToastType.warning,
+      );
       return;
     }
     if (selectedProjectForCreate.value == null) {
-      AppCommonToastMessage.show(message: 'Please select a project', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'Please select a project',
+        type: ToastType.warning,
+      );
       return;
     }
 
     final startDateVal = isRecurring.value && recurrenceData.value != null
         ? recurrenceData.value!.startDate
         : selectedStartDate.value;
-        
+
     if (startDateVal == null) {
-      AppCommonToastMessage.show(message: 'Please select a start date', type: ToastType.warning);
+      AppCommonToastMessage.show(
+        message: 'Please select a start date',
+        type: ToastType.warning,
+      );
       return;
     }
 
@@ -1388,16 +1767,10 @@ class TasksController extends GetxController {
       endTimeStr = recurrenceData.value!.endTime;
     } else {
       if (selectedStartTime.value != null) {
-        final hour = selectedStartTime.value!.hourOfPeriod == 0 ? 12 : selectedStartTime.value!.hourOfPeriod;
-        final minute = selectedStartTime.value!.minute.toString().padLeft(2, '0');
-        final period = selectedStartTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
-        startTimeStr = '$hour:$minute $period';
+        startTimeStr = formatTimeOfDay(selectedStartTime.value);
       }
       if (selectedEndTime.value != null) {
-        final hour = selectedEndTime.value!.hourOfPeriod == 0 ? 12 : selectedEndTime.value!.hourOfPeriod;
-        final minute = selectedEndTime.value!.minute.toString().padLeft(2, '0');
-        final period = selectedEndTime.value!.period == DayPeriod.am ? 'AM' : 'PM';
-        endTimeStr = '$hour:$minute $period';
+        endTimeStr = formatTimeOfDay(selectedEndTime.value);
       }
     }
 
@@ -1405,22 +1778,41 @@ class TasksController extends GetxController {
         ? recurrenceData.value!.endByDate
         : selectedEndDate.value;
 
+    final isEntireSeries =
+        isRecurring.value && task.recurringTask != "0" && updateLevel.value == "1";
+
     final payload = <String, dynamic>{
       "task_id": task.id,
       "instance_id": task.taskInstanceId,
-      "update_level": updateLevel.value, // "0" for this task only, "1" for series
+      "update_level": isEntireSeries ? "1" : "0", // "0" for this task only, "1" for series
+      "is_recurring": isEntireSeries,
+      "task_type": task.taskType,
+      "title": titleController.text,
       "task_title": titleController.text,
       "description": descriptionController.text,
+      "prj_id": selectedProjectForCreate.value?.projectId,
       "project": selectedProjectForCreate.value?.projectId,
+      "selected_unit": selectedUnitForCreate.value?.unitId,
       "store": selectedUnitForCreate.value?.unitId,
+      "selected_groups": selectedGroupForCreate.value?.id,
       "allgroup": selectedGroupForCreate.value?.id,
+      "selected_assignee": selectedAssigneeForCreate.value?.id,
       "assignee": selectedAssigneeForCreate.value?.id,
-      "start_date": AppDateUtils.formatToApiDate(startDateVal.toIso8601String()),
-      "end_date": endDateVal != null ? AppDateUtils.formatToApiDate(endDateVal.toIso8601String()) : null,
+      "start_date": AppDateUtils.formatToApiDate(
+        startDateVal.toIso8601String(),
+      ),
+      "end_date": endDateVal != null
+          ? AppDateUtils.formatToApiDate(endDateVal.toIso8601String())
+          : null,
       "photo_required": photoRequired.value ? 1 : 0,
       "approval_required": approvalRequired.value ? 1 : 0,
-      "approver": approvalRequired.value ? selectedApproverForCreate.value?.id : null,
-      "recurring_task": isRecurring.value ? "1" : "0",
+      "approver_id": approvalRequired.value
+          ? selectedApproverForCreate.value?.id
+          : null,
+      "approver": approvalRequired.value
+          ? selectedApproverForCreate.value?.id
+          : null,
+      "recurring_task": isEntireSeries ? "1" : "0",
 
       // Default placeholder fields
       "year_days": null,
@@ -1449,22 +1841,42 @@ class TasksController extends GetxController {
     }
 
     try {
-      isLoading.value = true;
+      isFormSubmitting.value = true;
       final response = await _taskRepository.updateTaskInstance(payload);
       if (response != null && response['status'] == true) {
-        isLoading.value = false; // Clear before navigating back so list screen never shows spinner
+        isFormSubmitting.value = false; // Clear before navigating back
         Get.back();
-        AppCommonToastMessage.show(message: 'Task updated successfully', type: ToastType.success);
+        AppCommonToastMessage.show(
+          message: response['message'] ?? 'Task updated successfully',
+          type: ToastType.success,
+        );
         _refreshDailyTasksSilently();
+      } else {
+        final errorMsg = response != null && response['message'] != null
+            ? response['message'].toString()
+            : 'Failed to update task';
+        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to update task: $e', type: ToastType.error);
+      String errorMsg = 'Failed to update task';
+      if (e is dio.DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMsg = data['message'].toString();
+        } else {
+          errorMsg = e.message ?? e.toString();
+        }
+      } else {
+        errorMsg = e.toString();
+      }
+      AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
     } finally {
-      isLoading.value = false;
+      isFormSubmitting.value = false;
     }
   }
- 
+
   void resetForm() {
+    isFormSubmitting.value = false;
     photoRequired.value = false;
     approvalRequired.value = false;
     isRecurring.value = false;
@@ -1473,9 +1885,11 @@ class TasksController extends GetxController {
     selectedUnitForCreate.value = null;
     selectedAssigneeForCreate.value = null;
     selectedApproverForCreate.value = null;
-    selectedStartDate.value = null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    selectedStartDate.value = today;
     selectedStartTime.value = null;
-    selectedEndDate.value = null;
+    selectedEndDate.value = today;
     selectedEndTime.value = null;
     recurrenceData.value = null;
     formInitialized.value = false;
@@ -1519,7 +1933,9 @@ class TasksController extends GetxController {
       }
 
       if (source == ImageSource.gallery) {
-        final List<XFile> images = await _picker.pickMultiImage(imageQuality: 80);
+        final List<XFile> images = await _picker.pickMultiImage(
+          imageQuality: 80,
+        );
         if (images.isNotEmpty) {
           attachments.addAll(images);
         }
@@ -1542,7 +1958,9 @@ class TasksController extends GetxController {
       onTap: () async {
         Get.back();
         if (source == ImageSource.gallery) {
-          final List<XFile> images = await _picker.pickMultiImage(imageQuality: 80);
+          final List<XFile> images = await _picker.pickMultiImage(
+            imageQuality: 80,
+          );
           if (images.isNotEmpty) {
             attachments.addAll(images);
           }

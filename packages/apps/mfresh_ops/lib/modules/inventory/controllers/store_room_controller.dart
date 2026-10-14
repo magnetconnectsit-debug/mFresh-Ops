@@ -121,7 +121,87 @@ class StoreRoomController extends GetxController {
             store.storeName.toLowerCase().contains(query);
       }).toList(),
     );
+    currentPage.value = 1;
   }
+
+  // Sorting logic
+  final sortColumn = ''.obs;
+  final sortAscending = true.obs;
+
+  void sortBy(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+  }
+
+  List<StoreRoomModel> get sortedItems {
+    final list = [...filteredStores];
+    if (sortColumn.value.isEmpty) return list;
+
+    final col = sortColumn.value;
+    final asc = sortAscending.value;
+
+    int compareStr(String a, String b) {
+      return asc
+          ? a.toLowerCase().compareTo(b.toLowerCase())
+          : b.toLowerCase().compareTo(a.toLowerCase());
+    }
+
+    list.sort((a, b) {
+      switch (col) {
+        case 'Store Name':
+          return compareStr(a.storeName, b.storeName);
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }
+
+  // Pagination
+  final currentPage = 1.obs;
+  final perPage = 10.obs;
+
+  int get totalEntries => filteredStores.length;
+  int get totalPages => (totalEntries / perPage.value).ceil().clamp(1, 999999);
+
+  List<StoreRoomModel> get paginatedStores {
+    final list = sortedItems;
+    final startIndex = (currentPage.value - 1) * perPage.value;
+    final endIndex = startIndex + perPage.value;
+    if (startIndex >= list.length) return [];
+    return list.sublist(
+      startIndex,
+      endIndex > list.length ? list.length : endIndex,
+    );
+  }
+
+  void nextPage() {
+    if (currentPage.value < totalPages) {
+      currentPage.value++;
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage.value = page;
+    }
+  }
+
 
   Future<void> exportToExcel() async {
     isExporting.value = true;

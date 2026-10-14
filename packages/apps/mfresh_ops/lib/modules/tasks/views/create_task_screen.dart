@@ -1,12 +1,15 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
+import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_common_textfield.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/data/models/models.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
@@ -25,6 +28,7 @@ class _FormLifecycleWrapperState extends State<_FormLifecycleWrapper> {
     widget.onDispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) => widget.child;
 }
@@ -48,12 +52,272 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   final FocusNode _titleFocusNode = FocusNode();
   final FocusNode _descriptionFocusNode = FocusNode();
+  final FocusNode _recurrenceIntervalFocusNode = FocusNode();
+
+  int _currentStep =
+      0; // 0: Step 1 (Title, Description, Dates/Recurrence), 1: Step 2 (Group, Assignee, Unit, Project, Rules)
 
   @override
   void dispose() {
     _titleFocusNode.dispose();
     _descriptionFocusNode.dispose();
+    _recurrenceIntervalFocusNode.dispose();
     super.dispose();
+  }
+
+  bool _validateStep1(
+    BuildContext context,
+    TasksController controller, {
+    bool autoPrompt = false,
+  }) {
+    if (controller.titleController.text.trim().isEmpty) {
+      _titleFocusNode.requestFocus();
+      AppCommonToastMessage.show(
+        message: 'Please enter task title',
+        type: ToastType.warning,
+      );
+      return false;
+    }
+
+    if (!controller.isRecurring.value) {
+      if (controller.selectedStartDate.value == null) {
+        AppCommonToastMessage.show(
+          message: 'Please select start date',
+          type: ToastType.warning,
+        );
+        if (autoPrompt) _pickStartDate(context, controller);
+        return false;
+      }
+      if (controller.selectedStartTime.value == null) {
+        AppCommonToastMessage.show(
+          message: 'Please select start time',
+          type: ToastType.warning,
+        );
+        if (autoPrompt) {
+          _pickStartTime(context, controller, autoProceedToEndTime: true);
+        }
+        return false;
+      }
+      if (controller.selectedEndTime.value == null) {
+        AppCommonToastMessage.show(
+          message: 'Please select end time',
+          type: ToastType.warning,
+        );
+        if (autoPrompt) _pickEndTime(context, controller);
+        return false;
+      }
+    } else {
+      final rec = controller.recurrenceData.value;
+      if (rec == null) {
+        AppCommonToastMessage.show(
+          message: 'Please configure recurrence pattern',
+          type: ToastType.warning,
+        );
+        if (autoPrompt && _recurrenceIntervalFocusNode.canRequestFocus) {
+          _recurrenceIntervalFocusNode.requestFocus();
+        }
+        return false;
+      }
+      if (rec.startTime.trim().isEmpty) {
+        AppCommonToastMessage.show(
+          message: 'Please select start time',
+          type: ToastType.warning,
+        );
+        return false;
+      }
+      if (rec.endTime.trim().isEmpty) {
+        AppCommonToastMessage.show(
+          message: 'Please select end time',
+          type: ToastType.warning,
+        );
+        return false;
+      }
+      if (rec.endByDate == null &&
+          (rec.occurrences == null || rec.occurrences! <= 0)) {
+        AppCommonToastMessage.show(
+          message: 'Please specify an end date or occurrence count',
+          type: ToastType.warning,
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _pickStartDate(
+    BuildContext context,
+    TasksController controller,
+  ) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final initial = controller.selectedStartDate.value ?? today;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(today) ? today : initial,
+      firstDate: today,
+      lastDate: DateTime(2100),
+      helpText: 'Select Start Date',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFFF15A24),
+            onPrimary: Colors.white,
+            onSurface: Colors.black,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      controller.selectedStartDate.value = picked;
+      if (controller.selectedEndDate.value == null ||
+          controller.selectedEndDate.value!.isBefore(picked)) {
+        controller.selectedEndDate.value = picked;
+      }
+    }
+  }
+
+  Future<void> _pickEndDate(
+    BuildContext context,
+    TasksController controller,
+  ) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final start = controller.selectedStartDate.value ?? today;
+    final initial = controller.selectedEndDate.value ?? start;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(start) ? start : initial,
+      firstDate: start,
+      lastDate: DateTime(2100),
+      helpText: 'Select End Date',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFFF15A24),
+            onPrimary: Colors.white,
+            onSurface: Colors.black,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      controller.selectedEndDate.value = picked;
+    }
+  }
+
+  Future<void> _pickStartTime(
+    BuildContext context,
+    TasksController controller, {
+    bool autoProceedToEndTime = false,
+  }) async {
+    final initial = controller.selectedStartTime.value ?? TimeOfDay.now();
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: 'Select Start Time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFFF15A24),
+                onPrimary: Colors.white,
+                onSurface: Colors.black,
+              ),
+            ),
+            child: child!,
+          ),
+        );
+      },
+    );
+    if (time != null) {
+      controller.selectedStartTime.value = time;
+      if (autoProceedToEndTime) {
+        if (!context.mounted) return;
+        await _pickEndTime(context, controller);
+      }
+    }
+  }
+
+  Future<void> _pickEndTime(
+    BuildContext context,
+    TasksController controller,
+  ) async {
+    final initial =
+        controller.selectedEndTime.value ??
+        (controller.selectedStartTime.value != null
+            ? TimeOfDay(
+                hour: (controller.selectedStartTime.value!.hour + 1) % 24,
+                minute: controller.selectedStartTime.value!.minute,
+              )
+            : TimeOfDay.now());
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      helpText: 'Select End Time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFFF15A24),
+                onPrimary: Colors.white,
+                onSurface: Colors.black,
+              ),
+            ),
+            child: child!,
+          ),
+        );
+      },
+    );
+    if (time != null) {
+      controller.selectedEndTime.value = time;
+    }
+  }
+
+  void _jumpToNextUnfilledField(
+    BuildContext context,
+    TasksController controller,
+    bool isRecurring,
+  ) {
+    if (isRecurring) {
+      if (_recurrenceIntervalFocusNode.canRequestFocus) {
+        _recurrenceIntervalFocusNode.requestFocus();
+      }
+    } else {
+      if (controller.selectedStartDate.value == null) {
+        _pickStartDate(context, controller);
+      } else if (controller.selectedStartTime.value == null) {
+        _pickStartTime(context, controller, autoProceedToEndTime: true);
+      } else if (controller.selectedEndDate.value == null) {
+        _pickEndDate(context, controller);
+      } else if (controller.selectedEndTime.value == null) {
+        _pickEndTime(context, controller);
+      } else {
+        FocusScope.of(context).unfocus();
+      }
+    }
+  }
+
+  Future<void> _proceedToNextUnselectedDropdown(
+    TasksController controller,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 180));
+    if (!mounted || _currentStep != 1) return;
+
+    if (controller.selectedGroupForCreate.value == null) {
+      _groupKey.currentState?.openMenu();
+    } else if (controller.selectedAssigneeForCreate.value == null) {
+      _assigneeKey.currentState?.openMenu();
+    } else if (controller.selectedUnitForCreate.value == null) {
+      _unitKey.currentState?.openMenu();
+    } else if (controller.selectedProjectForCreate.value == null) {
+      _projectKey.currentState?.openMenu();
+    }
   }
 
   @override
@@ -69,37 +333,11 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         controller.resetForm();
       }
       controller.formInitialized.value = true;
-    }
-
-    Future<void> pickDateRange() async {
-      final initialRange =
-          controller.selectedStartDate.value != null &&
-              controller.selectedEndDate.value != null
-          ? DateTimeRange(
-              start: controller.selectedStartDate.value!,
-              end: controller.selectedEndDate.value!,
-            )
-          : null;
-      final picked = await showDateRangePicker(
-        context: context,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
-        initialDateRange: initialRange,
-        builder: (context, child) => Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        ),
-      );
-      if (picked != null) {
-        controller.selectedStartDate.value = picked.start;
-        controller.selectedEndDate.value = picked.end;
-      }
+    } else if (!isEdit && controller.selectedStartDate.value == null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      controller.selectedStartDate.value = today;
+      controller.selectedEndDate.value = today;
     }
 
     return _FormLifecycleWrapper(
@@ -107,637 +345,1201 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         controller.formInitialized.value = false;
         controller.resetForm();
       },
-      child: Scaffold(
-        backgroundColor: AppColors.white,
-        appBar: AppCommonAppBar(
-          backgroundColor: AppColors.white,
-          elevation: 0,
-          topHeader: const CommonShortcutHeader(),
-          title: Obx(
-            () => Text(
-              controller.isReadOnly.value
-                  ? 'Task Details'
-                  : isEdit
-                  ? 'Edit Task'
-                  : 'Create New Task',
-              style: AppTextStyle.style_18_700(color: AppColors.black),
+      child: PopScope(
+        canPop: _currentStep == 0,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_currentStep > 0) {
+            setState(() => _currentStep = 0);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppCommonAppBar(
+            backgroundColor: AppColors.white,
+            elevation: 0,
+            topHeader: const CommonShortcutHeader(),
+            onBackButtonPressed: () {
+              if (_currentStep > 0) {
+                setState(() => _currentStep = 0);
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+            title: Obx(
+              () => Text(
+                controller.isReadOnly.value
+                    ? 'Task Details'
+                    : isEdit
+                    ? 'Edit Task'
+                    : 'Create New Task',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
+              ),
             ),
           ),
-        ),
-        body: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          behavior: HitTestBehavior.opaque,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(20.r),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          body: Obx(() {
+            final isSubmitting = controller.isFormSubmitting.value;
+            final isReadOnly = controller.isReadOnly.value;
+            final isRecurring = controller.isRecurring.value;
+
+            return Stack(
               children: [
-                Obx(
-                  () => AbsorbPointer(
-                    absorbing: controller.isReadOnly.value,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTextField(
-                          controller: controller.titleController,
-                          label: 'Task Title',
-                          focusNode: _titleFocusNode,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) =>
-                              _descriptionFocusNode.requestFocus(),
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildTextField(
-                          controller: controller.descriptionController,
-                          label: 'Description',
-                          maxLines: 3,
-                          focusNode: _descriptionFocusNode,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              _projectKey.currentState?.openMenu();
-                            });
-                          },
-                        ),
-                        SizedBox(height: 12.h),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Obx(
-                                () => MultiSelectDropdownWidget<TaskProject>(
-                                  key: _projectKey,
-                                  label: 'Project',
-                                  isSingleSelect: true,
-                                  showSearch: true,
-                                  selectedValues:
-                                      controller.selectedProjectForCreate.value ==
-                                          null
-                                      ? <TaskProject>{}
-                                      : {
-                                          controller
-                                              .selectedProjectForCreate
-                                              .value!,
-                                        },
-                                  items: controller.projects
-                                      .map<DropdownMenuItem<TaskProject>>(
-                                        (e) => DropdownMenuItem<TaskProject>(
-                                          value: e,
-                                          child: Text(
-                                            e.projectName,
-                                            style: AppTextStyle.style_12_400(
-                                              color: AppColors.grey900,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (values) {
-                                    controller.selectedProjectForCreate.value =
-                                        values.isEmpty ? null : values.first;
-                                    if (values.isNotEmpty) {
-                                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                                        _unitKey.currentState?.openMenu();
-                                      });
-                                    }
-                                  },
-                                ),
+                AbsorbPointer(
+                  absorbing: isSubmitting,
+                  child: GestureDetector(
+                    onTap: () => FocusScope.of(context).unfocus(),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(8.w, 8.h, 8.w, 16.h),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(10.r),
+                              border: Border.all(
+                                color: const Color(0xFFCBD5E1),
+                                width: 1,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Obx(
-                                () => MultiSelectDropdownWidget<SupportUnit>(
-                                  key: _unitKey,
-                                  label: 'Store (Unit)',
-                                  isSingleSelect: true,
-                                  showSearch: true,
-                                  selectedValues:
-                                      controller.selectedUnitForCreate.value ==
-                                          null
-                                      ? <SupportUnit>{}
-                                      : {controller.selectedUnitForCreate.value!},
-                                  items: controller.units
-                                      .map<DropdownMenuItem<SupportUnit>>(
-                                        (e) => DropdownMenuItem<SupportUnit>(
-                                          value: e,
-                                          child: Text(
-                                            e.unitName,
-                                            style: AppTextStyle.style_12_400(
-                                              color: AppColors.grey900,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (values) {
-                                    controller.selectedUnitForCreate.value =
-                                        values.isEmpty ? null : values.first;
-                                    if (values.isNotEmpty) {
-                                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                                        _groupKey.currentState?.openMenu();
-                                      });
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // ── TOP TAB SWITCHER (One-Time vs Recurring) ──
+                                AppCommonConnectedTabBar(
+                                  tabs: const ['One-Time', 'Recurring'],
+                                  selectedIndex: isRecurring ? 1 : 0,
+                                  readOnly: isReadOnly,
+                                  height: 32.h,
+                                  borderColor: const Color(0xFFCBD5E1),
+                                  onTabChanged: (index) {
+                                    if (index == 0) {
+                                      controller.isRecurring.value = false;
+                                      if (controller.selectedEndDate.value ==
+                                          null) {
+                                        final now = DateTime.now();
+                                        controller.selectedEndDate.value =
+                                            controller.selectedStartDate
+                                                .value ??
+                                            DateTime(
+                                              now.year,
+                                              now.month,
+                                              now.day,
+                                            );
+                                      }
+                                    } else {
+                                      controller.isRecurring.value = true;
                                     }
                                   },
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12.h),
 
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Obx(
-                                () => MultiSelectDropdownWidget<TaskGroup>(
-                                  key: _groupKey,
-                                  label: 'Security Group',
-                                  isSingleSelect: true,
-                                  showSearch: true,
-                                  selectedValues:
-                                      controller.selectedGroupForCreate.value ==
-                                          null
-                                      ? <TaskGroup>{}
-                                      : {
-                                          controller
-                                              .selectedGroupForCreate
-                                              .value!,
-                                        },
-                                  items: controller.groups
-                                      .map<DropdownMenuItem<TaskGroup>>(
-                                        (e) => DropdownMenuItem<TaskGroup>(
-                                          value: e,
-                                          child: Text(
-                                            e.roleName,
-                                            style: AppTextStyle.style_12_400(
-                                              color: AppColors.grey900,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (values) {
-                                    controller.onGroupForCreateChanged(
-                                        values.isEmpty ? null : values.first);
-                                    if (values.isNotEmpty) {
-                                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                                        _assigneeKey.currentState?.openMenu();
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Obx(
-                                () => MultiSelectDropdownWidget<AssigneeModel>(
-                                  key: _assigneeKey,
-                                  label: 'Assignee',
-                                  isSingleSelect: true,
-                                  showSearch: true,
-                                  selectedValues:
-                                      controller
-                                              .selectedAssigneeForCreate
-                                              .value ==
-                                          null
-                                      ? <AssigneeModel>{}
-                                      : {
-                                          controller
-                                              .selectedAssigneeForCreate
-                                              .value!,
-                                        },
-                                  items: controller.assignees
-                                      .map<DropdownMenuItem<AssigneeModel>>(
-                                        (e) => DropdownMenuItem<AssigneeModel>(
-                                          value: e,
-                                          child: Text(
-                                            e.name,
-                                            style: AppTextStyle.style_12_400(
-                                              color: AppColors.grey900,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (values) {
-                                    controller.selectedAssigneeForCreate.value =
-                                        values.isEmpty ? null : values.first;
-                                    if (values.isNotEmpty) {
-                                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                                        pickDateRange();
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12.h),
-
-                        // ── Date Range Row (drag-to-select) ──
-                        Obx(() {
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: _buildDateTimeField(
-                                  label: 'Start Date',
-                                  icon: Icons.calendar_today_outlined,
-                                  value: controller.selectedStartDate.value != null
-                                      ? AppDateUtils.formatToOrdinalDate(
-                                          controller.selectedStartDate.value!
-                                              .toIso8601String(),
-                                        )
-                                      : null,
-                                  onTap: pickDateRange,
-                                ),
-                              ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: _buildDateTimeField(
-                                  label: 'Start Time',
-                                  icon: Icons.keyboard_arrow_down,
-                                  value: controller.selectedStartTime.value
-                                      ?.format(context),
-                                  onTap: () async {
-                                    final time = await showTimePicker(
-                                      context: context,
-                                      initialTime: controller.selectedStartTime.value ?? TimeOfDay.now(),
-                                      builder: (context, child) => MediaQuery(
-                                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-                                        child: child!,
-                                      ),
-                                    );
-                                    if (time != null) {
-                                      controller.selectedStartTime.value = time;
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                        SizedBox(height: 12.h),
-
-                        Obx(() {
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: _buildDateTimeField(
-                                  label: 'End Date',
-                                  icon: Icons.calendar_today_outlined,
-                                  value: controller.selectedEndDate.value != null
-                                      ? AppDateUtils.formatToOrdinalDate(
-                                          controller.selectedEndDate.value!
-                                              .toIso8601String(),
-                                        )
-                                      : null,
-                                  onTap: pickDateRange,
-                                ),
-                              ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: _buildDateTimeField(
-                                  label: 'End Time',
-                                  icon: Icons.keyboard_arrow_down,
-                                  value: controller.selectedEndTime.value?.format(
-                                    context,
+                                // ── STEP INDICATOR HEADER ──
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 6.h,
                                   ),
-                                  onTap: () async {
-                                    final time = await showTimePicker(
-                                      context: context,
-                                      initialTime: controller.selectedEndTime.value ?? TimeOfDay.now(),
-                                      builder: (context, child) => MediaQuery(
-                                        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-                                        child: child!,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.white,
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Color(0xFFE2E8F0),
+                                        width: 1,
                                       ),
-                                    );
-                                    if (time != null) {
-                                      controller.selectedEndTime.value = time;
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                        SizedBox(height: 16.h),
-
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Row(
+                                    ),
+                                  ),
+                                  child: Row(
                                     children: [
+                                      _buildStepBadge(
+                                        stepNumber: 1,
+                                        title: 'Task Details',
+                                        isActive: _currentStep == 0,
+                                        isDone: _currentStep > 0,
+                                        onTap: () {
+                                          if (_currentStep != 0) {
+                                            setState(() => _currentStep = 0);
+                                          }
+                                        },
+                                      ),
                                       Expanded(
-                                        child: Text(
-                                          'Photo Required',
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.black,
+                                        child: Container(
+                                          height: 2.h,
+                                          margin: EdgeInsets.symmetric(
+                                            horizontal: 8.w,
                                           ),
+                                          color: _currentStep > 0
+                                              ? const Color(0xFFF15A24)
+                                              : Colors.grey.shade300,
                                         ),
                                       ),
-                                      SizedBox(width: 6.w),
-                                      Obx(
-                                        () => _buildSwitch(
-                                          controller.photoRequired.value,
-                                          (val) =>
-                                              controller.photoRequired.value =
-                                                  val,
-                                        ),
+                                      _buildStepBadge(
+                                        stepNumber: 2,
+                                        title: 'Assignee & Settings',
+                                        isActive: _currentStep == 1,
+                                        isDone: false,
+                                        onTap: () {
+                                          if (_currentStep != 1) {
+                                            if (_validateStep1(
+                                              context,
+                                              controller,
+                                              autoPrompt: true,
+                                            )) {
+                                              setState(() => _currentStep = 1);
+                                            }
+                                          }
+                                        },
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 8.h),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Approval required',
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.black,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 6.w),
-                                      Obx(
-                                        () => _buildSwitch(
-                                          controller.approvalRequired.value,
-                                          (val) =>
-                                              controller.approvalRequired.value =
-                                                  val,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (!isEdit) ...[
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [_buildRecurringTask(context, controller)],
                                 ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        SizedBox(height: 12.h),
 
-                        Obx(() {
-                          if (!controller.approvalRequired.value) {
-                            return const SizedBox.shrink();
-                          }
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(height: 10.h),
-                              MultiSelectDropdownWidget<AssigneeModel>(
-                                label: 'Approver Name/ Team',
-                                isSingleSelect: true,
-                                showSearch: true,
-                                selectedValues:
-                                    controller.selectedApproverForCreate.value ==
-                                        null
-                                    ? <AssigneeModel>{}
-                                    : {
-                                        controller
-                                            .selectedApproverForCreate
-                                            .value!,
-                                      },
-                                items: controller.allAssignees
-                                    .map<DropdownMenuItem<AssigneeModel>>(
-                                      (e) => DropdownMenuItem<AssigneeModel>(
-                                        value: e,
-                                        child: Text(
-                                          e.name,
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
-                                          ),
+                                // ── WIZARD BODY CONTENT ──
+                                Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    10.w,
+                                    12.h,
+                                    10.w,
+                                    10.h,
+                                  ),
+                                  child: _currentStep == 0
+                                      ? _buildStep1Content(
+                                          context,
+                                          controller,
+                                          isReadOnly,
+                                          isRecurring,
+                                        )
+                                      : _buildStep2Content(
+                                          context,
+                                          controller,
+                                          isReadOnly,
+                                          isEdit,
+                                          task,
                                         ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (values) =>
-                                    controller.selectedApproverForCreate.value =
-                                        values.isEmpty ? null : values.first,
-                              ),
-                            ],
-                          );
-                        }),
-                        SizedBox(height: 24.h),
-
-                        if (isEdit) ...[
-                          SizedBox(height: 20.h),
-                          Text(
-                            'Update Level',
-                            style: AppTextStyle.style_14_700(
-                              color: AppColors.black,
+                                ),
+                              ],
                             ),
                           ),
-                          SizedBox(height: 8.h),
-                          Theme(
-                            data: Theme.of(context).copyWith(
-                              unselectedWidgetColor: Colors.grey.shade300,
-                            ),
-                            child: Obx(
-                              () => Column(
-                                children: [
-                                  RadioListTile<String>(
-                                    title: Text(
-                                      'This Task Only',
-                                      style: AppTextStyle.style_12_500(
-                                        color: AppColors.black,
-                                      ),
-                                    ),
-                                    value: "0",
-                                    groupValue: controller.updateLevel.value,
-                                    activeColor: const Color(0xFF0066FF),
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    visualDensity: const VisualDensity(
-                                      horizontal: -4,
-                                      vertical: -4,
-                                    ),
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        controller.updateLevel.value = value;
-                                      }
-                                    },
-                                  ),
-                                  RadioListTile<String>(
-                                    title: Text(
-                                      'Entire Task Series.',
-                                      style: AppTextStyle.style_12_500(
-                                        color: AppColors.black,
-                                      ),
-                                    ),
-                                    value: "1",
-                                    groupValue: controller.updateLevel.value,
-                                    activeColor: const Color(0xFF0066FF),
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    visualDensity: const VisualDensity(
-                                      horizontal: -4,
-                                      vertical: -4,
-                                    ),
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        controller.updateLevel.value = value;
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                SizedBox(height: 24.h),
-
-                Obx(
-                  () => controller.isReadOnly.value
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            SizedBox(
-                              width: 100.w,
-                              child: OutlinedButton(
-                                onPressed: () => Get.back(),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: AppColors.grey100,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  'Close',
-                                  style: AppTextStyle.style_14_600(
-                                    color: AppColors.black,
-                                  ),
+                if (isSubmitting)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      child: Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.w,
+                            vertical: 20.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 36.r,
+                                height: 36.r,
+                                child: const CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                  strokeWidth: 3,
                                 ),
                               ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            SizedBox(
-                              width: 100.w,
-                              child: OutlinedButton(
-                                onPressed: () => Get.back(),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: AppColors.grey100),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  'Cancel',
-                                  style: AppTextStyle.style_14_600(
-                                    color: AppColors.black,
-                                  ),
+                              SizedBox(height: 12.h),
+                              Text(
+                                isEdit
+                                    ? 'Updating Task...'
+                                    : 'Creating Task...',
+                                style: AppTextStyle.style_13_500(
+                                  color: AppColors.black,
                                 ),
                               ),
-                            ),
-                            SizedBox(width: 16.w),
-                            SizedBox(
-                              width: 130.w,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  if (isEdit) {
-                                    controller.updateTask(task);
-                                  } else {
-                                    controller.createTask();
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isEdit
-                                      ? const Color(0xFFFF6F00)
-                                      : AppColors.primary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  elevation: 0,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  isEdit ? 'Update Task' : 'Create Task',
-                                  style: AppTextStyle.style_14_600(
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                ),
+                      ),
+                    ),
+                  ),
               ],
-            ),
-          ),
+            );
+          }),
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    int maxLines = 1,
-    FocusNode? focusNode,
-    TextInputAction? textInputAction,
-    ValueChanged<String>? onFieldSubmitted,
+  Widget _buildStepBadge({
+    required int stepNumber,
+    required String title,
+    required bool isActive,
+    required bool isDone,
+    VoidCallback? onTap,
   }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      focusNode: focusNode,
-      textInputAction: textInputAction,
-      onFieldSubmitted: onFieldSubmitted,
-      textAlignVertical: TextAlignVertical.center,
-      decoration: InputDecoration(
-        labelText: label,
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 10.w,
-          vertical: maxLines > 1 ? 6.h : 4.h,
+    final color = (isActive || isDone)
+        ? const Color(0xFFF15A24)
+        : Colors.grey.shade400;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6.r),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 22.r,
+              height: 22.r,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDone
+                    ? const Color(0xFFF15A24)
+                    : isActive
+                    ? Colors.white
+                    : Colors.grey.shade200,
+                border: Border.all(color: color, width: 1.5),
+              ),
+              child: isDone
+                  ? Icon(Icons.check, size: 13.r, color: Colors.white)
+                  : Text(
+                      '$stepNumber',
+                      style: AppTextStyle.style_11_700(
+                        color: isActive
+                            ? const Color(0xFFF15A24)
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              title,
+              style: AppTextStyle.style_12_600(
+                color: (isActive || isDone)
+                    ? AppColors.black
+                    : Colors.grey.shade500,
+              ),
+            ),
+          ],
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: AppColors.borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: AppColors.borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-        ),
-        isDense: true,
       ),
-      style: AppTextStyle.style_12_400(color: AppColors.grey900),
+    );
+  }
+
+  // ── STEP 1: TASK TITLE, DESCRIPTION & DATES / RECURRENCE ──
+  Widget _buildStep1Content(
+    BuildContext context,
+    TasksController controller,
+    bool isReadOnly,
+    bool isRecurring,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppCommonTextField(
+          controller: controller.titleController,
+          labelText: 'Task Title',
+          hintText: 'Enter task title',
+          isRequired: true,
+          focusNode: _titleFocusNode,
+          textInputAction: TextInputAction.next,
+          readOnly: isReadOnly,
+          onFieldSubmitted: (_) {
+            if (controller.descriptionController.text.trim().isEmpty) {
+              _descriptionFocusNode.requestFocus();
+            } else {
+              _jumpToNextUnfilledField(context, controller, isRecurring);
+            }
+          },
+        ),
+        SizedBox(height: 10.h),
+        AppCommonTextField(
+          controller: controller.descriptionController,
+          labelText: 'Description',
+          hintText: 'Enter description',
+          maxLines: 2,
+          focusNode: _descriptionFocusNode,
+          textInputAction: TextInputAction.next,
+          readOnly: isReadOnly,
+          onFieldSubmitted: (_) {
+            _jumpToNextUnfilledField(context, controller, isRecurring);
+          },
+        ),
+        SizedBox(height: 10.h),
+        const Divider(height: 1, color: Color(0xffDEE2E6)),
+        SizedBox(height: 10.h),
+
+        if (!isRecurring) ...[
+          // ONE-TIME TASK DATES
+          Obx(() {
+            return Column(
+              children: [
+                SizedBox(height: 10.h),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDateTimeField(
+                        label: 'Start Date',
+                        isRequired: true,
+                        icon: Icons.calendar_today_outlined,
+                        value: controller.selectedStartDate.value != null
+                            ? AppDateUtils.formatToShortOrdinalDate(
+                                controller.selectedStartDate.value!
+                                    .toIso8601String(),
+                              )
+                            : null,
+                        readOnly: isReadOnly,
+                        onTap: () => _pickStartDate(context, controller),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: _buildDateTimeField(
+                        label: 'Start Time',
+                        isRequired: true,
+                        icon: Icons.access_time_rounded,
+                        value: controller.formatTimeOfDay(
+                          controller.selectedStartTime.value,
+                        ),
+                        readOnly: isReadOnly,
+                        onTap: () => _pickStartTime(
+                          context,
+                          controller,
+                          autoProceedToEndTime: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDateTimeField(
+                        label: 'End Date',
+                        isRequired: true,
+                        icon: Icons.calendar_today_outlined,
+                        value: controller.selectedEndDate.value != null
+                            ? AppDateUtils.formatToShortOrdinalDate(
+                                controller.selectedEndDate.value!
+                                    .toIso8601String(),
+                              )
+                            : null,
+                        readOnly: isReadOnly,
+                        onTap: () => _pickEndDate(context, controller),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: _buildDateTimeField(
+                        label: 'End Time',
+                        isRequired: true,
+                        icon: Icons.access_time_rounded,
+                        value: controller.formatTimeOfDay(
+                          controller.selectedEndTime.value,
+                        ),
+                        readOnly: isReadOnly,
+                        onTap: () => _pickEndTime(context, controller),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }),
+        ] else ...[
+          // RECURRING TASK PATTERN FORM INLINE
+          AppointmentRecurrenceForm(
+            initialData: controller.recurrenceData.value,
+            defaultStartDate: controller.selectedStartDate.value,
+            defaultEndDate: controller.recurrenceData.value?.endByDate,
+            defaultStartTime: controller.selectedStartTime.value,
+            defaultEndTime: controller.selectedEndTime.value,
+            readOnly: isReadOnly,
+            intervalFocusNode: _recurrenceIntervalFocusNode,
+            onChanged: (data) {
+              controller.recurrenceData.value = data;
+              controller.selectedStartDate.value = data.startDate;
+              controller.selectedEndDate.value = data.endByDate;
+              controller.selectedStartTime.value = controller.parseTimeOfDay(
+                data.startTime,
+              );
+              controller.selectedEndTime.value = controller.parseTimeOfDay(
+                data.endTime,
+              );
+            },
+          ),
+        ],
+
+        // ── STEP 1 ACTION BUTTONS (Cancel & Next right aligned at end of content) ──
+        SizedBox(height: 12.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            AppCommonButton(
+              text: 'Cancel',
+              variant: ButtonVariant.outline,
+              width: 90.w,
+              height: 26.h,
+              textSize: 12.sp,
+              borderRadius: 6.r,
+              textColor: AppColors.black,
+              borderColor: AppColors.borderColor,
+              onPressed: controller.isFormSubmitting.value
+                  ? null
+                  : () => Get.back(),
+            ),
+            SizedBox(width: 8.w),
+            if (!isReadOnly)
+              AppCommonButton(
+                text: 'Next',
+                suffixIcon: Icons.arrow_forward_rounded,
+                width: 100.w,
+                height: 26.h,
+                textSize: 12.sp,
+                borderRadius: 6.r,
+                buttonColor: const Color(0xFFF15A24),
+                textColor: AppColors.white,
+                useGradient: false,
+                onPressed: () {
+                  if (_validateStep1(context, controller, autoPrompt: true)) {
+                    setState(() => _currentStep = 1);
+                  }
+                },
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── STEP 2: ASSIGNEE, GROUP, UNIT, PROJECT & RULES ──
+  Widget _buildStep2Content(
+    BuildContext context,
+    TasksController controller,
+    bool isReadOnly,
+    bool isEdit,
+    TaskItem? task,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── STEP 1 SUMMARY CARD ──
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8F5),
+            borderRadius: BorderRadius.circular(6.r),
+            border: Border.all(color: const Color(0xFFFFDCD0), width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Container(
+                  //   padding: EdgeInsets.symmetric(
+                  //     horizontal: 6.w,
+                  //     vertical: 1.h,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: const Color(0xFFF15A24).withValues(alpha: 0.12),
+                  //     borderRadius: BorderRadius.circular(3.r),
+                  //   ),
+                  //   child: Text(
+                  //     'TASK OVERVIEW',
+                  //     style: AppTextStyle.style_10_700(
+                  //       color: const Color(0xFFF15A24),
+                  //     ),
+                  //   ),
+                  // ),
+                  Text(
+                    controller.titleController.text,
+                    style: AppTextStyle.style_12_700(color: AppColors.black),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!isReadOnly)
+                    InkWell(
+                      onTap: () => setState(() => _currentStep = 0),
+                      borderRadius: BorderRadius.circular(3.r),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4.w,
+                          vertical: 1.h,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.edit_outlined,
+                              size: 12.r,
+                              color: const Color(0xFFF15A24),
+                            ),
+                            SizedBox(width: 3.w),
+                            Text(
+                              'Edit',
+                              style: AppTextStyle.style_11_600(
+                                color: const Color(0xFFF15A24),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 4.h),
+              if (controller.descriptionController.text.trim().isNotEmpty) ...[
+                SizedBox(height: 2.h),
+                Text(
+                  controller.descriptionController.text.trim(),
+                  style: AppTextStyle.style_11_400(color: AppColors.grey700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              SizedBox(height: 6.h),
+              const Divider(height: 1, color: Color(0xFFFFE3D6)),
+              SizedBox(height: 6.h),
+              Obx(() {
+                if (controller.isRecurring.value) {
+                  final rec = controller.recurrenceData.value;
+                  if (rec == null) {
+                    return Row(
+                      children: [
+                        Icon(
+                          Icons.event_repeat_rounded,
+                          size: 12.r,
+                          color: const Color(0xFFF15A24),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          'Not configured',
+                          style: AppTextStyle.style_11_400(
+                            color: AppColors.grey700,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  final count = rec.repeatInterval;
+                  String freqText = '';
+                  String detailsText = '';
+
+                  switch (rec.frequency.toLowerCase()) {
+                    case 'day':
+                      if (rec.selectedDays == 'Mon,Tue,Wed,Thu,Fri') {
+                        freqText = 'Every weekday';
+                      } else {
+                        final unit = count == 1 ? 'day' : 'days';
+                        freqText = 'Every $count $unit';
+                      }
+                      break;
+
+                    case 'week':
+                      final unit = count == 1 ? 'week' : 'weeks';
+                      freqText = 'Every $count $unit';
+                      if (rec.selectedDays != null &&
+                          rec.selectedDays!.isNotEmpty) {
+                        detailsText = rec.selectedDays!.replaceAll(',', ', ');
+                      }
+                      break;
+
+                    case 'month':
+                      final unit = count == 1 ? 'month' : 'months';
+                      freqText = 'Every $count $unit';
+                      if (rec.monthlyMode == 'the' &&
+                          rec.monthOrdinal != null &&
+                          rec.monthWeekday != null) {
+                        detailsText =
+                            'the ${rec.monthOrdinal} ${rec.monthWeekday}';
+                      } else if (rec.monthDay != null) {
+                        detailsText = 'Day ${rec.monthDay}';
+                      }
+                      break;
+
+                    case 'year':
+                      final unit = count == 1 ? 'year' : 'years';
+                      freqText = 'Every $count $unit';
+                      if (rec.yearlyMode == 'the' &&
+                          rec.yearlyOrdinal != null &&
+                          rec.yearlyWeekday != null &&
+                          rec.yearlyTheMonth != null) {
+                        detailsText =
+                            'the ${rec.yearlyOrdinal} ${rec.yearlyWeekday} of ${rec.yearlyTheMonth}';
+                      } else if (rec.yearlyMonth != null &&
+                          rec.yearlyDay != null) {
+                        detailsText = '${rec.yearlyMonth} ${rec.yearlyDay}';
+                      }
+                      break;
+
+                    default:
+                      freqText = 'Every $count days';
+                  }
+
+                  final startDateStr = AppDateUtils.formatToShortOrdinalDate(
+                    rec.startDate.toIso8601String(),
+                  );
+                  String rangeText = startDateStr;
+                  if (rec.endByDate != null) {
+                    final endDateStr = AppDateUtils.formatToShortOrdinalDate(
+                      rec.endByDate!.toIso8601String(),
+                    );
+                    if (startDateStr != endDateStr) {
+                      rangeText = '$startDateStr - $endDateStr';
+                    }
+                  } else if (rec.occurrences != null && rec.occurrences! > 0) {
+                    final count = rec.occurrences;
+                    final occUnit = count == 1 ? 'occurrence' : 'occurrences';
+                    rangeText = '$startDateStr ($count $occUnit)';
+                  }
+
+                  final line1 =
+                      '$freqText | $rangeText | ${rec.startTime} - ${rec.endTime}';
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(top: 2.h),
+                            child: Icon(
+                              Icons.event_repeat_rounded,
+                              size: 12.r,
+                              color: const Color(0xFFF15A24),
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Expanded(
+                            child: Text(
+                              line1,
+                              style: AppTextStyle.style_11_400(
+                                color: AppColors.grey700,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (detailsText.isNotEmpty) ...[
+                        SizedBox(height: 3.h),
+                        Padding(
+                          padding: EdgeInsets.only(left: 16.w),
+                          child: Text(
+                            'on $detailsText',
+                            style: AppTextStyle.style_11_600(
+                              color: const Color(0xFFF15A24),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                }
+
+                final startD = controller.selectedStartDate.value != null
+                    ? AppDateUtils.formatToShortOrdinalDate(
+                        controller.selectedStartDate.value!.toIso8601String(),
+                      )
+                    : null;
+                final endD = controller.selectedEndDate.value != null
+                    ? AppDateUtils.formatToShortOrdinalDate(
+                        controller.selectedEndDate.value!.toIso8601String(),
+                      )
+                    : null;
+                final startT = controller.formatTimeOfDay(
+                  controller.selectedStartTime.value,
+                );
+                final endT = controller.formatTimeOfDay(
+                  controller.selectedEndTime.value,
+                );
+
+                String dateText = '';
+                if (startD != null && endD != null && startD != endD) {
+                  dateText = '$startD - $endD';
+                } else if (startD != null) {
+                  dateText = startD;
+                } else if (endD != null) {
+                  dateText = endD;
+                }
+
+                String timeText = '';
+                if (startT != null && endT != null) {
+                  timeText = '$startT - $endT';
+                } else if (startT != null) {
+                  timeText = startT;
+                } else if (endT != null) {
+                  timeText = endT;
+                }
+
+                return Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12.w,
+                  runSpacing: 4.h,
+                  children: [
+                    if (dateText.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 12.r,
+                            color: const Color(0xFFF15A24),
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            dateText,
+                            style: AppTextStyle.style_11_400(
+                              color: AppColors.grey800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (timeText.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12.r,
+                            color: const Color(0xFFF15A24),
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            timeText,
+                            style: AppTextStyle.style_11_400(
+                              color: AppColors.grey800,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                );
+              }),
+            ],
+          ),
+        ),
+        SizedBox(height: 16.h),
+
+        // GROUP & ASSIGNEE
+        Row(
+          children: [
+            Expanded(
+              child: Obx(
+                () => MultiSelectDropdownWidget<TaskGroup>(
+                  key: _groupKey,
+                  label: 'Security Group',
+                  isSingleSelect: true,
+                  showSearch: true,
+                  selectedValues:
+                      controller.selectedGroupForCreate.value == null
+                      ? <TaskGroup>{}
+                      : {controller.selectedGroupForCreate.value!},
+                  items: controller.groups
+                      .map<DropdownMenuItem<TaskGroup>>(
+                        (e) => DropdownMenuItem<TaskGroup>(
+                          value: e,
+                          child: Text(
+                            e.roleName,
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey900,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) async {
+                    final group = values.isEmpty ? null : values.first;
+                    await controller.onGroupForCreateChanged(group);
+                    if (group != null) {
+                      _proceedToNextUnselectedDropdown(controller);
+                    }
+                  },
+                ),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Obx(
+                () => MultiSelectDropdownWidget<AssigneeModel>(
+                  key: _assigneeKey,
+                  label: 'Assignee',
+                  isSingleSelect: true,
+                  showSearch: true,
+                  selectedValues:
+                      controller.selectedAssigneeForCreate.value == null
+                      ? <AssigneeModel>{}
+                      : {controller.selectedAssigneeForCreate.value!},
+                  items: controller.assignees
+                      .map<DropdownMenuItem<AssigneeModel>>(
+                        (e) => DropdownMenuItem<AssigneeModel>(
+                          value: e,
+                          child: Text(
+                            e.name,
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey900,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    final assignee = values.isEmpty ? null : values.first;
+                    controller.selectedAssigneeForCreate.value = assignee;
+                    if (assignee != null) {
+                      _proceedToNextUnselectedDropdown(controller);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12.h),
+
+        // STORE & PROJECT
+        Row(
+          children: [
+            Expanded(
+              child: Obx(
+                () => MultiSelectDropdownWidget<SupportUnit>(
+                  key: _unitKey,
+                  label: 'Store (Unit)',
+                  isSingleSelect: true,
+                  showSearch: true,
+                  selectedValues: controller.selectedUnitForCreate.value == null
+                      ? <SupportUnit>{}
+                      : {controller.selectedUnitForCreate.value!},
+                  items: controller.units
+                      .map<DropdownMenuItem<SupportUnit>>(
+                        (e) => DropdownMenuItem<SupportUnit>(
+                          value: e,
+                          child: Text(
+                            e.unitName,
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey900,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    final unit = values.isEmpty ? null : values.first;
+                    controller.selectedUnitForCreate.value = unit;
+                    if (unit != null) {
+                      _proceedToNextUnselectedDropdown(controller);
+                    }
+                  },
+                ),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Obx(
+                () => MultiSelectDropdownWidget<TaskProject>(
+                  key: _projectKey,
+                  label: 'Project',
+                  isSingleSelect: true,
+                  showSearch: true,
+                  selectedValues:
+                      controller.selectedProjectForCreate.value == null
+                      ? <TaskProject>{}
+                      : {controller.selectedProjectForCreate.value!},
+                  items: controller.projects
+                      .map<DropdownMenuItem<TaskProject>>(
+                        (e) => DropdownMenuItem<TaskProject>(
+                          value: e,
+                          child: Text(
+                            e.projectName,
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey900,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    final project = values.isEmpty ? null : values.first;
+                    controller.selectedProjectForCreate.value = project;
+                    if (project != null) {
+                      _proceedToNextUnselectedDropdown(controller);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16.h),
+
+        // RULES TOGGLES
+        Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Photo required',
+                      style: AppTextStyle.style_10_500(color: AppColors.black),
+                    ),
+                  ),
+                  SizedBox(width: 6.w),
+                  Obx(
+                    () => _buildSwitch(
+                      controller.photoRequired.value,
+                      (val) => controller.photoRequired.value = val,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Approval required',
+                      style: AppTextStyle.style_10_500(color: AppColors.black),
+                    ),
+                  ),
+                  SizedBox(width: 6.w),
+                  Obx(
+                    () => _buildSwitch(
+                      controller.approvalRequired.value,
+                      (val) => controller.approvalRequired.value = val,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12.h),
+
+        Obx(() {
+          if (!controller.approvalRequired.value) {
+            return const SizedBox.shrink();
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 6.h),
+              MultiSelectDropdownWidget<AssigneeModel>(
+                label: 'Approver Name/ Team',
+                isSingleSelect: true,
+                showSearch: true,
+                selectedValues:
+                    controller.selectedApproverForCreate.value == null
+                    ? <AssigneeModel>{}
+                    : {controller.selectedApproverForCreate.value!},
+                items: controller.allAssignees
+                    .map<DropdownMenuItem<AssigneeModel>>(
+                      (e) => DropdownMenuItem<AssigneeModel>(
+                        value: e,
+                        child: Text(
+                          e.name,
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (values) =>
+                    controller.selectedApproverForCreate.value = values.isEmpty
+                    ? null
+                    : values.first,
+              ),
+            ],
+          );
+        }),
+
+        if (isEdit) ...[
+          Obx(() {
+            if (!controller.isRecurring.value) {
+              return const SizedBox.shrink();
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 20.h),
+                Text(
+                  'Update Level',
+                  style: AppTextStyle.style_14_700(color: AppColors.black),
+                ),
+                SizedBox(height: 8.h),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: () => controller.updateLevel.value = "0",
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 22.r,
+                              height: 22.r,
+                              child: Radio<String>(
+                                value: "0",
+                                // ignore: deprecated_member_use
+                                groupValue: controller.updateLevel.value,
+                                // ignore: deprecated_member_use
+                                onChanged: (v) {
+                                  if (v != null) {
+                                    controller.updateLevel.value = v;
+                                  }
+                                },
+                                activeColor: const Color(0xFF0066FF),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'This Task Only',
+                              style: AppTextStyle.style_12_500(
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    InkWell(
+                      onTap: () => controller.updateLevel.value = "1",
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 22.r,
+                              height: 22.r,
+                              child: Radio<String>(
+                                value: "1",
+                                // ignore: deprecated_member_use
+                                groupValue: controller.updateLevel.value,
+                                // ignore: deprecated_member_use
+                                onChanged: (v) {
+                                  if (v != null) {
+                                    controller.updateLevel.value = v;
+                                  }
+                                },
+                                activeColor: const Color(0xFF0066FF),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'Entire Task Series.',
+                              style: AppTextStyle.style_12_500(
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }),
+        ],
+
+        // ── STEP 2 ACTION BUTTONS (Back & Submit at end of content) ──
+        SizedBox(height: 12.h),
+        if (isReadOnly)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Close',
+                variant: ButtonVariant.outline,
+                width: 90.w,
+                height: 32.h,
+                textSize: 12.sp,
+                borderRadius: 6.r,
+                textColor: AppColors.black,
+                borderColor: AppColors.borderColor,
+                onPressed: () => Get.back(),
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Back',
+                variant: ButtonVariant.outline,
+                width: 90.w,
+                height: 32.h,
+                textSize: 12.sp,
+                borderRadius: 6.r,
+                textColor: AppColors.black,
+                borderColor: AppColors.borderColor,
+                onPressed: () {
+                  setState(() => _currentStep = 0);
+                },
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: isEdit ? 'Update Task' : 'Create Task',
+                width: 120.w,
+                height: 32.h,
+                textSize: 12.sp,
+                borderRadius: 6.r,
+                buttonColor: const Color(0xFFF15A24),
+                textColor: AppColors.white,
+                useGradient: false,
+                isLoading: controller.isFormSubmitting.value,
+                onPressed: controller.isFormSubmitting.value
+                    ? null
+                    : () {
+                        if (isEdit) {
+                          controller.updateTask(task!);
+                        } else {
+                          controller.createTask();
+                        }
+                      },
+              ),
+            ],
+          ),
+      ],
     );
   }
 
@@ -746,45 +1548,25 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     IconData? icon,
     String? value,
     VoidCallback? onTap,
+    bool readOnly = false,
+    bool isRequired = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-          ),
-          suffixIcon: icon != null
-              ? Padding(
-                  padding: EdgeInsets.only(right: 4.w),
-                  child: Icon(icon, color: AppColors.grey200, size: 16.r),
-                )
-              : null,
-          suffixIconConstraints: BoxConstraints(
-            minWidth: 20.w,
-            minHeight: 20.h,
-          ),
-        ),
-        child: Text(
-          value ?? 'Select',
-          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
+    return AppCommonTextField(
+      controller: TextEditingController(text: value ?? ''),
+      labelText: label,
+      isRequired: isRequired,
+      hintText: 'Select',
+      readOnly: true,
+      enabled: !readOnly,
+      fillColor: readOnly ? const Color(0xFFF1F3F5) : Colors.white,
+      onTap: readOnly ? null : onTap,
+      suffixIcon: icon != null
+          ? Padding(
+              padding: EdgeInsets.only(right: 6.w),
+              child: Icon(icon, color: AppColors.grey200, size: 14.r),
+            )
+          : null,
+      suffixIconConstraints: BoxConstraints(minWidth: 20.w, minHeight: 0),
     );
   }
 
@@ -799,57 +1581,12 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           value: value,
           onChanged: onChanged,
           activeThumbColor: AppColors.white,
-          activeTrackColor: AppColors.primary,
+          activeTrackColor: const Color(0xFFF15A24),
           inactiveTrackColor: AppColors.grey100,
           inactiveThumbColor: AppColors.white,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
-    );
-  }
-
-  Widget _buildRecurringTask(BuildContext context, TasksController controller) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Recurring Task',
-            style: AppTextStyle.style_12_400(color: AppColors.black),
-          ),
-        ),
-        SizedBox(width: 6.w),
-        Obx(
-          () => _buildSwitch(controller.isRecurring.value, (val) async {
-            if (val) {
-              final result = await Get.dialog<RecurrenceData>(
-                AppointmentRecurrenceDialog(
-                  initialData: controller.recurrenceData.value,
-                  defaultStartDate: controller.selectedStartDate.value,
-                  defaultEndDate: controller.selectedEndDate.value,
-                  defaultStartTime: controller.selectedStartTime.value,
-                  defaultEndTime: controller.selectedEndTime.value,
-                ),
-              );
-              if (result != null) {
-                controller.recurrenceData.value = result;
-                controller.selectedStartDate.value = result.startDate;
-                controller.selectedEndDate.value = result.endByDate;
-                controller.selectedStartTime.value = controller.parseTimeOfDay(
-                  result.startTime,
-                );
-                controller.selectedEndTime.value = controller.parseTimeOfDay(
-                  result.endTime,
-                );
-                controller.isRecurring.value = true;
-              } else {
-                controller.isRecurring.value = false;
-              }
-            } else {
-              controller.isRecurring.value = false;
-            }
-          }),
-        ),
-      ],
     );
   }
 }

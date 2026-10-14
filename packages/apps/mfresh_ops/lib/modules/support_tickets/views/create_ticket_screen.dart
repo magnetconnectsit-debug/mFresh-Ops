@@ -1,19 +1,14 @@
+import 'dart:io';
+
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'dart:io';
-import 'package:core/widgets/app_common_media_source.dart';
-import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
-import 'widgets/multi_select_dropdown.dart';
 
 class CreateTicketScreen extends StatefulWidget {
   const CreateTicketScreen({super.key});
@@ -69,142 +64,160 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           children: [
             SafeArea(
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildFormGrid(context, controller),
-                    SizedBox(height: 14.h),
-
-                    // ── Fading Divider from both sides ──
-                    Container(
-                      height: 0.5.h,
-                      color: AppColors.borderColor,
-                    ),
-                    SizedBox(height: 14.h),
-
-                    Obx(
-                      () => _buildTextField(
-                        controller.subjectController,
-                        label: "Subject*",
-                        hint: "",
-                        maxLines: 2,
-                        focusNode: _subjectFocusNode,
-                        textInputAction: TextInputAction.next,
-                        onFieldSubmitted: (_) =>
-                            _descriptionFocusNode.requestFocus(),
-                        hasError:
-                            controller.showValidationErrors.value &&
-                            controller.subjectController.text
-                                .trim()
-                                .isEmpty,
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    _buildTextField(
-                      controller.descriptionController,
-                      label: "Description",
-                      hint: "",
-                      maxLines: 4,
-                      focusNode: _descriptionFocusNode,
-                      textInputAction: TextInputAction.done,
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16.w,
+                  vertical: 12.h,
+                ),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Obx(
-                            () => MultiSelectDropdownWidget<SupportTemplateModel>(
-                              key: _templateKey,
-                              label: "Template",
-                              hint: "Select",
-                              isSingleSelect: true,
-                              showSearch: true,
-                              selectedValues:
-                                  controller.selectedTemplate.value != null
-                                      ? {controller.selectedTemplate.value!}
-                                      : {},
-                              items: controller.templates
-                                  .map(
-                                    (item) => DropdownMenuItem(
-                                      value: item,
-                                      child: Text(item.templateName),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (values) {
-                                controller.onTemplateSelected(
-                                  values.isNotEmpty ? values.first : null,
-                                );
-                              },
-                            ),
+                        _buildFormGrid(context, controller),
+                        SizedBox(height: 14.h),
+
+                        // ── Fading Divider from both sides ──
+                        Container(height: 0.5.h, color: AppColors.borderColor),
+                        SizedBox(height: 14.h),
+
+                        Obx(
+                          () => _buildTextField(
+                            controller.subjectController,
+                            label: "Subject*",
+                            hint: "",
+                            maxLines: 2,
+                            focusNode: _subjectFocusNode,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) =>
+                                _descriptionFocusNode.requestFocus(),
+                            hasError:
+                                controller.showValidationErrors.value &&
+                                controller.subjectController.text
+                                    .trim()
+                                    .isEmpty,
                           ),
                         ),
-                        SizedBox(width: 8.w),
-                        InkWell(
-                          onTap: () => _showImageSourceOptions(controller),
-                          borderRadius: BorderRadius.circular(4.r),
-                          child: Container(
-                            height: 20.h,
-                            padding: EdgeInsets.symmetric(horizontal: 8.w),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              border: Border.all(color: AppColors.borderColor),
+
+                        SizedBox(height: 10.h),
+
+                        _buildTextField(
+                          controller.descriptionController,
+                          label: "Description",
+                          hint: "",
+                          maxLines: 4,
+                          focusNode: _descriptionFocusNode,
+                          textInputAction: TextInputAction.done,
+                        ),
+
+                        SizedBox(height: 10.h),
+
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Obx(
+                                () =>
+                                    MultiSelectDropdownWidget<
+                                      SupportTemplateModel
+                                    >(
+                                      key: _templateKey,
+                                      label: "Template",
+                                      hint: "Select",
+                                      isSingleSelect: true,
+                                      showSearch: true,
+                                      selectedValues:
+                                          controller.selectedTemplate.value !=
+                                              null
+                                          ? {controller.selectedTemplate.value!}
+                                          : {},
+                                      items: controller.templates
+                                          .map(
+                                            (item) => DropdownMenuItem(
+                                              value: item,
+                                              child: Text(item.templateName),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (values) {
+                                        controller.onTemplateSelected(
+                                          values.isNotEmpty
+                                              ? values.first
+                                              : null,
+                                        );
+                                      },
+                                    ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            InkWell(
+                              onTap: () => _showImageSourceOptions(controller),
                               borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.attach_file,
-                                  color: AppColors.grey900,
-                                  size: 16.r,
+                              child: Container(
+                                height: 20.h,
+                                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  border: Border.all(
+                                    color: AppColors.borderColor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
-                                Obx(() {
-                                  final count = controller.selectedImages.length +
-                                      controller.selectedVideos.length;
-                                  if (count == 0) return const SizedBox.shrink();
-                                  return Padding(
-                                    padding: EdgeInsets.only(left: 4.w),
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 5.w,
-                                        vertical: 1.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        borderRadius: BorderRadius.circular(10.r),
-                                      ),
-                                      child: Text(
-                                        '$count',
-                                        style: AppTextStyle.style_10_600(
-                                          color: AppColors.white,
-                                        ),
-                                      ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.attach_file,
+                                      color: AppColors.grey900,
+                                      size: 16.r,
                                     ),
-                                  );
-                                }),
-                              ],
+                                    Obx(() {
+                                      final count =
+                                          controller.selectedImages.length +
+                                          controller.selectedVideos.length;
+                                      if (count == 0)
+                                        return const SizedBox.shrink();
+                                      return Padding(
+                                        padding: EdgeInsets.only(left: 4.w),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 5.w,
+                                            vertical: 1.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
+                                            borderRadius: BorderRadius.circular(
+                                              10.r,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '$count',
+                                            style: AppTextStyle.style_10_600(
+                                              color: AppColors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
+                        SizedBox(height: 8.h),
+                        _buildAttachmentList(controller),
+
+                        SizedBox(height: 12.h),
+                        _buildSubtasksSection(controller),
+
+                        SizedBox(height: 20.h),
+
+                        _buildBottomActions(controller),
                       ],
                     ),
-                    SizedBox(height: 8.h),
-                    _buildAttachmentList(controller),
-
-                    SizedBox(height: 12.h),
-                    _buildSubtasksSection(controller),
-
-                    SizedBox(height: 20.h),
-
-                    _buildBottomActions(controller),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -477,10 +490,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  Widget _twoFieldRow({
-    required Widget leftChild,
-    required Widget rightChild,
-  }) {
+  Widget _twoFieldRow({required Widget leftChild, required Widget rightChild}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -508,68 +518,24 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Obx(
-                () {
-                  final text = controller.displayReminder.value;
-                  final isPlaceholder = text == 'Reminder';
-                  return Text(
-                    text,
-                    style: isPlaceholder
-                        ? AppTextStyle.style_12_400(color: AppColors.grey300)
-                            .copyWith(fontSize: 11.sp)
-                        : AppTextStyle.style_12_400(color: AppColors.grey900),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  );
-                },
-              ),
+              child: Obx(() {
+                final text = controller.displayReminder.value;
+                final isPlaceholder = text == 'Reminder';
+                return Text(
+                  text,
+                  style: isPlaceholder
+                      ? AppTextStyle.style_12_400(
+                          color: AppColors.grey300,
+                        ).copyWith(fontSize: 11.sp)
+                      : AppTextStyle.style_12_400(color: AppColors.grey900),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                );
+              }),
             ),
             SizedBox(width: 4.w),
             Icon(
               Icons.calendar_today_outlined,
-              color: AppColors.grey300,
-              size: 16.r,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAttachFilesField(
-    BuildContext context,
-    CreateTicketController controller, {
-    required String label,
-  }) {
-    return InkWell(
-      onTap: () => _showImageSourceOptions(controller),
-      child: InputDecorator(
-        decoration: _pickerInputDecoration(label: label),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Obx(
-                () {
-                  final count = controller.selectedImages.length +
-                      controller.selectedVideos.length;
-                  final text =
-                      count == 0 ? "Choose files" : "$count file(s) selected";
-                  return Text(
-                    text,
-                    style: count == 0
-                        ? AppTextStyle.style_12_400(color: AppColors.grey300)
-                            .copyWith(fontSize: 11.sp)
-                        : AppTextStyle.style_12_400(color: AppColors.grey900),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.attach_file,
               color: AppColors.grey300,
               size: 16.r,
             ),
@@ -594,11 +560,12 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         builder: (context, setModalState) {
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25.r),
+              borderRadius: BorderRadius.circular(16.r),
             ),
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.white,
+            elevation: 4,
             child: Padding(
-              padding: EdgeInsets.all(20.r),
+              padding: EdgeInsets.all(18.r),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -609,60 +576,98 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            "Reminder/ Notifications",
+                            "Reminder / Notifications",
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyle.style_14_700(
-                              color: AppColors.black87,
+                            style: AppTextStyle.style_14_600(
+                              color: AppColors.grey900,
                             ),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => Get.back(),
-                          icon: const Icon(Icons.close),
+                        InkWell(
+                          onTap: () => Get.back(),
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Padding(
+                            padding: EdgeInsets.all(4.r),
+                            child: Icon(
+                              Icons.close,
+                              size: 18.r,
+                              color: AppColors.grey600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 20.h),
+                    SizedBox(height: 16.h),
                     Text(
                       "Notification Type:",
                       style: AppTextStyle.style_12_500(
-                        color: AppColors.black87,
+                        color: AppColors.grey900,
                       ),
                     ),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                    SizedBox(height: 8.h),
+                    Row(
                       children: [
-                        const FaIcon(
-                          FontAwesomeIcons.whatsapp,
-                          color: AppColors.green,
-                          size: 20,
+                        InkWell(
+                          onTap: () =>
+                              setModalState(() => tempWhatsApp = !tempWhatsApp),
+                          borderRadius: BorderRadius.circular(6.r),
+                          child: Row(
+                            children: [
+                              const FaIcon(
+                                FontAwesomeIcons.whatsapp,
+                                color: AppColors.green,
+                                size: 18,
+                              ),
+                              SizedBox(width: 4.w),
+                              SizedBox(
+                                width: 24.w,
+                                height: 24.h,
+                                child: Checkbox(
+                                  value: tempWhatsApp,
+                                  activeColor: AppColors.primary,
+                                  onChanged: (v) => setModalState(
+                                    () => tempWhatsApp = v ?? false,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        Checkbox(
-                          value: tempWhatsApp,
-                          activeColor: AppColors.primary,
-                          onChanged: (v) =>
-                              setModalState(() => tempWhatsApp = v!),
-                        ),
-                        const SizedBox(width: 10),
-                        const Icon(
-                          Icons.notifications_active,
-                          color: AppColors.black,
-                          size: 20,
-                        ),
-                        Checkbox(
-                          value: tempApp,
-                          activeColor: AppColors.primary,
-                          onChanged: (v) => setModalState(() => tempApp = v!),
+                        SizedBox(width: 20.w),
+                        InkWell(
+                          onTap: () => setModalState(() => tempApp = !tempApp),
+                          borderRadius: BorderRadius.circular(6.r),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.notifications_active,
+                                color: AppColors.grey700,
+                                size: 18,
+                              ),
+                              SizedBox(width: 4.w),
+                              SizedBox(
+                                width: 24.w,
+                                height: 24.h,
+                                child: Checkbox(
+                                  value: tempApp,
+                                  activeColor: AppColors.primary,
+                                  onChanged: (v) =>
+                                      setModalState(() => tempApp = v ?? false),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 20.h),
+                    SizedBox(height: 16.h),
                     Row(
                       children: [
                         Expanded(
                           child: _modalPickerBox(
-                            text: DateFormat("dd/MM/yyyy").format(tempDate),
-                            icon: Icons.calendar_today,
+                            label: "Date",
+                            text: DateFormat("dd MMM, yyyy").format(tempDate),
+                            icon: Icons.calendar_today_outlined,
                             onTap: () async {
                               final p = await showDatePicker(
                                 context: context,
@@ -674,17 +679,20 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10.w),
                         Expanded(
                           child: _modalPickerBox(
+                            label: "Time",
                             text: tempTime.format(context),
-                            icon: Icons.arrow_drop_down,
+                            icon: Icons.access_time_rounded,
                             onTap: () async {
                               final t = await showTimePicker(
                                 context: context,
                                 initialTime: tempTime,
                                 builder: (context, child) => MediaQuery(
-                                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+                                  data: MediaQuery.of(
+                                    context,
+                                  ).copyWith(alwaysUse24HourFormat: false),
                                   child: child!,
                                 ),
                               );
@@ -694,52 +702,38 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 30.h),
+                    SizedBox(height: 20.h),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.black.withValues(
-                                alpha: 0.05,
-                              ),
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                            ),
-                            onPressed: () => Get.back(),
-                            child: Text(
-                              "Cancel",
-                              style: AppTextStyle.style_14_600(color: AppColors.white),
-                            ),
-                          ),
+                        AppCommonButton(
+                          text: "Cancel",
+                          variant: ButtonVariant.outline,
+                          height: 32.h,
+                          textSize: 13.sp,
+                          borderRadius: 8.r,
+                          textColor: AppColors.black,
+                          borderColor: AppColors.borderColor,
+                          onPressed: () => Get.back(),
                         ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.clockIn,
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                            ),
-                            onPressed: () {
-                              controller.reminderDate.value = tempDate;
-                              controller.reminderTime.value = tempTime;
-                              controller.whatsappNotification.value =
-                                  tempWhatsApp;
-                              controller.appNotification.value = tempApp;
-                              controller.displayReminder.value =
-                                  "${DateFormat("dd MMM").format(tempDate)} ${tempTime.format(context)}";
-                              Get.back();
-                            },
-                            child: Text(
-                              "Apply",
-                              style: AppTextStyle.style_14_600(color: AppColors.white),
-                            ),
-                          ),
+                        SizedBox(width: 10.w),
+                        AppCommonButton(
+                          text: "Apply",
+                          height: 32.h,
+                          textSize: 13.sp,
+                          borderRadius: 8.r,
+                          buttonColor: AppColors.primary,
+                          useGradient: false,
+                          onPressed: () {
+                            controller.reminderDate.value = tempDate;
+                            controller.reminderTime.value = tempTime;
+                            controller.whatsappNotification.value =
+                                tempWhatsApp;
+                            controller.appNotification.value = tempApp;
+                            controller.displayReminder.value =
+                                "${DateFormat("dd MMM").format(tempDate)} ${tempTime.format(context)}";
+                            Get.back();
+                          },
                         ),
                       ],
                     ),
@@ -754,29 +748,27 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   }
 
   Widget _modalPickerBox({
+    required String label,
     required String text,
     required IconData icon,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
+      child: InputDecorator(
+        decoration: _pickerInputDecoration(label: label),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: Text(
                 text,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyle.style_12_400(color: AppColors.black87),
+                style: AppTextStyle.style_12_400(color: AppColors.grey900),
               ),
             ),
-            Icon(icon, size: 14, color: AppColors.black.withValues(alpha: 0.54)),
+            SizedBox(width: 4.w),
+            Icon(icon, size: 16.r, color: AppColors.grey300),
           ],
         ),
       ),
@@ -797,7 +789,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                   TextSpan(
                     text: '*',
                     style: AppTextStyle.style_11_400(color: AppColors.red),
-                  )
+                  ),
                 ]
               : [],
         ),
@@ -829,59 +821,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(
-    String label, {
-    String? hint,
-    bool hasError = false,
-    int maxLines = 1,
-  }) {
-    return InputDecoration(
-      label: RichText(
-        text: TextSpan(
-          text: label.replaceAll('*', ''),
-          style: AppTextStyle.style_11_400(color: AppColors.grey200),
-          children: label.contains('*')
-              ? [
-                  TextSpan(
-                    text: '*',
-                    style: AppTextStyle.style_11_400(color: AppColors.red),
-                  )
-                ]
-              : [],
-        ),
-      ),
-      floatingLabelBehavior: FloatingLabelBehavior.always,
-      hintText: hint,
-      hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: 6.w,
-        vertical: maxLines == 1 ? 3.h : 6.h,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4.r),
-        borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
-          width: hasError ? 1.5 : 1.0,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4.r),
-        borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
-          width: hasError ? 1.5 : 1.0,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(4.r),
-        borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.primary,
-          width: 1.5,
-        ),
-      ),
-      isDense: true,
-    );
-  }
-
   Widget _buildTextField(
     TextEditingController controller, {
     required String label,
@@ -892,19 +831,14 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     TextInputAction? textInputAction,
     ValueChanged<String>? onFieldSubmitted,
   }) {
-    return TextFormField(
+    return AppCommonTextField(
       controller: controller,
+      labelText: label,
+      hintText: hint ?? '',
       maxLines: maxLines,
       focusNode: focusNode,
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
-      style: AppTextStyle.style_12_400(color: AppColors.black),
-      decoration: _inputDecoration(
-        label,
-        hint: hint,
-        hasError: hasError,
-        maxLines: maxLines,
-      ),
     );
   }
 
@@ -984,7 +918,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                         constraints: const BoxConstraints(maxWidth: 120),
                         child: Text(
                           fileName,
-                          style: AppTextStyle.style_11_400(color: AppColors.black87),
+                          style: AppTextStyle.style_11_400(
+                            color: AppColors.black87,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1100,59 +1036,36 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Obx(
-          () => TextButton(
+          () => AppCommonButton(
+            text: "Cancel",
+            variant: ButtonVariant.outline,
+            height: 32.h,
+            textSize: 13.sp,
+            borderRadius: 8.r,
+            textColor: AppColors.black,
+            borderColor: AppColors.borderColor,
             onPressed:
                 (controller.isLoading.value ||
                     controller.isCompressingMedia.value)
                 ? null
                 : () => Get.back(),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
-              minimumSize: Size(0, 32.h),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                side: BorderSide(color: AppColors.borderColor),
-              ),
-            ),
-            child: Text(
-              "Cancel",
-              style: AppTextStyle.style_13_400(color: AppColors.black),
-            ),
           ),
         ),
         SizedBox(width: 10.w),
         Obx(
-          () => ElevatedButton(
+          () => AppCommonButton(
+            text: "Submit",
+            isLoading: controller.isLoading.value,
+            height: 32.h,
+            textSize: 13.sp,
+            borderRadius: 8.r,
+            buttonColor: AppColors.primary,
+            useGradient: false,
             onPressed:
                 (controller.isLoading.value ||
                     controller.isCompressingMedia.value)
                 ? null
                 : () => controller.createTicket(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  (controller.isLoading.value ||
-                      controller.isCompressingMedia.value)
-                  ? AppColors.grey200
-                  : AppColors.primary,
-              foregroundColor: AppColors.white,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 6.h),
-              minimumSize: Size(0, 32.h),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
-            child: controller.isLoading.value
-                ? SizedBox(
-                    width: 14.r,
-                    height: 14.r,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.white,
-                    ),
-                  )
-                : Text("Submit", style: AppTextStyle.style_13_600(color: AppColors.white)),
           ),
         ),
       ],

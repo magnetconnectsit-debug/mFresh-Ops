@@ -3,6 +3,8 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'app_common_search_bar.dart';
+
 class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppCommonAppBar({
     super.key,
@@ -17,6 +19,12 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.toolbarHeight,
     this.titleSpacing,
     this.topHeader,
+    this.showSearchBar = false,
+    this.searchController,
+    this.searchHintText = 'Search',
+    this.onSearchChanged,
+    this.onSearchClear,
+    this.searchBarWidth,
   });
 
   final Widget? title;
@@ -30,17 +38,58 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? toolbarHeight;
   final double? titleSpacing;
   final PreferredSizeWidget? topHeader;
+  final bool showSearchBar;
+  final TextEditingController? searchController;
+  final String searchHintText;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onSearchClear;
+  final double? searchBarWidth;
+
+  Widget? _buildTitle(BuildContext context) {
+    if (!showSearchBar) {
+      return title;
+    }
+
+    final searchBarWidget = AppCommonSearchBar(
+      width: searchBarWidth ?? 140.w,
+      controller: searchController,
+      hintText: searchHintText,
+      onChanged: onSearchChanged,
+      onClose: onSearchClear,
+    );
+
+    if (title == null) {
+      return Row(
+        children: [
+          const Spacer(),
+          searchBarWidget,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: title!,
+        ),
+        SizedBox(width: 8.w),
+        searchBarWidget,
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveHeight = toolbarHeight ?? (showSearchBar ? 45.h : 35.h);
+
     final appBar = AppBar(
-      title: title,
+      title: _buildTitle(context),
       primary: topHeader == null,
       backgroundColor: backgroundColor,
       elevation: elevation,
       centerTitle: false,
       scrolledUnderElevation: 0,
-      toolbarHeight: toolbarHeight ?? 35.h,
+      toolbarHeight: effectiveHeight,
       titleSpacing: titleSpacing,
       titleTextStyle:
           AppTextStyle.style_18_600(color: iconColor ?? AppColors.black),
@@ -83,8 +132,9 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
+    final effectiveHeight = toolbarHeight ?? (showSearchBar ? 45.h : 35.h);
     final topHeight = topHeader?.preferredSize.height ?? 0.0;
-    return Size.fromHeight((toolbarHeight ?? 35.h) + topHeight);
+    return Size.fromHeight(effectiveHeight + topHeight);
   }
 }
 
