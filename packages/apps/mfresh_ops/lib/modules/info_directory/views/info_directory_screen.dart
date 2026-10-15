@@ -28,36 +28,24 @@ class InfoDirectoryScreen extends StatelessWidget {
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
         toolbarHeight: 45.h,
-        title: Obx(
-          () => controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchController,
-                    hintText: 'Search contacts...',
-                    onChanged: (v) {
-                      controller.searchQuery.value = v;
-                      controller.applyFilters();
-                    },
-                  ),
-                )
-              : Text(
-                  'All Contacts',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-        ),
-        actions: [
-          Obx(
-            () => IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 26.sp,
-              ),
+        title: Row(
+          children: [
+            Text(
+              'All Contacts',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
             ),
-          ),
-        ],
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) {
+                controller.searchQuery.value = v;
+                controller.applyFilters();
+              },
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Stack(

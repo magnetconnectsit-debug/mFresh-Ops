@@ -271,7 +271,9 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
                         } else {
                           return BarTooltipItem(
                             '$prefix$formattedValue',
-                            AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                            AppTextStyle.style_10_700(
+                              color: widget.isRevenue ? const Color(0xFF1D4ED8) : const Color(0xFF059669),
+                            ).copyWith(fontSize: 8.5.sp),
                           );
                         }
                       },
@@ -283,7 +285,7 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
                       double val = widget.isRevenue ? sortedData[index].totalRevenue.toDouble() : sortedData[index].bookingCount.toDouble();
                       return BarChartGroupData(
                         x: index,
-                        showingTooltipIndicators: [0],
+                        showingTooltipIndicators: const [0],
                         barRods: [
                           BarChartRodData(
                             toY: val,
@@ -306,25 +308,27 @@ class _DashboardServiceChartState extends State<DashboardServiceChart> {
       ),
     );
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 8.h, color: const Color(0xFF059669)),
-          innerContent,
-        ],
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 8.h, color: const Color(0xFF059669)),
+            innerContent,
+          ],
+        ),
       ),
     );
   }

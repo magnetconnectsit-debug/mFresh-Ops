@@ -44,15 +44,18 @@ class RequestStoreOrderDialog extends StatefulWidget {
             borderRadius: BorderRadius.circular(8.r),
           ),
           clipBehavior: Clip.antiAlias,
-          child: SizedBox(
-            width: 380.w,
-            child: RequestStoreOrderDialog(
-              storeId: storeId,
-              itemId: itemId,
-              storeName: storeName,
-              itemName: itemName,
-              orderQty: orderQty,
-              displayUnit: displayUnit,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SizedBox(
+              width: double.infinity,
+              child: RequestStoreOrderDialog(
+                storeId: storeId,
+                itemId: itemId,
+                storeName: storeName,
+                itemName: itemName,
+                orderQty: orderQty,
+                displayUnit: displayUnit,
+              ),
             ),
           ),
         );

@@ -260,7 +260,7 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     return Obx(() {
       final isCompactList = controller.isListView.value;
       final taskKey =
-          '${task.id}_${task.taskInstanceId ?? ''}_${task.scheduleDateTime}';
+          '${task.id}_${task.taskInstanceId}_${task.scheduleDateTime}';
       final isExpandedInListView = controller.expandedTaskId.value == taskKey;
 
       if (isCompactList && !isExpandedInListView) {

@@ -1,12 +1,10 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/widgets/month_range_picker.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class CompletedPaymentFilterCard extends StatelessWidget {
   final CompletedPaymentController controller;
@@ -14,8 +12,18 @@ class CompletedPaymentFilterCard extends StatelessWidget {
   const CompletedPaymentFilterCard({super.key, required this.controller});
 
   static const List<String> _monthNames = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String _getMonthName(int? monthValue) {
@@ -34,7 +42,9 @@ class CompletedPaymentFilterCard extends StatelessWidget {
       if (from == to) {
         return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
       }
-      return yearStr.isNotEmpty ? '$fromName - $toName $yearStr' : '$fromName - $toName';
+      return yearStr.isNotEmpty
+          ? '$fromName - $toName $yearStr'
+          : '$fromName - $toName';
     } else if (fromName.isNotEmpty) {
       return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
     } else if (toName.isNotEmpty) {
@@ -99,21 +109,29 @@ class CompletedPaymentFilterCard extends StatelessWidget {
               floatingLabelBehavior: FloatingLabelBehavior.always,
               isDense: true,
               contentPadding: EdgeInsets.symmetric(
-                  horizontal: 10.w, vertical: 4.h),
+                horizontal: 10.w,
+                vertical: 4.h,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.borderColor,
+                  width: 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.borderColor,
+                  width: 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.borderColor,
+                  width: 1.0,
+                ),
               ),
               suffixIcon: Padding(
                 padding: EdgeInsets.only(right: 4.w),
@@ -123,15 +141,18 @@ class CompletedPaymentFilterCard extends StatelessWidget {
                   color: AppColors.grey300,
                 ),
               ),
-              suffixIconConstraints:
-                  BoxConstraints(minWidth: 20.w, minHeight: 20.h),
+              suffixIconConstraints: BoxConstraints(
+                minWidth: 20.w,
+                minHeight: 20.h,
+              ),
             ),
             child: Text(
               hasValue ? valueText : 'Select',
               style: hasValue
                   ? AppTextStyle.style_12_400(color: AppColors.grey900)
-                  : AppTextStyle.style_12_400(color: AppColors.grey300)
-                      .copyWith(fontSize: 11.sp),
+                  : AppTextStyle.style_12_400(
+                      color: AppColors.grey300,
+                    ).copyWith(fontSize: 11.sp),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -143,7 +164,7 @@ class CompletedPaymentFilterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(8.w),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(6.r),
@@ -156,119 +177,49 @@ class CompletedPaymentFilterCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          // Row 1: Combined Month & Assignee
-          Row(
-            children: [
-              Expanded(
-                child: Obx(() {
-                  final monthText = _getMonthDisplayText(
-                    controller.selectedYear.value,
-                    controller.selectedFromMonth.value,
-                    controller.selectedToMonth.value,
-                  );
-                  final hasValue = monthText.isNotEmpty;
-                  return _buildMonthSelectorField(
-                    context: context,
-                    label: 'Month',
-                    valueText: monthText,
-                    hasValue: hasValue,
-                  );
-                }),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Obx(
-                  () => MultiSelectDropdownWidget<PaymentReminderUser>(
-                    label: 'Assignee',
-                    selectedValues: controller.selectedAssignees.toSet(),
-                    items: controller.users
-                        .map<DropdownMenuItem<PaymentReminderUser>>(
-                          (e) => DropdownMenuItem<PaymentReminderUser>(
-                            value: e,
-                            child: Text(
-                              e.name ?? '-',
-                              style: AppTextStyle.style_12_400(
-                                color: AppColors.grey900,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (values) {
-                      controller.selectedAssignees.assignAll(values);
-                      controller.applyFilters();
-                    },
-                  ),
-                ),
-              ),
-            ],
+          Expanded(
+            child: Obx(() {
+              final monthText = _getMonthDisplayText(
+                controller.selectedYear.value,
+                controller.selectedFromMonth.value,
+                controller.selectedToMonth.value,
+              );
+              final hasValue = monthText.isNotEmpty;
+              return _buildMonthSelectorField(
+                context: context,
+                label: 'Month',
+                valueText: monthText,
+                hasValue: hasValue,
+              );
+            }),
           ),
-          SizedBox(height: 8.h),
-          // Row 2: Search, Reset, Apply
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 28.h,
-                  child: TextField(
-                    controller: controller.searchController,
-                    onChanged: (v) {
-                      controller.searchQuery.value = v;
-                    },
-                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                    decoration: InputDecoration(
-                      hintText: 'Search completed payments...',
-                      hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4.r),
-                        borderSide: BorderSide(color: AppColors.borderColor),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Obx(
+              () => MultiSelectDropdownWidget<PaymentReminderUser>(
+                label: 'Assignee',
+                selectedValues: controller.selectedAssignees.toSet(),
+                items: controller.users
+                    .map<DropdownMenuItem<PaymentReminderUser>>(
+                      (e) => DropdownMenuItem<PaymentReminderUser>(
+                        value: e,
+                        child: Text(
+                          e.name ?? '-',
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4.r),
-                        borderSide: BorderSide(color: AppColors.borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4.r),
-                        borderSide: BorderSide(color: AppColors.borderColor),
-                      ),
-                    ),
-                  ),
-                ),
+                    )
+                    .toList(),
+                onChanged: (values) {
+                  controller.selectedAssignees.assignAll(values);
+                  controller.applyFilters();
+                },
               ),
-              SizedBox(width: 8.w),
-              SizedBox(
-                height: 28.h,
-                child: OutlinedButton(
-                  onPressed: () => controller.resetFilters(),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300),
-                    padding: EdgeInsets.symmetric(horizontal: 10.w),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                  ),
-                  child: Text('Reset', style: AppTextStyle.style_12_500(color: AppColors.black)),
-                ),
-              ),
-              SizedBox(width: 6.w),
-              SizedBox(
-                height: 28.h,
-                child: ElevatedButton(
-                  onPressed: () => controller.applyFilters(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                    elevation: 0,
-                  ),
-                  child: Text('Apply', style: AppTextStyle.style_12_500(color: Colors.white)),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

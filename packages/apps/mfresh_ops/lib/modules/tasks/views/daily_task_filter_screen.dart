@@ -67,7 +67,11 @@ class DailyTaskFilterScreen extends StatelessWidget {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.all(12.w),
-          child: Column(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DailyTaskFilterBar(controller: controller),
@@ -90,7 +94,9 @@ class DailyTaskFilterScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildStatusCount({

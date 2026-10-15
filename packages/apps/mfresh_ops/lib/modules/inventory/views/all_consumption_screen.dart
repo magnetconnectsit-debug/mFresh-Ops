@@ -3,21 +3,34 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
-import 'package:skeletonizer/skeletonizer.dart';
-import '../controllers/consumption_controller.dart';
-import 'package:mfresh_ops/data/models/inventory/consumption_item_model.dart';
-import '../../../widgets/common_sidebar.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/consumption_controller.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'widgets/all_consumption_filters.dart';
+import 'widgets/all_consumption_table.dart';
 
-class AllConsumptionScreen extends StatelessWidget {
+class AllConsumptionScreen extends StatefulWidget {
   const AllConsumptionScreen({super.key});
 
   @override
+  State<AllConsumptionScreen> createState() => _AllConsumptionScreenState();
+}
+
+class _AllConsumptionScreenState extends State<AllConsumptionScreen> {
+  late final ConsumptionController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(ConsumptionController());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ConsumptionController());
     return Obx(() {
       final authRepo = Get.find<AuthRepository>();
       final userPermissions = authRepo.rxUserPermissions;
@@ -25,8 +38,13 @@ class AllConsumptionScreen extends StatelessWidget {
       if (!userPermissions.contains('consumption_report')) {
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: AppBar(
+          appBar: AppCommonAppBar(
             backgroundColor: AppColors.white,
+            elevation: 0,
+            showAppDrawer: true,
+            hasBackButton: false,
+            topHeader: const CommonShortcutHeader(),
+            toolbarHeight: 45.h,
             title: Text(
               'All Usage',
               style: AppTextStyle.style_18_700(color: AppColors.black),
@@ -36,7 +54,7 @@ class AllConsumptionScreen extends StatelessWidget {
           body: Center(
             child: Text(
               'You do not have permission to view this page.',
-              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+              style: AppTextStyle.style_14_400(color: AppColors.grey500),
             ),
           ),
         );
@@ -44,30 +62,28 @@ class AllConsumptionScreen extends StatelessWidget {
 
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
+        appBar: AppCommonAppBar(
           backgroundColor: AppColors.white,
-          title: Obx(
-            () => controller.isSearching.value
-                ? AppCommonSearchBar(
-                    controller: controller.searchController,
-                    hintText: 'Search Item, Source or Category...',
-                    onChanged: (v) => controller.applyFilters(),
-                  )
-                : Text(
-                    'All Usage',
-                    style: AppTextStyle.style_18_700(color: AppColors.black),
-                  ),
-          ),
-          actions: [
-            Obx(
-              () => IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                ),
+          elevation: 0,
+          showAppDrawer: true,
+          hasBackButton: false,
+          topHeader: const CommonShortcutHeader(),
+          toolbarHeight: 45.h,
+          title: Row(
+            children: [
+              Text(
+                'All Usage',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
               ),
-            ),
-          ],
+              const Spacer(),
+              AppCommonSearchBar(
+                width: 140.w,
+                controller: controller.searchController,
+                hintText: 'Search',
+                onChanged: (v) => controller.applyFilters(),
+              ),
+            ],
+          ),
         ),
         drawer: const CommonSidebar(),
         body: AppRefreshIndicator(
@@ -84,9 +100,9 @@ class AllConsumptionScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildFiltersSection(context, controller),
-                _buildActionButtons(controller),
-                Obx(() => _buildTable(controller)),
+                const AllConsumptionFilters(),
+                // SizedBox(height: 4.h),
+                const AllConsumptionTable(),
                 SizedBox(height: MediaQuery.of(context).padding.bottom + 32.h),
               ],
             ),
@@ -94,671 +110,5 @@ class AllConsumptionScreen extends StatelessWidget {
         ),
       );
     });
-  }
-
-  Widget _buildTable(ConsumptionController controller) {
-    final items = controller.sortedItems;
-    final hasReverse = Get.find<AuthRepository>()
-        .rxUserPermissions
-        .contains('reverse_consumption');
-
-    if (items.isEmpty && !controller.isLoading.value) {
-      return Container(
-        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-        alignment: Alignment.center,
-        child: Text(
-          'No usage data found.',
-          style: AppTextStyle.style_14_400(color: AppColors.grey300),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(4.r),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: MediaQuery.of(Get.context!).size.width - 32.w,
-                ),
-                child: Skeletonizer(
-                  enabled: controller.isLoading.value,
-                  child: Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    columnWidths: {
-                      if (hasReverse) 0: const IntrinsicColumnWidth(), // Action
-                      if (hasReverse) ...{
-                        1: const IntrinsicColumnWidth(), // Used On
-                        2: const IntrinsicColumnWidth(), // State
-                        3: const IntrinsicColumnWidth(), // District
-                        4: const IntrinsicColumnWidth(), // Source Type
-                        5: const IntrinsicColumnWidth(), // Source
-                        6: const IntrinsicColumnWidth(), // Category
-                        7: const IntrinsicColumnWidth(), // Item
-                        8: const IntrinsicColumnWidth(), // Used Qty
-                        9: const IntrinsicColumnWidth(), // M_Unit
-                        10: const IntrinsicColumnWidth(), // Created By
-                      } else ...{
-                        0: const IntrinsicColumnWidth(), // Used On
-                        1: const IntrinsicColumnWidth(), // State
-                        2: const IntrinsicColumnWidth(), // District
-                        3: const IntrinsicColumnWidth(), // Source Type
-                        4: const IntrinsicColumnWidth(), // Source
-                        5: const IntrinsicColumnWidth(), // Category
-                        6: const IntrinsicColumnWidth(), // Item
-                        7: const IntrinsicColumnWidth(), // Used Qty
-                        8: const IntrinsicColumnWidth(), // M_Unit
-                        9: const IntrinsicColumnWidth(), // Created By
-                      }
-                    },
-                    border: TableBorder.symmetric(
-                      inside: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: AppColors.white),
-                        children: [
-                          if (hasReverse) _buildHeaderCell('Action', controller, sortable: false),
-                          _buildHeaderCell('Used On', controller),
-                          _buildHeaderCell('State', controller),
-                          _buildHeaderCell('District', controller),
-                          _buildHeaderCell('Source Type', controller),
-                          _buildHeaderCell('Source', controller),
-                          _buildHeaderCell('Category', controller),
-                          _buildHeaderCell('Item', controller),
-                          _buildHeaderCell('Used Qty', controller),
-                          _buildHeaderCell('M_Unit', controller),
-                          _buildHeaderCell('Created By', controller),
-                        ],
-                      ),
-                      ...items.map((item) {
-                        return TableRow(
-                          children: [
-                            if (hasReverse)
-                              Container(
-                                margin: EdgeInsets.symmetric(
-                                  horizontal: 4.w,
-                                  vertical: 2.h,
-                                ),
-                                height: 18.h,
-                                decoration: BoxDecoration(
-                                  gradient: item.isReversed == 1
-                                      ? const LinearGradient(
-                                          colors: [
-                                            Color(0xFFB0BEC5),
-                                            Color(0xFF90A4AE),
-                                          ],
-                                        )
-                                      : const LinearGradient(
-                                          colors: [
-                                            Color(0xFFE53935),
-                                            Color(0xFFC62828),
-                                          ],
-                                        ),
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: item.isReversed == 1
-                                      ? null
-                                      : () => _showReverseDialog(
-                                            Get.context!,
-                                            controller,
-                                            item,
-                                          ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    disabledBackgroundColor: Colors.transparent,
-                                    disabledForegroundColor: Colors.white70,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4.r),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 16.w,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    item.isReversed == 1 ? 'Reversed' : 'Reverse',
-                                    style: AppTextStyle.style_12_500(
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            _buildDataCell(item.consumedOn),
-                            _buildDataCell(item.state),
-                            _buildDataCell(item.district),
-                            _buildDataCell(item.sourceType),
-                            _buildDataCell(item.source),
-                            _buildDataCell(item.category),
-                            _buildDataCell(item.item),
-                            _buildDataCell(item.consumedQty),
-                            _buildDataCell(item.mUnit),
-                            _buildDataCell(item.createdBy),
-                          ],
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildPaginationButton('←', false, controller.previousPage),
-                    ...List.generate(controller.totalPages.value, (index) {
-                      final pageNumber = index + 1;
-                      return _buildPaginationButton(
-                        pageNumber.toString(),
-                        controller.currentPage.value == pageNumber,
-                        () => controller.goToPage(pageNumber),
-                      );
-                    }),
-                    _buildPaginationButton('→', false, controller.nextPage),
-                  ],
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Text(
-                'Showing ${controller.totalEntries.value == 0 ? 0 : (controller.currentPage.value - 1) * controller.perPage.value + 1} to ${(controller.currentPage.value * controller.perPage.value).clamp(0, controller.totalEntries.value)} of ${controller.totalEntries.value} entries',
-                style: AppTextStyle.style_12_400(color: AppColors.black),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaginationButton(
-    String text,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4.r),
-      child: Container(
-        margin: EdgeInsets.only(left: 4.w),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
-          border: Border.all(
-            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_500(
-            color: isActive ? Colors.white : Colors.blue.shade600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderCell(String text, ConsumptionController controller, {bool sortable = true}) {
-    return GestureDetector(
-      onTap: sortable ? () => controller.sortBy(text) : null,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-        child: Obx(() {
-          final isSorted = controller.sortColumn.value == text;
-          final isAsc = controller.sortAscending.value;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                text,
-                style: AppTextStyle.style_12_700(
-                  color: isSorted ? AppColors.primary : AppColors.black,
-                ),
-              ),
-              if (isSorted) ...[
-                SizedBox(width: 2.w),
-                Icon(
-                  isAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 12.r,
-                  color: AppColors.primary,
-                ),
-              ],
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildDataCell(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_400(color: AppColors.black),
-      ),
-    );
-  }
-
-  Widget _buildFiltersSection(
-    BuildContext context,
-    ConsumptionController controller,
-  ) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      padding: EdgeInsets.all(6.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 600;
-          int crossAxis = isMobile ? 2 : 4;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 8.h),
-                child: Text(
-                  'Filters',
-                  style: AppTextStyle.style_14_600(color: AppColors.black),
-                ),
-              ),
-              GridView(
-                padding: EdgeInsets.zero,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxis,
-                  crossAxisSpacing: 8.w,
-                  mainAxisSpacing: 8.h,
-                  mainAxisExtent: 32.h,
-                ),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildDatePickerField(
-                    'From Date',
-                    controller.fromDateController,
-                    () => controller.selectDateRange(context),
-                  ),
-                  _buildDatePickerField(
-                    'To Date',
-                    controller.toDateController,
-                    () => controller.selectDateRange(context),
-                  ),
-                  Obx(
-                    () => MultiSelectDropdownWidget<String>(
-                      label: 'Unit(s)',
-                      selectedValues: controller.selectedUnits.toSet(),
-                      items: controller.unitOptions
-                          .map<DropdownMenuItem<String>>(
-                            (opt) => DropdownMenuItem<String>(
-                              value: opt.value,
-                              child: Text(
-                                opt.label,
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.grey900,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (values) {
-                        controller.selectedUnits.assignAll(values.toList());
-                        controller.applyFilters();
-                      },
-                    ),
-                  ),
-                  Obx(
-                    () => MultiSelectDropdownWidget<String>(
-                      label: 'Item(s)',
-                      selectedValues: controller.selectedItems.toSet(),
-                      items: controller.itemOptions
-                          .map<DropdownMenuItem<String>>(
-                            (opt) => DropdownMenuItem<String>(
-                              value: opt.value,
-                              child: Text(
-                                opt.label,
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.grey900,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (values) {
-                        controller.selectedItems.assignAll(values.toList());
-                        controller.applyFilters();
-                      },
-                    ),
-                  ),
-                  Obx(
-                    () => MultiSelectDropdownWidget<String>(
-                      label: 'Store(s)',
-                      selectedValues: controller.selectedStores.toSet(),
-                      items: controller.storeOptions
-                          .map<DropdownMenuItem<String>>(
-                            (opt) => DropdownMenuItem<String>(
-                              value: opt.value,
-                              child: Text(
-                                opt.label,
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.grey900,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (values) {
-                        controller.selectedStores.assignAll(values.toList());
-                        controller.applyFilters();
-                      },
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 22.h,
-                      child: ElevatedButton.icon(
-                        onPressed: () => controller.resetFilters(),
-                        icon: Icon(Icons.refresh, size: 14.r, color: Colors.white),
-                        label: Text(
-                          'Reset',
-                          style: AppTextStyle.style_12_600(color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size.zero,
-                          backgroundColor: Colors.red.shade400,
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                        ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(ConsumptionController controller) {
-    final authRepo = Get.find<AuthRepository>();
-    final hasExport = authRepo.rxUserPermissions.contains('Consumption_export');
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: Row(
-        children: [
-          if (hasExport)
-            Container(
-              height: 28.h,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryGreen, AppColors.secondaryGreen],
-                ),
-                borderRadius: BorderRadius.circular(4.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: () => controller.exportToExcel(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                ),
-                child: Text(
-                  'Export Excel',
-                  style: AppTextStyle.style_12_600(color: AppColors.white),
-                ),
-              ),
-            ),
-          const Spacer(),
-          Obx(
-            () => Container(
-              height: 28.h,
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  value: controller.perPage.value,
-                  dropdownColor: Colors.white,
-                  style: AppTextStyle.style_12_500(color: AppColors.black),
-                  icon: Icon(
-                    Icons.arrow_drop_down,
-                    size: 16.r,
-                    color: Colors.grey.shade600,
-                  ),
-                  items: [10, 20, 50, 100, 500, 1000].map((int val) {
-                    return DropdownMenuItem<int>(
-                      value: val,
-                      child: Text('$val per page'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      controller.perPage.value = val;
-                      controller.applyFilters();
-                    }
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDatePickerField(
-    String label,
-    TextEditingController controller,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(color: AppColors.grey50),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(color: AppColors.grey50),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: controller,
-                builder: (context, value, child) {
-                  return Text(
-                    value.text.isEmpty ? label : value.text,
-                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                    overflow: TextOverflow.ellipsis,
-                  );
-                },
-              ),
-            ),
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 14.r,
-              color: AppColors.grey300,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showReverseDialog(
-    BuildContext context,
-    ConsumptionController controller,
-    ConsumptionItemModel item,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80.r,
-                  height: 80.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFF8BB86),
-                      width: 4.w,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '!',
-                      style: TextStyle(
-                        fontSize: 48.sp,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFFF8BB86),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  'Confirm Reverse',
-                  style: AppTextStyle.style_14_600(
-                    color: const Color(0xFF545454),
-                  ).copyWith(fontSize: 22.sp),
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  'This will reverse the consumption and restore stock.',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyle.style_14_400(
-                    color: const Color(0xFF545454),
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        debugPrint('Yes, Reverse it! button tapped in Dialog');
-                        controller.reverseConsumption(item);
-                        Get.back();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD33333),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Yes, Reverse it!',
-                        style: AppTextStyle.style_14_600(
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    ElevatedButton(
-                      onPressed: () => Get.back(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C757D),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: AppTextStyle.style_14_600(
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }

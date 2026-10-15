@@ -19,11 +19,14 @@ class HomeGrid extends StatelessWidget {
     return Obx(() {
       final items = controller.gridItems;
 
+      final screenWidth = MediaQuery.of(context).size.width;
+      final crossAxisCount = screenWidth >= 900 ? 4 : (screenWidth >= 600 ? 3 : 2);
+
       final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: crossAxisCount,
         crossAxisSpacing: 14.r,
         mainAxisSpacing: 14.r,
-        childAspectRatio: 1.15,
+        childAspectRatio: crossAxisCount == 2 ? 1.15 : 1.22,
       );
 
       Widget buildItem(BuildContext context, int index) {

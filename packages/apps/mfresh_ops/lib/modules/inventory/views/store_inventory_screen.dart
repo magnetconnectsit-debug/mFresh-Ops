@@ -72,29 +72,21 @@ class _StoreInventoryScreenState extends State<StoreInventoryScreen> {
           hasBackButton: false,
           topHeader: const CommonShortcutHeader(),
           toolbarHeight: 45.h,
-          title: controller.isSearching.value
-              ? Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                  child: AppCommonSearchBar(
-                    controller: controller.searchController,
-                    hintText: 'Search items...',
-                    onChanged: (v) => controller.applyFilters(),
-                  ),
-                )
-              : Text(
-                  'Store Inventory',
-                  style: AppTextStyle.style_18_700(color: AppColors.black),
-                ),
-          actions: [
-            IconButton(
-              onPressed: () => controller.toggleSearch(),
-              icon: Icon(
-                controller.isSearching.value ? Icons.close : Icons.search,
-                color: AppColors.black,
-                size: 26.sp,
+          title: Row(
+            children: [
+              Text(
+                'Store Inventory',
+                style: AppTextStyle.style_18_700(color: AppColors.black),
               ),
-            ),
-          ],
+              const Spacer(),
+              AppCommonSearchBar(
+                width: 140.w,
+                controller: controller.searchController,
+                hintText: 'Search',
+                onChanged: (v) => controller.applyFilters(),
+              ),
+            ],
+          ),
         ),
         drawer: const CommonSidebar(),
         body: AppRefreshIndicator(

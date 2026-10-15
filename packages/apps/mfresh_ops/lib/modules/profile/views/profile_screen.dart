@@ -7,6 +7,7 @@ import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controllers/profile_controller.dart';
 
@@ -20,6 +21,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
         title: const Text('Profile'),
         showAppDrawer: true,
         hasBackButton: false,
@@ -36,11 +38,17 @@ class ProfileScreen extends StatelessWidget {
         color: AppColors.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              _buildProfileHeader(controller),
-              _buildOverviewTab(controller),
-            ],
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Column(
+                children: [
+                  _buildProfileHeader(controller),
+                  _buildOverviewTab(controller),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -213,8 +221,10 @@ class ProfileScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(20.r),
         ),
         insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
-        child: Container(
-          padding: EdgeInsets.all(24.r),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Container(
+            padding: EdgeInsets.all(24.r),
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(20.r),
@@ -346,7 +356,8 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _showImageSourceSheet(
@@ -356,45 +367,50 @@ class ProfileScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(24.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.grey100,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
+      builder: (context) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Container(
+            padding: EdgeInsets.all(24.r),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
             ),
-            SizedBox(height: 24.h),
-            Text(
-              'Select Image Source',
-              style: AppTextStyle.style_18_700(color: AppColors.black),
-            ),
-            SizedBox(height: 24.h),
-            Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildSourceItem(
-                  Icons.camera_alt_outlined,
-                  'Camera',
-                  () => controller.pickImage(ImageSource.camera),
+                Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey100,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
                 ),
-                _buildSourceItem(
-                  Icons.photo_library_outlined,
-                  'Gallery',
-                  () => controller.pickImage(ImageSource.gallery),
+                SizedBox(height: 24.h),
+                Text(
+                  'Select Image Source',
+                  style: AppTextStyle.style_18_700(color: AppColors.black),
                 ),
+                SizedBox(height: 24.h),
+                Row(
+                  children: [
+                    _buildSourceItem(
+                      Icons.camera_alt_outlined,
+                      'Camera',
+                      () => controller.pickImage(ImageSource.camera),
+                    ),
+                    _buildSourceItem(
+                      Icons.photo_library_outlined,
+                      'Gallery',
+                      () => controller.pickImage(ImageSource.gallery),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
               ],
             ),
-            SizedBox(height: 16.h),
-          ],
+          ),
         ),
       ),
     );

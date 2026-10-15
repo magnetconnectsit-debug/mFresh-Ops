@@ -10,7 +10,6 @@ import 'package:mfresh_ops/modules/staff_tracking/controllers/staff_tracking_con
 import 'package:mfresh_ops/modules/staff_tracking/views/widgets/employee_tracking_card.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 
 class StaffTrackingScreen extends GetView<StaffTrackingController> {
   const StaffTrackingScreen({super.key});

@@ -141,11 +141,6 @@ class HomeGridController extends GetxController {
           permissionKey: 'All_Task',
         ),
         GridSubAction(
-          title: 'Filter',
-          icon: Icons.filter_alt_outlined,
-          route: AppRoutes.dailyTaskFilter,
-        ),
-        GridSubAction(
           title: 'Month',
           icon: Icons.calendar_month_outlined,
           route: AppRoutes.dailyTaskFilter,
@@ -168,6 +163,18 @@ class HomeGridController extends GetxController {
           icon: Icons.store,
           route: AppRoutes.storeInventory,
           permissionKey: 'store_inventory_stock',
+        ),
+        GridSubAction(
+          title: 'Audit Report',
+          icon: Icons.fact_check_outlined,
+          route: AppRoutes.auditReport,
+          permissionKey: 'unit_audit_report',
+        ),
+        GridSubAction(
+          title: 'Audit Rank',
+          icon: Icons.grade_outlined,
+          route: AppRoutes.auditItemRanks,
+          permissionKey: 'audit_item_rank',
         ),
         GridSubAction(
           title: 'Orders',
@@ -253,26 +260,52 @@ class HomeGridController extends GetxController {
         ),
       ],
     ),
-    // GridItemData(
-    //   title: 'Payment Scheduler',
-    //   headerTitle: 'Reminders',
-    //   subtitle: 'Payment tracking & alerts',
-    //   icon: Icons.payment_rounded,
-    //   gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
-    //   route: AppRoutes.paymentReminder,
-    //   subActions: [
-    //     GridSubAction(
-    //       title: 'Scheduler',
-    //       icon: Icons.schedule_rounded,
-    //       route: AppRoutes.paymentReminder,
-    //     ),
-    //     GridSubAction(
-    //       title: 'Completed',
-    //       icon: Icons.task_alt_rounded,
-    //       route: AppRoutes.completedPayments,
-    //     ),
-    //   ],
-    // ),
+    GridItemData(
+      title: 'Payments',
+      headerTitle: 'Payment Reminders',
+      subtitle: 'Payment tracking & alerts',
+      icon: Icons.payment_rounded,
+      gradient: const [Color(0xFFEC4899), Color(0xFFBE185D)],
+      route: AppRoutes.paymentReminder,
+      permissionKey: 'payment_reminder_pannel',
+      subActions: [
+        GridSubAction(
+          title: 'Add',
+          icon: Icons.add,
+          isSolidIcon: true,
+          route: AppRoutes.createPaymentReminder,
+        ),
+        GridSubAction(
+          title: 'Completed',
+          icon: Icons.task_alt_rounded,
+          route: AppRoutes.completedPayments,
+        ),
+      ],
+    ),
+    GridItemData(
+      title: 'Responsibilities',
+      headerTitle: 'Roles & Responsibilities',
+      subtitle: 'Roles, Guidelines & Duties',
+      icon: Icons.badge_rounded,
+      gradient: const [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+      route: AppRoutes.viewResponsibilities,
+      permissionKey: 'roles_responsibility_panel',
+      actionPermissionKey: 'view_responsibilities',
+      subActions: [
+        GridSubAction(
+          title: 'Responsibilities',
+          icon: Icons.assignment_turned_in_rounded,
+          route: AppRoutes.responsibilitiesMaster,
+          permissionKey: 'responsibilities_master',
+        ),
+        GridSubAction(
+          title: 'Roles',
+          icon: Icons.visibility_rounded,
+          route: AppRoutes.rolesMaster,
+          permissionKey: 'roles_master',
+        ),
+      ],
+    ),
     GridItemData(
       title: 'Contacts',
       headerTitle: 'Info Directory',
@@ -293,6 +326,12 @@ class HomeGridController extends GetxController {
           icon: Icons.account_box,
           route: AppRoutes.accountSubscription,
           permissionKey: 'Account_subscription_panel',
+        ),
+        GridSubAction(
+          title: 'Asset Category',
+          icon: Icons.category_outlined,
+          route: AppRoutes.assetCategory,
+          permissionKey: 'asset_category_panel',
         ),
         GridSubAction(
           title: 'Brands',
@@ -350,27 +389,22 @@ class HomeGridController extends GetxController {
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Unit Inventory') {
-        if (userPermissions.contains('inventory_panel') &&
-            userPermissions.contains('unit_inventory_stock')) {
+        if (userPermissions.contains('unit_inventory_stock') ||
+            userPermissions.contains('store_inventory_stock') ||
+            userPermissions.contains('inventory_panel') ||
+            userPermissions.contains('unit_audit_report') ||
+            userPermissions.contains('audit_item_rank') ||
+            userPermissions.contains('audit_item_ranks')) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    userPermissions.contains(s.permissionKey) ||
+                    (s.permissionKey == 'audit_item_rank' &&
+                        userPermissions.contains('audit_item_ranks')),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('store_inventory_stock')) {
-          availableItems.add(
-            GridItemData(
-              title: 'Store Inventory',
-              subtitle: 'Manage Store',
-              icon: Icons.store,
-              gradient: item.gradient,
-              route: AppRoutes.storeInventory,
-              subActions: [],
-            ),
-          );
         }
       } else if (item.title == 'Attendance') {
         if (userPermissions.contains('tracking_panel')) {
@@ -460,6 +494,64 @@ class HomeGridController extends GetxController {
             ),
           );
         }
+      } else if (item.title == 'Responsibilities') {
+        if (userPermissions.contains('roles_responsibility_panel')) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
+          availableItems.add(item.copyWith(subActions: sub));
+        } else if (userPermissions.contains('view_responsibilities')) {
+          availableItems.add(
+            GridItemData(
+              title: 'View Responsibilities',
+              headerTitle: 'Roles & Responsibilities',
+              subtitle: 'View Duties & Guidelines',
+              icon: Icons.badge_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.viewResponsibilities,
+              subActions: [],
+            ),
+          );
+        } else if (userPermissions.contains('responsibilities_master')) {
+          availableItems.add(
+            GridItemData(
+              title: 'Responsibilities',
+              headerTitle: 'Roles & Responsibilities',
+              subtitle: 'Manage Responsibilities',
+              icon: Icons.assignment_turned_in_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.responsibilitiesMaster,
+              subActions: [],
+            ),
+          );
+        } else if (userPermissions.contains('roles_master')) {
+          availableItems.add(
+            GridItemData(
+              title: 'Roles Master',
+              headerTitle: 'Roles & Responsibilities',
+              subtitle: 'Manage Roles',
+              icon: Icons.visibility_rounded,
+              gradient: item.gradient,
+              route: AppRoutes.rolesMaster,
+              subActions: [],
+            ),
+          );
+        }
+      } else if (item.title == 'Payments') {
+        if (userPermissions.contains('payment_reminder_pannel')) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    userPermissions.contains(s.permissionKey),
+              )
+              .toList();
+          availableItems.add(item.copyWith(subActions: sub));
+        }
       } else {
         // Fallback for any unknown items
         if (item.permissionKey == null ||
@@ -537,6 +629,12 @@ class HomeGridController extends GetxController {
             filteredSubs.add(found);
           }
         }
+        for (final origSub in originalSubs) {
+          if (!filteredSubs.any((s) => s.title == origSub.title) &&
+              filteredSubs.length < 4) {
+            filteredSubs.add(origSub);
+          }
+        }
         if (filteredSubs.length > 4) {
           filteredSubs.removeRange(4, filteredSubs.length);
         }
@@ -601,7 +699,9 @@ class HomeGridController extends GetxController {
         .where(
           (s) =>
               s.permissionKey == null ||
-              userPermissions.contains(s.permissionKey),
+              userPermissions.contains(s.permissionKey) ||
+              (s.permissionKey == 'audit_item_rank' &&
+                  userPermissions.contains('audit_item_ranks')),
         )
         .toList();
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mfresh_ops/data/models/payment_reminder/payment_reminder_model.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
+import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 
 class PaymentReminderController extends GetxController {
@@ -9,6 +11,7 @@ class PaymentReminderController extends GetxController {
 
   final isLoading = false.obs;
   final isSearching = false.obs;
+  final isNoInternet = false.obs;
   final searchQuery = ''.obs;
   final searchController = TextEditingController();
 
@@ -33,7 +36,35 @@ class PaymentReminderController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    fetchAssignees();
     fetchPaymentReminders();
+  }
+
+  Future<void> fetchAssignees() async {
+    try {
+      final commonRepo = Get.isRegistered<CommonRepository>()
+          ? Get.find<CommonRepository>()
+          : Get.put(CommonRepository());
+      final assignees = await commonRepo.getAllAssignees();
+      if (assignees.isNotEmpty) {
+        final mapped = assignees
+            .map((a) => PaymentReminderUser(id: a.id, name: a.name))
+            .toList();
+        users.assignAll(mapped);
+        return;
+      }
+    } catch (e) {
+      debugPrint("Error fetching assignees via CommonRepository: $e");
+    }
+
+    try {
+      final fetchedUsers = await _paymentReminderRepository.getUsers();
+      if (fetchedUsers.isNotEmpty) {
+        users.assignAll(fetchedUsers);
+      }
+    } catch (e) {
+      debugPrint("Error fetching users via PaymentReminderRepository: $e");
+    }
   }
 
   @override
@@ -52,6 +83,16 @@ class PaymentReminderController extends GetxController {
   }
 
   Future<void> fetchPaymentReminders() async {
+    try {
+      final connectivityResults = await Connectivity().checkConnectivity();
+      if (connectivityResults.isEmpty ||
+          connectivityResults.contains(ConnectivityResult.none)) {
+        isNoInternet.value = true;
+        isLoading.value = false;
+        return;
+      }
+    } catch (_) {}
+
     isLoading.value = true;
     try {
       final yearStr = selectedYear.value != null ? selectedYear.value.toString() : DateTime.now().year.toString();
@@ -71,8 +112,13 @@ class PaymentReminderController extends GetxController {
       );
 
       if (response.status == true || response.success == true) {
+        isNoInternet.value = false;
         if (response.users.isNotEmpty) {
-          users.assignAll(response.users);
+          for (final u in response.users) {
+            if (!users.any((existing) => existing.id == u.id)) {
+              users.add(u);
+            }
+          }
         }
         paymentReminders.assignAll(response.paymentReminders);
       } else {
@@ -82,10 +128,19 @@ class PaymentReminderController extends GetxController {
         );
       }
     } catch (e) {
-      AppCommonToastMessage.show(
-        message: "Error loading payment reminders",
-        type: ToastType.error,
-      );
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('socketexception') ||
+          errStr.contains('connection failed') ||
+          errStr.contains('network is unreachable') ||
+          errStr.contains('host lookup failed') ||
+          errStr.contains('dioexception')) {
+        isNoInternet.value = true;
+      } else {
+        AppCommonToastMessage.show(
+          message: "Error loading payment reminders",
+          type: ToastType.error,
+        );
+      }
       debugPrint("Error fetching payment reminders: $e");
     } finally {
       isLoading.value = false;
@@ -258,4 +313,61 @@ class PaymentReminderController extends GetxController {
   }
 
   int get totalPages => (paymentReminders.length / perPage.value).ceil();
+
+  Future<void> deleteReminder(
+    int id, {
+    int? recurrenceId,
+    String? recurrenceScope,
+  }) async {
+    try {
+      final success = await _paymentReminderRepository.deleteReminder({
+        "id": id,
+        "recurrence_id": recurrenceId,
+        "recurrence_scope": recurrenceScope ?? (recurrenceId != null ? "only_this" : "entire_schedule"),
+      });
+      if (success) {
+        AppCommonToastMessage.show(
+          message: 'Payment reminder deleted successfully.',
+          type: ToastType.success,
+        );
+        fetchPaymentReminders();
+      } else {
+        AppCommonToastMessage.show(
+          message: 'Failed to delete payment reminder.',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Error deleting payment reminder.',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  Future<void> markComplete(int id, {int? recurrenceId}) async {
+    try {
+      final success = await _paymentReminderRepository.markAsComplete(
+        id: id,
+        recurrenceId: recurrenceId,
+      );
+      if (success) {
+        AppCommonToastMessage.show(
+          message: 'Payment reminder marked as completed.',
+          type: ToastType.success,
+        );
+        fetchPaymentReminders();
+      } else {
+        AppCommonToastMessage.show(
+          message: 'Failed to mark as completed.',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Error marking as completed.',
+        type: ToastType.error,
+      );
+    }
+  }
 }

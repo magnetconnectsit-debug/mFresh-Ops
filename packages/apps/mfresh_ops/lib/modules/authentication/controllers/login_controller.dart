@@ -1,3 +1,4 @@
+// region Imports
 import 'dart:convert';
 
 import 'package:core/constants/app_colors.dart';
@@ -8,72 +9,104 @@ import 'package:dev/routes/dev_routes.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:pinput/pinput.dart';
 import 'package:services/services.dart';
+// endregion
 
+// region LoginController
 class LoginController extends GetxController {
+  // region Dependencies & Repositories
+  final AuthRepository _authRepository = Get.find<AuthRepository>();
+  final StorageService _storageService = Get.find<StorageService>();
+  // endregion
+
+  // region Form Keys, Text Controllers & Focus Nodes
+  final formKey = GlobalKey<FormState>();
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+  final otpController = TextEditingController();
+  final mobileFocusNode = FocusNode();
+  final passwordFocusNode = FocusNode();
+  // endregion
 
+  // region Observables & State Variables
   final rememberMe = false.obs;
   final obscurePassword = true.obs;
   final isLoading = false.obs;
   final isOtpLogin = false.obs;
-  final otpController = TextEditingController();
   int _logoTapCount = 0;
   DateTime? _lastTapTime;
+  // endregion
 
-  final AuthRepository _authRepository = Get.find<AuthRepository>();
-  final StorageService _storageService = Get.find<StorageService>();
-
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
     _loadSavedCredentials();
   }
+  // endregion
 
-  @override
-  void onReady() {
-    super.onReady();
-    if (kDebugMode &&
-        usernameController.text.isNotEmpty &&
-        passwordController.text.isNotEmpty) {
-      debugPrint(
-        "🚀 [DEBUG AUTO-LOGIN] Attempting auto-login with mobile: ${usernameController.text}",
-      );
-      handleLoginAction();
+  // region Validation Helpers
+  /// Validates standard 10-digit Indian mobile number format.
+  String? validateMobileNumber(String? value) {
+    final clean = (value ?? '').trim();
+    if (clean.isEmpty) {
+      return 'Mobile number is required';
     }
+    if (clean.length != 10) {
+      return 'Mobile number must be 10 digits';
+    }
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(clean)) {
+      return 'Please enter a valid 10-digit mobile number';
+    }
+    return null;
   }
 
+  /// Validates password field requirement.
+  String? validatePassword(String? value) {
+    final clean = (value ?? '').trim();
+    if (clean.isEmpty) {
+      return 'Password is required';
+    }
+    return null;
+  }
+  // endregion
+
+  // region Credential Management
   void _loadSavedCredentials() {
+    final isRemembered = _storageService.getRememberMe();
+    if (isRemembered) {
+      rememberMe.value = true;
+      final credentials = _storageService.getCredentials();
+      if (credentials != null && (credentials['mobile']?.isNotEmpty ?? false)) {
+        usernameController.text = credentials['mobile'] ?? '';
+        passwordController.text = credentials['password'] ?? '';
+        return;
+      }
+    }
+
     if (kDebugMode) {
       ///   [Prod Credential]
       usernameController.text = '7873168884';
-      passwordController.text = 'nayak@1234';
+      passwordController.text = 'Zero@7873';
 
       ///  [Test Credential]
       // usernameController.text = '9776888070';
-      // passwordController.text = '1234567890';
+      // passwordController.text = '123456789';
       rememberMe.value = true;
       return;
     }
 
-    final isRemembered = _storageService.getRememberMe();
     rememberMe.value = isRemembered;
-
-    if (isRemembered) {
-      final credentials = _storageService.getCredentials();
-      if (credentials != null) {
-        usernameController.text = credentials['mobile'] ?? '';
-        passwordController.text = credentials['password'] ?? '';
-      }
-    }
   }
+  // endregion
 
+  // region UI Event Handlers
   void handleLogoTap() {
     final now = DateTime.now();
     if (_lastTapTime == null ||
@@ -101,21 +134,26 @@ class LoginController extends GetxController {
   void toggleLoginMode() {
     isOtpLogin.value = !isOtpLogin.value;
   }
+  // endregion
 
+  // region Authentication Actions
   Future<void> handleLoginAction() async {
-    if (isOtpLogin.value) {
-      if (usernameController.text.isEmpty) {
-        AppCommonToastMessage.show(
-          message: 'Please enter your mobile number first',
-          type: ToastType.error,
-        );
-        return;
-      }
+    // 1. Mobile number validation check
+    final mobileError = validateMobileNumber(usernameController.text);
+    if (mobileError != null) {
+      AppCommonToastMessage.show(
+        message: mobileError,
+        type: ToastType.warning,
+      );
+      mobileFocusNode.requestFocus();
+      return;
+    }
 
+    if (isOtpLogin.value) {
       isLoading.value = true;
       try {
         final success = await _authRepository.sendOtp(
-          mobile: usernameController.text,
+          mobile: usernameController.text.trim(),
         );
         if (success) {
           AppCommonToastMessage.show(
@@ -144,24 +182,37 @@ class LoginController extends GetxController {
         isLoading.value = false;
       }
     } else {
-      login();
+      await login();
     }
   }
 
   Future<void> login() async {
-    if (usernameController.text.isEmpty || passwordController.text.isEmpty) {
+    // 1. Mobile number validation check
+    final mobileError = validateMobileNumber(usernameController.text);
+    if (mobileError != null) {
       AppCommonToastMessage.show(
-        message: 'Please enter mobile and password',
-        type: ToastType.error,
+        message: mobileError,
+        type: ToastType.warning,
       );
+      mobileFocusNode.requestFocus();
+      return;
+    }
+
+    // 2. Password validation check
+    if (passwordController.text.trim().isEmpty) {
+      AppCommonToastMessage.show(
+        message: 'Please enter password',
+        type: ToastType.warning,
+      );
+      passwordFocusNode.requestFocus();
       return;
     }
 
     isLoading.value = true;
     try {
       final user = await _authRepository.login(
-        mobile: usernameController.text,
-        password: passwordController.text,
+        mobile: usernameController.text.trim(),
+        password: passwordController.text.trim(),
       );
 
       if (user != null) {
@@ -169,8 +220,8 @@ class LoginController extends GetxController {
         await _storageService.saveRememberMe(rememberMe.value);
         if (rememberMe.value) {
           await _storageService.saveCredentials(
-            mobile: usernameController.text,
-            password: passwordController.text,
+            mobile: usernameController.text.trim(),
+            password: passwordController.text.trim(),
           );
         } else {
           await _storageService.clearCredentials();
@@ -221,20 +272,22 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 
+  // region OTP Verification
   void showOtpBottomSheet() {
     otpController.clear();
     Get.bottomSheet(
       Container(
         padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: 24 + Get.mediaQuery.viewInsets.bottom,
+          left: 24.w,
+          right: 24.w,
+          top: 24.h,
+          bottom: 24.h + Get.mediaQuery.viewInsets.bottom,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -244,13 +297,13 @@ class LoginController extends GetxController {
                 'Enter OTP',
                 style: AppTextStyle.style_20_600(color: AppColors.black),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Text(
                 'Please enter the 6-digit OTP sent to your mobile number.',
                 style: AppTextStyle.style_14_400(color: AppColors.grey500),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
               Obx(
                 () => Pinput(
                   length: 6,
@@ -259,27 +312,27 @@ class LoginController extends GetxController {
                   readOnly: isLoading.value,
                   keyboardType: TextInputType.number,
                   defaultPinTheme: PinTheme(
-                    width: 48,
-                    height: 48,
+                    width: 48.w,
+                    height: 48.h,
                     textStyle: AppTextStyle.style_20_600(
                       color: AppColors.black,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.blue500.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(color: AppColors.grey200),
                     ),
                   ),
                   focusedPinTheme: PinTheme(
-                    width: 48,
-                    height: 48,
+                    width: 48.w,
+                    height: 48.h,
                     textStyle: AppTextStyle.style_20_600(
                       color: AppColors.black,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.blue500, width: 2),
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: AppColors.primary, width: 2),
                     ),
                   ),
                   onCompleted: (pin) {
@@ -287,9 +340,15 @@ class LoginController extends GetxController {
                   },
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
               Obx(
                 () => AppCommonButton(
+                  width: double.infinity,
+                  height: 38.h,
+                  textSize: 13.sp,
+                  borderRadius: 8.r,
+                  useGradient: false,
+                  buttonColor: AppColors.primary,
                   text: 'Verify OTP',
                   isLoading: isLoading.value,
                   onPressed: () {
@@ -305,13 +364,13 @@ class LoginController extends GetxController {
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
             ],
           ),
         ),
       ),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
     );
   }
 
@@ -319,8 +378,8 @@ class LoginController extends GetxController {
     isLoading.value = true;
     try {
       final user = await _authRepository.verifyOtp(
-        mobile: usernameController.text,
-        otp: otp,
+        mobile: usernameController.text.trim(),
+        otp: otp.trim(),
       );
 
       if (user != null) {
@@ -329,7 +388,7 @@ class LoginController extends GetxController {
         await _storageService.saveRememberMe(rememberMe.value);
         if (rememberMe.value) {
           await _storageService.saveCredentials(
-            mobile: usernameController.text,
+            mobile: usernameController.text.trim(),
             password: '',
           );
         } else {
@@ -362,4 +421,6 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 }
+// endregion

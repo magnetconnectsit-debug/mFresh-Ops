@@ -97,7 +97,7 @@ class AppCommonExcelViewer extends StatelessWidget {
           ),
           Expanded(
             child: AppCommonTable(
-              columns: columns,
+              columnTitles: columns,
               rows: rows.map((row) => row.map((cell) => cell.toString()).toList()).toList(),
               headingRowColor: AppColors.blue50,
             ),

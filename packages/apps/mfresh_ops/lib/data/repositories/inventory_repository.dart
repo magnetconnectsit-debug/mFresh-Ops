@@ -84,6 +84,71 @@ class InventoryRepository extends GetxService {
     }
   }
 
+  Future<dynamic> submitInventoryAudit(dynamic data) async {
+    try {
+      return await _apiService.post(AppConstants.inventoryAuditSubmit, data: data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditUnitItems({
+    required int unitId,
+    required dynamic auditRank,
+  }) async {
+    try {
+      final data = {
+        'unit_id': unitId,
+        'audit_rank': auditRank,
+      };
+      return await _apiService.post(AppConstants.inventoryAuditUnitItems, data: data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditReport({
+    dynamic unitId,
+    dynamic auditedBy,
+    String? auditNumber,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{
+        if (auditNumber != null && auditNumber.isNotEmpty) 'audit_number': auditNumber,
+      };
+
+      final bodyData = <String, dynamic>{
+        if (unitId != null)
+          'unit_id': unitId is List ? unitId : (unitId is int ? [unitId] : unitId),
+        if (auditedBy != null)
+          'audited_by': auditedBy is List ? auditedBy : (auditedBy is int ? [auditedBy] : auditedBy),
+        if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
+        if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
+      };
+
+      return await _apiService.get(
+        AppConstants.inventoryAuditReport,
+        data: bodyData.isNotEmpty ? bodyData : null,
+        query: queryParams.isNotEmpty ? queryParams : null,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditDetail(int auditId) async {
+    try {
+      return await _apiService.post(AppConstants.inventoryAuditDetail, data: {
+        'audit_id': auditId,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
   Future<dynamic> getSupportUnits() async {
     try {
       return await _apiService.post(AppConstants.supportUnits, data: {});
@@ -411,6 +476,39 @@ class InventoryRepository extends GetxService {
   Future<dynamic> getOrderReceiveLogs() async {
     try {
       return await _apiService.get(AppConstants.inventoryOrderReceiveLogs);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> getAuditItemRanks() async {
+    try {
+      return await _apiService.get(AppConstants.inventoryAuditItemRanks);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> createAuditItemRank(String rankName) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryAuditItemRanksStore,
+        data: {'rank_name': rankName},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> updateAuditItemRank(int rankId, String rankName) async {
+    try {
+      return await _apiService.post(
+        AppConstants.inventoryAuditItemRanksUpdate,
+        data: {
+          'rank_id': rankId,
+          'rank_name': rankName,
+        },
+      );
     } catch (e) {
       rethrow;
     }

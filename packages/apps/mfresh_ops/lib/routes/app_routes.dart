@@ -14,13 +14,19 @@ abstract class AppRoutes {
   static const supportSubCategory = '/support-subcategory';
   static const supportProjects = '/support-projects';
   static const supportTemplate = '/support-template';
+  static const createTemplate = '/create-template';
   static const createTask = '/create-task';
+  static const editTask = '/edit-task';
   static const createSupportTicket = '/create-support-ticket';
   static const ticketDetails = '/ticket-details';
   static const taskReview = '/task-review';
   static const editTicket = '/edit-ticket';
   static const storeInventory = '/store-inventory';
   static const unitInventory = '/unit-inventory';
+  static const unitInventoryAudit = '/unit-inventory-audit';
+  static const auditReport = '/audit-report';
+  static const auditReportDetail = '/audit-report-detail';
+  static const auditItemRanks = '/audit-item-ranks';
   static const inventoryOrders = '/inventory-orders';
   static const orderReceiveLogs = '/order-receive-logs';
   static const allConsumption = '/all-consumption';
@@ -51,6 +57,7 @@ abstract class AppRoutes {
   static const createContact = '/create-contact';
   static const contactBrands = '/contact-brands';
   static const contactCompanies = '/contact-companies';
+  static const assetCategory = '/asset-category';
 
   // Assets & Products Module
   static const assetsProducts = '/assets-products';
@@ -62,5 +69,13 @@ abstract class AppRoutes {
 
   // Payment Reminder
   static const paymentReminder = '/payment-reminder';
+  static const createPaymentReminder = '/create-payment-reminder';
   static const completedPayments = '/completed-payments';
+
+  // Roles & Responsibilities
+  static const rolesMaster = '/roles-master';
+  static const addRole = '/add-role';
+  static const responsibilitiesMaster = '/responsibilities-master';
+  static const addResponsibility = '/add-responsibility';
+  static const viewResponsibilities = '/view-responsibilities';
 }

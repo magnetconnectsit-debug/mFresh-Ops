@@ -13,6 +13,8 @@ class AssetProductRepository extends GetxService {
     required String globalSearch,
     required int perPage,
     required int page,
+    List<dynamic> categories = const [],
+    List<dynamic> assignees = const [],
   }) async {
     final response = await _apiService.post(
       AppConstants.assetProductList,
@@ -21,6 +23,8 @@ class AssetProductRepository extends GetxService {
         'global_search': globalSearch,
         'per_page': perPage,
         'page': page,
+        'categories': categories,
+        'assignees': assignees,
       },
     );
     return response as Map<String, dynamic>?;
@@ -49,6 +53,8 @@ class AssetProductRepository extends GetxService {
     required String itemType, // "0" = product, "1" = asset
     required String spec,
     required String project,
+    String? assetCategoryId,
+    String? assignedTo,
     List<File> invoiceFiles = const [],
     List<File> warrantyFiles = const [],
     List<File> othersFiles = const [],
@@ -69,6 +75,10 @@ class AssetProductRepository extends GetxService {
       'item_type': itemType,
       'spec': spec,
       'project': project,
+      if (assetCategoryId != null && assetCategoryId.isNotEmpty)
+        'asset_category_id': assetCategoryId,
+      if (assignedTo != null && assignedTo.isNotEmpty)
+        'assigned_to': assignedTo,
     };
 
     await _attachFiles(dataMap, 'invoice[]', invoiceFiles);
@@ -98,6 +108,8 @@ class AssetProductRepository extends GetxService {
     required String itemType,
     required String spec,
     required String project,
+    String? assetCategoryId,
+    String? assignedTo,
     List<File> invoiceFiles = const [],
     List<File> warrantyFiles = const [],
     List<File> othersFiles = const [],
@@ -119,6 +131,8 @@ class AssetProductRepository extends GetxService {
       'item_type': itemType,
       'spec': spec,
       'project': project,
+      'asset_category_id': assetCategoryId ?? '',
+      'assigned_to': assignedTo ?? '',
     };
 
     await _attachFiles(dataMap, 'invoice', invoiceFiles);

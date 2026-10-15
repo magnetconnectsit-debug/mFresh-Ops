@@ -53,17 +53,30 @@ class PaymentReminderUser {
   });
 
   factory PaymentReminderUser.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'] ?? json['user_id'] ?? json['assignee_id'] ?? 0;
+    final parsedId = rawId is int ? rawId : (int.tryParse(rawId.toString()) ?? 0);
+    final rawName = json['name'] ?? json['user_name'] ?? json['full_name'] ?? json['username'] ?? json['label'] ?? json['to'];
     return PaymentReminderUser(
-      id: json['id'] ?? 0,
-      name: json['name'],
+      id: parsedId,
+      name: rawName?.toString(),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PaymentReminderUser &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class PaymentReminderItem {
   final int id;
   final int? parentId;
-  final int? recurrenceId;
+  final dynamic recurrenceId;
   final String? forDesc;
   final String? brand;
   final String? location;
@@ -75,12 +88,19 @@ class PaymentReminderItem {
   final String? costCenter;
   final String? expenseType;
   final String? dueDate;
+  final String? reminderSetupDate;
+  final String? reminderDate;
   final String? endDate;
   final String? notificationDate;
   final String? notificationTime;
   final String? completedAt;
   final String? dueIn;
   final String? status;
+  final dynamic remindBefore;
+  final String? additionalNumber;
+  final dynamic whatsappNotification;
+  final dynamic appNotification;
+  final dynamic recurringReminder;
 
   PaymentReminderItem({
     required this.id,
@@ -97,12 +117,19 @@ class PaymentReminderItem {
     this.costCenter,
     this.expenseType,
     this.dueDate,
+    this.reminderSetupDate,
+    this.reminderDate,
     this.endDate,
     this.notificationDate,
     this.notificationTime,
     this.completedAt,
     this.dueIn,
     this.status,
+    this.remindBefore,
+    this.additionalNumber,
+    this.whatsappNotification,
+    this.appNotification,
+    this.recurringReminder,
   });
 
   factory PaymentReminderItem.fromJson(Map<String, dynamic> json) {
@@ -113,7 +140,7 @@ class PaymentReminderItem {
       forDesc: json['for'],
       brand: json['brand'],
       location: json['location'],
-      to: json['to'],
+      to: json['to']?.toString() ?? json['customer_id']?.toString(),
       assigneeId: json['assignee_id'],
       assigneeName: json['assignee_name'],
       expenseHead: json['expense_head'],
@@ -121,12 +148,19 @@ class PaymentReminderItem {
       costCenter: json['cost_center'],
       expenseType: json['expense_type'],
       dueDate: json['due_date'],
+      reminderSetupDate: json['reminder_setup_date'] ?? json['notification_date'],
+      reminderDate: json['reminder_date'] ?? json['notification_date'],
       endDate: json['end_date'] ?? json['reminder_end_date'],
       notificationDate: json['notification_date'],
       notificationTime: json['notification_time'],
       completedAt: json['completed_at'],
       dueIn: json['due_in'],
       status: json['status'],
+      remindBefore: json['remind_before'],
+      additionalNumber: json['additional_number']?.toString(),
+      whatsappNotification: json['whatsapp_notification'],
+      appNotification: json['app_notification'],
+      recurringReminder: json['recurring_reminder'],
     );
   }
 }

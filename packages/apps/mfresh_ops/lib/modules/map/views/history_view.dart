@@ -108,9 +108,12 @@ class HistoryView extends GetView<HistoryController> {
               top: MediaQuery.of(context).padding.top + 12,
               left: 16,
               right: 16,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   // Header Pill
                   Container(
                     height: 50,
@@ -314,6 +317,8 @@ class HistoryView extends GetView<HistoryController> {
                 ],
               ),
             ),
+          ),
+        ),
             if (controller.routePoints.isNotEmpty ||
                 controller.routeSegments.isNotEmpty ||
                 controller.routeSummary.isNotEmpty ||
@@ -324,7 +329,10 @@ class HistoryView extends GetView<HistoryController> {
                 minChildSize: 0.1,
                 maxChildSize: 0.6,
                 builder: (context, scrollController) {
-                  return Container(
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: Container(
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.vertical(
@@ -653,9 +661,11 @@ class HistoryView extends GetView<HistoryController> {
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+              );
+            },
+          ),
           ],
         );
       }),

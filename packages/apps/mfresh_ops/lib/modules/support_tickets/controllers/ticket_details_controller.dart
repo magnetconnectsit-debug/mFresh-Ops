@@ -38,6 +38,7 @@ class TicketDetailsController extends GetxController {
   final selectedPriority = Rxn<String>();
   final selectedCategory = Rxn<SupportCategory>();
   final selectedSubCategory = Rxn<SupportSubCategory>();
+  final isSubCategoryLoading = false.obs;
   final selectedAssignee = Rxn<AssigneeModel>();
   final selectedProject = Rxn<SupportProject>();
   final selectedUnit = Rxn<SupportUnit>();
@@ -293,12 +294,15 @@ class TicketDetailsController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
+      isSubCategoryLoading.value = true;
       final result = await _supportRepository.getSupportSubCategories(
         categoryId,
       );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
+    } finally {
+      isSubCategoryLoading.value = false;
     }
   }
 

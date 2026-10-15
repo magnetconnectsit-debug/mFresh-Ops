@@ -139,7 +139,9 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
     maxRevenue = maxRevenue == 0
         ? 100
         : (maxRevenue / niceRevenueInterval).ceil() * niceRevenueInterval;
-    if (maxRevenue == rawMaxRevenue) maxRevenue += niceRevenueInterval;
+    if (maxRevenue <= rawMaxRevenue + (niceRevenueInterval * 0.4)) {
+      maxRevenue += niceRevenueInterval;
+    }
 
     double niceServicesInterval = calculateNiceInterval(
       maxServices == 0 ? 10 : maxServices,
@@ -150,9 +152,10 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
         : (maxServices / niceServicesInterval).ceil() * niceServicesInterval;
     if (maxServices == rawMaxServices) maxServices += niceServicesInterval;
 
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
+    return RepaintBoundary(
+      child: Container(
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.r),
@@ -264,7 +267,7 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
               padding: EdgeInsets.only(
                 left: 0,
                 right: 0,
-                top: 24.h,
+                top: 32.h,
                 bottom: 24.h,
               ),
               child: Stack(
@@ -280,23 +283,16 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                         touchTooltipData: BarTouchTooltipData(
                           getTooltipColor: (_) => Colors.transparent,
                           tooltipPadding: EdgeInsets.all(2.w),
-                          tooltipMargin: 2.h,
+                          tooltipMargin: 24.h,
                           fitInsideHorizontally: true,
-                          fitInsideVertically: true,
+                          fitInsideVertically: false,
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
                             if (rod.toY == 0) return null;
                             if (groupIndex < 0 || groupIndex >= visibleData.length) return null;
-                            
-                            // Get the unit color
-                            String unitNo = visibleData[groupIndex].unitNo;
-                            Color unitColor = _getColorForUnit(
-                              unitNo,
-                              widget.data.indexWhere((e) => e.unitNo == unitNo),
-                            );
 
                             return BarTooltipItem(
                               '₹${NumberFormat('#,##,###').format(rod.toY)}',
-                              AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                              AppTextStyle.style_10_700(color: const Color(0xFF1D4ED8)).copyWith(fontSize: 8.5.sp),
                             );
                           },
                         ),
@@ -440,14 +436,11 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                               ),
                             ),
                           ],
-                          showingTooltipIndicators: [
-                            0
-                          ],
+                          showingTooltipIndicators: const [0],
                         );
                       }).toList(),
                     ),
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.easeInOut,
+                    duration: Duration.zero,
                   ),
 
                   // 2. Top Layer: Line Chart (Services Count) with Right Y-Axis
@@ -476,15 +469,15 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
                         touchTooltipData: LineTouchTooltipData(
                           getTooltipColor: (_) => Colors.transparent,
                           tooltipPadding: EdgeInsets.all(2.w),
-                          tooltipMargin: 4.h,
+                          tooltipMargin: 2.h,
                           fitInsideHorizontally: true,
-                          fitInsideVertically: true,
+                          fitInsideVertically: false,
                           getTooltipItems: (spotsList) {
                             return spotsList.map((spot) {
                               if (spot.y == 0) return null;
                               return LineTooltipItem(
                                 spot.y.toInt().toString(),
-                                AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
+                                AppTextStyle.style_10_700(color: const Color(0xFF059669)).copyWith(fontSize: 8.5.sp),
                               );
                             }).toList();
                           },
@@ -697,6 +690,7 @@ class _DashboardUnitsChartState extends State<DashboardUnitsChart> {
           ),
         ],
       ),
+    ),
     );
   }
 }

@@ -1,13 +1,8 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
-import 'package:core/widgets/app_common_dropdown_page.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/api_services.dart';
 import '../../../../data/models/inventory/inventory_item_model.dart';
 import 'package:mfresh_ops/data/models/inventory/unit_inventory_model.dart';
@@ -16,32 +11,13 @@ import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 
 class StoreInventoryDialogs {
   static Widget _buildGreyField(String label, String hint) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyle.style_12_500(color: AppColors.black300),
-        ),
-        SizedBox(height: 6.h),
-        Container(
-          height: 28.h,
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE2E8F0),
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: Text(
-            hint,
-            style: AppTextStyle.style_12_400(color: AppColors.grey500),
-          ),
-        ),
-      ],
+    return AppCommonTextField(
+      labelText: label,
+      hintText: hint,
+      controller: TextEditingController(text: hint),
+      readOnly: true,
     );
   }
-
-
 
   static Widget _buildWhiteInput(
     String label,
@@ -49,42 +25,12 @@ class StoreInventoryDialogs {
     TextEditingController? controller,
     bool readOnly = false,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyle.style_12_500(color: AppColors.black300),
-        ),
-        SizedBox(height: 6.h),
-        Container(
-          height: 28.h,
-          decoration: BoxDecoration(
-            color: readOnly ? const Color(0xFFF1F5F9) : AppColors.white,
-            border: Border.all(color: AppColors.grey100),
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: TextFormField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            readOnly: readOnly,
-            textAlignVertical: TextAlignVertical.center,
-            style: AppTextStyle.style_12_400(color: AppColors.grey900),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTextStyle.style_12_400(color: AppColors.grey500),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 8.w,
-                vertical: 4.h,
-              ),
-              isDense: true,
-            ),
-          ),
-        ),
-      ],
+    return AppCommonTextField(
+      labelText: label,
+      hintText: hint,
+      controller: controller ?? TextEditingController(),
+      readOnly: readOnly,
+      keyboardType: TextInputType.number,
     );
   }
 
@@ -94,51 +40,14 @@ class StoreInventoryDialogs {
     bool isInput = false,
     TextEditingController? controller,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyle.style_12_500(color: AppColors.black300),
-        ),
-        SizedBox(height: 4.h),
-        Container(
-          height: 28.h,
-          padding: isInput
-              ? EdgeInsets.zero
-              : EdgeInsets.symmetric(horizontal: 8.w),
-          alignment: isInput ? null : Alignment.centerLeft,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            border: Border.all(color: AppColors.grey100),
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: isInput
-              ? TextFormField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: AppTextStyle.style_12_400(
-                      color: AppColors.grey500,
-                    ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 8.h,
-                    ),
-                    isDense: true,
-                  ),
-                )
-              : Text(
-                  hint,
-                  style: AppTextStyle.style_12_400(color: AppColors.grey500),
-                  overflow: TextOverflow.ellipsis,
-                ),
-        ),
-      ],
+    return AppCommonTextField(
+      labelText: label,
+      hintText: hint,
+      controller: isInput
+          ? (controller ?? TextEditingController())
+          : TextEditingController(text: hint),
+      readOnly: !isInput,
+      keyboardType: isInput ? TextInputType.number : null,
     );
   }
 
@@ -189,8 +98,10 @@ class StoreInventoryDialogs {
           borderRadius: BorderRadius.circular(20.r),
         ),
         insetPadding: EdgeInsets.all(20.r),
-        child: Container(
-          padding: EdgeInsets.all(20.r),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Container(
+            padding: EdgeInsets.all(20.r),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -232,7 +143,7 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'State',
+                          label: 'State',
                           isSingleSelect: true,
                           selectedValues: selectedState.value != null
                               ? {selectedState.value!}
@@ -266,7 +177,7 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'District',
+                          label: 'District',
                           isSingleSelect: true,
                           selectedValues: selectedDistrict.value != null
                               ? {selectedDistrict.value!}
@@ -306,24 +217,24 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'Store Name',
+                          label: 'Store Name',
                           isSingleSelect: true,
                           selectedValues: selectedStore.value != null
                               ? {selectedStore.value!}
                               : {},
                           items: controller.storeOptions
-                                    .map<DropdownMenuItem<String>>(
-                                      (e) => DropdownMenuItem<String>(
-                                        value: e.value,
-                                        child: Text(
-                                          e.label,
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
+                              .map<DropdownMenuItem<String>>(
+                                (e) => DropdownMenuItem<String>(
+                                  value: e.value,
+                                  child: Text(
+                                    e.label,
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                           onChanged: (values) {
                             final v = values.isNotEmpty ? values.first : null;
                             selectedStore.value = v;
@@ -335,7 +246,7 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'Category',
+                          label: 'Category',
                           isSingleSelect: true,
                           selectedValues: selectedCategory.value != null
                               ? {selectedCategory.value!}
@@ -366,7 +277,7 @@ class StoreInventoryDialogs {
                 SizedBox(height: 10.h),
                 Obx(
                   () => MultiSelectDropdownWidget<String>(
-                    title: 'Item Name',
+                    label: 'Item',
                     isSingleSelect: true,
                     selectedValues: controller.selectedAddItemName.value != null
                         ? {controller.selectedAddItemName.value!}
@@ -413,9 +324,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             SizedBox(width: 16.w),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       ],
@@ -435,9 +344,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             SizedBox(width: 16.w),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       ],
@@ -479,9 +386,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             SizedBox(width: 16.w),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       ],
@@ -501,9 +406,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             SizedBox(width: 16.w),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       ],
@@ -523,9 +426,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             SizedBox(width: 16.w),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       ],
@@ -545,9 +446,7 @@ class StoreInventoryDialogs {
                               ),
                             ),
                             SizedBox(width: 16.w),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       ],
@@ -676,7 +575,8 @@ class StoreInventoryDialogs {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   static void showAllocateSheet(BuildContext context, dynamic item) {
@@ -695,8 +595,13 @@ class StoreInventoryDialogs {
     final String? itemStateId = item.stateId?.toString();
     final String? itemDistrictId = item.districtId?.toString();
 
-    selectedState.value = (itemStateId != null && itemStateId.isNotEmpty) ? itemStateId : null;
-    selectedDistrict.value = (itemDistrictId != null && itemDistrictId.isNotEmpty) ? itemDistrictId : null;
+    selectedState.value = (itemStateId != null && itemStateId.isNotEmpty)
+        ? itemStateId
+        : null;
+    selectedDistrict.value =
+        (itemDistrictId != null && itemDistrictId.isNotEmpty)
+        ? itemDistrictId
+        : null;
 
     Future<void> loadStates() async {
       try {
@@ -704,10 +609,14 @@ class StoreInventoryDialogs {
         if (response != null && response['status'] == 'success') {
           final List data = response['data'] ?? [];
           stateOptions.assignAll(
-            data.map((e) => DropdownOption<String>(
-              value: e['id']?.toString() ?? '',
-              label: e['state_name']?.toString() ?? '',
-            )).toList()
+            data
+                .map(
+                  (e) => DropdownOption<String>(
+                    value: e['id']?.toString() ?? '',
+                    label: e['state_name']?.toString() ?? '',
+                  ),
+                )
+                .toList(),
           );
         }
       } catch (e) {
@@ -722,10 +631,14 @@ class StoreInventoryDialogs {
         if (response != null && response['status'] == 'success') {
           final List data = response['data'] ?? [];
           districtOptions.assignAll(
-            data.map((e) => DropdownOption<String>(
-              value: e['district_id']?.toString() ?? '',
-              label: e['district_name']?.toString() ?? '',
-            )).toList()
+            data
+                .map(
+                  (e) => DropdownOption<String>(
+                    value: e['district_id']?.toString() ?? '',
+                    label: e['district_name']?.toString() ?? '',
+                  ),
+                )
+                .toList(),
           );
         }
       } catch (e) {
@@ -742,7 +655,9 @@ class StoreInventoryDialogs {
       final apiService = Get.find<ApiService>();
       if (type == 'unit') {
         try {
-          debugPrint('🔍 [dialog] Fetching support-units. State: ${selectedState.value}, District: ${selectedDistrict.value}');
+          debugPrint(
+            '🔍 [dialog] Fetching support-units. State: ${selectedState.value}, District: ${selectedDistrict.value}',
+          );
           final response = await apiService.post(
             'support-units',
             data: {
@@ -751,7 +666,8 @@ class StoreInventoryDialogs {
             },
           );
           debugPrint('🔍 [dialog] support-units response: $response');
-          if (response != null && (response['status'] == true || response['status'] == 'success')) {
+          if (response != null &&
+              (response['status'] == true || response['status'] == 'success')) {
             final List data = response['data'] ?? [];
             destinationOptions.assignAll(
               data
@@ -773,13 +689,11 @@ class StoreInventoryDialogs {
           debugPrint('🔍 [dialog] Fetching inv-stores...');
           final response = await apiService.post(
             'inv-stores',
-            data: {
-              'state': '',
-              'district': '',
-            },
+            data: {'state': '', 'district': ''},
           );
           debugPrint('🔍 [dialog] inv-stores response: $response');
-          if (response != null && (response['status'] == 'success' || response['status'] == true)) {
+          if (response != null &&
+              (response['status'] == 'success' || response['status'] == true)) {
             final List data = response['data'] ?? [];
             destinationOptions.assignAll(
               data
@@ -791,7 +705,9 @@ class StoreInventoryDialogs {
                   )
                   .toList(),
             );
-            debugPrint('🔍 [dialog] Populated destinationOptions: ${destinationOptions.map((e) => '${e.label} (${e.value})').toList()}');
+            debugPrint(
+              '🔍 [dialog] Populated destinationOptions: ${destinationOptions.map((e) => '${e.label} (${e.value})').toList()}',
+            );
           }
         } catch (e) {
           debugPrint('❌ [dialog] Error fetching stores in dialog: $e');
@@ -810,7 +726,9 @@ class StoreInventoryDialogs {
     });
 
     ever(allocateDestinationType, (type) {
-      debugPrint('🔍 [dialog] ever worker triggered for destination type: $type');
+      debugPrint(
+        '🔍 [dialog] ever worker triggered for destination type: $type',
+      );
       updateDestinations(type);
     });
 
@@ -822,8 +740,10 @@ class StoreInventoryDialogs {
           borderRadius: BorderRadius.circular(20.r),
         ),
         insetPadding: EdgeInsets.all(20.r),
-        child: Container(
-          padding: EdgeInsets.all(20.r),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Container(
+            padding: EdgeInsets.all(20.r),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -833,7 +753,7 @@ class StoreInventoryDialogs {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Allocate to Unit',
+                      'Transfer to Unit',
                       style: AppTextStyle.style_18_700(color: AppColors.black),
                     ),
                     IconButton(
@@ -873,14 +793,12 @@ class StoreInventoryDialogs {
                   children: [
                     Expanded(
                       child: _buildGreyField(
-                        'Available Qty. (Consumption)',
-                        '${item.quantity} ${item is InventoryItemModel ? item.unit : item.mUnit}',
+                        'Available Qty.',
+                        '${item.quantity}',
                       ),
                     ),
                     SizedBox(width: 12.w),
-                    const Expanded(
-                      child: SizedBox(),
-                    ),
+                    const Expanded(child: SizedBox()),
                   ],
                 ),
 
@@ -895,9 +813,8 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'State',
+                          label: 'Select State',
                           isSingleSelect: true,
-                          height: 28.h,
                           selectedValues: selectedState.value != null
                               ? {selectedState.value!}
                               : {},
@@ -930,9 +847,8 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'District',
+                          label: 'Select District',
                           isSingleSelect: true,
-                          height: 28.h,
                           selectedValues: selectedDistrict.value != null
                               ? {selectedDistrict.value!}
                               : {},
@@ -967,10 +883,8 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'Destination Type',
-                          hint: 'Select Destination Type',
+                          label: 'Select Destination Type',
                           isSingleSelect: true,
-                          height: 28.h,
                           selectedValues: allocateDestinationType.value != null
                               ? {allocateDestinationType.value!}
                               : {},
@@ -1008,10 +922,8 @@ class StoreInventoryDialogs {
                     Expanded(
                       child: Obx(
                         () => MultiSelectDropdownWidget<String>(
-                          title: 'Destination',
-                          hint: 'Choose Destination',
+                          label: 'Select Destination',
                           isSingleSelect: true,
-                          height: 28.h,
                           selectedValues: allocateDestination.value != null
                               ? {allocateDestination.value!}
                               : {},
@@ -1047,37 +959,37 @@ class StoreInventoryDialogs {
                                 .toLowerCase();
                         if (unit == 'litre') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (ml)',
+                            'Transfer Quantity (ml)',
                             'Enter in ml',
                             controller: qtyController,
                           );
                         } else if (unit == 'piece' || unit == 'pcs') {
                           return _buildWhiteInput(
-                            'Allocate Quantity',
+                            'Transfer Quantity',
                             'Enter Pieces',
                             controller: qtyController,
                           );
                         } else if (unit == 'pair') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (Pair)',
+                            'Transfer Quantity (Pair)',
                             'Enter Pairs',
                             controller: qtyController,
                           );
                         } else if (unit == 'kg') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (g)',
+                            'Transfer Quantity (g)',
                             'Enter in grams',
                             controller: qtyController,
                           );
                         } else if (unit == 'packet' || unit == 'box') {
                           return _buildWhiteInput(
-                            'Allocate Quantity (Packet)',
+                            'Transfer Quantity (Packet)',
                             'Enter Packets',
                             controller: qtyController,
                           );
                         } else {
                           return _buildWhiteInput(
-                            'Allocate Qty. (Consumption)',
+                            'Transfer Quantity',
                             'Enter Qty.',
                             controller: qtyController,
                           );
@@ -1085,9 +997,7 @@ class StoreInventoryDialogs {
                       })(),
                     ),
                     SizedBox(width: 12.w),
-                    const Expanded(
-                      child: SizedBox(),
-                    ),
+                    const Expanded(child: SizedBox()),
                   ],
                 ),
 
@@ -1117,10 +1027,19 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        final enteredQty = double.tryParse(qty) ?? 0;
-                        final availableQty =
-                            double.tryParse(item.quantity?.toString() ?? '0') ??
-                            0;
+                        final cleanEntered = qty.replaceAll(
+                          RegExp(r'[^0-9.-]'),
+                          '',
+                        );
+                        final enteredQty = double.tryParse(cleanEntered) ?? 0;
+
+                        final rawAvail = item.quantity?.toString() ?? '0';
+                        final cleanAvail = rawAvail.replaceAll(
+                          RegExp(r'[^0-9.-]'),
+                          '',
+                        );
+                        final availableQty = double.tryParse(cleanAvail) ?? 0;
+
                         if (enteredQty <= 0) {
                           AppCommonToastMessage.show(
                             message:
@@ -1129,7 +1048,7 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        if (enteredQty > availableQty) {
+                        if (availableQty > 0 && enteredQty > availableQty) {
                           AppCommonToastMessage.show(
                             message:
                                 'Not enough quantity available. Maximum: $availableQty',
@@ -1185,7 +1104,8 @@ class StoreInventoryDialogs {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   static void showConsumptionSheet(BuildContext context, dynamic item) {
@@ -1198,8 +1118,10 @@ class StoreInventoryDialogs {
           borderRadius: BorderRadius.circular(20.r),
         ),
         insetPadding: EdgeInsets.all(20.r),
-        child: Container(
-          padding: EdgeInsets.all(20.r),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Container(
+            padding: EdgeInsets.all(20.r),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1209,7 +1131,7 @@ class StoreInventoryDialogs {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Consumption',
+                      'Usage',
                       style: AppTextStyle.style_18_700(color: AppColors.black),
                     ),
                     IconButton(
@@ -1259,42 +1181,42 @@ class StoreInventoryDialogs {
                                 .toLowerCase();
                         if (unit == 'litre') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (ml)',
+                            'Usage Quantity (ml)',
                             'Enter in ml',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'piece' || unit == 'pcs') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity',
+                            'Usage Quantity',
                             'Enter Pieces',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'pair') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (Pair)',
+                            'Usage Quantity (Pair)',
                             'Enter Pairs',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'kg') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (g)',
+                            'Usage Quantity (g)',
                             'Enter in grams',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else if (unit == 'packet' || unit == 'box') {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Quantity (Packet)',
+                            'Usage Quantity (Packet)',
                             'Enter Packets',
                             isInput: true,
                             controller: qtyController,
                           );
                         } else {
                           return _buildSmallVerticalWhiteField(
-                            'Consumption Qty.',
+                            'Usage Quantity',
                             'Enter Qty.',
                             isInput: true,
                             controller: qtyController,
@@ -1331,10 +1253,19 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        final enteredQty = double.tryParse(qty) ?? 0;
-                        final availableQty =
-                            double.tryParse(item.quantity?.toString() ?? '0') ??
-                            0;
+                        final cleanEntered = qty.replaceAll(
+                          RegExp(r'[^0-9.-]'),
+                          '',
+                        );
+                        final enteredQty = double.tryParse(cleanEntered) ?? 0;
+
+                        final rawAvail = item.quantity?.toString() ?? '0';
+                        final cleanAvail = rawAvail.replaceAll(
+                          RegExp(r'[^0-9.-]'),
+                          '',
+                        );
+                        final availableQty = double.tryParse(cleanAvail) ?? 0;
+
                         if (enteredQty <= 0) {
                           AppCommonToastMessage.show(
                             message:
@@ -1343,7 +1274,7 @@ class StoreInventoryDialogs {
                           );
                           return;
                         }
-                        if (enteredQty > availableQty) {
+                        if (availableQty > 0 && enteredQty > availableQty) {
                           AppCommonToastMessage.show(
                             message:
                                 'Not enough quantity available. Maximum: $availableQty',
@@ -1377,6 +1308,7 @@ class StoreInventoryDialogs {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

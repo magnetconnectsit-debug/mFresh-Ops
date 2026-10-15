@@ -27,7 +27,8 @@ class AppConstants {
   static const String comparisonDashboardData = 'comparison-dashboard-data';
 
   // Booking Module
-  static const String customerBookingDetails = 'customer/customerbookingdetails';
+  static const String customerBookingDetails =
+      'customer/customerbookingdetails';
   static const String resendBookingSms = 'customer/resend-booking-sms';
   static const String allUnitServices = 'customer/Api-get-Unit-services';
   static const String bookingHistory = 'customer/bookinghistory';
@@ -101,7 +102,13 @@ class AppConstants {
   // Payment Reminder
   static const String paymentIndex = 'payment-index';
   static const String paymentAdd = 'payment-add';
-  static const String completedPaymentFilter = 'payment-reminders/completed/filter';
+  static const String completedPaymentFilter =
+      'payment-reminders/completed/filter';
+  static const String paymentRemindersUpdate = 'payment-reminders/update';
+  static const String paymentRemindersDelete = 'payment-reminders/delete';
+  static const String paymentReminderComplete = 'payment-reminder/complete';
+  static const String paymentRemindersUsers = 'payment-reminder/users';
+  static String paymentRemindersShow(dynamic id) => 'payment-reminders/$id';
 
   // Inventory
   static const String invGetStates = 'inv-get-states';
@@ -113,6 +120,10 @@ class AppConstants {
   static const String invStoreToUnitAllocate = 'inv-Store-To-Unit-Allocate';
   static const String inventoryConsume = 'inventory/consume';
   static const String inventoryUnitStock = 'inventory/Unit/Stock';
+  static const String inventoryAuditSubmit = 'inventory/audit-store';
+  static const String inventoryAuditUnitItems = 'inventory-audit/unit-items';
+  static const String inventoryAuditReport = 'inventory-audits';
+  static const String inventoryAuditDetail = 'inventory-audits-details';
   static const String invCategoryWiseItem = 'inv-Category-wise-Item';
   static const String invEntryStoreStock = 'inv-entry-store-stock';
   static const String consumptionReport = 'consumption/report';
@@ -126,14 +137,26 @@ class AppConstants {
   static const String measurementCreate = 'measurement/create';
   static const String measurementUpdate = 'measurement/update';
   static const String measurementDelete = 'measurement/delete';
+  static const String inventoryAuditItemRanks = 'inventory-audit-item-ranks';
+  static const String inventoryAuditItemRanksStore =
+      'inventory-audit-item-ranks/store';
+  static const String inventoryAuditItemRanksUpdate =
+      'inventory-audit-item-ranks/update';
   static const String inventoryOrders = 'inventory/orders';
-  static const String inventoryOrdersStoreRequest = 'inventory/orders/store/request';
-  static const String inventoryOrdersUnitRequest = 'inventory/orders/unit/request';
-  static const String inventoryStoreOrdersBulkStore = 'inventory/store-orders/bulk-store';
-  static const String inventoryUnitOrdersBulkStore = 'inventory/unit-orders/bulk-store';
-  static String inventoryOrdersReceive(dynamic orderId) => 'inventory/orders/$orderId/receive';
-  static String inventoryOrdersComplete(dynamic orderId) => 'inventory/orders/$orderId/complete';
-  static const String inventoryOrderReceiveLogs = 'inventory/order-receive-logs';
+  static const String inventoryOrdersStoreRequest =
+      'inventory/orders/store/request';
+  static const String inventoryOrdersUnitRequest =
+      'inventory/orders/unit/request';
+  static const String inventoryStoreOrdersBulkStore =
+      'inventory/store-orders/bulk-store';
+  static const String inventoryUnitOrdersBulkStore =
+      'inventory/unit-orders/bulk-store';
+  static String inventoryOrdersReceive(dynamic orderId) =>
+      'inventory/orders/$orderId/receive';
+  static String inventoryOrdersComplete(dynamic orderId) =>
+      'inventory/orders/$orderId/complete';
+  static const String inventoryOrderReceiveLogs =
+      'inventory/order-receive-logs';
   static const String measurementList = 'measurement/list';
 
   // Tracking
@@ -145,7 +168,8 @@ class AppConstants {
   static const String trackingDutyOff = 'tracking/duty-off';
   static const String trackingCurrentStatus = 'tracking/current-status';
   static const String trackingAttendanceLog = 'tracking/Attendencelog';
-  static const String trackingAttendanceBreakdown = 'tracking/attendance/day-breakdown';
+  static const String trackingAttendanceBreakdown =
+      'tracking/attendance/day-breakdown';
   static const String trackingMyRouteHistory = 'tracking/my-route-history';
   static const String trackingMyStoppages = 'tracking/my-stoppages';
   static const String trackingSegments = 'tracking/segments';
@@ -183,7 +207,7 @@ class AppConstants {
   static const String companyCreate = 'company/create';
   static const String companyUpdate = 'company/update';
   static const String companyDelete = 'company/delete';
-  
+
   static const String brandList = 'brand/list';
   static const String brandCreate = 'brand/create';
   static const String brandUpdate = 'brand/update';
@@ -196,12 +220,29 @@ class AppConstants {
   static const String assetProductDelete = 'asset-product/delete';
   static const String assetProductProjects = 'asset-product/projects';
 
+  // Asset Category
+  static const String assetCategoryList = 'asset-category/list';
+  static const String assetCategoryStore = 'asset-category/store';
+  static const String assetCategoryUpdate = 'asset-category/update';
+  static const String assetCategoryDelete = 'asset-category/delete';
+
   // Account & Subscription
   static const String accountSubscriptionList = 'account-subscription/list';
   static const String accountList = 'account-list';
   static const String accountSubscriptionStore = 'account-subscription/store';
   static const String accountSubscriptionUpdate = 'account-subscription/update';
   static const String accountSubscriptionDelete = 'account-subscription/delete';
+
+  // Roles & Responsibilities
+  static const String rolesIndex = 'roles-index';
+  static const String rolesStore = 'roles-store';
+  static const String rolesUpdate = 'roles-update';
+  static const String rolesDelete = 'roles-delete';
+  static const String responsibilitiesIndex = 'responsibilities-index';
+  static const String responsibilitiesStore = 'responsibilities-store';
+  static const String responsibilitiesUpdate = 'responsibilities-update';
+  static const String responsibilitiesDelete = 'responsibilities-delete';
+  static const String responsibilitiesView = 'responsibilities-view';
   // endregion
 
   // region Hive Keys
@@ -209,4 +250,3 @@ class AppConstants {
   static const String userKey = 'currentUser';
   // endregion
 }
-

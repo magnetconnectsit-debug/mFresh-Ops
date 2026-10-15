@@ -208,12 +208,10 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
         ),
         showingTooltipIndicators: () {
           final indicators = <ShowingTooltipIndicators>[];
-          // Add non-touched spots first
           for (int i = 0; i < spots.length; i++) {
             if (spots[i].y == 0 || i == touchedSpotIndex) continue;
             indicators.add(ShowingTooltipIndicators([LineBarSpot(barData, 0, spots[i])]));
           }
-          // Add touched spot last so it paints over others
           if (touchedSpotIndex != null && touchedSpotIndex! >= 0 && touchedSpotIndex! < spots.length) {
             if (spots[touchedSpotIndex!].y != 0) {
               indicators.add(ShowingTooltipIndicators([LineBarSpot(barData, 0, spots[touchedSpotIndex!])]));
@@ -273,7 +271,7 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
                 } else {
                   return LineTooltipItem(
                     '₹${NumberFormat('#,##,###').format(spot.y)}',
-                    AppTextStyle.style_10_600(color: isWknd ? Colors.red : Colors.black87).copyWith(fontSize: 8.sp),
+                    AppTextStyle.style_10_700(color: isWknd ? Colors.red : const Color(0xFF1D4ED8)).copyWith(fontSize: 8.5.sp),
                   );
                 }
               }).toList();
@@ -334,28 +332,30 @@ class _DashboardMonthWiseChartState extends State<DashboardMonthWiseChart> {
       ),
     );
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 8.h, color: const Color(0xFF059669)),
-          if (widget.isFullScreen)
-            Expanded(child: innerContent)
-          else
-            innerContent,
-        ],
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 8.h, color: const Color(0xFF059669)),
+            if (widget.isFullScreen)
+              Expanded(child: innerContent)
+            else
+              innerContent,
+          ],
+        ),
       ),
     );
   }

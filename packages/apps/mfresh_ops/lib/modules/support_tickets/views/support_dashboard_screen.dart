@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -21,7 +23,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
         title: Text('Support Ticket Dashboard'),
         showAppDrawer: true,
         hasBackButton: false,
-        topHeader: const CommonShortcutHeader(),
+        topHeader: CommonShortcutHeader(),
       ),
       drawer: const CommonSidebar(),
       body: Obx(() {
@@ -42,35 +44,34 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(12.0),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildFilterSection(),
-                const SizedBox(height: 12),
-                const Text(
-                  'Support Ticket Dashboard',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF001F54),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildFilterSection(),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Support Ticket Dashboard',
+                    style: AppTextStyle.style_18_700(
+                      color: AppColors.primaryBlue,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildSummaryCards(),
-                const SizedBox(height: 12),
-                _buildStatusChart(),
-                const SizedBox(height: 12),
-                _buildUnitsChart(),
-                const SizedBox(height: 12),
-                _buildCategoryChart(),
-                const SizedBox(height: 12),
-                _buildAssigneeTable(),
-                const SizedBox(height: 12),
-                _buildTrendChart(),
-                const SizedBox(height: 30),
-              ],
+                  const SizedBox(height: 12),
+                  _buildSummaryCards(),
+                  const SizedBox(height: 12),
+                  _buildStatusChart(),
+                  const SizedBox(height: 12),
+                  _buildUnitsChart(),
+                  const SizedBox(height: 12),
+                  _buildCategoryChart(),
+                  const SizedBox(height: 12),
+                  _buildAssigneeTable(),
+                  const SizedBox(height: 12),
+                  _buildTrendChart(),
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
           ),
-        ));
+        );
       }),
     );
   }
@@ -97,19 +98,16 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(
-                height: 28,
-                child: ElevatedButton.icon(
-                  onPressed: controller.resetFilters,
-                  icon: const Icon(Icons.refresh, size: 14),
-                  label: Text('Reset', style: AppTextStyle.style_11_400(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
+              AppCommonButton(
+                text: 'Reset',
+                icon: Icons.refresh,
+                buttonColor: AppColors.grey600,
+                textColor: AppColors.white,
+                height: 28.h,
+                textSize: 11.sp,
+                borderRadius: 6.r,
+                useGradient: false,
+                onPressed: controller.resetFilters,
               ),
             ],
           ),
@@ -117,7 +115,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -127,7 +125,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Date :', style: AppTextStyle.style_11_600(color: AppColors.primaryOrange)),
-                    Text('Custom', style: AppTextStyle.style_11_600(color: Colors.blue.shade700)),
+                    Text('Custom', style: AppTextStyle.style_11_600(color: AppColors.blue700)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -157,7 +155,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
+              color: AppColors.grey50,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -221,7 +219,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -248,12 +246,12 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: AppColors.grey200,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: AppColors.orange200),
       ),
       alignment: Alignment.center,
-      child: Text(label, style: AppTextStyle.style_11_400(color: Colors.black87)),
+      child: Text(label, style: AppTextStyle.style_11_400(color: AppColors.black87)),
     );
   }
 
@@ -276,23 +274,26 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: AppColors.orange200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: AppTextStyle.style_12_400(color: Colors.grey.shade600),
+            style: AppTextStyle.style_12_400(color: AppColors.grey600),
           ),
           Text(
             count,
-            style: AppTextStyle.style_16_700(color: Colors.black87),
+            style: AppTextStyle.style_16_700(color: AppColors.black87),
           ),
           const SizedBox(height: 4),
-          const Text('View Report', style: TextStyle(fontSize: 10, color: Color(0xFF001F54), fontWeight: FontWeight.bold)),
+          Text(
+            'View Report',
+            style: AppTextStyle.style_10_700(color: AppColors.primaryBlue),
+          ),
         ],
       ),
     );
@@ -320,13 +321,13 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
           barTouchData: BarTouchData(
             enabled: false,
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (group) => Colors.transparent,
+              getTooltipColor: (group) => AppColors.transparent,
               tooltipPadding: EdgeInsets.zero,
               tooltipMargin: 4,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   rod.toY.round().toString(),
-                  const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                  AppTextStyle.style_11_700(color: AppColors.black),
                 );
               },
             ),
@@ -343,7 +344,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
                         controller.statusData[value.toInt()]['label'] as String,
-                        style: const TextStyle(fontSize: 10),
+                        style: AppTextStyle.style_10_400(color: AppColors.black87),
                       ),
                     );
                   }
@@ -356,7 +357,10 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 showTitles: true,
                 reservedSize: 40,
                 interval: yInterval == 0 ? 10 : yInterval,
-                getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+                getTitlesWidget: (value, meta) => Text(
+                  value.toInt().toString(),
+                  style: AppTextStyle.style_10_400(color: AppColors.black87),
+                ),
               ),
             ),
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -366,13 +370,13 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
             show: true,
             drawVerticalLine: false,
             horizontalInterval: yInterval == 0 ? 10 : yInterval,
-            getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1, dashArray: [4, 4]),
+            getDrawingHorizontalLine: (value) => FlLine(color: AppColors.grey200, strokeWidth: 1, dashArray: [4, 4]),
           ),
           borderData: FlBorderData(
             show: true,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-              left: BorderSide(color: Colors.grey.shade300, width: 1),
+            border: const Border(
+              bottom: BorderSide(color: AppColors.grey300, width: 1),
+              left: BorderSide(color: AppColors.grey300, width: 1),
               right: BorderSide.none,
               top: BorderSide.none,
             ),
@@ -419,13 +423,13 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
           barTouchData: BarTouchData(
             enabled: false,
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (group) => Colors.transparent,
+              getTooltipColor: (group) => AppColors.transparent,
               tooltipPadding: EdgeInsets.zero,
               tooltipMargin: 4,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   rod.toY.round().toString(),
-                  const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                  AppTextStyle.style_11_700(color: AppColors.black),
                 );
               },
             ),
@@ -444,7 +448,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                         angle: -0.5,
                         child: Text(
                           controller.unitsData[value.toInt()]['label'] as String,
-                          style: const TextStyle(fontSize: 9),
+                          style: AppTextStyle.style_9_400(color: AppColors.black87),
                         ),
                       ),
                     );
@@ -458,7 +462,10 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 showTitles: true,
                 reservedSize: 40,
                 interval: yInterval == 0 ? 10 : yInterval,
-                getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+                getTitlesWidget: (value, meta) => Text(
+                  value.toInt().toString(),
+                  style: AppTextStyle.style_10_400(color: AppColors.black87),
+                ),
               ),
             ),
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -468,13 +475,13 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
             show: true,
             drawVerticalLine: false,
             horizontalInterval: yInterval == 0 ? 10 : yInterval,
-            getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1, dashArray: [4, 4]),
+            getDrawingHorizontalLine: (value) => FlLine(color: AppColors.grey200, strokeWidth: 1, dashArray: [4, 4]),
           ),
           borderData: FlBorderData(
             show: true,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-              left: BorderSide(color: Colors.grey.shade300, width: 1),
+            border: const Border(
+              bottom: BorderSide(color: AppColors.grey300, width: 1),
+              left: BorderSide(color: AppColors.grey300, width: 1),
               right: BorderSide.none,
               top: BorderSide.none,
             ),
@@ -501,13 +508,13 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
 
   Widget _buildCategoryChart() {
     final colors = [
-      Colors.deepPurple.shade100,
-      Colors.orange.shade200,
-      Colors.cyan.shade300,
-      Colors.pink.shade100,
-      Colors.orange.shade300,
-      Colors.yellow.shade200,
-      Colors.grey.shade300,
+      AppColors.purple,
+      AppColors.orange200,
+      AppColors.info,
+      AppColors.primaryVariant,
+      AppColors.warning,
+      AppColors.yellow,
+      AppColors.grey300,
     ];
     
     double currentY = 0;
@@ -535,7 +542,10 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 children: [
                   Container(width: 12, height: 12, color: colors[e.key % colors.length]),
                   const SizedBox(width: 4),
-                  Text(e.value['label'] as String, style: const TextStyle(fontSize: 10)),
+                  Text(
+                    e.value['label'] as String,
+                    style: AppTextStyle.style_10_400(color: AppColors.black87),
+                  ),
                 ],
               );
             }).toList(),
@@ -551,13 +561,13 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 barTouchData: BarTouchData(
                   enabled: false,
                   touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (group) => Colors.transparent,
+                    getTooltipColor: (group) => AppColors.transparent,
                     tooltipPadding: EdgeInsets.zero,
                     tooltipMargin: 6,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       return BarTooltipItem(
                         rod.toY.round().toString(),
-                        const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10),
+                        AppTextStyle.style_10_700(color: AppColors.black),
                       );
                     },
                   ),
@@ -573,7 +583,10 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Transform.rotate(
                             angle: -0.5,
-                            child: const Text('IT', style: TextStyle(fontSize: 10)),
+                            child: Text(
+                              'IT',
+                              style: AppTextStyle.style_10_400(color: AppColors.black87),
+                            ),
                           ),
                         );
                       },
@@ -584,7 +597,10 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                       showTitles: true,
                       reservedSize: 40,
                       interval: yInterval == 0 ? 10 : yInterval,
-                      getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+                      getTitlesWidget: (value, meta) => Text(
+                        value.toInt().toString(),
+                        style: AppTextStyle.style_10_400(color: AppColors.black87),
+                      ),
                     ),
                   ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -594,24 +610,24 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: yInterval == 0 ? 10 : yInterval,
-                  getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1, dashArray: [4, 4]),
+                  getDrawingHorizontalLine: (value) => FlLine(color: AppColors.grey200, strokeWidth: 1, dashArray: [4, 4]),
                 ),
                 borderData: FlBorderData(
-            show: true,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-              left: BorderSide(color: Colors.grey.shade300, width: 1),
-              right: BorderSide.none,
-              top: BorderSide.none,
-            ),
-          ),
+                  show: true,
+                  border: const Border(
+                    bottom: BorderSide(color: AppColors.grey300, width: 1),
+                    left: BorderSide(color: AppColors.grey300, width: 1),
+                    right: BorderSide.none,
+                    top: BorderSide.none,
+                  ),
+                ),
                 barGroups: [
                   BarChartGroupData(
                     x: 0,
                     barRods: [
                       BarChartRodData(
                         toY: currentY,
-                        color: Colors.transparent,
+                        color: AppColors.transparent,
                         width: 40,
                         borderRadius: BorderRadius.zero,
                         rodStackItems: stackItems,
@@ -632,51 +648,66 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
   Widget _buildAssigneeTable() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: AppColors.orange200),
       ),
       child: Column(
         children: [
           // Filter Header for table
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            decoration: const BoxDecoration(
+              color: AppColors.grey50,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Active Filters -> None', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  'Active Filters -> None',
+                  style: AppTextStyle.style_12_400(color: AppColors.grey500),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('From', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      'From',
+                      style: AppTextStyle.style_12_700(color: AppColors.black87),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.blue.shade200),
+                          color: AppColors.white,
+                          border: Border.all(color: AppColors.blue200),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('dd-mm-yyyy', style: TextStyle(color: Colors.black87)),
+                        child: Text(
+                          'dd-mm-yyyy',
+                          style: AppTextStyle.style_12_400(color: AppColors.black87),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('To', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      'To',
+                      style: AppTextStyle.style_12_700(color: AppColors.black87),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.blue.shade200),
+                          color: AppColors.white,
+                          border: Border.all(color: AppColors.blue200),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('dd-mm-yyyy', style: TextStyle(color: Colors.black87)),
+                        child: Text(
+                          'dd-mm-yyyy',
+                          style: AppTextStyle.style_12_400(color: AppColors.black87),
+                        ),
                       ),
                     ),
                   ],
@@ -685,23 +716,28 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
+                      child: AppCommonButton(
+                        text: 'Apply Filters',
+                        buttonColor: AppColors.blue,
+                        textColor: AppColors.white,
+                        height: 38.h,
+                        textSize: 12.sp,
+                        borderRadius: 8.r,
+                        useGradient: false,
                         onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade600,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Apply Filters'),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton(
+                      child: AppCommonButton(
+                        text: 'Reset',
+                        variant: ButtonVariant.outline,
+                        height: 38.h,
+                        textSize: 12.sp,
+                        borderRadius: 8.r,
+                        textColor: AppColors.black87,
+                        borderColor: AppColors.grey200,
                         onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.black87,
-                        ),
-                        child: const Text('Reset'),
                       ),
                     ),
                   ],
@@ -711,16 +747,52 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
           ),
           // Table Header
           Container(
-            color: Colors.blue.shade50,
+            color: AppColors.blue50,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: const Row(
+            child: Row(
               children: [
-                Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF001F54)))),
-                Expanded(child: Text('Total', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF001F54)))),
-                Expanded(child: Text('Open', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF001F54)))),
-                Expanded(child: Text('Hold', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF001F54)))),
-                Expanded(child: Text('Awaited', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF001F54)))),
-                Expanded(child: Text('Resolved', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF001F54)))),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Name',
+                    style: AppTextStyle.style_11_700(color: AppColors.primaryBlue),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Total',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.style_10_700(color: AppColors.primaryBlue),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Open',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.style_10_700(color: AppColors.primaryBlue),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Hold',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.style_10_700(color: AppColors.primaryBlue),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Awaited',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.style_10_700(color: AppColors.primaryBlue),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Resolved',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.style_10_700(color: AppColors.primaryBlue),
+                  ),
+                ),
               ],
             ),
           ),
@@ -733,15 +805,51 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
               final row = controller.assigneeReport[index];
               return Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                color: index.isEven ? Colors.white : Colors.blue.shade50.withValues(alpha: 0.3),
+                color: index.isEven ? AppColors.white : AppColors.blue50.withValues(alpha: 0.3),
                 child: Row(
                   children: [
-                    Expanded(flex: 3, child: Text(row['name'] as String, style: TextStyle(fontSize: 12, color: Colors.blue.shade800))),
-                    Expanded(child: Text(row['total'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                    Expanded(child: Text(row['open'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                    Expanded(child: Text(row['hold'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                    Expanded(child: Text(row['awaited'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                    Expanded(child: Text(row['resolved'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        row['name'] as String,
+                        style: AppTextStyle.style_12_400(color: AppColors.blue),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row['total'].toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.style_12_700(color: AppColors.black87),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row['open'].toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.style_12_700(color: AppColors.black87),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row['hold'].toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.style_12_700(color: AppColors.black87),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row['awaited'].toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.style_12_700(color: AppColors.black87),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row['resolved'].toString(),
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.style_12_700(color: AppColors.black87),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -770,10 +878,16 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     color: Color(int.parse((series['color'] as String).replaceAll('#', '0xFF'))),
-                    child: Text('4', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      '4',
+                      style: AppTextStyle.style_10_700(color: AppColors.white),
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  Text(series['name'] as String, style: const TextStyle(fontSize: 10)),
+                  Text(
+                    series['name'] as String,
+                    style: AppTextStyle.style_10_400(color: AppColors.black87),
+                  ),
                 ],
               );
             }).toList(),
@@ -785,11 +899,11 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
               duration: const Duration(milliseconds: 800),
               curve: Curves.easeInOutCubic,
               LineChartData(
-                lineTouchData: LineTouchData(enabled: true),
+                lineTouchData: const LineTouchData(enabled: true),
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1, dashArray: [4, 4]),
+                  getDrawingHorizontalLine: (value) => FlLine(color: AppColors.grey200, strokeWidth: 1, dashArray: [4, 4]),
                 ),
                 titlesData: FlTitlesData(
                   show: true,
@@ -805,7 +919,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                               angle: -0.5,
                               child: Text(
                                 controller.trendDates[value.toInt()],
-                                style: const TextStyle(fontSize: 9),
+                                style: AppTextStyle.style_9_400(color: AppColors.black87),
                               ),
                             ),
                           );
@@ -818,7 +932,10 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
-                      getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+                      getTitlesWidget: (value, meta) => Text(
+                        value.toInt().toString(),
+                        style: AppTextStyle.style_10_400(color: AppColors.black87),
+                      ),
                     ),
                   ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -835,7 +952,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                     color: color,
                     barWidth: 3,
                     isStrokeCapRound: true,
-                    dotData: FlDotData(show: true),
+                    dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(show: false),
                   );
                 }).toList(),
@@ -851,9 +968,9 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
   Widget _chartCard({required String title, required double height, required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.grey50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade300),
+        border: Border.all(color: AppColors.orange300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -866,7 +983,7 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
                 Expanded(
                   child: Text(
                     title, 
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF001F54)),
+                    style: AppTextStyle.style_16_700(color: AppColors.primaryBlue),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -899,11 +1016,11 @@ class SupportDashboardScreen extends GetView<SupportDashboardController> {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade300),
+          color: AppColors.white,
+          border: Border.all(color: AppColors.grey300),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Icon(icon, size: 14, color: const Color(0xFF001F54)),
+        child: Icon(icon, size: 14, color: AppColors.primaryBlue),
       ),
     );
   }
@@ -941,7 +1058,7 @@ class DashboardMultiSelect<T> extends StatelessWidget {
 
         await showMenu(
           context: context,
-          color: Colors.white,
+          color: AppColors.white,
           position: RelativeRect.fromRect(
             buttonRect,
             Offset.zero & MediaQuery.of(context).size,
@@ -956,7 +1073,7 @@ class DashboardMultiSelect<T> extends StatelessWidget {
                   maxWidth: MediaQuery.of(context).size.width * 0.9,
                   maxHeight: 300,
                 ),
-                color: Colors.white,
+                color: AppColors.white,
                 child: StatefulBuilder(
                   builder: (context, setState) {
                     List<DropdownMenuItem<T>> displayedItems = items;
@@ -978,6 +1095,7 @@ class DashboardMultiSelect<T> extends StatelessWidget {
                               controller: searchController,
                               decoration: InputDecoration(
                                 hintText: 'Search...',
+                                hintStyle: AppTextStyle.style_11_400(color: AppColors.grey500),
                                 isDense: true,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
@@ -1030,16 +1148,16 @@ class DashboardMultiSelect<T> extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.orange.shade200),
+          color: AppColors.white,
+          border: Border.all(color: AppColors.orange200),
           borderRadius: BorderRadius.circular(6),
         ),
         alignment: Alignment.center,
         child: Text(
           selectedValues.isEmpty ? hint : _getSelectedText(),
           style: selectedValues.isEmpty 
-              ? AppTextStyle.style_11_400(color: Colors.black87)
-              : AppTextStyle.style_11_600(color: Colors.blue.shade700),
+              ? AppTextStyle.style_11_400(color: AppColors.black87)
+              : AppTextStyle.style_11_600(color: AppColors.blue),
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

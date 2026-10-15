@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -16,20 +17,26 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
         title: const Text('Notifications'),
         showAppDrawer: false,
         hasBackButton: true,
       ),
       body: notifications.isEmpty
           ? _buildEmptyState()
-          : ListView.separated(
-              padding: EdgeInsets.all(20.r),
-              itemCount: notifications.length,
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return _buildNotificationCard(notification);
-              },
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: ListView.separated(
+                  padding: EdgeInsets.all(20.r),
+                  itemCount: notifications.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    return _buildNotificationCard(notification);
+                  },
+                ),
+              ),
             ),
     );
   }

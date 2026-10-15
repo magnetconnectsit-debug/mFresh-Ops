@@ -36,8 +36,9 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
 
     final total = items.fold(0.0, (sum, item) => sum + item.value);
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.r),
@@ -168,8 +169,7 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
                                   );
                                 }).toList(),
                         ),
-                        swapAnimationDuration: const Duration(milliseconds: 800),
-                        swapAnimationCurve: Curves.easeInOut,
+                        swapAnimationDuration: Duration.zero,
                       ),
                       // Tooltip in Center Hole
                       if (touchedIndex != -1)
@@ -254,6 +254,7 @@ class _DashboardPaymentPieChartState extends State<DashboardPaymentPieChart> {
     ),
         ],
       ),
+    ),
     );
   }
 

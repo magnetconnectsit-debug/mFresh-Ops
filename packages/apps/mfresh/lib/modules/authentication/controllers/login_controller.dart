@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:core/widgets/app_common_button.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
 import 'package:flutter/material.dart';
@@ -105,6 +106,14 @@ class LoginController extends GetxController {
     if (mobileController.text.isEmpty || passwordController.text.isEmpty) {
       AppCommonToastMessage.show(
         message: "Please enter both mobile and password",
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    if (!isEmailLogin.value && (mobileController.text.length != 10 || !RegExp(r'^[6-9]\d{9}$').hasMatch(mobileController.text.trim()))) {
+      AppCommonToastMessage.show(
+        message: "Please enter a valid 10-digit mobile number",
         type: ToastType.warning,
       );
       return;
@@ -269,6 +278,12 @@ class LoginController extends GetxController {
             const SizedBox(height: 32),
             Obx(
               () => AppCommonButton(
+                width: double.infinity,
+                height: 34.h,
+                textSize: 12.sp,
+                borderRadius: 6.r,
+                useGradient: false,
+                buttonColor: AppColors.primary,
                 text: "VERIFY & LOGIN",
                 isLoading: isLoading.value,
                 onPressed: () {

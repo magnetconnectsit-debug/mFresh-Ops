@@ -25,7 +25,11 @@ class ServiceDetailsScreen extends StatelessWidget {
           onRefresh: () => controller.refreshData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Column(
               children: [
                 // Top Banner
                 Builder(
@@ -305,7 +309,11 @@ class ServiceDetailsScreen extends StatelessWidget {
                               itemCount: controller.services.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: isDesktop ? 4 : 2,
+                                    crossAxisCount: isDesktop
+                                        ? 4
+                                        : (MediaQuery.of(context).size.shortestSide >= 600
+                                            ? 3
+                                            : 2),
                                     crossAxisSpacing: 10.w,
                                     mainAxisSpacing: 10.h,
                                     childAspectRatio: isDesktop ? 2.4 : 1.7,
@@ -329,12 +337,17 @@ class ServiceDetailsScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: Obx(
-        () => controller.total > 0
-            ? Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
+    ),
+  ),
+  bottomNavigationBar: Obx(
+    () => controller.total > 0
+        ? Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 16.w,
@@ -702,9 +715,11 @@ class ServiceDetailsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-              )
-            : const SizedBox.shrink(),
-      ),
-    );
-  }
+              ),
+            ),
+          )
+        : const SizedBox.shrink(),
+  ),
+);
+}
 }

@@ -37,7 +37,9 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
   void initState() {
     super.initState();
     if (Get.isRegistered<DashboardController>()) {
-      _worker = ever(Get.find<DashboardController>().rxClearTooltipsTrigger, (_) {
+      _worker = ever(Get.find<DashboardController>().rxClearTooltipsTrigger, (
+        _,
+      ) {
         if (mounted && touchedGroupIndex != null) {
           setState(() {
             touchedGroupIndex = null;
@@ -76,11 +78,6 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
     double yInterval = maxVal / 5;
     if (yInterval == 0) yInterval = 1;
     double maxY = maxVal + (maxVal * 0.15);
-
-    double chartWidth = max(
-      MediaQuery.of(context).size.width - 64.w, // Available width minus padding
-      widget.data.length * 40.w, // Minimum width per bar
-    );
 
     final innerContent = Padding(
       padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -128,177 +125,207 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
             ],
           ),
           SizedBox(height: 24.h),
-          
+
           Builder(
             builder: (context) {
               Widget chart = BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    minY: 0,
-                    maxY: maxY,
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: yInterval,
-                      getDrawingHorizontalLine: (value) => const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  minY: 0,
+                  maxY: maxY,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: yInterval,
+                    getDrawingHorizontalLine: (value) =>
+                        const FlLine(color: Color(0xFFF3F4F6), strokeWidth: 1),
+                  ),
+                  titlesData: FlTitlesData(
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
                     ),
-                    titlesData: FlTitlesData(
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 50.w,
-                          interval: yInterval,
-                          getTitlesWidget: (value, meta) {
-                            if (value == 0) return const SizedBox.shrink();
-                            return Padding(
-                              padding: EdgeInsets.only(right: 8.w),
-                              child: Text(
-                                widget.isRevenue
-                                    ? '₹${NumberFormat('#,##,###').format(value)}'
-                                    : NumberFormat('#,##,###').format(value),
-                                style: AppTextStyle.style_10_400(color: AppColors.grey500),
-                                textAlign: TextAlign.right,
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 50.w,
+                        interval: yInterval,
+                        getTitlesWidget: (value, meta) {
+                          if (value == 0) return const SizedBox.shrink();
+                          return Padding(
+                            padding: EdgeInsets.only(right: 8.w),
+                            child: Text(
+                              widget.isRevenue
+                                  ? '₹${NumberFormat('#,##,###').format(value)}'
+                                  : NumberFormat('#,##,###').format(value),
+                              style: AppTextStyle.style_10_400(
+                                color: AppColors.grey500,
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 20.h,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            if (index < 0 || index >= widget.data.length) return const SizedBox.shrink();
-                            return Transform.translate(
-                              offset: const Offset(-25, -10),
-                              child: Transform.rotate(
-                                angle: -pi / 3,
-                                alignment: Alignment.centerRight,
-                                child: Container(
-                                  width: 50,
-                                  alignment: Alignment.centerRight,
-                                  child: Text(
-                                    widget.data[index].timeRange,
-                                    style: AppTextStyle.style_10_400(color: AppColors.grey500).copyWith(fontSize: 9.sp),
-                                    softWrap: false,
-                                    overflow: TextOverflow.visible,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    borderData: FlBorderData(
-                      show: true,
-                      border: Border(
-                        bottom: BorderSide(color: const Color(0xFFE5E7EB)),
-                        left: BorderSide(color: const Color(0xFFE5E7EB)),
-                      ),
-                    ),
-                    barTouchData: BarTouchData(
-                      enabled: true,
-                      handleBuiltInTouches: false,
-                      touchCallback: (FlTouchEvent event, barTouchResponse) {
-                        if (barTouchResponse != null && barTouchResponse.spot != null) {
-                          final newIndex = barTouchResponse.spot!.touchedBarGroupIndex;
-                          if (touchedGroupIndex != newIndex) {
-                            setState(() {
-                              touchedGroupIndex = newIndex;
-                            });
-                          }
-                        } else {
-                          final eventType = event.runtimeType.toString();
-                          if (eventType == 'FlTapDownEvent' || eventType == 'FlPanDownEvent') {
-                            if (touchedGroupIndex != null) {
-                              setState(() {
-                                touchedGroupIndex = null;
-                              });
-                            }
-                          }
-                        }
-                      },
-                      touchTooltipData: BarTouchTooltipData(
-                        getTooltipColor: (group) => touchedGroupIndex == group.x ? const Color(0xFF1F2937) : Colors.transparent,
-                        tooltipPadding: EdgeInsets.all(4.w),
-                        tooltipMargin: 4.h,
-                        fitInsideHorizontally: true,
-                        fitInsideVertically: true,
-                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                          if (rod.toY == 0) return null;
-                          
-                          String prefix = widget.isRevenue ? '₹' : '';
-                          String formattedValue = NumberFormat('#,##,###').format(rod.toY);
-                          
-                          if (touchedGroupIndex != null) {
-                            if (touchedGroupIndex == groupIndex) {
-                              String fullPrefix = widget.isRevenue ? 'Revenue: ₹' : 'Bookings: ';
-                              return BarTooltipItem(
-                                '${widget.data[groupIndex].timeRange}\n',
-                                AppTextStyle.style_12_700(color: Colors.white),
-                                children: [
-                                  TextSpan(
-                                    text: '$fullPrefix$formattedValue',
-                                    style: AppTextStyle.style_12_400(color: widget.barColor.withOpacity(0.9)),
-                                  ),
-                                ],
-                              );
-                            }
-                            return null;
-                          } else {
-                            // Permanent label
-                            return BarTooltipItem(
-                              '$prefix$formattedValue',
-                              AppTextStyle.style_10_600(color: Colors.black87).copyWith(fontSize: 8.sp),
-                            );
-                          }
+                              textAlign: TextAlign.right,
+                            ),
+                          );
                         },
                       ),
                     ),
-                    barGroups: List.generate(
-                      widget.data.length,
-                      (index) => BarChartGroupData(
-                        x: index,
-                        barRods: [
-                          BarChartRodData(
-                            toY: widget.data[index].value.toDouble(),
-                            color: widget.barColor,
-                            width: 6.w,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(2.r),
-                              topRight: Radius.circular(2.r),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 20.h,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index >= widget.data.length)
+                            return const SizedBox.shrink();
+                          return Transform.translate(
+                            offset: const Offset(-25, -10),
+                            child: Transform.rotate(
+                              angle: -pi / 3,
+                              alignment: Alignment.centerRight,
+                              child: Container(
+                                width: 50,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  widget.data[index].timeRange,
+                                  style: AppTextStyle.style_10_400(
+                                    color: AppColors.grey500,
+                                  ).copyWith(fontSize: 9.sp),
+                                  softWrap: false,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                        showingTooltipIndicators: [0], // Always show for rod 0
+                          );
+                        },
                       ),
                     ),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border(
+                      bottom: BorderSide(color: const Color(0xFFE5E7EB)),
+                      left: BorderSide(color: const Color(0xFFE5E7EB)),
                     ),
-                  );
+                  ),
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    handleBuiltInTouches: false,
+                    touchCallback: (FlTouchEvent event, barTouchResponse) {
+                      if (barTouchResponse != null &&
+                          barTouchResponse.spot != null) {
+                        final newIndex =
+                            barTouchResponse.spot!.touchedBarGroupIndex;
+                        if (touchedGroupIndex != newIndex) {
+                          setState(() {
+                            touchedGroupIndex = newIndex;
+                          });
+                        }
+                      } else {
+                        final eventType = event.runtimeType.toString();
+                        if (eventType == 'FlTapDownEvent' ||
+                            eventType == 'FlPanDownEvent') {
+                          if (touchedGroupIndex != null) {
+                            setState(() {
+                              touchedGroupIndex = null;
+                            });
+                          }
+                        }
+                      }
+                    },
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipColor: (group) => touchedGroupIndex == group.x
+                          ? const Color(0xFF1F2937)
+                          : Colors.transparent,
+                      tooltipPadding: EdgeInsets.all(4.w),
+                      tooltipMargin: 4.h,
+                      fitInsideHorizontally: true,
+                      fitInsideVertically: true,
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        if (rod.toY == 0) return null;
+
+                        String prefix = widget.isRevenue ? '₹' : '';
+                        String formattedValue = NumberFormat(
+                          '#,##,###',
+                        ).format(rod.toY);
+
+                        if (touchedGroupIndex != null) {
+                          if (touchedGroupIndex == groupIndex) {
+                            String fullPrefix = widget.isRevenue
+                                ? 'Revenue: ₹'
+                                : 'Bookings: ';
+                            return BarTooltipItem(
+                              '${widget.data[groupIndex].timeRange}\n',
+                              AppTextStyle.style_12_700(color: Colors.white),
+                              children: [
+                                TextSpan(
+                                  text: '$fullPrefix$formattedValue',
+                                  style: AppTextStyle.style_12_400(
+                                    color: widget.barColor.withOpacity(0.9),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          return null;
+                        } else {
+                          // Permanent label
+                          return BarTooltipItem(
+                            '$prefix$formattedValue',
+                            AppTextStyle.style_10_700(
+                              color: widget.isRevenue
+                                  ? const Color(0xFF1D4ED8)
+                                  : const Color(0xFF059669),
+                            ).copyWith(fontSize: 8.5.sp),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  barGroups: List.generate(
+                    widget.data.length,
+                    (index) => BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: widget.data[index].value.toDouble(),
+                          color: widget.barColor,
+                          width: 6.w,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(2.r),
+                            topRight: Radius.circular(2.r),
+                          ),
+                        ),
+                      ],
+                      showingTooltipIndicators: const [0],
+                    ),
+                  ),
+                ),
+              );
 
               if (widget.isFullScreen) {
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 8.h,
+                    ),
                     child: SizedBox(
                       height: 250.h,
-                      width: widget.data.length * 40.w, // Dynamic width for horizontal scrolling
+                      width:
+                          widget.data.length *
+                          40.w, // Dynamic width for horizontal scrolling
                       child: chart,
                     ),
                   ),
                 );
               } else {
                 return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                  child: SizedBox(
-                    height: 250.h,
-                    child: chart,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
                   ),
+                  child: SizedBox(height: 250.h, child: chart),
                 );
               }
             },
@@ -307,28 +334,30 @@ class _DashboardHourlyChartState extends State<DashboardHourlyChart> {
       ),
     );
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 8.h, color: const Color(0xFF059669)),
-          if (widget.isFullScreen)
-            Expanded(child: innerContent)
-          else
-            innerContent,
-        ],
+    return RepaintBoundary(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(20),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(height: 8.h, color: const Color(0xFF059669)),
+            if (widget.isFullScreen)
+              Expanded(child: innerContent)
+            else
+              innerContent,
+          ],
+        ),
       ),
     );
   }

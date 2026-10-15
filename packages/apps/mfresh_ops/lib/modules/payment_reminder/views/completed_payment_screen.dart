@@ -1,8 +1,9 @@
+import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -29,9 +30,23 @@ class CompletedPaymentScreen extends StatelessWidget {
         hasBackButton: false,
         topHeader: const CommonShortcutHeader(),
         toolbarHeight: 45.h,
-        title: Text(
-          'Completed Payments',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
+        title: Row(
+          children: [
+            Text(
+              'Completed Payments',
+              style: AppTextStyle.style_16_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) {
+                controller.searchQuery.value = v;
+                controller.applyFilters();
+              },
+            ),
+          ],
         ),
       ),
       body: SafeArea(
@@ -62,7 +77,8 @@ class CompletedPaymentScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         if (Get.isRegistered<PaymentReminderController>()) {
-                          final reminderController = Get.find<PaymentReminderController>();
+                          final reminderController =
+                              Get.find<PaymentReminderController>();
                           reminderController.fetchPaymentReminders();
                         }
                         Get.offNamed(AppRoutes.paymentReminder);
@@ -71,15 +87,26 @@ class CompletedPaymentScreen extends StatelessWidget {
                         backgroundColor: const Color(0xFF16A3B8),
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(horizontal: 6.w),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
                         elevation: 1,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Payment Reminders', style: AppTextStyle.style_10_500(color: Colors.white)),
+                          Text(
+                            'Payment Reminders',
+                            style: AppTextStyle.style_10_500(
+                              color: Colors.white,
+                            ),
+                          ),
                           SizedBox(width: 3.w),
-                          Icon(Icons.arrow_forward_ios, size: 10.sp, color: Colors.white),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 10.sp,
+                            color: Colors.white,
+                          ),
                         ],
                       ),
                     ),
@@ -99,7 +126,9 @@ class CompletedPaymentScreen extends StatelessWidget {
                           value: controller.perPage.value,
                           isDense: true,
                           dropdownColor: Colors.white,
-                          style: AppTextStyle.style_10_500(color: AppColors.black),
+                          style: AppTextStyle.style_10_500(
+                            color: AppColors.black,
+                          ),
                           icon: Icon(
                             Icons.arrow_drop_down,
                             size: 14.r,

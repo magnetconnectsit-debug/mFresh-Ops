@@ -152,6 +152,7 @@ class SupportTicketsController extends GetxController {
   // Filters
   final categories = <SupportCategory>[].obs;
   final subCategories = <SupportSubCategory>[].obs;
+  final isSubCategoryLoading = false.obs;
   final projects = <SupportProject>[].obs;
   final units = <SupportUnit>[].obs;
   final assignees = <AssigneeModel>[].obs;
@@ -160,7 +161,7 @@ class SupportTicketsController extends GetxController {
 
   // Selected Filters
   final selectedCategories = <SupportCategory>[].obs;
-  final selectedSubCategory = Rxn<SupportSubCategory>();
+  final selectedSubCategories = <SupportSubCategory>[].obs;
   final selectedProjects = <SupportProject>[].obs;
   final selectedUnits = <SupportUnit>[].obs;
   final selectedAssignees = <AssigneeModel>[].obs;
@@ -289,12 +290,15 @@ class SupportTicketsController extends GetxController {
 
   Future<void> fetchSubCategories(int categoryId) async {
     try {
+      isSubCategoryLoading.value = true;
       final result = await _supportRepository.getSupportSubCategories(
         categoryId,
       );
       subCategories.assignAll(result);
     } catch (e) {
       debugPrint('Error fetching subcategories: $e');
+    } finally {
+      isSubCategoryLoading.value = false;
     }
   }
 
@@ -319,7 +323,7 @@ class SupportTicketsController extends GetxController {
   // region Filter Helpers
   void resetFilters() {
     selectedCategories.clear();
-    selectedSubCategory.value = null;
+    selectedSubCategories.clear();
     selectedProjects.clear();
     selectedUnits.clear();
     selectedAssignees.clear();
@@ -346,10 +350,10 @@ class SupportTicketsController extends GetxController {
       selectedCategories.remove(item);
       if (selectedCategories.isEmpty) {
         subCategories.clear();
-        selectedSubCategory.value = null;
+        selectedSubCategories.clear();
       }
     } else if (item is SupportSubCategory) {
-      selectedSubCategory.value = null;
+      selectedSubCategories.remove(item);
     } else if (item is SupportProject) {
       selectedProjects.remove(item);
     } else if (item is SupportUnit) {
@@ -425,7 +429,9 @@ class SupportTicketsController extends GetxController {
         'mcatid': selectedCategories
             .map((c) => c.categoryId.toString())
             .toList(),
-        'submcatid': selectedSubCategory.value?.subCategoryId.toString() ?? '',
+        'submcatid': selectedSubCategories
+            .map((s) => s.subCategoryId.toString())
+            .toList(),
         'selectedUnits': selectedUnits.map((u) => u.unitId.toString()).toList(),
         'statusid': selectedStatuses,
         'selectedProject': selectedProjects
@@ -523,9 +529,7 @@ class SupportTicketsController extends GetxController {
       final response = await _supportRepository.getAllSupportTickets(
         globalSearch: searchController.text,
         mcatIds: selectedCategories.map((e) => e.categoryId).toList(),
-        subMcatIds: selectedSubCategory.value != null
-            ? [selectedSubCategory.value!.subCategoryId]
-            : [],
+        subMcatIds: selectedSubCategories.map((e) => e.subCategoryId).toList(),
         projectIds: selectedProjects.map((e) => e.projectId).toList(),
         unitIds: selectedUnits.map((e) => e.unitId).toList(),
         statusIds: selectedStatuses

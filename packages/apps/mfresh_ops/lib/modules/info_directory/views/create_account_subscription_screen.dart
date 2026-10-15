@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/core/utils/app_date_utils.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class CreateAccountSubscriptionScreen extends StatelessWidget {
   const CreateAccountSubscriptionScreen({super.key});
@@ -16,23 +15,24 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PreferredSize(
-        preferredSize: const AppCommonAppBar().preferredSize,
-        child: AppCommonAppBar(
-          title: Obx(
-            () => Text(
-              controller.isEdit.value ? 'Update Account' : 'Create Account',
-              style: AppTextStyle.style_18_700(color: AppColors.black),
-            ),
+      appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
+        title: Obx(
+          () => Text(
+            controller.isEdit.value ? 'Update Account' : 'Create Account',
+            style: AppTextStyle.style_18_700(color: AppColors.black),
           ),
-          hasBackButton: true,
-          showAppDrawer: false,
         ),
+        hasBackButton: true,
+        showAppDrawer: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
-          child: Container(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
+              child: Container(
             padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -346,8 +346,9 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ));
+}
 
   Widget _buildTextField({
     required TextEditingController ctrl,
@@ -409,55 +410,6 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
             borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
           ),
           isDense: true,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required String? value,
-    required List<DropdownMenuItem<String>> items,
-    required Function(String?) onChanged,
-  }) {
-    return SizedBox(
-      height: 32.h,
-      child: DropdownButtonFormField<String>(
-        value: value,
-        items: items,
-        onChanged: onChanged,
-        style: AppTextStyle.style_12_400(color: AppColors.grey900),
-        icon: Icon(Icons.keyboard_arrow_down, size: 20.r, color: Colors.grey),
-        decoration: InputDecoration(
-          label: RichText(
-            text: TextSpan(
-              text: label.replaceAll('*', ''),
-              style: AppTextStyle.style_12_400(color: AppColors.grey200),
-              children: label.contains('*')
-                  ? [
-                      const TextSpan(
-                        text: '*',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ]
-                  : [],
-            ),
-          ),
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor, width: 1.0),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor, width: 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-          ),
         ),
       ),
     );

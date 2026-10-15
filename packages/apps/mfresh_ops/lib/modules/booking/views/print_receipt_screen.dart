@@ -234,40 +234,45 @@ class PrintReceiptScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Close'),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      side: const BorderSide(color: Color(0xFFF15A22)),
-                      foregroundColor: const Color(0xFFF15A22),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Close'),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          side: const BorderSide(color: Color(0xFFF15A22)),
+                          foregroundColor: const Color(0xFFF15A22),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      PrintUtil.shareSystem(
-                        booking,
-                        encryptedBookingId,
-                        rollSize: rollSize,
-                      );
-                    },
-                    icon: const Icon(Icons.share),
-                    label: const Text('Share Now'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      backgroundColor: const Color(0xFFF15A22),
-                      foregroundColor: Colors.white,
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          PrintUtil.shareSystem(
+                            booking,
+                            encryptedBookingId,
+                            rollSize: rollSize,
+                          );
+                        },
+                        icon: const Icon(Icons.share),
+                        label: const Text('Share Now'),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          backgroundColor: const Color(0xFFF15A22),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

@@ -1,15 +1,31 @@
 class SupportUnit {
   final int unitId;
   final String unitName;
+  final String unitShortform;
+  final String unitImage;
 
-  SupportUnit({required this.unitId, required this.unitName});
+  SupportUnit({
+    required this.unitId,
+    required this.unitName,
+    this.unitShortform = '',
+    this.unitImage = '',
+  });
 
   factory SupportUnit.fromJson(Map<String, dynamic> json) {
+    var img = (json['unit_image'] ?? json['image'] ?? json['Unit_Image'])?.toString() ?? '';
+    if (img.isNotEmpty && !img.startsWith('http')) {
+      img = 'https://$img';
+    }
+
     return SupportUnit(
       unitId: json['unitid'] is int
           ? json['unitid']
           : int.tryParse(json['unitid']?.toString() ?? '') ?? 0,
       unitName: json['unitname']?.toString() ?? '',
+      unitShortform: json['unit_shortform']?.toString() ??
+          json['unit_short_form']?.toString() ??
+          '',
+      unitImage: img,
     );
   }
 

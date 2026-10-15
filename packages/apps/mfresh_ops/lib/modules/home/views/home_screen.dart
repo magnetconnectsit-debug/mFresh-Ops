@@ -1,14 +1,11 @@
-import 'package:core/constants/app_colors.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'widgets/home_grid.dart';
@@ -46,35 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppCommonAppBar(
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(AppImages.logo, height: 24.h, fit: BoxFit.contain),
-              SizedBox(width: 8.w),
-              Text(
-                'mFresh Ops',
-                style: AppTextStyle.style_14_700(
-                  color: AppColors.primaryOrange,
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.white,
-          actions: [
-            IconButton(
-              onPressed: () => Get.toNamed(AppRoutes.notifications),
-              icon: Icon(
-                Icons.notifications_none_rounded,
-                color: AppColors.primary,
-                size: 22.r,
-              ),
-            ),
-          ],
-          showAppDrawer: true,
-          hasBackButton: false,
-          elevation: 0,
-        ),
+        appBar: const CommonShortcutHeader(),
         drawer: const CommonSidebar(),
         body: AppRefreshIndicator(
           onRefresh: () async {
@@ -99,13 +68,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Mark Your Attendance',
-                        style: AppTextStyle.style_14_700(
-                          color: AppColors.black,
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
                       Obx(() {
                         final authRepo = Get.find<AuthRepository>();
                         if (authRepo.rxUserPermissions.contains('duty_punch')) {

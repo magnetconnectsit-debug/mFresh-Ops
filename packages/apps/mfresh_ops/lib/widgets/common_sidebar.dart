@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -112,9 +111,7 @@ class CommonSidebar extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          isTracking
-                              ? 'Location sharing active'
-                              : 'Offline. Tap to start.',
+                          isTracking ? 'Duty active' : 'Offline. Tap to start.',
                           style: AppTextStyle.style_10_400(
                             color: AppColors.grey500,
                           ),
@@ -139,11 +136,7 @@ class CommonSidebar extends StatelessWidget {
               final authRepo = Get.find<AuthRepository>();
               final userPermissions = authRepo.rxUserPermissions;
               final showInventory =
-                  userPermissions.contains('inventory_panel') ||
-                  userPermissions.contains('unit_inventory_stock') ||
-                  userPermissions.contains('store_inventory_stock') ||
-                  userPermissions.contains('Inv_Order_Panel') ||
-                  userPermissions.contains('Inv_Order_Log_Panel');
+                  true; // Always true so Inventory section is accessible
 
               final showTaskScheduler = userPermissions.contains(
                 'Task_Sheduler_Pannel',
@@ -181,6 +174,11 @@ class CommonSidebar extends StatelessWidget {
                   'M_Measurements',
                 if (userPermissions.contains('inventory_item')) 'M_Items',
                 if (userPermissions.contains('store_room')) 'M_Store',
+                if (userPermissions.contains('unit_audit_report'))
+                  'Audit Report',
+                if (userPermissions.contains('m_audit_items_list') ||
+                    userPermissions.contains('audit_item_rank'))
+                  'M_Audit_Items_List',
               ];
 
               final infoDirectorySubItems = [
@@ -188,12 +186,29 @@ class CommonSidebar extends StatelessWidget {
                   'Assets & Products',
                 if (userPermissions.contains('Account_subscription_panel'))
                   'Account Details',
+                if (userPermissions.contains('asset_category_panel'))
+                  'Asset Category',
                 if (userPermissions.contains('c_directory_panel'))
                   'Contact Directory',
                 if (userPermissions.contains('brand_details'))
                   'MContact_Brands',
                 if (userPermissions.contains('company_details'))
                   'MContact_Companies',
+              ];
+
+              final rolesSubItems = [
+                if (userPermissions.contains('roles_master')) 'Roles Master',
+                if (userPermissions.contains('responsibilities_master'))
+                  'Responsibilities',
+                if (userPermissions.contains('view_responsibilities'))
+                  'View Responsibilities',
+              ];
+
+              final paymentSchedulerSubItems = [
+                if (userPermissions.contains('payment_reminder_pannel')) ...[
+                  'Scheduler',
+                  'Completed Schedulers',
+                ],
               ];
 
               return ListView(
@@ -273,15 +288,6 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  // Booking Module
-                  // _buildMenuItem(
-                  //   icon: Icons.book_online_outlined,
-                  //   activeIcon: Icons.book_online,
-                  //   title: 'Booking',
-                  //   route: AppRoutes.bookingUnitSelection,
-                  //   currentRoute: currentRoute,
-                  // ),
-
                   // Info Directory Module
                   if (userPermissions.contains('c_directory_panel'))
                     _buildExpandableMenuItem(
@@ -291,12 +297,22 @@ class CommonSidebar extends StatelessWidget {
                       currentRoute: currentRoute,
                     ),
 
-                  // _buildExpandableMenuItem(
-                  //   icon: Icons.payment_outlined,
-                  //   title: 'Payment Scheduler',
-                  //   subItems: const ['Scheduler', 'Completed Schedulers'],
-                  //   currentRoute: currentRoute,
-                  // ),
+                  if (userPermissions.contains('payment_reminder_pannel') &&
+                      paymentSchedulerSubItems.isNotEmpty)
+                    _buildExpandableMenuItem(
+                      icon: Icons.payment_outlined,
+                      title: 'Payment Scheduler',
+                      subItems: paymentSchedulerSubItems,
+                      currentRoute: currentRoute,
+                    ),
+                  if (userPermissions.contains('roles_responsibility_panel') &&
+                      rolesSubItems.isNotEmpty)
+                    _buildExpandableMenuItem(
+                      icon: Icons.badge_outlined,
+                      title: 'Roles & Responsibilities',
+                      subItems: rolesSubItems,
+                      currentRoute: currentRoute,
+                    ),
                   _buildMenuItem(
                     icon: Icons.person_outline,
                     activeIcon: Icons.person,
@@ -316,12 +332,21 @@ class CommonSidebar extends StatelessWidget {
             route: AppRoutes.login,
             currentRoute: currentRoute,
             onTap: () async {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => const PopScope(
+                  canPop: false,
+                  child: Center(child: CustomAppLoader()),
+                ),
+              );
               try {
                 await Get.find<AuthRepository>().logout();
               } catch (e) {
-                // Already handled in repository but we can show toast if needed
+                // Already handled in repository
+              } finally {
+                Get.offAllNamed(AppRoutes.login);
               }
-              Get.offAllNamed(AppRoutes.login);
             },
           ),
           FutureBuilder<PackageInfo>(
@@ -354,15 +379,19 @@ class CommonSidebar extends StatelessWidget {
     final bool isSelected = currentRoute == route;
 
     return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(vertical: -2),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0),
       leading: Icon(
         isSelected ? activeIcon : icon,
         color: isSelected ? AppColors.primary : AppColors.grey300,
+        size: 20.r,
       ),
       title: Text(
         title,
         style: isSelected
-            ? AppTextStyle.style_16_600(color: AppColors.primary)
-            : AppTextStyle.style_16_500(color: AppColors.black),
+            ? AppTextStyle.style_14_600(color: AppColors.primary)
+            : AppTextStyle.style_14_500(color: AppColors.black),
       ),
       selected: isSelected,
       selectedTileColor: AppColors.primary.withValues(alpha: 0.1),
@@ -391,9 +420,14 @@ class CommonSidebar extends StatelessWidget {
     final GlobalKey expansionTileKey = GlobalKey();
 
     return Theme(
-      data: Theme.of(Get.context!).copyWith(dividerColor: Colors.transparent),
+      data: Theme.of(Get.context!).copyWith(
+        dividerColor: Colors.transparent,
+        visualDensity: const VisualDensity(vertical: -2),
+      ),
       child: ExpansionTile(
         key: expansionTileKey,
+        dense: true,
+        visualDensity: const VisualDensity(vertical: -2),
         onExpansionChanged: (expanded) {
           if (expanded) {
             Future.delayed(const Duration(milliseconds: 250), () {
@@ -408,10 +442,10 @@ class CommonSidebar extends StatelessWidget {
             });
           }
         },
-        leading: Icon(icon, color: AppColors.grey300, size: 24.r),
+        leading: Icon(icon, color: AppColors.grey300, size: 20.r),
         title: Text(
           title,
-          style: AppTextStyle.style_16_500(color: AppColors.black),
+          style: AppTextStyle.style_14_500(color: AppColors.black),
         ),
         iconColor: AppColors.grey300,
         collapsedIconColor: AppColors.grey300,
@@ -420,11 +454,12 @@ class CommonSidebar extends StatelessWidget {
         children: subItems
             .map(
               (item) => ListTile(
-                contentPadding: EdgeInsets.only(left: 72.w),
-                visualDensity: VisualDensity.compact,
+                dense: true,
+                visualDensity: const VisualDensity(vertical: -3),
+                contentPadding: EdgeInsets.only(left: 60.w),
                 title: Text(
                   item,
-                  style: AppTextStyle.style_14_400(color: AppColors.black),
+                  style: AppTextStyle.style_13_400(color: AppColors.black),
                 ),
                 onTap: () {
                   Get.back(); // Close drawer
@@ -471,6 +506,11 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.items);
                   } else if (item == 'M_Store') {
                     Get.toNamed(AppRoutes.storeRooms);
+                  } else if (item == 'Audit Report') {
+                    Get.toNamed(AppRoutes.auditReport);
+                  } else if (item == 'Audit Item Rank' ||
+                      item == 'M_Audit_Items_List') {
+                    Get.toNamed(AppRoutes.auditItemRanks);
                   } else if (item == 'Collections') {
                     Get.toNamed(AppRoutes.collections);
                   } else if (item == 'Admin Collections') {
@@ -481,6 +521,8 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.assetsProducts);
                   } else if (item == 'Account Details') {
                     Get.toNamed(AppRoutes.accountSubscription);
+                  } else if (item == 'Asset Category') {
+                    Get.toNamed(AppRoutes.assetCategory);
                   } else if (item == 'Contact Directory') {
                     Get.toNamed(AppRoutes.infoDirectory);
                   } else if (item == 'MContact_Brands') {
@@ -491,6 +533,12 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.paymentReminder);
                   } else if (item == 'Completed Schedulers') {
                     Get.toNamed(AppRoutes.completedPayments);
+                  } else if (item == 'Roles Master') {
+                    Get.toNamed(AppRoutes.rolesMaster);
+                  } else if (item == 'Responsibilities') {
+                    Get.toNamed(AppRoutes.responsibilitiesMaster);
+                  } else if (item == 'View Responsibilities') {
+                    Get.toNamed(AppRoutes.viewResponsibilities);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

@@ -32,6 +32,18 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
     currentYear = startMonth?.year ?? DateTime.now().year;
   }
 
+  void _updateYear(int newYear) {
+    setState(() {
+      currentYear = newYear;
+      if (startMonth != null) {
+        startMonth = DateTime(newYear, startMonth!.month);
+      }
+      if (endMonth != null) {
+        endMonth = DateTime(newYear, endMonth!.month);
+      }
+    });
+  }
+
   void _onMonthTap(int month) {
     final tappedMonth = DateTime(currentYear, month);
     setState(() {
@@ -136,8 +148,8 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
             final isSelected = y == currentYear;
             return InkWell(
               onTap: () {
+                _updateYear(y);
                 setState(() {
-                  currentYear = y;
                   isSelectingYear = false;
                 });
               },
@@ -178,7 +190,7 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
           children: [
             IconButton(
               icon: const Icon(Icons.chevron_left),
-              onPressed: () => setState(() => currentYear--),
+              onPressed: () => _updateYear(currentYear - 1),
             ),
             InkWell(
               onTap: () => setState(() => isSelectingYear = true),
@@ -200,7 +212,7 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right),
-              onPressed: () => setState(() => currentYear++),
+              onPressed: () => _updateYear(currentYear + 1),
             ),
           ],
         ),
@@ -269,10 +281,11 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        width: 360,
-        child: Column(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             isSelectingYear ? _buildYearSelector() : _buildMonthGrid(),
@@ -290,12 +303,17 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    if (startMonth != null && endMonth == null) {
+                    if (startMonth == null && endMonth == null) {
+                      startMonth = DateTime(currentYear, 1);
+                      endMonth = DateTime(currentYear, 12);
+                    } else if (startMonth != null && endMonth == null) {
                       endMonth = startMonth;
                     }
-                    if (startMonth == null && endMonth == null) {
-                      Get.back();
-                      return;
+                    if (startMonth != null && startMonth!.year != currentYear) {
+                      startMonth = DateTime(currentYear, startMonth!.month);
+                    }
+                    if (endMonth != null && endMonth!.year != currentYear) {
+                      endMonth = DateTime(currentYear, endMonth!.month);
                     }
                     Get.back(
                       result: DateTimeRange(
@@ -318,7 +336,8 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

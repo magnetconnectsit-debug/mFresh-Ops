@@ -87,10 +87,91 @@ class PaymentReminderRepository extends GetxService {
         data: data,
       );
 
-      if (response != null && response['status'] == true) {
+      if (response != null &&
+          (response['status'] == true || response['success'] == true)) {
         return true;
       }
       return false;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> updatePaymentReminder(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.paymentRemindersUpdate,
+        data: data,
+      );
+      return response != null &&
+          (response['success'] == true || response['status'] == true);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteReminder(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.paymentRemindersDelete,
+        data: data,
+      );
+      return response != null &&
+          (response['success'] == true || response['status'] == true);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<PaymentReminderUser>> getUsers() async {
+    try {
+      final response = await _apiService.get(
+        AppConstants.paymentRemindersUsers,
+      );
+      if (response != null && response is Map<String, dynamic>) {
+        final List<dynamic> rawList = (response['data'] is List)
+            ? response['data'] as List<dynamic>
+            : (response['users'] is List)
+                ? response['users'] as List<dynamic>
+                : (response['result'] is List)
+                    ? response['result'] as List<dynamic>
+                    : [];
+        return rawList
+            .map((e) => PaymentReminderUser.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getSingleReminder(int id) async {
+    try {
+      final response = await _apiService.get(
+        AppConstants.paymentRemindersShow(id),
+      );
+      if (response != null &&
+          (response['status'] == true || response['success'] == true)) {
+        return response['data'] as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<bool> markAsComplete({required int id, int? recurrenceId}) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.paymentReminderComplete,
+        data: {
+          "id": id,
+          "recurrence_id": recurrenceId,
+        },
+      );
+      return response != null &&
+          (response['status'] == true || response['success'] == true);
     } catch (e) {
       rethrow;
     }

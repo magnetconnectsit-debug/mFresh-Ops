@@ -10,10 +10,20 @@ import 'package:mfresh_ops/modules/info_directory/views/create_account_subscript
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
+import 'package:mfresh_ops/modules/info_directory/views/asset_category_screen.dart';
+import 'package:mfresh_ops/modules/info_directory/controllers/asset_category_controller.dart';
+import 'package:mfresh_ops/data/repositories/asset_category_repository.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/payment_reminder_screen.dart';
+import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/completed_payment_screen.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/completed_payment_controller.dart';
 import 'package:mfresh_ops/data/repositories/payment_reminder_repository.dart';
+import 'package:mfresh_ops/data/repositories/roles_responsibilities_repository.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/roles_master_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/add_role_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/responsibilities_master_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/add_responsibility_screen.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/views/view_responsibilities_screen.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
 import 'package:dev/views/dev_settings_screen.dart';
@@ -33,6 +43,7 @@ import 'package:mfresh_ops/modules/tasks/views/all_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_tasks_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/daily_task_filter_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/create_task_screen.dart';
+import 'package:mfresh_ops/modules/tasks/views/edit_task_screen.dart';
 import 'package:mfresh_ops/modules/tasks/views/task_review_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_tickets_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_dashboard_screen.dart';
@@ -53,6 +64,10 @@ import 'package:mfresh_ops/modules/inventory/views/allotment_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/measurement_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/item_screen.dart';
 import 'package:mfresh_ops/modules/inventory/views/store_room_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/inventory_audit_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/audit_report_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/audit_report_detail_screen.dart';
+import 'package:mfresh_ops/modules/inventory/views/audit_item_rank_screen.dart';
 import 'package:mfresh_ops/modules/home/views/notification_screen.dart';
 import 'package:mfresh_ops/modules/map/views/map_view.dart';
 import 'package:mfresh_ops/modules/map/views/history_view.dart';
@@ -73,6 +88,7 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/support_category_
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_subcategory_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_projects_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/views/support_template_screen.dart';
+import 'package:mfresh_ops/modules/support_tickets/views/create_template_screen.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_template_controller.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_dashboard_controller.dart';
 import 'package:mfresh_ops/modules/booking/views/booking_confirmed_screen.dart';
@@ -141,6 +157,11 @@ class AppPages {
       binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
     ),
     GetPage(
+      name: AppRoutes.editTask,
+      page: () => const EditTaskScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
+    ),
+    GetPage(
       name: AppRoutes.taskReview,
       page: () => const TaskReviewScreen(),
       binding: BindingsBuilder(() => Get.lazyPut(() => TasksController())),
@@ -194,6 +215,13 @@ class AppPages {
         () => Get.lazyPut(() => SupportTemplateController()),
       ),
     ),
+    GetPage(
+      name: AppRoutes.createTemplate,
+      page: () => const CreateTemplateScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => SupportTemplateController()),
+      ),
+    ),
     GetPage(name: AppRoutes.profile, page: () => const ProfileScreen()),
     GetPage(
       name: AppRoutes.editTicket,
@@ -210,6 +238,18 @@ class AppPages {
     GetPage(
       name: AppRoutes.unitInventory,
       page: () => const UnitInventoryScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.unitInventoryAudit,
+      page: () => const InventoryAuditScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.auditReport,
+      page: () => const AuditReportScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.auditReportDetail,
+      page: () => const AuditReportDetailScreen(),
     ),
     GetPage(
       name: AppRoutes.inventoryOrders,
@@ -230,6 +270,10 @@ class AppPages {
     ),
     GetPage(name: AppRoutes.items, page: () => const ItemScreen()),
     GetPage(name: AppRoutes.storeRooms, page: () => const StoreRoomScreen()),
+    GetPage(
+      name: AppRoutes.auditItemRanks,
+      page: () => const AuditItemRankScreen(),
+    ),
     GetPage(
       name: AppRoutes.locationPermission,
       page: () => const LocationPermissionScreen(),
@@ -322,6 +366,14 @@ class AppPages {
       page: () => const MContactCompaniesScreen(),
     ),
     GetPage(
+      name: AppRoutes.assetCategory,
+      page: () => const AssetCategoryScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AssetCategoryRepository());
+        Get.lazyPut(() => AssetCategoryController());
+      }),
+    ),
+    GetPage(
       name: AppRoutes.assetsProducts,
       page: () => const AssetsProductsScreen(),
       binding: BindingsBuilder(() {
@@ -361,11 +413,53 @@ class AppPages {
       }),
     ),
     GetPage(
+      name: AppRoutes.createPaymentReminder,
+      page: () => const CreatePaymentReminderScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => PaymentReminderRepository());
+      }),
+    ),
+    GetPage(
       name: AppRoutes.completedPayments,
       page: () => const CompletedPaymentScreen(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => PaymentReminderRepository());
         Get.lazyPut(() => CompletedPaymentController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.rolesMaster,
+      page: () => const RolesMasterScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.addRole,
+      page: () => const AddRoleScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.responsibilitiesMaster,
+      page: () => const ResponsibilitiesMasterScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.addResponsibility,
+      page: () => const AddResponsibilityScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.viewResponsibilities,
+      page: () => const ViewResponsibilitiesScreen(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => RolesResponsibilitiesRepository());
       }),
     ),
   ];

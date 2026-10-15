@@ -1,9 +1,8 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/constants/app_colors.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 
@@ -98,7 +97,7 @@ class TicketDetailsHeader extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.white,
             insetPadding: const EdgeInsets.symmetric(
               horizontal: 24,
               vertical: 40,
@@ -112,20 +111,16 @@ class TicketDetailsHeader extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Create Subtasks',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
+                        style: AppTextStyle.style_12_600(color: AppColors.black87),
                       ),
                       GestureDetector(
                         onTap: () => Get.back(),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close,
                           size: 20,
-                          color: Colors.black54,
+                          color: AppColors.black.withValues(alpha: 0.54),
                         ),
                       ),
                     ],
@@ -137,7 +132,7 @@ class TicketDetailsHeader extends StatelessWidget {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFDF8F2),
+                      color: AppColors.secondaryOrange,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ConstrainedBox(
@@ -155,26 +150,24 @@ class TicketDetailsHeader extends StatelessWidget {
                                     child: Container(
                                       height: 42,
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: AppColors.white,
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: const Color(0xFFE0E0E0),
+                                          color: AppColors.borderColor,
                                         ),
                                       ),
                                       child: TextField(
                                         controller: controllers[i],
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.black87,
+                                        style: AppTextStyle.style_11_400(
+                                          color: AppColors.black87,
                                         ),
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           hintText: 'Enter subtask name',
-                                          hintStyle: TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFFBDBDBD),
+                                          hintStyle: AppTextStyle.style_11_400(
+                                            color: AppColors.grey100,
                                           ),
                                           border: InputBorder.none,
-                                          contentPadding: EdgeInsets.symmetric(
+                                          contentPadding: const EdgeInsets.symmetric(
                                             horizontal: 12,
                                             vertical: 12,
                                           ),
@@ -200,12 +193,12 @@ class TicketDetailsHeader extends StatelessWidget {
                                         width: 40,
                                         height: 42,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFFEBEE),
+                                          color: AppColors.orange.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: const Icon(
                                           Icons.close,
-                                          color: Colors.red,
+                                          color: AppColors.red,
                                           size: 18,
                                         ),
                                       ),
@@ -230,12 +223,12 @@ class TicketDetailsHeader extends StatelessWidget {
                                         width: 40,
                                         height: 42,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF34A853),
+                                          color: AppColors.clockIn,
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: const Icon(
                                           Icons.add,
-                                          color: Colors.white,
+                                          color: AppColors.white,
                                           size: 22,
                                         ),
                                       ),
@@ -252,59 +245,38 @@ class TicketDetailsHeader extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Obx(
-                      () => SizedBox(
+                      () => AppCommonButton(
+                        text: "Save",
+                        isLoading: controller.isSubtaskLoading.value,
                         width: 120,
                         height: 40,
-                        child: ElevatedButton(
-                          onPressed: controller.isSubtaskLoading.value
-                              ? null
-                              : () async {
-                                  final all = controllers
-                                      .map((c) => c.text.trim())
-                                      .where((t) => t.isNotEmpty)
-                                      .toList();
-                                  if (all.isEmpty) {
-                                    AppCommonToastMessage.show(
-                                      message: 'Please add at least one subtask',
-                                      type: ToastType.error,
-                                    );
-                                    return;
-                                  }
-                                  final success = await controller.createSubtasks(all);
-                                  if (success) {
-                                    Get.back();
-                                    AppCommonToastMessage.show(
-                                      message: 'Subtasks saved successfully',
-                                      type: ToastType.success,
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2979FF),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: controller.isSubtaskLoading.value
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Save',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
+                        textSize: 12,
+                        borderRadius: 8,
+                        buttonColor: AppColors.blue,
+                        useGradient: false,
+                        onPressed: controller.isSubtaskLoading.value
+                            ? null
+                            : () async {
+                                final all = controllers
+                                    .map((c) => c.text.trim())
+                                    .where((t) => t.isNotEmpty)
+                                    .toList();
+                                if (all.isEmpty) {
+                                  AppCommonToastMessage.show(
+                                    message: 'Please add at least one subtask',
+                                    type: ToastType.error,
+                                  );
+                                  return;
+                                }
+                                final success = await controller.createSubtasks(all);
+                                if (success) {
+                                  Get.back();
+                                  AppCommonToastMessage.show(
+                                    message: 'Subtasks saved successfully',
+                                    type: ToastType.success,
+                                  );
+                                }
+                              },
                       ),
                     ),
                   ),
@@ -331,10 +303,8 @@ class TicketDetailsHeader extends StatelessWidget {
         Expanded(
           child: Text(
             "TICKET ID: ${ticket.caseId ?? ticket.id}",
-            style: const TextStyle(
+            style: AppTextStyle.style_13_600(
               color: AppColors.primaryOrange,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -348,12 +318,10 @@ class TicketDetailsHeader extends StatelessWidget {
               border: Border.all(color: AppColors.primaryOrange, width: 1.5),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text(
+            child: Text(
               "Edit Ticket",
-              style: TextStyle(
+              style: AppTextStyle.style_10_600(
                 color: AppColors.primaryOrange,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -364,20 +332,18 @@ class TicketDetailsHeader extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF25D366),
+              color: AppColors.success,
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FaIcon(FontAwesomeIcons.whatsapp, color: Colors.white, size: 10),
-                SizedBox(width: 4),
+                const FaIcon(FontAwesomeIcons.whatsapp, color: AppColors.white, size: 10),
+                const SizedBox(width: 4),
                 Text(
                   "WhatsApp",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyle.style_10_600(
+                    color: AppColors.white,
                   ),
                 ),
               ],
@@ -393,17 +359,15 @@ class TicketDetailsHeader extends StatelessWidget {
               color: AppColors.primaryOrange,
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add_task, color: Colors.white, size: 10),
-                SizedBox(width: 2),
+                const Icon(Icons.add_task, color: AppColors.white, size: 10),
+                const SizedBox(width: 2),
                 Text(
                   "Subtask",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyle.style_10_600(
+                    color: AppColors.white,
                   ),
                 ),
               ],

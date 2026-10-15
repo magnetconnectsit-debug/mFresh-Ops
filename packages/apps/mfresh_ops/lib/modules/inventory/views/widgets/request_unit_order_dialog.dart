@@ -1,10 +1,8 @@
+import 'package:core/core.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/unit_inventory_controller.dart';
@@ -48,15 +46,18 @@ class RequestUnitOrderDialog extends StatefulWidget {
           ),
           clipBehavior: Clip.antiAlias,
           insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: SizedBox(
-            width: 420.w,
-            child: RequestUnitOrderDialog(
-              initialUnitId: unitId,
-              itemId: itemId,
-              initialUnitName: unitName,
-              itemName: itemName,
-              orderQty: orderQty,
-              displayUnit: displayUnit,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SizedBox(
+              width: double.infinity,
+              child: RequestUnitOrderDialog(
+                initialUnitId: unitId,
+                itemId: itemId,
+                initialUnitName: unitName,
+                itemName: itemName,
+                orderQty: orderQty,
+                displayUnit: displayUnit,
+              ),
             ),
           ),
         );
@@ -65,8 +66,7 @@ class RequestUnitOrderDialog extends StatefulWidget {
   }
 
   @override
-  State<RequestUnitOrderDialog> createState() =>
-      _RequestUnitOrderDialogState();
+  State<RequestUnitOrderDialog> createState() => _RequestUnitOrderDialogState();
 }
 
 class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
@@ -87,17 +87,21 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
     if (unitController == null) return 0;
 
     final selectedUnitIdStr = _selectedUnitIds.first.toString();
-    final selectedUnitOption = unitController.unitOptions
-        .firstWhereOrNull((e) => e.value.toString() == selectedUnitIdStr);
+    final selectedUnitOption = unitController.unitOptions.firstWhereOrNull(
+      (e) => e.value.toString() == selectedUnitIdStr,
+    );
     final selectedUnitName = selectedUnitOption?.label.trim().toLowerCase();
 
     final match = unitController.unitInventoryItems.firstWhereOrNull((i) {
-      final sameUnit = i.unitId == selectedUnitIdStr ||
+      final sameUnit =
+          i.unitId == selectedUnitIdStr ||
           (selectedUnitName != null &&
               selectedUnitName.isNotEmpty &&
               i.unitName.trim().toLowerCase() == selectedUnitName);
-      final sameItem = i.itemId == widget.itemId.toString() ||
-          i.itemName.trim().toLowerCase() == widget.itemName.trim().toLowerCase();
+      final sameItem =
+          i.itemId == widget.itemId.toString() ||
+          i.itemName.trim().toLowerCase() ==
+              widget.itemName.trim().toLowerCase();
       return sameUnit && sameItem;
     });
 
@@ -146,7 +150,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
         if (response != null &&
             (response['status'] == true || response['status'] == 'success')) {
           successCount++;
-          lastMessage = response['message']?.toString() ?? 'Unit order request submitted successfully.';
+          lastMessage =
+              response['message']?.toString() ??
+              'Unit order request submitted successfully.';
         }
       }
 
@@ -200,7 +206,10 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
         ? Get.find<UnitInventoryController>()
         : Get.put(UnitInventoryController());
 
-    final canSubmit = !_isSubmitting && _selectedUnitIds.isNotEmpty && _currentCalculatedQty > 0;
+    final canSubmit =
+        !_isSubmitting &&
+        _selectedUnitIds.isNotEmpty &&
+        _currentCalculatedQty > 0;
 
     return Container(
       color: Colors.white,
@@ -224,11 +233,7 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                   borderRadius: BorderRadius.circular(4.r),
                   child: Padding(
                     padding: EdgeInsets.all(2.r),
-                    child: Icon(
-                      Icons.close,
-                      size: 18.r,
-                      color: Colors.white,
-                    ),
+                    child: Icon(Icons.close, size: 18.r, color: Colors.white),
                   ),
                 ),
               ],
@@ -246,7 +251,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                 _buildFieldLabel('Unit'),
                 SizedBox(height: 6.h),
                 Obx(() {
-                  final selectedSet = _selectedUnitIds.map((e) => e.toString()).toSet();
+                  final selectedSet = _selectedUnitIds
+                      .map((e) => e.toString())
+                      .toSet();
                   String displayText = 'Select Unit';
                   if (selectedSet.isNotEmpty) {
                     final match = unitController.unitOptions
@@ -260,11 +267,17 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                     isSingleSelect: true,
                     selectedValues: selectedSet,
                     items: unitController.unitOptions
-                        .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
-                              value: e.value.toString(),
-                              child: Text(e.label,
-                                  style: AppTextStyle.style_12_400(color: const Color(0xFF2C3E50))),
-                            ))
+                        .map<DropdownMenuItem<String>>(
+                          (e) => DropdownMenuItem<String>(
+                            value: e.value.toString(),
+                            child: Text(
+                              e.label,
+                              style: AppTextStyle.style_12_400(
+                                color: const Color(0xFF2C3E50),
+                              ),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (values) {
                       setState(() {
@@ -277,7 +290,8 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                         }
                       });
 
-                      if (_selectedUnitIds.isNotEmpty && _currentCalculatedQty <= 0) {
+                      if (_selectedUnitIds.isNotEmpty &&
+                          _currentCalculatedQty <= 0) {
                         AppCommonToastMessage.show(
                           message: 'Stock is already available',
                           type: ToastType.warning,
@@ -299,8 +313,12 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                             child: Text(
                               displayText,
                               style: selectedSet.isEmpty
-                                  ? AppTextStyle.style_12_400(color: const Color(0xFFADB5BD))
-                                  : AppTextStyle.style_12_400(color: const Color(0xFF2C3E50)),
+                                  ? AppTextStyle.style_12_400(
+                                      color: const Color(0xFFADB5BD),
+                                    )
+                                  : AppTextStyle.style_12_400(
+                                      color: const Color(0xFF2C3E50),
+                                    ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -331,11 +349,15 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                   child: TextFormField(
                     initialValue: widget.itemName,
                     readOnly: true,
-                    style: AppTextStyle.style_12_400(color: const Color(0xFF2C3E50)),
+                    style: AppTextStyle.style_12_400(
+                      color: const Color(0xFF2C3E50),
+                    ),
                     decoration: InputDecoration(
                       isDense: true,
                       hintText: 'Select Item',
-                      hintStyle: AppTextStyle.style_12_400(color: const Color(0xFFADB5BD)),
+                      hintStyle: AppTextStyle.style_12_400(
+                        color: const Color(0xFFADB5BD),
+                      ),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -350,7 +372,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                 SizedBox(height: 6.h),
                 Builder(
                   builder: (context) {
-                    num currentQty = _selectedUnitIds.isEmpty ? 0 : _currentCalculatedQty;
+                    num currentQty = _selectedUnitIds.isEmpty
+                        ? 0
+                        : _currentCalculatedQty;
                     final formatter = NumberFormat('#,##0');
                     final formattedQtyStr = formatter.format(currentQty);
 
@@ -362,13 +386,17 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                             padding: EdgeInsets.symmetric(horizontal: 12.w),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8F9FA),
-                              border: Border.all(color: const Color(0xFFE9ECEF)),
+                              border: Border.all(
+                                color: const Color(0xFFE9ECEF),
+                              ),
                               borderRadius: BorderRadius.circular(6.r),
                             ),
                             alignment: Alignment.centerLeft,
                             child: Text(
                               formattedQtyStr,
-                              style: AppTextStyle.style_12_400(color: const Color(0xFF2C3E50)),
+                              style: AppTextStyle.style_12_400(
+                                color: const Color(0xFF2C3E50),
+                              ),
                             ),
                           ),
                         ),
@@ -384,7 +412,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                             alignment: Alignment.center,
                             child: Text(
                               widget.displayUnit,
-                              style: AppTextStyle.style_12_600(color: Colors.white),
+                              style: AppTextStyle.style_12_600(
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -430,7 +460,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                       child: ElevatedButton(
                         onPressed: canSubmit ? _submitRequest : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: canSubmit ? const Color(0xFF48C78E) : const Color(0xFFBDBDBD),
+                          backgroundColor: canSubmit
+                              ? const Color(0xFF48C78E)
+                              : const Color(0xFFBDBDBD),
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(horizontal: 16.w),
                           shape: RoundedRectangleBorder(
@@ -451,7 +483,9 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
                               )
                             : Text(
                                 'Submit Request',
-                                style: AppTextStyle.style_12_600(color: Colors.white),
+                                style: AppTextStyle.style_12_600(
+                                  color: Colors.white,
+                                ),
                               ),
                       ),
                     ),
@@ -478,29 +512,6 @@ class _RequestUnitOrderDialogState extends State<RequestUnitOrderDialog> {
             style: AppTextStyle.style_12_600(color: const Color(0xFFDC3545)),
           ),
         ],
-      ),
-    );
-  }
-
-  InputDecoration _buildInputDecoration({String? hintText}) {
-    return InputDecoration(
-      isDense: true,
-      hintText: hintText,
-      hintStyle: AppTextStyle.style_12_400(color: const Color(0xFFADB5BD)),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
-      filled: true,
-      fillColor: const Color(0xFFF8F9FA),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6.r),
-        borderSide: const BorderSide(color: Color(0xFFE9ECEF)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6.r),
-        borderSide: const BorderSide(color: Color(0xFFE9ECEF)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6.r),
-        borderSide: const BorderSide(color: Color(0xFFE9ECEF)),
       ),
     );
   }

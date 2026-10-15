@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 
@@ -24,8 +25,10 @@ class _DeleteTaskDialogState extends State<DeleteTaskDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
       backgroundColor: Colors.white,
       insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Padding(
-        padding: EdgeInsets.all(16.r),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: EdgeInsets.all(16.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,22 +121,27 @@ class _DeleteTaskDialogState extends State<DeleteTaskDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
+                AppCommonButton(
+                  text: 'No',
+                  buttonColor: Colors.grey.shade50,
+                  textColor: AppColors.black,
+                  height: 32.h,
+                  textSize: 12.sp,
+                  borderRadius: 4.r,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  useGradient: false,
                   onPressed: () => Get.back(),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                    backgroundColor: Colors.grey.shade50,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                  ),
-                  child: Text(
-                    'No',
-                    style: AppTextStyle.style_12_500(color: AppColors.black),
-                  ),
                 ),
                 SizedBox(width: 12.w),
-                ElevatedButton(
+                AppCommonButton(
+                  text: 'Yes, Delete',
+                  buttonColor: const Color(0xFFDC3545),
+                  textColor: Colors.white,
+                  height: 32.h,
+                  textSize: 12.sp,
+                  borderRadius: 4.r,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  useGradient: false,
                   onPressed: () {
                     Get.back();
                     Get.find<TasksController>().deleteTaskInstance(
@@ -141,24 +149,13 @@ class _DeleteTaskDialogState extends State<DeleteTaskDialog> {
                       deleteLevel: _deleteLevel,
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC3545),
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                  ),
-                  child: Text(
-                    'Yes, Delete',
-                    style: AppTextStyle.style_12_500(color: Colors.white),
-                  ),
                 ),
               ],
             ),
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }

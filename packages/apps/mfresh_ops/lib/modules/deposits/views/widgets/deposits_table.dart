@@ -19,43 +19,58 @@ class DepositsTable extends StatelessWidget {
     final controller = Get.find<DepositsController>();
     final NumberFormat currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '');
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.borderColor, width: 1.0),
-        borderRadius: BorderRadius.circular(4.r),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return SizedBox(
-              width: 320.w,
-              height: 100.h,
-              child: const Center(child: CustomAppLoader()),
-            );
-          }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth - 32.w
+            : (MediaQuery.of(context).size.width - 32.w);
 
-          if (controller.filteredDeposits.isEmpty) {
-            return Padding(
-              padding: EdgeInsets.all(16.r),
-              child: Text('No deposits found', style: AppTextStyle.style_14_400(color: AppColors.grey500)),
-            );
-          }
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            border: Border.all(color: AppColors.borderColor, width: 1.0),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return SizedBox(
+                width: double.infinity,
+                height: 100.h,
+                child: const Center(child: CustomAppLoader()),
+              );
+            }
 
-          final permissions = Get.find<AuthRepository>().rxUserPermissions;
-          final bool showActionColumn = permissions.contains('deposit_table_action');
+            if (controller.filteredDeposits.isEmpty) {
+              return SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.all(16.r),
+                  child: Text('No deposits found', style: AppTextStyle.style_14_400(color: AppColors.grey500)),
+                ),
+              );
+            }
 
-          return Table(
-            columnWidths: {
-              0: const FixedColumnWidth(50),
-              1: const FixedColumnWidth(75),
-              2: const FixedColumnWidth(55),
-              3: const FixedColumnWidth(55),
-              4: const FixedColumnWidth(130),
-              if (showActionColumn) 5: const FixedColumnWidth(75),
-            },
+            final permissions = Get.find<AuthRepository>().rxUserPermissions;
+            final bool showActionColumn = permissions.contains('deposit_table_action');
+
+            final totalBaseWidth = (showActionColumn ? 440.0 : 365.0).w;
+            final scale = availableWidth > totalBaseWidth ? availableWidth / totalBaseWidth : 1.0;
+            final effWidth = totalBaseWidth * scale;
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: effWidth),
+                child: Table(
+                  columnWidths: {
+                    0: FixedColumnWidth(50.w * scale),
+                    1: FixedColumnWidth(75.w * scale),
+                    2: FixedColumnWidth(55.w * scale),
+                    3: FixedColumnWidth(55.w * scale),
+                    4: FixedColumnWidth(130.w * scale),
+                    if (showActionColumn) 5: FixedColumnWidth(75.w * scale),
+                  },
             border: TableBorder(
               horizontalInside: BorderSide(color: AppColors.borderColor, width: 1.0),
               verticalInside: BorderSide(color: AppColors.borderColor, width: 1.0),
@@ -86,9 +101,12 @@ class DepositsTable extends StatelessWidget {
                 );
               }),
             ],
-          );
-        }),
-      ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 
@@ -150,13 +168,16 @@ class DepositsTable extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (context) => Dialog(
-                  child: InteractiveViewer(
-                    child: AppImageView(
-                      imageUrl: fileUrl,
-                      errorWidget: Container(
-                        padding: EdgeInsets.all(20.r),
-                        child: const Center(
-                          child: Text('Failed to load image preview'),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+                    child: InteractiveViewer(
+                      child: AppImageView(
+                        imageUrl: fileUrl,
+                        errorWidget: Container(
+                          padding: EdgeInsets.all(20.r),
+                          child: const Center(
+                            child: Text('Failed to load image preview'),
+                          ),
                         ),
                       ),
                     ),

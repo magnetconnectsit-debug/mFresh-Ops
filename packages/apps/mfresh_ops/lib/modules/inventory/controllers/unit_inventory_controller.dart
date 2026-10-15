@@ -276,13 +276,21 @@ class UnitInventoryController extends GetxController {
 
   Future<void> exportToExcel() async {
     isExporting.value = true;
+    final canShowAdminColumns = Get.find<AuthRepository>()
+        .rxUserPermissions
+        .contains('unit_admin_column');
+
     await AppExportUtils.exportToExcel(
       title: 'Unit Inventory Report',
-      columns: const [
+      columns: [
         "Unit",
         "Item",
         "Category",
         "Quantity",
+        if (canShowAdminColumns) ...[
+          "Actual Qty",
+          "Diff Qty",
+        ],
         "M_Unit",
         "Usage Qty",
         "Required Qty"
@@ -293,6 +301,10 @@ class UnitInventoryController extends GetxController {
                 item.itemName,
                 item.categoryName,
                 item.quantity,
+                if (canShowAdminColumns) ...[
+                  item.actualQty,
+                  item.differenceQty,
+                ],
                 item.displayUnit.isNotEmpty ? item.displayUnit : item.mUnit,
                 item.formattedConsumption,
                 item.formattedRequiredQuantity,

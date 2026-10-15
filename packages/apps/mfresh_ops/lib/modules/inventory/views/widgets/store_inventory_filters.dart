@@ -1,11 +1,9 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/inventory/controllers/inventory_controller.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 
 class StoreInventoryFilters extends StatelessWidget {
   const StoreInventoryFilters({super.key});
@@ -18,8 +16,12 @@ class StoreInventoryFilters extends StatelessWidget {
       final authRepo = Get.find<AuthRepository>();
       final userPermissions = authRepo.rxUserPermissions;
 
-      final canFilterStateDistrict = userPermissions.contains('S_Inv_S_D_Store_Filter');
-      final canFilterStore = userPermissions.contains('S_Inv_Multi_Store_Filter');
+      final canFilterStateDistrict = userPermissions.contains(
+        'S_Inv_S_D_Store_Filter',
+      );
+      final canFilterStore = userPermissions.contains(
+        'S_Inv_Multi_Store_Filter',
+      );
       final canFilterItem = userPermissions.contains('S_Inv_Multi_Item_Filter');
 
       return Container(
@@ -45,13 +47,7 @@ class StoreInventoryFilters extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: EdgeInsets.only(left: 4.w, top: 2.h, bottom: 4.h),
-                  child: Text(
-                    'Filters',
-                    style: AppTextStyle.style_14_600(color: AppColors.black),
-                  ),
-                ),
+                SizedBox(height: 8.h),
                 GridView(
                   padding: EdgeInsets.zero,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -68,20 +64,26 @@ class StoreInventoryFilters extends StatelessWidget {
                         () => MultiSelectDropdownWidget<String>(
                           label: 'Select State',
                           isSingleSelect: true,
-                          selectedValues: controller.selectedState.value != null ? {controller.selectedState.value!} : {},
+                          selectedValues: controller.selectedState.value != null
+                              ? {controller.selectedState.value!}
+                              : {},
                           items: controller.stateOptions
                               .map<DropdownMenuItem<String>>(
                                 (opt) => DropdownMenuItem<String>(
                                   value: opt.value,
                                   child: Text(
                                     opt.label,
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
                                   ),
                                 ),
                               )
                               .toList(),
-                           onChanged: (values) {
-                            final newVal = values.isNotEmpty ? values.first : null;
+                          onChanged: (values) {
+                            final newVal = values.isNotEmpty
+                                ? values.first
+                                : null;
                             if (controller.selectedState.value != newVal) {
                               controller.selectedState.value = newVal;
                               controller.selectedDistrict.value = null;
@@ -103,28 +105,43 @@ class StoreInventoryFilters extends StatelessWidget {
                         return MultiSelectDropdownWidget<String>(
                           label: 'Select District',
                           isSingleSelect: true,
-                          selectedValues: controller.selectedDistrict.value != null ? {controller.selectedDistrict.value!} : {},
-                          items: controller.selectedState.value == null ? [] : controller.districtOptions
-                              .map<DropdownMenuItem<String>>(
-                                (opt) => DropdownMenuItem<String>(
-                                  value: opt.value,
-                                  child: Text(
-                                    opt.label,
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                          selectedValues:
+                              controller.selectedDistrict.value != null
+                              ? {controller.selectedDistrict.value!}
+                              : {},
+                          items: controller.selectedState.value == null
+                              ? []
+                              : controller.districtOptions
+                                    .map<DropdownMenuItem<String>>(
+                                      (opt) => DropdownMenuItem<String>(
+                                        value: opt.value,
+                                        child: Text(
+                                          opt.label,
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.grey900,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
                           onChanged: (values) {
-                            final newVal = values.isNotEmpty ? values.first : null;
+                            final newVal = values.isNotEmpty
+                                ? values.first
+                                : null;
                             if (controller.selectedDistrict.value != newVal) {
                               controller.selectedDistrict.value = newVal;
                               controller.selectedStoreRoom.clear();
                               controller.selectedStore.clear();
                               if (newVal != null) {
-                                controller.fetchStoreRooms(controller.selectedState.value ?? '', newVal);
+                                controller.fetchStoreRooms(
+                                  controller.selectedState.value ?? '',
+                                  newVal,
+                                );
                               } else {
-                                controller.fetchStoreRooms(controller.selectedState.value ?? '', '');
+                                controller.fetchStoreRooms(
+                                  controller.selectedState.value ?? '',
+                                  '',
+                                );
                               }
                               controller.applyFilters();
                             }
@@ -143,13 +160,17 @@ class StoreInventoryFilters extends StatelessWidget {
                                   value: opt.value,
                                   child: Text(
                                     opt.label,
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
                                   ),
                                 ),
                               )
                               .toList(),
                           onChanged: (values) {
-                            controller.selectedStoreRoom.assignAll(values.toList());
+                            controller.selectedStoreRoom.assignAll(
+                              values.toList(),
+                            );
                             controller.applyFilters();
                           },
                         );
@@ -164,7 +185,9 @@ class StoreInventoryFilters extends StatelessWidget {
                                   value: opt.value,
                                   child: Text(
                                     opt.label,
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
                                   ),
                                 ),
                               )
@@ -187,13 +210,17 @@ class StoreInventoryFilters extends StatelessWidget {
                                   value: opt.value,
                                   child: Text(
                                     opt.label,
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
                                   ),
                                 ),
                               )
                               .toList(),
                           onChanged: (values) async {
-                            controller.selectedCategories.assignAll(values.toList());
+                            controller.selectedCategories.assignAll(
+                              values.toList(),
+                            );
                             controller.selectedItems.clear();
                             await controller.fetchItemsForSelectedCategories();
                             controller.applyFilters();
@@ -210,7 +237,9 @@ class StoreInventoryFilters extends StatelessWidget {
                                   value: opt.value,
                                   child: Text(
                                     opt.label,
-                                    style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.grey900,
+                                    ),
                                   ),
                                 ),
                               )

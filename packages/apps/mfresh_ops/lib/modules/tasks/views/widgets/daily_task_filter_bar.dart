@@ -1,12 +1,10 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/month_range_picker.dart';
-import 'package:mfresh_ops/modules/support_tickets/views/widgets/multi_select_dropdown.dart';
 import '../../controllers/daily_task_filter_controller.dart';
 
 class DailyTaskFilterBar extends StatelessWidget {
@@ -214,61 +212,37 @@ class DailyTaskFilterBar extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8.h),
-          // Row 2: Reset, Create Task
+          // Row 2: Reset, Create Task (Right aligned)
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               // Reset Button
-              Expanded(
-                flex: 1,
-                child: SizedBox(
-                  height: 24.h,
-                  child: InkWell(
-                    onTap: () => controller.resetFilters(),
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: AppColors.borderColor),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.refresh_rounded, size: 13.r, color: const Color(0xFFEF4444)),
-                          SizedBox(width: 2.w),
-                          Text(
-                            'Reset',
-                            style: AppTextStyle.style_11_600(color: const Color(0xFFEF4444)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              AppCommonButton(
+                text: 'Reset',
+                icon: Icons.refresh_rounded,
+                variant: ButtonVariant.outline,
+                buttonColor: AppColors.white,
+                textColor: const Color(0xFFEF4444),
+                borderColor: AppColors.borderColor,
+                height: 24.h,
+                textSize: 11.sp,
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                borderRadius: 4.r,
+                useGradient: false,
+                onPressed: () => controller.resetFilters(),
               ),
               SizedBox(width: 6.w),
               // Create Task Button
-              Expanded(
-                flex: 1,
-                child: SizedBox(
-                  height: 24.h,
-                  child: InkWell(
-                    onTap: () => Get.toNamed(AppRoutes.createTask),
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0E9F6E),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Create Task',
-                        style: AppTextStyle.style_11_600(color: Colors.white),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ),
+              AppCommonButton(
+                text: 'Create Task',
+                buttonColor: const Color(0xFF0E9F6E),
+                textColor: Colors.white,
+                height: 24.h,
+                textSize: 11.sp,
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                borderRadius: 4.r,
+                useGradient: false,
+                onPressed: () => Get.toNamed(AppRoutes.createTask),
               ),
             ],
           ),

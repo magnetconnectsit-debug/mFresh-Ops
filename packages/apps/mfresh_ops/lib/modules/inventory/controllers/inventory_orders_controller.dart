@@ -210,7 +210,11 @@ class InventoryOrdersController extends GetxController {
       return true;
     }).toList();
 
-    if (sortColumn.isEmpty) return filtered;
+    if (sortColumn.isEmpty) {
+      // Default sort by orderId descending (latest orders first)
+      filtered.sort((a, b) => b.orderId.compareTo(a.orderId));
+      return filtered;
+    }
 
     final col = sortColumn;
     final asc = sortAscending;
@@ -225,6 +229,7 @@ class InventoryOrdersController extends GetxController {
 
     filtered.sort((a, b) {
       switch (col) {
+        case 'ID':
         case 'Order ID':
           return compareNum(a.orderId, b.orderId);
         case 'Unit':
@@ -242,6 +247,15 @@ class InventoryOrdersController extends GetxController {
         case 'Processed By':
           return compareStr(a.processedBy?.name ?? '', b.processedBy?.name ?? '');
         default:
+          final aMatch = a.displayName.toLowerCase() == col.toLowerCase();
+          final bMatch = b.displayName.toLowerCase() == col.toLowerCase();
+          if (aMatch && bMatch) {
+            return compareNum(a.requestedQty, b.requestedQty);
+          } else if (aMatch) {
+            return asc ? -1 : 1;
+          } else if (bMatch) {
+            return asc ? 1 : -1;
+          }
           return 0;
       }
     });

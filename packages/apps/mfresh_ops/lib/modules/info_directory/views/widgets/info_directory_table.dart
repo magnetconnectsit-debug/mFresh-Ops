@@ -418,7 +418,7 @@ class _InfoDirectoryTableState extends State<InfoDirectoryTable> {
                                     }
 
                                     return Container(
-                                      height: isExpanded ? null : 25.h,
+                                      constraints: BoxConstraints(minHeight: 25.h),
                                       decoration: BoxDecoration(
                                         border: Border(
                                           bottom: BorderSide(
@@ -426,10 +426,11 @@ class _InfoDirectoryTableState extends State<InfoDirectoryTable> {
                                           ),
                                         ),
                                       ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
+                                      child: IntrinsicHeight(
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
                                           if (showAction)
                                             buildCell(
                                               Padding(
@@ -735,7 +736,8 @@ class _InfoDirectoryTableState extends State<InfoDirectoryTable> {
                                           ),
                                         ],
                                       ),
-                                    );
+                                    ),
+                                  );
                                   });
                                 },
                               ),
