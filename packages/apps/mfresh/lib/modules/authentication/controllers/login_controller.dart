@@ -111,6 +111,14 @@ class LoginController extends GetxController {
       return;
     }
 
+    if (!isEmailLogin.value && (mobileController.text.length != 10 || !RegExp(r'^[6-9]\d{9}$').hasMatch(mobileController.text.trim()))) {
+      AppCommonToastMessage.show(
+        message: "Please enter a valid 10-digit mobile number",
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     isLoading.value = true;
     try {
       final user = await Get.find<AuthRepository>().login(

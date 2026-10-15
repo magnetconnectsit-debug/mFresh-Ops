@@ -922,7 +922,7 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
         SizedBox(height: 12.h),
 
         _buildDateField(
-          label: 'Start',
+          label: 'Start Date',
           isRequired: true,
           date: _startDate,
           onSelected: (d) {

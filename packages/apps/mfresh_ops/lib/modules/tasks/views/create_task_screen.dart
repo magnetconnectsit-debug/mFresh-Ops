@@ -858,29 +858,16 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Container(
-                  //   padding: EdgeInsets.symmetric(
-                  //     horizontal: 6.w,
-                  //     vertical: 1.h,
-                  //   ),
-                  //   decoration: BoxDecoration(
-                  //     color: const Color(0xFFF15A24).withValues(alpha: 0.12),
-                  //     borderRadius: BorderRadius.circular(3.r),
-                  //   ),
-                  //   child: Text(
-                  //     'TASK OVERVIEW',
-                  //     style: AppTextStyle.style_10_700(
-                  //       color: const Color(0xFFF15A24),
-                  //     ),
-                  //   ),
-                  // ),
-                  Text(
-                    controller.titleController.text,
-                    style: AppTextStyle.style_12_700(color: AppColors.black),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Expanded(
+                    child: Text(
+                      controller.titleController.text,
+                      style: AppTextStyle.style_12_700(color: AppColors.black),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  if (!isReadOnly)
+                  if (!isReadOnly) ...[
+                    SizedBox(width: 8.w),
                     InkWell(
                       onTap: () => setState(() => _currentStep = 0),
                       borderRadius: BorderRadius.circular(3.r),
@@ -890,6 +877,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                           vertical: 1.h,
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.edit_outlined,
@@ -907,6 +895,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
               SizedBox(height: 4.h),

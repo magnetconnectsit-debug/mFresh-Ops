@@ -1,12 +1,18 @@
+// region Imports
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+// endregion
 
+// region Enums
 enum ButtonVariant { primary, secondary, outline, text }
+// endregion
 
+// region AppCommonButton Widget
 class AppCommonButton extends StatelessWidget {
+  // region Properties
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -30,7 +36,9 @@ class AppCommonButton extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final bool useGradient;
   final double? loaderSize;
+  // endregion
 
+  // region Constructor
   const AppCommonButton({
     super.key,
     required this.text,
@@ -57,14 +65,18 @@ class AppCommonButton extends StatelessWidget {
     this.useGradient = true,
     this.loaderSize,
   });
+  // endregion
 
+  // region Build Method
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onPressed == null || isLoading;
     final effectiveBorderRadius = BorderRadius.circular(borderRadius ?? 6.r);
     final double effHeight = height ?? (isSmall ? 20.h : 24.h);
-    final EdgeInsetsGeometry effPadding =
-        padding ?? EdgeInsets.symmetric(horizontal: isSmall ? 8.w : 16.w);
+    final EdgeInsetsGeometry effPadding = padding ??
+        EdgeInsets.symmetric(
+          horizontal: (isSmall || (width != null && width! <= 100.w)) ? 8.w : 16.w,
+        );
     final double effLoaderSize = loaderSize ?? (isSmall ? 14.r : 20.r);
 
     if (variant == ButtonVariant.outline || variant == ButtonVariant.text) {
@@ -187,44 +199,61 @@ class AppCommonButton extends StatelessWidget {
 
     return primaryWidget;
   }
+  // endregion
 
+  // region Content Builder
   Widget _buildContent(Color textCol, bool isDisabled) {
     final double effIconSize = iconSize ?? 14.r;
     final IconData? effPrefixIcon = prefixIcon ?? icon;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (prefixWidget != null) ...[
-          prefixWidget!,
-          SizedBox(width: 4.w),
-        ] else if (effPrefixIcon != null) ...[
-          Icon(
-            effPrefixIcon,
-            size: effIconSize,
-            color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
-          ),
-          SizedBox(width: 3.w),
-        ],
-        Text(
-          text,
-          style: AppTextStyle.style_11_600(color: textCol).copyWith(
-            fontSize: textSize ?? 11.sp,
-            color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
-          ),
-        ),
-        if (suffixWidget != null) ...[
-          SizedBox(width: 4.w),
-          suffixWidget!,
-        ] else if (suffixIcon != null) ...[
-          SizedBox(width: 4.w),
-          Icon(
-            suffixIcon,
-            size: effIconSize,
-            color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
-          ),
-        ],
-      ],
+    final Widget textWidget = Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppTextStyle.style_11_600(color: textCol).copyWith(
+        fontSize: textSize ?? 11.sp,
+        color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isBounded = constraints.hasBoundedWidth &&
+            constraints.maxWidth != double.infinity;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (prefixWidget != null) ...[
+              prefixWidget!,
+              SizedBox(width: 4.w),
+            ] else if (effPrefixIcon != null) ...[
+              Icon(
+                effPrefixIcon,
+                size: effIconSize,
+                color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
+              ),
+              SizedBox(width: 3.w),
+            ],
+            if (isBounded)
+              Flexible(child: textWidget)
+            else
+              textWidget,
+            if (suffixWidget != null) ...[
+              SizedBox(width: 4.w),
+              suffixWidget!,
+            ] else if (suffixIcon != null) ...[
+              SizedBox(width: 4.w),
+              Icon(
+                suffixIcon,
+                size: effIconSize,
+                color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
+  // endregion
 }
+// endregion
