@@ -10,6 +10,7 @@ import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 // endregion
@@ -262,7 +263,7 @@ class TaskSubmissionDialog extends StatelessWidget {
                         }),
                         if (!isReadOnly)
                           GestureDetector(
-                            onTap: () => controller.pickImage(),
+                            onTap: () => controller.pickImage(ImageSource.camera),
                             child: _buildUploadPlaceholder(),
                           ),
                       ],

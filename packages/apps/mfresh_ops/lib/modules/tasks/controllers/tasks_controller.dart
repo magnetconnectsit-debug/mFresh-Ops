@@ -1905,33 +1905,8 @@ class TasksController extends GetxController {
   final attachments = <dynamic>[].obs;
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> pickImage([ImageSource? source]) async {
+  Future<void> pickImage([ImageSource source = ImageSource.camera]) async {
     try {
-      if (source == null) {
-        Get.bottomSheet(
-          Container(
-            color: AppColors.white,
-            padding: EdgeInsets.symmetric(vertical: 20.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildPickerOption(
-                  Icons.camera_alt,
-                  'Camera',
-                  ImageSource.camera,
-                ),
-                _buildPickerOption(
-                  Icons.photo_library,
-                  'Gallery',
-                  ImageSource.gallery,
-                ),
-              ],
-            ),
-          ),
-        );
-        return;
-      }
-
       if (source == ImageSource.gallery) {
         final List<XFile> images = await _picker.pickMultiImage(
           imageQuality: 80,
@@ -1941,7 +1916,7 @@ class TasksController extends GetxController {
         }
       } else {
         final XFile? image = await _picker.pickImage(
-          source: source,
+          source: ImageSource.camera,
           imageQuality: 80,
         );
         if (image != null) {
@@ -1951,38 +1926,6 @@ class TasksController extends GetxController {
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
-  }
-
-  Widget _buildPickerOption(IconData icon, String label, ImageSource source) {
-    return GestureDetector(
-      onTap: () async {
-        Get.back();
-        if (source == ImageSource.gallery) {
-          final List<XFile> images = await _picker.pickMultiImage(
-            imageQuality: 80,
-          );
-          if (images.isNotEmpty) {
-            attachments.addAll(images);
-          }
-        } else {
-          final XFile? image = await _picker.pickImage(
-            source: source,
-            imageQuality: 80,
-          );
-          if (image != null) {
-            attachments.add(image);
-          }
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 40.r, color: AppColors.primary),
-          SizedBox(height: 8.h),
-          Text(label, style: AppTextStyle.style_12_600(color: AppColors.black)),
-        ],
-      ),
-    );
   }
 
   void removeAttachment(int index) {

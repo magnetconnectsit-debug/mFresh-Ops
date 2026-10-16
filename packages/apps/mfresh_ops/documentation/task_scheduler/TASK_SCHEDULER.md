@@ -181,7 +181,7 @@ Tasks are automatically sorted and rendered under three chronological section he
 * **Attachments Carousel**:
   * Renders server photos (`/uploads/taskuploads/`) and locally picked images (`XFile`).
   * Tapping any thumbnail launches an `InteractiveViewer` full-screen image carousel with zoom/pan and page controls.
-  * In non-read-only mode, allows deleting local picks and launching camera/gallery via `pickImage()`.
+  * In non-read-only mode, allows deleting local picks and launching the device camera directly via `pickImage(ImageSource.camera)`.
 * **Field Proof Validation**:
   * If `task.photoRequired == '1'`, submission is blocked if `attachments.isEmpty`.
   * Staff comments are required on submission.
