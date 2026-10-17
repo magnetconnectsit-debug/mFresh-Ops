@@ -1,14 +1,11 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import '../controllers/support_category_controller.dart';
-import '../models/support_category_model.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 
 class SupportCategoryScreen extends StatelessWidget {
   const SupportCategoryScreen({super.key});
@@ -18,91 +15,170 @@ class SupportCategoryScreen extends StatelessWidget {
     final controller = Get.put(SupportCategoryController());
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
+        showSearchBar: true,
+        searchController: controller.searchController,
         title: Text(
           'Support Categories',
-          style: AppTextStyle.style_14_600(color: AppColors.black),
+          style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
-        actions: [
-          AppCommonButton(
-            text: 'Add Category',
-            onPressed: () => _showAddDialog(context, controller),
-            height: 32.h,
-            width: 85.w,
-            textSize: 10.sp,
-          ),
-          SizedBox(width: 8.w),
-        ],
       ),
       drawer: const CommonSidebar(),
       body: Obx(
-        () => ListView.builder(
-          padding: EdgeInsets.all(16.r),
-          itemCount: controller.filteredCategories.length,
-          itemBuilder: (context, index) {
-            final category = controller.filteredCategories[index];
-            return _buildCategoryCard(context, controller, category, index);
-          },
-        ),
+        () => controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () => controller.fetchCategories(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    left: 12.w,
+                    right: 12.w,
+                    top: 8.h,
+                    bottom: 16.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Add Categories Button
+                      AppCommonButton(
+                        text: 'Add Categories',
+                        onPressed: () => _showAddDialog(context, controller),
+                      ),
+                      SizedBox(height: 8.h),
+
+                      // Data Table
+                      Obx(() {
+                        final categories = controller.paginatedCategories;
+
+                        final columns = [
+                          AppTableColumn<SupportCategoryModel>(
+                            key: 'sl_no',
+                            title: 'Sl No.',
+                            width: 50.w,
+                            sortable: false,
+                            cellBuilder:
+                                (context, category, index, isExpanded) {
+                                  final actualIndex =
+                                      ((controller.currentPage.value - 1) *
+                                          controller.itemsPerPage.value) +
+                                      index;
+                                  return Text(
+                                    '${actualIndex + 1}',
+                                    style: AppTextStyle.style_12_400(
+                                      color: AppColors.black,
+                                    ),
+                                  );
+                                },
+                          ),
+                          AppTableColumn<SupportCategoryModel>(
+                            key: 'category',
+                            title: 'Category',
+                            width: 210.w,
+
+                            cellBuilder:
+                                (context, category, index, isExpanded) {
+                                  return Text(
+                                    category.categoryName,
+                                    style: AppTextStyle.style_14_400(
+                                      color: AppColors.black,
+                                    ),
+                                    maxLines: isExpanded ? null : 1,
+                                    overflow: isExpanded
+                                        ? TextOverflow.visible
+                                        : TextOverflow.ellipsis,
+                                  );
+                                },
+                          ),
+                          AppTableColumn<SupportCategoryModel>(
+                            key: 'action',
+                            title: 'Action',
+                            width: 90.w,
+                            sortable: false,
+                            cellBuilder:
+                                (context, category, index, isExpanded) {
+                                  return Row(
+                                    children: [
+                                      _buildOutlinedIconButton(
+                                        Icons.edit,
+                                        () => _showEditDialog(
+                                          context,
+                                          controller,
+                                          category,
+                                          index,
+                                        ),
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      _buildOutlinedIconButton(
+                                        Icons.delete_outline,
+                                        () => _showDeleteConfirmation(
+                                          context,
+                                          controller,
+                                          index,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                          ),
+                        ];
+
+                        return AppCommonTable<SupportCategoryModel>(
+                          items: categories,
+                          columns: columns,
+                          emptyText: 'No categories found',
+                        );
+                      }),
+
+                      SizedBox(height: 24.h),
+                      // Pagination
+                      Obx(() {
+                        final totalItems = controller.filteredCategories.length;
+                        final startItem = totalItems == 0
+                            ? 0
+                            : ((controller.currentPage.value - 1) *
+                                      controller.itemsPerPage.value) +
+                                  1;
+                        final endItem =
+                            (startItem + controller.itemsPerPage.value - 1)
+                                .clamp(0, totalItems);
+
+                        return AppTablePagination(
+                          startItem: startItem,
+                          endItem: endItem,
+                          totalItems: totalItems,
+                          currentPage: controller.currentPage.value,
+                          totalPages: controller.totalPages,
+                          onPageChanged: (page) => controller.goToPage(page),
+                          onPreviousPage: controller.previousPage,
+                          onNextPage: controller.nextPage,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildCategoryCard(
-    BuildContext context,
-    SupportCategoryController controller,
-    SupportCategoryModel category,
-    int index,
-  ) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              category.siNo.toString(),
-              style: AppTextStyle.style_12_700(color: AppColors.primary),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              category.name,
-              style: AppTextStyle.style_14_600(color: AppColors.black),
-            ),
-          ),
-          IconButton(
-            onPressed: () =>
-                _showEditDialog(context, controller, category, index),
-            icon: Icon(Icons.edit_outlined, color: AppColors.info, size: 20.r),
-          ),
-          IconButton(
-            onPressed: () =>
-                _showDeleteConfirmation(context, controller, index),
-            icon: Icon(Icons.delete_outline, color: AppColors.red, size: 20.r),
-          ),
-        ],
+  Widget _buildOutlinedIconButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        padding: EdgeInsets.all(4.r),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.grey400),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Icon(icon, size: 14.r, color: AppColors.grey600),
       ),
     );
   }
@@ -115,33 +191,50 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Add Category', style: AppTextStyle.style_18_700()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppCommonTextField(
-              controller: controller.categoryNameController,
-              titleText: 'Category Name',
-              hintText: 'Enter category name',
-            ),
-          ],
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTextField(
+                controller.categoryNameController,
+                label: 'Category Name*',
+                hint: 'Enter category name',
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Submit',
-            onPressed: () => controller.addCategory(),
-            width: 90.w,
-            height: 36.h,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Cancel',
+                variant: ButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+                width: 85.w,
+                height: 32.h,
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: 'Submit',
+                onPressed: () async {
+                  final success = await controller.addCategory();
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                width: 85.w,
+                height: 32.h,
+              ),
+            ],
           ),
         ],
       ),
@@ -154,40 +247,57 @@ class SupportCategoryScreen extends StatelessWidget {
     SupportCategoryModel category,
     int index,
   ) {
-    controller.categoryNameController.text = category.name;
+    controller.categoryNameController.text = category.categoryName;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Edit Category', style: AppTextStyle.style_18_700()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppCommonTextField(
-              controller: controller.categoryNameController,
-              titleText: 'Category Name',
-              hintText: 'Enter category name',
-            ),
-          ],
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTextField(
+                controller.categoryNameController,
+                label: 'Category Name*',
+                hint: 'Enter category name',
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Update',
-            onPressed: () => controller.editCategory(
-              index,
-              controller.categoryNameController.text,
-            ),
-            width: 90.w,
-            height: 36.h,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Cancel',
+                variant: ButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+                width: 85.w,
+                height: 32.h,
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: 'Update',
+                onPressed: () async {
+                  final success = await controller.editCategory(
+                    index,
+                    controller.categoryNameController.text,
+                  );
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                width: 85.w,
+                height: 32.h,
+              ),
+            ],
           ),
         ],
       ),
@@ -202,34 +312,62 @@ class SupportCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Delete Category', style: AppTextStyle.style_16_700()),
-        content: Text(
-          'Are you sure you want to delete this category?',
-          style: AppTextStyle.style_14_400(color: AppColors.black),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(
+            'Are you sure you want to delete this category?',
+            style: AppTextStyle.style_14_400(color: AppColors.black),
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              controller.deleteCategory(index);
-            },
-            child: Text(
-              'Delete',
-              style: AppTextStyle.style_14_600(color: AppColors.red),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Cancel',
+                variant: ButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+                width: 85.w,
+                height: 32.h,
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: 'Delete',
+                buttonColor: AppColors.red,
+                onPressed: () async {
+                  final success = await controller.deleteCategory(index);
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                width: 85.w,
+                height: 32.h,
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller, {
+    required String label,
+    String? hint,
+    int maxLines = 1,
+  }) {
+    return AppCommonTextField(
+      controller: controller,
+      labelText: label,
+      hintText: hint ?? '',
+      maxLines: maxLines,
     );
   }
 }

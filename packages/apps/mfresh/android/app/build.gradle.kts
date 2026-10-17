@@ -3,11 +3,12 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
+    // id("com.google.gms.google-services")
 }
 
 import java.util.Properties
 import java.io.FileInputStream
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.projectDir.resolve("key.properties")
@@ -17,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.mFresh"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -27,16 +28,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-
     defaultConfig {
         applicationId = "com.mFresh"
-        minSdk = flutter.minSdkVersion 
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -49,9 +47,18 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 

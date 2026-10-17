@@ -1,4 +1,3 @@
-import 'package:core/widgets/app_common_export_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -6,9 +5,15 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_common_table.dart';
 import 'package:core/widgets/app_common_textfield.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:core/widgets/app_table_pagination.dart';
 import '../controllers/measurement_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/measurement_model.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class MeasurementScreen extends StatelessWidget {
   const MeasurementScreen({super.key});
@@ -23,35 +28,182 @@ class MeasurementScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
-        title: const Text('Measurements'),
-        actions: [
-          AppCommonExportButton(
-            onExportExcel: () => controller.exportToExcel(),
-            onExportPdf: () => controller.exportToPdf(),
-            height: 32.h,
-          ),
-          SizedBox(width: 8.w),
-          AppCommonButton(
-            text: 'Add',
-            onPressed: () => _showAddDialog(context, controller),
-            height: 32.h,
-            width: 70.w,
-            textSize: 12.sp,
-          ),
-          SizedBox(width: 16.w),
-        ],
+        topHeader: const CommonShortcutHeader(),
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Measurements',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              onChanged: (v) => controller.applyFilters(),
+              hintText: 'Search',
+            ),
+          ],
+        ),
       ),
       drawer: const CommonSidebar(),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            child: Row(
+              children: [
+                AppCommonButton(
+                  text: 'Add Measurement',
+                  buttonColor: AppColors.primaryBlue,
+                  onPressed: () => _showAddDialog(context, controller),
+                  height: 24.h,
+                  textSize: 11.sp,
+                ),
+              ],
+            ),
+          ),
           Expanded(
-            child: Obx(
-              () => ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                itemCount: controller.measurements.length,
-                itemBuilder: (context, index) {
-                  return _buildMeasurementCard(context, controller, index);
-                },
+            child: AppRefreshIndicator(
+              onRefresh: () => controller.onRefresh(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Obx(() {
+                  final isLoading = controller.isLoading.value;
+                  final items = isLoading
+                      ? List.generate(
+                          10,
+                          (index) => MeasurementModel(
+                            id: index,
+                            measurementUnit: 'Loading Measurement $index',
+                          ),
+                        )
+                      : controller.paginatedItems;
+
+                  final sortColumn = controller.sortColumn.value;
+                  final isAsc = controller.sortAscending.value;
+                  final currentSortOrder = sortColumn.isEmpty
+                      ? AppTableSortOrder.none
+                      : (isAsc
+                          ? AppTableSortOrder.ascending
+                          : AppTableSortOrder.descending);
+
+                  final startItem = controller.totalEntries == 0
+                      ? 0
+                      : ((controller.currentPage.value - 1) *
+                              controller.perPage.value) +
+                          1;
+                  final endItem =
+                      (controller.currentPage.value * controller.perPage.value)
+                          .clamp(0, controller.totalEntries);
+
+                  final columns = [
+                    AppTableColumn<MeasurementModel>(
+                      key: 'Sl No',
+                      title: 'Sl No',
+                      width: 70.w,
+                      sortable: false,
+                      cellBuilder: (context, item, index, isExpanded) {
+                        return Text(
+                          '${startItem + index}',
+                          style: AppTextStyle.style_11_500(
+                            color: AppColors.black,
+                          ),
+                        );
+                      },
+                    ),
+                    AppTableColumn<MeasurementModel>(
+                      key: 'Measurement',
+                      title: 'Measurement',
+                      width: 200.w,
+                      valueGetter: (item) => item.measurementUnit,
+                    ),
+                    AppTableColumn<MeasurementModel>(
+                      key: 'Action',
+                      title: 'Action',
+                      width: 80.w,
+                      sortable: false,
+                      cellBuilder: (context, item, index, isExpanded) {
+                        if (isLoading) return const SizedBox.shrink();
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            InkWell(
+                              onTap: () =>
+                                  _showEditDialog(context, controller, item),
+                              child: Icon(
+                                Icons.edit_square,
+                                color: AppColors.primary,
+                                size: 16.r,
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            InkWell(
+                              onTap: () =>
+                                  _showDeleteDialog(context, controller, item),
+                              child: Icon(
+                                Icons.delete,
+                                color: AppColors.red,
+                                size: 16.r,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ];
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        margin: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: AppCommonTable<MeasurementModel>(
+                          items: items,
+                          columns: columns,
+                          currentSortColumn: sortColumn,
+                          currentSortOrder: currentSortOrder,
+                          onSort: (columnKey, sortOrder) =>
+                              controller.sortBy(columnKey),
+                          isLoading: isLoading,
+                          headingRowColor: AppColors.blue50,
+                          headingTextStyle: AppTextStyle.style_11_700(
+                            color: AppColors.black,
+                          ),
+                          dataTextStyle: AppTextStyle.style_11_500(
+                            color: AppColors.black,
+                          ),
+                          borderColor: AppColors.borderColor,
+                          headingRowHeight: 20.h,
+                          cellVerticalPadding: 1.h,
+                          cellHorizontalPadding: 4.w,
+                          emptyText: 'No measurements found',
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      if (!isLoading && controller.totalEntries > 0)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 4.h,
+                          ),
+                          child: AppTablePagination(
+                            startItem: startItem,
+                            endItem: endItem,
+                            totalItems: controller.totalEntries,
+                            currentPage: controller.currentPage.value,
+                            totalPages: controller.totalPages,
+                            onPageChanged: (page) => controller.goToPage(page),
+                            onPreviousPage: controller.previousPage,
+                            onNextPage: controller.nextPage,
+                          ),
+                        ),
+                      SizedBox(height: 32.h),
+                    ],
+                  );
+                }),
               ),
             ),
           ),
@@ -60,168 +212,231 @@ class MeasurementScreen extends StatelessWidget {
     );
   }
 
-
-  Widget _buildMeasurementCard(BuildContext context, MeasurementController controller, int index) {
-    final name = controller.measurements[index];
-    return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 24.r,
-            width: 24.r,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.primaryVariant.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '${index + 1}',
-              style: AppTextStyle.style_12_700(color: AppColors.primaryVariant),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              name,
-              style: AppTextStyle.style_14_600(color: AppColors.black),
-            ),
-          ),
-          SizedBox(
-            width: 32.w,
-            height: 32.h,
-            child: PopupMenuButton<String>(
-              padding: EdgeInsets.zero,
-              icon: Icon(Icons.more_vert, color: AppColors.grey300, size: 18.r),
-              onSelected: (value) {
-              if (value == 'edit') {
-                _showEditDialog(context, controller, index, name);
-              } else if (value == 'delete') {
-                controller.deleteMeasurement(index);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 20.r, color: AppColors.info),
-                    SizedBox(width: 8.w),
-                    const Text('Edit'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, size: 20.r, color: AppColors.red),
-                    SizedBox(width: 8.w),
-                    const Text('Delete'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
   void _showAddDialog(BuildContext context, MeasurementController controller) {
     controller.measurementNameController.clear();
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Add Measurement', style: AppTextStyle.style_18_700(color: AppColors.black)),
-              SizedBox(height: 20.h),
-              AppCommonTextField(
-                controller: controller.measurementNameController,
-                titleText: 'Measurement Name',
-                hintText: 'e.g. Litre',
-              ),
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: Text('Cancel', style: AppTextStyle.style_14_600(color: AppColors.grey300)),
-                  ),
-                  SizedBox(width: 12.w),
-                  AppCommonButton(
-                    text: 'Submit',
-                    width: 100.w,
-                    height: 36.h,
-                    onPressed: () => controller.addMeasurement(),
-                  ),
-                ],
-              ),
-            ],
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Add Measurement',
+                      style: AppTextStyle.style_18_700(color: AppColors.black),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: Icon(Icons.close, color: AppColors.grey500, size: 20.r),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                AppCommonTextField(
+                  controller: controller.measurementNameController,
+                  labelText: 'Measurement Name',
+                  hintText: 'e.g. Litre',
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppCommonButton(
+                      text: 'Cancel',
+                      buttonColor: AppColors.black200,
+                      height: 32.h,
+                      width: 90.w,
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                    SizedBox(width: 12.w),
+                    Obx(
+                      () => AppCommonButton(
+                        text: 'Submit',
+                        buttonColor: AppColors.primaryBlue,
+                        width: 100.w,
+                        height: 32.h,
+                        isLoading: controller.isSubmitting.value,
+                        onPressed: () async {
+                          final success = await controller.addMeasurement();
+                          if (success && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showEditDialog(BuildContext context, MeasurementController controller, int index, String currentName) {
-    controller.measurementNameController.text = currentName;
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        child: Padding(
-          padding: EdgeInsets.all(20.r),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Edit Measurement', style: AppTextStyle.style_18_700(color: AppColors.black)),
-              SizedBox(height: 20.h),
-              AppCommonTextField(
-                controller: controller.measurementNameController,
-                titleText: 'Measurement Name',
-                hintText: 'e.g. Litre',
-              ),
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: Text('Cancel', style: AppTextStyle.style_14_600(color: AppColors.grey300)),
-                  ),
-                  SizedBox(width: 12.w),
-                  AppCommonButton(
-                    text: 'Update',
-                    width: 100.w,
-                    height: 36.h,
-                    onPressed: () => controller.editMeasurement(index, controller.measurementNameController.text.trim()),
-                  ),
-                ],
-              ),
-            ],
+  void _showEditDialog(BuildContext context, MeasurementController controller, MeasurementModel model) {
+    controller.measurementNameController.text = model.measurementUnit;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Edit Measurement',
+                      style: AppTextStyle.style_18_700(color: AppColors.black),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: Icon(Icons.close, color: AppColors.grey500, size: 20.r),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                AppCommonTextField(
+                  controller: controller.measurementNameController,
+                  labelText: 'Measurement Name',
+                  hintText: 'e.g. Litre',
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppCommonButton(
+                      text: 'Cancel',
+                      buttonColor: AppColors.black200,
+                      height: 32.h,
+                      width: 90.w,
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                    SizedBox(width: 12.w),
+                    Obx(
+                      () => AppCommonButton(
+                        text: 'Update',
+                        buttonColor: AppColors.primaryBlue,
+                        width: 100.w,
+                        height: 32.h,
+                        isLoading: controller.isSubmitting.value,
+                        onPressed: () async {
+                          final success = await controller.editMeasurement(model, controller.measurementNameController.text.trim());
+                          if (success && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  void _showDeleteDialog(BuildContext context, MeasurementController controller, MeasurementModel model) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Delete Measurement',
+                      style: AppTextStyle.style_18_700(color: AppColors.black),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: Icon(Icons.close, color: AppColors.grey500, size: 20.r),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  'Are you sure you want to delete "${model.measurementUnit}"?',
+                  style: AppTextStyle.style_14_400(color: AppColors.black),
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppCommonButton(
+                      text: 'Cancel',
+                      buttonColor: AppColors.black200,
+                      height: 32.h,
+                      width: 90.w,
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                    SizedBox(width: 12.w),
+                    Obx(
+                      () => AppCommonButton(
+                        text: 'Delete',
+                        buttonColor: AppColors.red,
+                        width: 100.w,
+                        height: 32.h,
+                        isLoading: controller.isLoading.value,
+                        onPressed: () async {
+                          final success = await controller.deleteMeasurement(model);
+                          if (success && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
 }

@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/services.dart';
-import 'package:models/auth/user.dart';
+import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/repositories/user_repository.dart';
 
 class ProfileController extends GetxController {
   final UserRepository _userRepository = Get.find<UserRepository>();
@@ -27,7 +28,7 @@ class ProfileController extends GetxController {
     // Load from storage first
     user.value = _storageService.getUser();
     _populateControllers();
-    
+
     // Then fetch from API
     fetchProfile();
   }
@@ -68,10 +69,6 @@ class ProfileController extends GetxController {
       if (image != null) {
         selectedImage.value = File(image.path);
         Get.back(); // Close bottom sheet
-        AppCommonToastMessage.show(
-          message: "Profile image updated locally",
-          type: ToastType.success,
-        );
       }
     } catch (e) {
       AppCommonToastMessage.show(
@@ -81,13 +78,14 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> saveProfile() async {
+  Future<bool> saveProfile() async {
     try {
       isLoading.value = true;
       final updatedUser = await _userRepository.updateProfile(
         name: nameController.text.trim(),
+        image: selectedImage.value,
       );
-      
+
       if (passwordController.text.isNotEmpty) {
         await _userRepository.updatePassword(passwordController.text.trim());
       }
@@ -96,15 +94,28 @@ class ProfileController extends GetxController {
         user.value = updatedUser;
       }
 
+      // If a dialog is open (like the edit profile dialog), close it before showing the toast
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+
       AppCommonToastMessage.show(
         message: "Profile changes saved successfully!",
         type: ToastType.success,
       );
+      
+      // Clear password field after successful save
+      passwordController.clear();
+      return true;
     } catch (e) {
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
       AppCommonToastMessage.show(
         message: "Failed to update profile: $e",
         type: ToastType.error,
       );
+      return false;
     } finally {
       isLoading.value = false;
     }
