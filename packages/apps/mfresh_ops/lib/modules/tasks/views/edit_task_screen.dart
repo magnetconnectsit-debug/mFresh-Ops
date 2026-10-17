@@ -22,6 +22,15 @@ class EditTaskScreen extends StatefulWidget {
 // region State Implementation
 class _EditTaskScreenState extends State<EditTaskScreen> {
   // region Focus Nodes & Controllers
+  final GlobalKey<MultiSelectDropdownWidgetState> _groupKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _assigneeKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _unitKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _projectKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+
   final FocusNode _titleFocusNode = FocusNode();
   final FocusNode _descriptionFocusNode = FocusNode();
 
@@ -295,25 +304,12 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       }
     }
 
-    if (controller.selectedGroupForCreate.value == null) {
+    // Assignment validation: At least one of assignee, allgroup, store
+    if (controller.selectedAssigneeForCreate.value == null &&
+        controller.selectedGroupForCreate.value == null &&
+        controller.selectedUnitForCreate.value == null) {
       AppCommonToastMessage.show(
-        message: 'Please select a security group',
-        type: ToastType.warning,
-      );
-      return;
-    }
-
-    if (controller.selectedAssigneeForCreate.value == null) {
-      AppCommonToastMessage.show(
-        message: 'Please select an assignee',
-        type: ToastType.warning,
-      );
-      return;
-    }
-
-    if (controller.selectedUnitForCreate.value == null) {
-      AppCommonToastMessage.show(
-        message: 'Please select a store (unit)',
+        message: 'Please select an Assignee, Security Group, or Store (Unit)',
         type: ToastType.warning,
       );
       return;
@@ -337,6 +333,36 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     }
 
     await controller.updateTask(task);
+  }
+
+  Future<void> _advanceToNextDropdown(String currentField) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+
+    final controller = Get.find<TasksController>();
+
+    if (currentField == 'group') {
+      if (controller.selectedAssigneeForCreate.value == null) {
+        _assigneeKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'group' || currentField == 'assignee') {
+      if (controller.selectedUnitForCreate.value == null) {
+        _unitKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'group' ||
+        currentField == 'assignee' ||
+        currentField == 'unit') {
+      if (controller.selectedProjectForCreate.value == null) {
+        _projectKey.currentState?.openMenu();
+        return;
+      }
+    }
   }
   // endregion
 
@@ -364,8 +390,6 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       appBar: _buildAppBar(context, controller),
       body: Obx(() {
         final isSubmitting = controller.isFormSubmitting.value;
-        final isReadOnly = controller.isReadOnly.value;
-        final isRecurring = controller.isRecurring.value;
 
         return Stack(
           children: [
@@ -669,6 +693,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             Expanded(
               child: Obx(
                 () => AppCommonMultiSelectDropdown<TaskGroup>(
+                  key: _groupKey,
                   label: 'Security Group',
                   isSingleSelect: true,
                   showSearch: true,
@@ -694,6 +719,9 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                       : (values) async {
                           final group = values.isEmpty ? null : values.first;
                           await controller.onGroupForCreateChanged(group);
+                          if (group != null) {
+                            _advanceToNextDropdown('group');
+                          }
                         },
                 ),
               ),
@@ -702,6 +730,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             Expanded(
               child: Obx(
                 () => AppCommonMultiSelectDropdown<AssigneeModel>(
+                  key: _assigneeKey,
                   label: 'Assignee',
                   isSingleSelect: true,
                   showSearch: true,
@@ -727,6 +756,9 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                       : (values) {
                           final assignee = values.isEmpty ? null : values.first;
                           controller.selectedAssigneeForCreate.value = assignee;
+                          if (assignee != null) {
+                            _advanceToNextDropdown('assignee');
+                          }
                         },
                 ),
               ),
@@ -741,6 +773,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             Expanded(
               child: Obx(
                 () => AppCommonMultiSelectDropdown<SupportUnit>(
+                  key: _unitKey,
                   label: 'Store (Unit)',
                   isSingleSelect: true,
                   showSearch: true,
@@ -765,6 +798,9 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                       : (values) {
                           final unit = values.isEmpty ? null : values.first;
                           controller.selectedUnitForCreate.value = unit;
+                          if (unit != null) {
+                            _advanceToNextDropdown('unit');
+                          }
                         },
                 ),
               ),
@@ -773,6 +809,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             Expanded(
               child: Obx(
                 () => AppCommonMultiSelectDropdown<TaskProject>(
+                  key: _projectKey,
                   label: 'Project',
                   isSingleSelect: true,
                   showSearch: true,

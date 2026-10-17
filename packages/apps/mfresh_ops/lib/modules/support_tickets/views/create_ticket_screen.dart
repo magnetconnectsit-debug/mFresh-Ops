@@ -176,8 +176,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                       final count =
                                           controller.selectedImages.length +
                                           controller.selectedVideos.length;
-                                      if (count == 0)
+                                      if (count == 0) {
                                         return const SizedBox.shrink();
+                                      }
                                       return Padding(
                                         padding: EdgeInsets.only(left: 4.w),
                                         child: Container(
@@ -233,59 +234,66 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  void _advanceToNextUnselectedField(String currentField) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = Get.find<CreateTicketController>();
+  // region Dropdown Progression Logic
+  Future<void> _advanceToNextUnselectedField(String currentField) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
 
-      if (currentField == 'category') {
-        if (controller.selectedSubCategory.value == null) {
-          _subCategoryKey.currentState?.openMenu();
-          return;
-        }
-      }
+    final controller = Get.find<CreateTicketController>();
 
-      if (currentField == 'category' || currentField == 'subCategory') {
-        if (controller.selectedPriority.value == null) {
-          _priorityKey.currentState?.openMenu();
-          return;
-        }
+    if (currentField == 'category') {
+      while (controller.isSubCategoryLoading.value) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        if (!mounted) return;
       }
+      if (controller.selectedSubCategory.value == null) {
+        _subCategoryKey.currentState?.openMenu();
+        return;
+      }
+    }
 
-      if (currentField == 'category' ||
-          currentField == 'subCategory' ||
-          currentField == 'priority') {
-        if (controller.selectedAssignee.value == null) {
-          _assigneeKey.currentState?.openMenu();
-          return;
-        }
+    if (currentField == 'category' || currentField == 'subCategory') {
+      if (controller.selectedPriority.value == null) {
+        _priorityKey.currentState?.openMenu();
+        return;
       }
+    }
 
-      if (currentField == 'category' ||
-          currentField == 'subCategory' ||
-          currentField == 'priority' ||
-          currentField == 'assignee') {
-        if (controller.selectedUnit.value == null) {
-          _unitKey.currentState?.openMenu();
-          return;
-        }
+    if (currentField == 'category' ||
+        currentField == 'subCategory' ||
+        currentField == 'priority') {
+      if (controller.selectedAssignee.value == null) {
+        _assigneeKey.currentState?.openMenu();
+        return;
       }
+    }
 
-      if (currentField == 'category' ||
-          currentField == 'subCategory' ||
-          currentField == 'priority' ||
-          currentField == 'assignee' ||
-          currentField == 'unit') {
-        if (controller.selectedProject.value == null) {
-          _projectKey.currentState?.openMenu();
-          return;
-        }
+    if (currentField == 'category' ||
+        currentField == 'subCategory' ||
+        currentField == 'priority' ||
+        currentField == 'assignee') {
+      if (controller.selectedUnit.value == null) {
+        _unitKey.currentState?.openMenu();
+        return;
       }
+    }
 
-      if (controller.subjectController.text.trim().isEmpty) {
-        _subjectFocusNode.requestFocus();
+    if (currentField == 'category' ||
+        currentField == 'subCategory' ||
+        currentField == 'priority' ||
+        currentField == 'assignee' ||
+        currentField == 'unit') {
+      if (controller.selectedProject.value == null) {
+        _projectKey.currentState?.openMenu();
+        return;
       }
-    });
+    }
+
+    if (controller.subjectController.text.trim().isEmpty) {
+      _subjectFocusNode.requestFocus();
+    }
   }
+  // endregion
 
   Widget _buildFormGrid(
     BuildContext context,

@@ -8,9 +8,104 @@ import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_co
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
-class EditTicketScreen extends StatelessWidget {
+// region EditTicketScreen Widget
+class EditTicketScreen extends StatefulWidget {
   const EditTicketScreen({super.key});
 
+  @override
+  State<EditTicketScreen> createState() => _EditTicketScreenState();
+}
+// endregion
+
+// region EditTicketScreen State
+class _EditTicketScreenState extends State<EditTicketScreen> {
+  // region Dropdown GlobalKeys
+  final GlobalKey<MultiSelectDropdownWidgetState> _statusKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _assigneeKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _categoryKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _subCategoryKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _priorityKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _projectKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _unitKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  // endregion
+
+  // region Dropdown Progression Logic
+  Future<void> _advanceToNextDropdown(String currentField) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+
+    final controller = Get.find<TicketDetailsController>();
+
+    if (currentField == 'status') {
+      if (controller.selectedAssignee.value == null) {
+        _assigneeKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'status' || currentField == 'assignee') {
+      if (controller.selectedCategory.value == null) {
+        _categoryKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'status' ||
+        currentField == 'assignee' ||
+        currentField == 'category') {
+      while (controller.isSubCategoryLoading.value) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        if (!mounted) return;
+      }
+      if (controller.selectedSubCategory.value == null) {
+        _subCategoryKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'status' ||
+        currentField == 'assignee' ||
+        currentField == 'category' ||
+        currentField == 'subCategory') {
+      if (controller.selectedPriority.value == null) {
+        _priorityKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'status' ||
+        currentField == 'assignee' ||
+        currentField == 'category' ||
+        currentField == 'subCategory' ||
+        currentField == 'priority') {
+      if (controller.selectedProject.value == null) {
+        _projectKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'status' ||
+        currentField == 'assignee' ||
+        currentField == 'category' ||
+        currentField == 'subCategory' ||
+        currentField == 'priority' ||
+        currentField == 'project') {
+      if (controller.selectedUnit.value == null) {
+        _unitKey.currentState?.openMenu();
+        return;
+      }
+    }
+  }
+  // endregion
+
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TicketDetailsController>();
@@ -352,6 +447,7 @@ class EditTicketScreen extends StatelessWidget {
         children: [
           _twoFieldRow(
             leftChild: MultiSelectDropdownWidget<String>(
+              key: _statusKey,
               label: "Status",
               hint: "Select",
               isSingleSelect: true,
@@ -367,15 +463,19 @@ class EditTicketScreen extends StatelessWidget {
                     ),
                   )
                   .toList(),
-              onChanged: (values) {
+              onChanged: (values) async {
                 final v = values.isNotEmpty ? values.first : null;
                 controller.selectedStatus.value = v;
                 if (v != null && v != '2' && v != '3') {
-                  _selectFollowUpDateTime(context, controller);
+                  await _selectFollowUpDateTime(context, controller);
+                }
+                if (v != null) {
+                  _advanceToNextDropdown('status');
                 }
               },
             ),
             rightChild: MultiSelectDropdownWidget<AssigneeModel>(
+              key: _assigneeKey,
               label: "Assignee",
               hint: "Select",
               isSingleSelect: true,
@@ -393,12 +493,16 @@ class EditTicketScreen extends StatelessWidget {
                 controller.selectedAssignee.value = values.isNotEmpty
                     ? values.first
                     : null;
+                if (values.isNotEmpty) {
+                  _advanceToNextDropdown('assignee');
+                }
               },
             ),
           ),
           SizedBox(height: 10.h),
           _twoFieldRow(
             leftChild: MultiSelectDropdownWidget<SupportCategory>(
+              key: _categoryKey,
               label: "Category",
               hint: "Select",
               isSingleSelect: true,
@@ -418,10 +522,14 @@ class EditTicketScreen extends StatelessWidget {
                 final v = values.isNotEmpty ? values.first : null;
                 controller.selectedCategory.value = v;
                 controller.selectedSubCategory.value = null;
-                if (v != null) controller.fetchSubCategories(v.categoryId);
+                if (v != null) {
+                  controller.fetchSubCategories(v.categoryId);
+                  _advanceToNextDropdown('category');
+                }
               },
             ),
             rightChild: MultiSelectDropdownWidget<SupportSubCategory>(
+              key: _subCategoryKey,
               label: "S-Category",
               hint: "Select",
               isLoading: controller.isSubCategoryLoading.value,
@@ -442,12 +550,16 @@ class EditTicketScreen extends StatelessWidget {
                 controller.selectedSubCategory.value = values.isNotEmpty
                     ? values.first
                     : null;
+                if (values.isNotEmpty) {
+                  _advanceToNextDropdown('subCategory');
+                }
               },
             ),
           ),
           SizedBox(height: 10.h),
           _twoFieldRow(
             leftChild: MultiSelectDropdownWidget<String>(
+              key: _priorityKey,
               label: "Priority",
               hint: "Select",
               isSingleSelect: true,
@@ -467,9 +579,13 @@ class EditTicketScreen extends StatelessWidget {
                 controller.selectedPriority.value = values.isNotEmpty
                     ? values.first
                     : null;
+                if (values.isNotEmpty) {
+                  _advanceToNextDropdown('priority');
+                }
               },
             ),
             rightChild: MultiSelectDropdownWidget<SupportProject>(
+              key: _projectKey,
               label: "Project",
               hint: "Select",
               isSingleSelect: true,
@@ -489,12 +605,16 @@ class EditTicketScreen extends StatelessWidget {
                 controller.selectedProject.value = values.isNotEmpty
                     ? values.first
                     : null;
+                if (values.isNotEmpty) {
+                  _advanceToNextDropdown('project');
+                }
               },
             ),
           ),
           SizedBox(height: 10.h),
           _twoFieldRow(
             leftChild: MultiSelectDropdownWidget<SupportUnit>(
+              key: _unitKey,
               label: "Unit",
               hint: "Select",
               isSingleSelect: true,
@@ -977,7 +1097,6 @@ class EditTicketScreen extends StatelessWidget {
     required String label,
     String? hint,
     int maxLines = 1,
-    bool hasError = false,
   }) {
     return AppCommonTextField(
       controller: controller,
@@ -1022,3 +1141,4 @@ class EditTicketScreen extends StatelessWidget {
     );
   }
 }
+// endregion

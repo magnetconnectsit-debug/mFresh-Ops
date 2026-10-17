@@ -1,25 +1,32 @@
+// region Imports
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/month_range_picker.dart';
 import '../../controllers/daily_task_filter_controller.dart';
+// endregion
 
+// region DailyTaskFilterBar Widget
 class DailyTaskFilterBar extends StatelessWidget {
+  // region Properties & Constants
   final DailyTaskFilterController controller;
-
-  const DailyTaskFilterBar({
-    super.key,
-    required this.controller,
-  });
 
   static const List<String> _monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
+  // endregion
 
+  // region Constructor
+  const DailyTaskFilterBar({
+    super.key,
+    required this.controller,
+  });
+  // endregion
+
+  // region Month Formatter Helpers
   String _getMonthName(int? monthValue) {
     if (monthValue != null && monthValue >= 1 && monthValue <= 12) {
       return _monthNames[monthValue - 1];
@@ -36,7 +43,9 @@ class DailyTaskFilterBar extends StatelessWidget {
       if (from == to) {
         return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
       }
-      return yearStr.isNotEmpty ? '$fromName - $toName $yearStr' : '$fromName - $toName';
+      return yearStr.isNotEmpty
+          ? '$fromName - $toName $yearStr'
+          : '$fromName - $toName';
     } else if (fromName.isNotEmpty) {
       return yearStr.isNotEmpty ? '$fromName $yearStr' : fromName;
     } else if (toName.isNotEmpty) {
@@ -44,7 +53,9 @@ class DailyTaskFilterBar extends StatelessWidget {
     }
     return yearStr;
   }
+  // endregion
 
+  // region Month Range Picker Dialog
   Future<void> _openMonthRangePicker(BuildContext context) async {
     final DateTime? initialStart = controller.selectedFromMonth.value != null
         ? DateTime(
@@ -72,14 +83,16 @@ class DailyTaskFilterBar extends StatelessWidget {
       controller.fetchFilterData();
     }
   }
+  // endregion
 
+  // region Month Selector Field Builder
   Widget _buildMonthSelectorField({
     required BuildContext context,
     required String label,
     required String valueText,
     required bool hasValue,
   }) {
-    return MultiSelectDropdownWidget<String>(
+    return AppCommonMultiSelectDropdown<String>(
       label: label,
       isSingleSelect: true,
       showSearch: false,
@@ -101,21 +114,29 @@ class DailyTaskFilterBar extends StatelessWidget {
               floatingLabelBehavior: FloatingLabelBehavior.always,
               isDense: true,
               contentPadding: EdgeInsets.symmetric(
-                  horizontal: 10.w, vertical: 4.h),
+                horizontal: 10.w,
+                vertical: 4.h,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.borderColor,
+                  width: 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.borderColor,
+                  width: 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.borderColor,
+                  width: 1.0,
+                ),
               ),
               suffixIcon: Padding(
                 padding: EdgeInsets.only(right: 4.w),
@@ -125,8 +146,10 @@ class DailyTaskFilterBar extends StatelessWidget {
                   color: AppColors.grey300,
                 ),
               ),
-              suffixIconConstraints:
-                  BoxConstraints(minWidth: 20.w, minHeight: 20.h),
+              suffixIconConstraints: BoxConstraints(
+                minWidth: 20.w,
+                minHeight: 20.h,
+              ),
             ),
             child: Text(
               hasValue ? valueText : 'Select',
@@ -141,7 +164,9 @@ class DailyTaskFilterBar extends StatelessWidget {
       ),
     );
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -161,7 +186,82 @@ class DailyTaskFilterBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Row 1: Month/Year & Assignee
+          // Selected Filter Chips
+          Obx(() {
+            final List<Widget> chips = [];
+
+            Widget buildChip(String label, VoidCallback onDeleted) {
+              return Padding(
+                padding: EdgeInsets.only(right: 4.w),
+                child: InkWell(
+                  onTap: onDeleted,
+                  borderRadius: BorderRadius.circular(6.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.blue500.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(color: AppColors.blue500.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: AppTextStyle.style_10_500(color: AppColors.blue500),
+                        ),
+                        SizedBox(width: 4.w),
+                        Icon(
+                          Icons.close,
+                          size: 12.r,
+                          color: AppColors.blue500,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            for (var p in controller.selectedProjects) {
+              chips.add(buildChip(p.projectName, () {
+                controller.selectedProjects.remove(p);
+                controller.fetchFilterData();
+              }));
+            }
+            for (var u in controller.selectedUnits) {
+              chips.add(buildChip(u.unitName, () {
+                controller.selectedUnits.remove(u);
+                controller.fetchFilterData();
+              }));
+            }
+            for (var g in controller.selectedGroups) {
+              chips.add(buildChip(g.roleName, () {
+                controller.selectedGroups.remove(g);
+                controller.fetchFilterData();
+              }));
+            }
+            for (var a in controller.selectedAssignees) {
+              chips.add(buildChip(a.name, () {
+                controller.selectedAssignees.remove(a);
+                controller.fetchFilterData();
+              }));
+            }
+
+            if (chips.isEmpty) return const SizedBox.shrink();
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: 6.h),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: chips,
+                ),
+              ),
+            );
+          }),
+          // Row 1: Month & Project
           Row(
             children: [
               // Combined Month & Year Field
@@ -183,11 +283,72 @@ class DailyTaskFilterBar extends StatelessWidget {
                 }),
               ),
               SizedBox(width: 6.w),
-              // Assignee Field
+              // Project Multi-Select
               Expanded(
                 flex: 1,
                 child: Obx(
-                  () => MultiSelectDropdownWidget<AssigneeModel>(
+                  () => AppCommonMultiSelectDropdown<TaskProject>(
+                    label: 'Project',
+                    isSingleSelect: false,
+                    showSelectAll: true,
+                    selectedValues: controller.selectedProjects.toSet(),
+                    items: controller.projectsOptions.map((p) {
+                      return DropdownMenuItem<TaskProject>(
+                        value: p,
+                        child: Text(
+                          p.projectName,
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (values) {
+                      controller.selectedProjects.assignAll(values);
+                      controller.fetchFilterData();
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          // Row 2: Group & Assignee
+          Row(
+            children: [
+              // Group Multi-Select
+              Expanded(
+                flex: 1,
+                child: Obx(
+                  () => AppCommonMultiSelectDropdown<TaskGroup>(
+                    label: 'Group',
+                    isSingleSelect: false,
+                    showSelectAll: true,
+                    selectedValues: controller.selectedGroups.toSet(),
+                    items: controller.groupsOptions.map((g) {
+                      return DropdownMenuItem<TaskGroup>(
+                        value: g,
+                        child: Text(
+                          g.roleName,
+                          style: AppTextStyle.style_12_400(
+                            color: AppColors.grey900,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (values) {
+                      controller.selectedGroups.assignAll(values);
+                      controller.fetchFilterData();
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(width: 6.w),
+              // Assignee Multi-Select
+              Expanded(
+                flex: 1,
+                child: Obx(
+                  () => AppCommonMultiSelectDropdown<AssigneeModel>(
                     label: 'Assignee',
                     isSingleSelect: false,
                     showSelectAll: true,
@@ -198,7 +359,8 @@ class DailyTaskFilterBar extends StatelessWidget {
                         child: Text(
                           a.name,
                           style: AppTextStyle.style_12_400(
-                              color: AppColors.grey900),
+                            color: AppColors.grey900,
+                          ),
                         ),
                       );
                     }).toList(),
@@ -211,43 +373,10 @@ class DailyTaskFilterBar extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 8.h),
-          // Row 2: Reset, Create Task (Right aligned)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Reset Button
-              AppCommonButton(
-                text: 'Reset',
-                icon: Icons.refresh_rounded,
-                variant: ButtonVariant.outline,
-                buttonColor: AppColors.white,
-                textColor: const Color(0xFFEF4444),
-                borderColor: AppColors.borderColor,
-                height: 24.h,
-                textSize: 11.sp,
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                borderRadius: 4.r,
-                useGradient: false,
-                onPressed: () => controller.resetFilters(),
-              ),
-              SizedBox(width: 6.w),
-              // Create Task Button
-              AppCommonButton(
-                text: 'Create Task',
-                buttonColor: const Color(0xFF0E9F6E),
-                textColor: Colors.white,
-                height: 24.h,
-                textSize: 11.sp,
-                padding: EdgeInsets.symmetric(horizontal: 12.w),
-                borderRadius: 4.r,
-                useGradient: false,
-                onPressed: () => Get.toNamed(AppRoutes.createTask),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
+  // endregion
 }
+// endregion

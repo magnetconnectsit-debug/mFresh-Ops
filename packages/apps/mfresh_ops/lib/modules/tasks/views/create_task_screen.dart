@@ -2,18 +2,12 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
-import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/data/models/models.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
+// region Lifecycle Wrapper
 class _FormLifecycleWrapper extends StatefulWidget {
   final Widget child;
   final VoidCallback onDispose;
@@ -32,22 +26,27 @@ class _FormLifecycleWrapperState extends State<_FormLifecycleWrapper> {
   @override
   Widget build(BuildContext context) => widget.child;
 }
+// endregion
 
+// region CreateTaskScreen Widget
 class CreateTaskScreen extends StatefulWidget {
   const CreateTaskScreen({super.key});
 
   @override
   State<CreateTaskScreen> createState() => _CreateTaskScreenState();
 }
+// endregion
 
+// region CreateTaskScreen State
 class _CreateTaskScreenState extends State<CreateTaskScreen> {
-  final GlobalKey<MultiSelectDropdownWidgetState> _projectKey =
-      GlobalKey<MultiSelectDropdownWidgetState>();
-  final GlobalKey<MultiSelectDropdownWidgetState> _unitKey =
-      GlobalKey<MultiSelectDropdownWidgetState>();
+  // region Focus Nodes & State Variables
   final GlobalKey<MultiSelectDropdownWidgetState> _groupKey =
       GlobalKey<MultiSelectDropdownWidgetState>();
   final GlobalKey<MultiSelectDropdownWidgetState> _assigneeKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _unitKey =
+      GlobalKey<MultiSelectDropdownWidgetState>();
+  final GlobalKey<MultiSelectDropdownWidgetState> _projectKey =
       GlobalKey<MultiSelectDropdownWidgetState>();
 
   final FocusNode _titleFocusNode = FocusNode();
@@ -56,7 +55,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   int _currentStep =
       0; // 0: Step 1 (Title, Description, Dates/Recurrence), 1: Step 2 (Group, Assignee, Unit, Project, Rules)
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void dispose() {
     _titleFocusNode.dispose();
@@ -64,6 +65,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     _recurrenceIntervalFocusNode.dispose();
     super.dispose();
   }
+  // endregion
+
+  // region Form Validation & Pickers
 
   bool _validateStep1(
     BuildContext context,
@@ -303,23 +307,38 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     }
   }
 
-  Future<void> _proceedToNextUnselectedDropdown(
-    TasksController controller,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 180));
+  Future<void> _advanceToNextDropdown(String currentField) async {
+    await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted || _currentStep != 1) return;
 
-    if (controller.selectedGroupForCreate.value == null) {
-      _groupKey.currentState?.openMenu();
-    } else if (controller.selectedAssigneeForCreate.value == null) {
-      _assigneeKey.currentState?.openMenu();
-    } else if (controller.selectedUnitForCreate.value == null) {
-      _unitKey.currentState?.openMenu();
-    } else if (controller.selectedProjectForCreate.value == null) {
-      _projectKey.currentState?.openMenu();
+    final controller = Get.find<TasksController>();
+
+    if (currentField == 'group') {
+      if (controller.selectedAssigneeForCreate.value == null) {
+        _assigneeKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'group' || currentField == 'assignee') {
+      if (controller.selectedUnitForCreate.value == null) {
+        _unitKey.currentState?.openMenu();
+        return;
+      }
+    }
+
+    if (currentField == 'group' ||
+        currentField == 'assignee' ||
+        currentField == 'unit') {
+      if (controller.selectedProjectForCreate.value == null) {
+        _projectKey.currentState?.openMenu();
+        return;
+      }
     }
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TasksController>();
@@ -587,7 +606,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ),
     );
   }
+  // endregion
 
+  // region Step 1 Builders
   Widget _buildStepBadge({
     required int stepNumber,
     required String title,
@@ -832,7 +853,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ],
     );
   }
+  // endregion
 
+  // region Step 2 Builders
   // ── STEP 2: ASSIGNEE, GROUP, UNIT, PROJECT & RULES ──
   Widget _buildStep2Content(
     BuildContext context,
@@ -1168,7 +1191,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     final group = values.isEmpty ? null : values.first;
                     await controller.onGroupForCreateChanged(group);
                     if (group != null) {
-                      _proceedToNextUnselectedDropdown(controller);
+                      _advanceToNextDropdown('group');
                     }
                   },
                 ),
@@ -1203,7 +1226,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     final assignee = values.isEmpty ? null : values.first;
                     controller.selectedAssigneeForCreate.value = assignee;
                     if (assignee != null) {
-                      _proceedToNextUnselectedDropdown(controller);
+                      _advanceToNextDropdown('assignee');
                     }
                   },
                 ),
@@ -1243,7 +1266,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     final unit = values.isEmpty ? null : values.first;
                     controller.selectedUnitForCreate.value = unit;
                     if (unit != null) {
-                      _proceedToNextUnselectedDropdown(controller);
+                      _advanceToNextDropdown('unit');
                     }
                   },
                 ),
@@ -1277,9 +1300,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                   onChanged: (values) {
                     final project = values.isEmpty ? null : values.first;
                     controller.selectedProjectForCreate.value = project;
-                    if (project != null) {
-                      _proceedToNextUnselectedDropdown(controller);
-                    }
                   },
                 ),
               ),
@@ -1531,7 +1551,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ],
     );
   }
+  // endregion
 
+  // region Helper Widgets
   Widget _buildDateTimeField({
     required String label,
     IconData? icon,
@@ -1578,4 +1600,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ),
     );
   }
+  // endregion
 }
+// endregion

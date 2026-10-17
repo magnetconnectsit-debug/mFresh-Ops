@@ -38,10 +38,15 @@ class RecurrenceData {
   final String? yearlyTheMonth;
 
   String? get monthlyPattern => monthlyMode;
+
   String? get monthlyWeek => monthOrdinal;
+
   String? get monthlyDayName => monthWeekday;
+
   String? get yearlyPattern => yearlyMode;
+
   String? get yearlyDayName => yearlyWeekday;
+
   String? get yearlyMonth2 => yearlyTheMonth;
 
   RecurrenceData({
@@ -637,7 +642,6 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
     });
   }
 
-
   void _syncDateTimeControllers() {
     _startDateController.text = AppDateUtils.formatToApiDate(
       _startDate.toIso8601String(),
@@ -994,8 +998,9 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
   // region Connected Tab Bar
   // ── Connected Tab Bar for Frequency Selection ──
   Widget _buildTabBar() {
-    final selectedIndex =
-        _recurrenceTabs.indexWhere((t) => t.value == _frequency);
+    final selectedIndex = _recurrenceTabs.indexWhere(
+      (t) => t.value == _frequency,
+    );
     final validIndex = selectedIndex == -1 ? 0 : selectedIndex;
 
     return AppCommonConnectedTabBar(
@@ -1013,6 +1018,7 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
       },
     );
   }
+
   // endregion
 
   // region Pattern Details
@@ -1749,7 +1755,3 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
   }
 }
 // endregion
-
-
-
-

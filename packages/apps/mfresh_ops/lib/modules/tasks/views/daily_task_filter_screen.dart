@@ -1,21 +1,26 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_refresh_indicator.dart';
-import 'package:core/widgets/custom_app_loader.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import '../controllers/daily_task_filter_controller.dart';
+import '../controllers/tasks_controller.dart';
 import 'widgets/daily_task_filter_bar.dart';
 import 'widgets/daily_task_filter_card.dart';
+import 'widgets/task_stat_item.dart';
+import 'widgets/task_tabs.dart';
+// endregion
 
+// region DailyTaskFilterScreen
 class DailyTaskFilterScreen extends StatelessWidget {
   const DailyTaskFilterScreen({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(DailyTaskFilterController());
@@ -33,32 +38,36 @@ class DailyTaskFilterScreen extends StatelessWidget {
           style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
         actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16.w),
-            child: Obx(() {
-              return Row(
-                children: [
-                  _buildStatusCount(
-                    icon: Icons.check_circle_rounded,
-                    color: const Color(0xFF10B981),
-                    count: controller.completedCount.value,
+          Obx(() {
+            if (Get.find<AuthRepository>().rxUserPermissions.contains(
+              'create_new_task',
+            )) {
+              return Padding(
+                padding: EdgeInsets.only(right: 16.w),
+                child: Center(
+                  child: AppCommonButton(
+                    text: 'Create Task',
+                    buttonColor: const Color(0xFF16A3B8),
+                    textColor: Colors.white,
+                    height: 24.h,
+                    textSize: 12.sp,
+                    borderRadius: 4.r,
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    useGradient: false,
+                    onPressed: () async {
+                      if (Get.isRegistered<TasksController>()) {
+                        Get.find<TasksController>().formInitialized.value =
+                            false;
+                      }
+                      await Get.toNamed(AppRoutes.createTask);
+                      controller.fetchFilterData();
+                    },
                   ),
-                  SizedBox(width: 8.w),
-                  _buildStatusCount(
-                    icon: Icons.hourglass_bottom_rounded,
-                    color: const Color(0xFFF59E0B),
-                    count: controller.activeCount.value,
-                  ),
-                  SizedBox(width: 8.w),
-                  _buildStatusCount(
-                    icon: Icons.cancel_rounded,
-                    color: const Color(0xFFEF4444),
-                    count: controller.overdueCount.value,
-                  ),
-                ],
+                ),
               );
-            }),
-          ),
+            }
+            return const SizedBox.shrink();
+          }),
         ],
       ),
       drawer: const CommonSidebar(),
@@ -72,134 +81,87 @@ class DailyTaskFilterScreen extends StatelessWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 800),
               child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DailyTaskFilterBar(controller: controller),
-              SizedBox(height: 12.h),
-              _buildTabSelector(controller),
-              SizedBox(height: 12.h),
-              Obx(() {
-                if (controller.isLoading.value) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40.h),
-                    child: const Center(
-                      child: CustomAppLoader(),
-                    ),
-                  );
-                }
-                return DailyTaskMonthWiseSection(controller: controller);
-              }),
-              SizedBox(height: 40.h),
-            ],
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Obx(() {
+                    return Wrap(
+                      spacing: 12.w,
+                      runSpacing: 2.h,
+                      children: [
+                        TaskStatItem(
+                          count: '${controller.activeCount.value}',
+                          label: 'Active',
+                          color: AppColors.orange1,
+                        ),
+                        TaskStatItem(
+                          count: '${controller.upcomingCount.value}',
+                          label: 'Upcoming',
+                          color: const Color(0xFFFFB822),
+                        ),
+                        TaskStatItem(
+                          count: '${controller.completedCount.value}',
+                          label: 'Completed',
+                          color: AppColors.green,
+                        ),
+                        TaskStatItem(
+                          count: '${controller.overdueCount.value}',
+                          label: 'Overdue',
+                          color: AppColors.error,
+                        ),
+                      ],
+                    );
+                  }),
+                  SizedBox(height: 2.h),
+                  DailyTaskFilterBar(controller: controller),
+                  SizedBox(height: 6.h),
+                  TaskTabs(filterController: controller),
+                  SizedBox(height: 8.h),
+                  _buildMonthWiseContentCard(controller),
+                  SizedBox(height: 30.h),
+                ],
+              ),
+            ),
           ),
         ),
       ),
-    ),
-  ),
-);
-  }
-
-  Widget _buildStatusCount({
-    required IconData icon,
-    required Color color,
-    required int count,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14.r, color: color),
-        SizedBox(width: 2.w),
-        Text(
-          '$count',
-          style: AppTextStyle.style_12_700(color: color),
-        ),
-      ],
     );
   }
+  // endregion
 
-  Widget _buildTabSelector(DailyTaskFilterController controller) {
+  // region Month Wise Content Card
+  Widget _buildMonthWiseContentCard(DailyTaskFilterController controller) {
     return Container(
-      height: 34.h,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(6.r),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: AppColors.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Obx(() {
-        final isActive = controller.selectedTab.value == 'active';
-        return Stack(
-          children: [
-            AnimatedAlign(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOutCubic,
-              alignment: isActive ? Alignment.centerLeft : Alignment.centerRight,
-              child: FractionallySizedBox(
-                widthFactor: 0.5,
-                heightFactor: 1.0,
-                child: Container(
-                  margin: EdgeInsets.all(2.r),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(5.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+        if (controller.isLoading.value) {
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 40.h),
+            child: const Center(
+              child: CustomAppLoader(),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => controller.changeTab('active'),
-                    child: Center(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: isActive
-                            ? AppTextStyle.style_13_600(color: AppColors.black)
-                            : AppTextStyle.style_13_500(color: AppColors.grey500),
-                        child: Text(
-                          controller.tabActiveCount.value > 0
-                              ? 'Active (${controller.tabActiveCount.value})'
-                              : 'Active',
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => controller.changeTab('completed'),
-                    child: Center(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: !isActive
-                            ? AppTextStyle.style_13_600(color: AppColors.black)
-                            : AppTextStyle.style_13_500(color: AppColors.grey500),
-                        child: Text(
-                          controller.tabCompletedCount.value > 0
-                              ? 'Completed (${controller.tabCompletedCount.value})'
-                              : 'Completed',
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
+          );
+        }
+        return DailyTaskMonthWiseSection(controller: controller);
       }),
     );
   }
+  // endregion
 }
+// endregion
 
+// region DailyTaskMonthWiseSection Widget
 class DailyTaskMonthWiseSection extends StatefulWidget {
   final DailyTaskFilterController controller;
 
@@ -210,6 +172,7 @@ class DailyTaskMonthWiseSection extends StatefulWidget {
 }
 
 class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
+  // region State Variables & Properties
   final Map<String, bool> _expandedMonths = {};
   final Map<String, bool> _expandedWeeks = {};
 
@@ -239,7 +202,9 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
     }
     return sum > 0 ? sum : widget.controller.totalCount.value;
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -250,29 +215,16 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
         return _buildLegacyMonthWise();
       }
 
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header
-            InkWell(
-              onTap: () => widget.controller.isMonthWiseExpanded.value =
-                  !widget.controller.isMonthWiseExpanded.value,
-              borderRadius: BorderRadius.circular(8.r),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                child: Row(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          InkWell(
+            onTap: () => widget.controller.isMonthWiseExpanded.value =
+                !widget.controller.isMonthWiseExpanded.value,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              child: Row(
                   children: [
                     Icon(Icons.calendar_month_outlined,
                         size: 18.r, color: AppColors.black),
@@ -325,11 +277,12 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
               ),
             ],
           ],
-        ),
-      );
-    });
+        );
+      });
   }
+  // endregion
 
+  // region Section Builders
   Widget _buildMonthBlock(Map<String, dynamic> monthData) {
     final monthKey = monthData['month_key']?.toString() ?? '';
     final monthLabel = monthData['month_label'] ?? monthData['month_name'] ?? 'Month';
@@ -557,7 +510,9 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
       ),
     );
   }
+  // endregion
 
+  // region Legacy Fallback Builder
   /// Fallback rendering using legacy monthWiseData map structure
   Widget _buildLegacyMonthWise() {
     return Obx(() {
@@ -591,20 +546,15 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
         });
       }
 
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: () => widget.controller.isMonthWiseExpanded.value =
-                  !widget.controller.isMonthWiseExpanded.value,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                child: Row(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            onTap: () => widget.controller.isMonthWiseExpanded.value =
+                !widget.controller.isMonthWiseExpanded.value,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              child: Row(
                   children: [
                     Icon(Icons.calendar_month_outlined,
                         size: 18.r, color: AppColors.black),
@@ -744,9 +694,10 @@ class _DailyTaskMonthWiseSectionState extends State<DailyTaskMonthWiseSection> {
               ),
             ],
           ],
-        ),
-      );
-    });
+        );
+      });
   }
+  // endregion
 }
+// endregion
 

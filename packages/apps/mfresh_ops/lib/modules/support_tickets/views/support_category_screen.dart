@@ -2,8 +2,6 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_table.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import '../controllers/support_category_controller.dart';
@@ -364,7 +362,6 @@ class SupportCategoryScreen extends StatelessWidget {
     required String label,
     String? hint,
     int maxLines = 1,
-    bool hasError = false,
   }) {
     return AppCommonTextField(
       controller: controller,

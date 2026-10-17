@@ -10,6 +10,7 @@ import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/services.dart';
 
+// region DailyTaskCard Widget
 class DailyTaskCard extends StatefulWidget {
   final TaskItem task;
 
@@ -18,8 +19,11 @@ class DailyTaskCard extends StatefulWidget {
   @override
   State<DailyTaskCard> createState() => _DailyTaskCardState();
 }
+// endregion
 
+// region DailyTaskCard State
 class _DailyTaskCardState extends State<DailyTaskCard> {
+  // region State & Lifecycle
   bool _isExpanded = false;
 
   @override
@@ -31,6 +35,9 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
   void dispose() {
     super.dispose();
   }
+  // endregion
+
+  // region Date & Time Parsing Helpers
 
   DateTime? _parseDateTime(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return null;
@@ -149,7 +156,9 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     } catch (_) {}
     return null;
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
@@ -488,7 +497,9 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
       );
     });
   }
+  // endregion
 
+  // region UI Builders
   Widget _buildStatusBadge({
     required String statusText,
     required Color statusBg,
@@ -587,15 +598,17 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
             ],
             if ((isUpcoming || statusLower == 'upcoming') && !isRejected) ...[
               SizedBox(height: 3.h),
+              Text(
+                'Starts in',
+                style: AppTextStyle.style_8_400(color: const Color(0xFF6C757D)),
+              ),
               Obx(() {
-                final _ = Get.find<TasksController>().currentTime.value;
+                if (Get.isRegistered<TasksController>()) {
+                  final _ = Get.find<TasksController>().currentTime.value;
+                }
                 return Text(
-                  'Starts in ${_getStartsInDuration(task.scheduleDateTime)}',
-                  style: TextStyle(
-                    fontSize: 9.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF212529),
-                  ),
+                  _getStartsInDuration(task.scheduleDateTime),
+                  style: AppTextStyle.style_10_700(color: AppColors.black),
                 );
               }),
             ],
@@ -626,7 +639,9 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
       ],
     );
   }
+  // endregion
 
+  // region Duration & Formatting Helpers
   String _formatCardDate(String dateStr) {
     try {
       final dt = _parseDateTime(dateStr);
@@ -651,49 +666,74 @@ class _DailyTaskCardState extends State<DailyTaskCard> {
     }
   }
 
+  String _formatDuration(Duration difference) {
+    if (difference.isNegative || difference.inSeconds <= 0) {
+      return "0s";
+    }
+
+    final totalSeconds = difference.inSeconds;
+
+    final weeks = totalSeconds ~/ (3600 * 24 * 7);
+    if (weeks >= 4) {
+      final months = weeks ~/ 4;
+      final remWeeks = weeks % 4;
+      return '${months}mo ${remWeeks}w';
+    }
+
+    if (weeks > 0) {
+      final days = (totalSeconds % (3600 * 24 * 7)) ~/ (3600 * 24);
+      return '${weeks}w ${days}d';
+    }
+
+    final days = totalSeconds ~/ (3600 * 24);
+    if (days > 0) {
+      final hours = (totalSeconds % (3600 * 24)) ~/ 3600;
+      return '${days}d ${hours}h';
+    }
+
+    final hours = totalSeconds ~/ 3600;
+    if (hours > 0) {
+      final minutes = (totalSeconds % 3600) ~/ 60;
+      return '${hours}h ${minutes}m';
+    }
+
+    final minutes = totalSeconds ~/ 60;
+    if (minutes > 0) {
+      final seconds = totalSeconds % 60;
+      return '${minutes}m ${seconds}s';
+    }
+
+    return '${totalSeconds}s';
+  }
+
   String _getOverdueDuration(String scheduleStr) {
     try {
       // Calculate overdue from end time of the task, not start time.
       // First get the scheduled date, then overlay the task's end time.
       final task = widget.task;
       final referenceDateTime = _parseEndDateTime(task);
-      if (referenceDateTime == null) return "00:00:00";
+      if (referenceDateTime == null) return "0s";
       final difference = DateTime.now().difference(referenceDateTime);
-      if (difference.isNegative) return "00:00:00";
+      if (difference.isNegative) return "0s";
 
-      final totalSeconds = difference.inSeconds;
-      final days = totalSeconds ~/ (3600 * 24);
-      final hours = (totalSeconds % (3600 * 24)) ~/ 3600;
-      final minutes = (totalSeconds % 3600) ~/ 60;
-      final seconds = totalSeconds % 60;
-
-      // More than 24 hours → show days format
-      if (days > 0) {
-        return '${days}d ${hours}h ${minutes}m';
-      }
-
-      // Under 24 hours → show HH:MM:SS format
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      return _formatDuration(difference);
     } catch (_) {
-      return "00:00:00";
+      return "0s";
     }
   }
 
   String _getStartsInDuration(String? scheduleStr) {
     try {
       final scheduleDateTime = _parseDateTime(scheduleStr);
-      if (scheduleDateTime == null) return "00:00:00";
+      if (scheduleDateTime == null) return "0s";
       final difference = scheduleDateTime.difference(DateTime.now());
-      if (difference.isNegative) return "00:00:00";
+      if (difference.isNegative) return "0s";
 
-      final totalSeconds = difference.inSeconds;
-      final hours = totalSeconds ~/ 3600;
-      final minutes = (totalSeconds % 3600) ~/ 60;
-      final seconds = totalSeconds % 60;
-
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      return _formatDuration(difference);
     } catch (_) {
-      return "00:00:00";
+      return "0s";
     }
   }
+  // endregion
 }
+// endregion

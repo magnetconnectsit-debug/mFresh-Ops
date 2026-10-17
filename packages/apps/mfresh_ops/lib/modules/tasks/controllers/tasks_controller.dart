@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:core/core.dart';
-import 'package:core/utils/app_export_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mfresh_ops/data/models/models.dart';
@@ -16,7 +14,7 @@ import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_submission_dialog.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/edit_recurring_task_choice_dialog.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
+import 'package:mfresh_ops/modules/tasks/controllers/daily_task_filter_controller.dart';
 
 class TasksController extends GetxController {
   final TaskRepository _taskRepository = Get.find<TaskRepository>();
@@ -499,6 +497,9 @@ class TasksController extends GetxController {
   /// Silent refresh after an action (submit/approve/reject/delete).
   /// Does NOT flip [isLoading] so no full-screen or bottom spinner appears.
   Future<void> _refreshDailyTasksSilently() async {
+    if (Get.isRegistered<DailyTaskFilterController>()) {
+      Get.find<DailyTaskFilterController>().fetchFilterData();
+    }
     try {
       isRefreshing.value = true;
       final response = await _taskRepository.getDailyTasks(
@@ -898,6 +899,9 @@ class TasksController extends GetxController {
           type: ToastType.success,
         );
         fetchInitialList();
+        if (Get.isRegistered<DailyTaskFilterController>()) {
+          Get.find<DailyTaskFilterController>().fetchFilterData();
+        }
       } else {
         final errorMsg = response != null && response['message'] != null
             ? response['message'].toString()

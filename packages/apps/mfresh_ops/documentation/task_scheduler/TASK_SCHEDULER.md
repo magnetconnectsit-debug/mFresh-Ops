@@ -57,7 +57,7 @@ packages/apps/mfresh_ops/
 │               ├── task_filter_card.dart         # Project, Unit, Group, Assignee filter card
 │               ├── daily_task_filter_bar.dart    # Filter controls for Month-wise screen
 │               ├── daily_task_filter_card.dart   # Card component for Month-wise screen
-│               ├── task_tabs.dart                # Active vs. Completed segmented tab widget
+│               ├── task_tabs.dart                # Active vs. Completed segmented tab widget powered by AppCommonConnectedTabBar (shared by DailyTasksScreen & DailyTaskFilterScreen)
 │               └── task_stat_item.dart           # Counter stat chip widget
 ```
 
@@ -198,8 +198,8 @@ Tasks are automatically sorted and rendered under three chronological section he
   * *Recurring Mode*: Recurrence summary card with a button launching `AppointmentRecurrenceDialog`.
 * **Step 2: Assignee & Rules**:
   * *Security Group*: Selecting a group triggers `onGroupForCreateChanged(group)` to dynamically re-fetch/filter assignees for that specific group.
-  * *Assignee*: Single-select user dropdown.
-  * *Store (Unit) & Project*: Cascading selection. Focus automatically shifts to the next unselected dropdown.
+  * *Assignee*: Single-select user dropdown (optional; task can be assigned to group/unit or individual).
+  * *Store (Unit) & Project*: Strictly forward-only dropdown progression (`Security Group` -> `Assignee` -> `Store (Unit)` -> `Project`). Selecting a dropdown advances strictly forward to the next unselected dropdown and never jumps backwards to skipped fields. Implemented consistently across Create Task and Edit Task screens. Flexible assignment allows tasks to be assigned to Security Group, Assignee, or Store (Unit).
   * *Photo Required Switch*: Toggles photo requirement on submission.
   * *Approval Required Switch*: If toggled `true`, dynamically reveals `Approver Name / Team` dropdown.
 * **Update Level Selection (Recurring Task Edit Mode Only)**:
@@ -237,8 +237,13 @@ Handles complex multi-mode recurrence patterns:
 
 ### 5.7 Monthly Breakdown View (`DailyTaskFilterScreen`)
 
+* **Filter Bar (`DailyTaskFilterBar`)**:
+  * **Row 1**: Month/Year range picker & Project multi-select dropdown (`AppCommonMultiSelectDropdown<TaskProject>`).
+  * **Row 2**: Security Group multi-select dropdown (`AppCommonMultiSelectDropdown<TaskGroup>`) & Assignee multi-select dropdown (`AppCommonMultiSelectDropdown<AssigneeModel>`).
+  * **Action Row**: Reset button (clears all 4 filter facets) and RBAC-guarded "Create Task" button (`create_new_task` permission).
 * **Header Summary**: Top counters for Completed (green), Active (amber), and Overdue (red).
-* **Sliding Segmented Control**: Smooth animated transition between `Active (count)` and `Completed (count)`.
+* **Sliding Segmented Control & View Mode Switcher (`TaskTabs`)**: Shared reusable segmented control (`isPillStyle: true`, height `34.h`) transitioning between `Active (count)` and `Completed (count)`, paired with the View Mode Switcher (Detail View vs. compact List View).
+* **View Modes**: Supports both Detailed Card View and 1-line Compact List View with tap-to-expand behavior across month-wise task lists.
 * **Hierarchical Accordion Structure**:
   * **Month Block**: Collapsible accordion displaying month name and total count. Defaults to open for current month.
   * **Week Block**: Collapsible accordion nested within each month.
@@ -287,7 +292,7 @@ The edit page operates in a unified, single-column scrollable layout (`maxWidth:
    * Horizontal divider with `16.h` vertical padding.
 
 3. **Assignee & Settings**:
-   * Row 1: `Security Group` and `Assignee` searchable dropdowns. Selecting a security group dynamically filters assignees.
+   * Row 1: `Security Group` and `Assignee` (optional) searchable dropdowns. Selecting a security group dynamically filters assignees.
    * Row 2: `Store (Unit)` and `Project` searchable dropdowns.
    * Row 3: `Photo Required` (switch toggle) and `Approval Required` (switch toggle).
    * Conditional Row 4: `Approver Name/ Team` dropdown (rendered when `Approval Required` is enabled).
@@ -295,7 +300,7 @@ The edit page operates in a unified, single-column scrollable layout (`maxWidth:
 4. **Action Buttons**:
    * Centered row containing:
      * `Cancel`: Outlined button (`height: 32.h`, `width: 90.w`).
-     * `Update Task`: Primary brand orange button (`height: 32.h`, `width: 120.w`), submitting `POST /api/update-task` with `update_level: "1"` (for series) or `update_level: "0"` (for occurrence).
+     * `Update Task`: Primary brand orange button (`height: 32.h`, `width: 120.w`), submitting `POST /api/update-task` with `update_level: "1"` (for series) or `update_level: "0"` (for occurrence). Upon success, automatically triggers data refresh across both daily tasks and `DailyTaskFilterController` (Daily Task by Month).
 
 ---
 
@@ -879,7 +884,7 @@ The `task-create` endpoint creates single ad-hoc tasks or series templates with 
 | `project` | `string` | **Yes** | — | Target project ID passed as String (e.g. `"1"`). |
 | `store` | `string` | **Yes** | — | Target Store / Unit ID passed as String (e.g. `"10"`). |
 | `allgroup` | `string` | **Yes** | — | Target Security Group ID passed as String (e.g. `"3"`). |
-| `assignee` | `string` | **Yes** | — | Target Assignee User ID passed as String (e.g. `"5"`). |
+| `assignee` | `string \| null` | Optional | `null` | Target Assignee User ID passed as String (e.g. `"5"`). Optional assignment. |
 | `start_date` | `string` | **Yes** | — | Start date formatted as `YYYY-MM-DD` (e.g. `"2026-10-15"`). |
 | `end_date` | `string \| null` | Conditional | `null` | End date `YYYY-MM-DD`. Required for recurrence or date-bounded one-time. |
 | `start_time` | `string` | **Yes** | — | Start time in 12-hour format with AM/PM (e.g. `"10:00 AM"`). |
@@ -1692,7 +1697,7 @@ Returned when the logged-in user lacks necessary operational permission (e.g. at
 
 ## 7. Known Issues & Audit Findings
 
-1. **`daily_task_filter_bar.dart`**: The "Create Task" button does not check `create_new_task` permission.
+1. **`daily_task_filter_bar.dart` & `daily_task_filter_screen.dart`**: RESOLVED. In Daily Task By Month, the standalone bottom Reset button was removed and active filters are displayed as horizontally scrollable chips with delete triggers matching Daily Task's design. An inline Reset action is rendered in the header when filters are active, 'Create Task' is placed outside the filter with tight vertical margins, and the 'Active' / 'Completed' tabs are joined directly to the Month Wise content body via `AppCommonConnectedTabBar` eliminating layout space wastage.
 2. **`daily_task_filter_card.dart`**: The Edit and Delete icons do not check `Task_Edit` or `Task_Delete` permissions, nor do they check if the task is already completed/approved.
 3. **`task_review_screen.dart`**: Orphaned view with dummy callbacks. The app currently uses `TaskSubmissionDialog` popup everywhere.
 4. **Pagination in `AllTasksScreen`**: Currently calls `getTasks(perPage: 10000)` and sorts/slices on client. Server-side pagination should be evaluated as datasets scale.

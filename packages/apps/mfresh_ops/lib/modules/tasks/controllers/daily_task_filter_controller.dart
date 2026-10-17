@@ -1,13 +1,22 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mfresh_ops/data/repositories/task_repository.dart';
 import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/data/repositories/task_repository.dart';
+import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
+// endregion
 
+// region DailyTaskFilterController Class
 class DailyTaskFilterController extends GetxController {
+  // region Dependencies & Repositories
   final TaskRepository _taskRepository = Get.find<TaskRepository>();
+  // endregion
 
+  // region Observables & State Variables
   final RxBool isLoading = false.obs;
   final RxString selectedTab = 'active'.obs; // 'active' or 'completed'
+  final RxBool isListView = false.obs;
+  final RxString expandedTaskId = ''.obs;
 
   // Summary & status counts
   final RxInt activeCount = 0.obs;
@@ -43,13 +52,23 @@ class DailyTaskFilterController extends GetxController {
 
   // New API structure: list of month objects each with weeks > tasks
   final RxList<Map<String, dynamic>> taskDataList = <Map<String, dynamic>>[].obs;
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
+    if (Get.isRegistered<TasksController>()) {
+      final tc = Get.find<TasksController>();
+      if (tc.projects.isNotEmpty) projectsOptions.assignAll(tc.projects);
+      if (tc.groups.isNotEmpty) groupsOptions.assignAll(tc.groups);
+      if (tc.assignees.isNotEmpty) assigneesOptions.assignAll(tc.assignees);
+    }
     fetchFilterData();
   }
+  // endregion
 
+  // region API & Network Operations
   Future<void> fetchFilterData() async {
     isLoading.value = true;
     try {
@@ -140,7 +159,25 @@ class DailyTaskFilterController extends GetxController {
           }
           if (options['groups'] != null && options['groups'] is List) {
             groupsOptions.assignAll(
-              (options['groups'] as List).map((e) => TaskGroup.fromJson(e)).toList(),
+              (options['groups'] as List).map((e) {
+                final id = e['id'] is int
+                    ? e['id'] as int
+                    : int.tryParse(e['id']?.toString() ?? '') ?? 0;
+                final roleNm = e['RoleNm'] ??
+                    e['roleName'] ??
+                    e['rolename'] ??
+                    e['name'] ??
+                    '';
+                return TaskGroup(
+                  id: id,
+                  type: e['type']?.toString() ?? '',
+                  roleName: roleNm.toString(),
+                  roleVal: e['Role_val']?.toString() ?? '0',
+                  roleFor: e['rolefor']?.toString() ?? '0',
+                  createdAt: e['created_at']?.toString() ?? '',
+                  updatedAt: e['updated_at']?.toString() ?? '',
+                );
+              }).toList(),
             );
           }
           if (options['assignees'] != null && options['assignees'] is List) {
@@ -150,24 +187,36 @@ class DailyTaskFilterController extends GetxController {
           }
           if (options['projects'] != null && options['projects'] is List) {
             projectsOptions.assignAll(
-              (options['projects'] as List).map((e) => TaskProject.fromJson({
-                'projectid': e['id'],
-                'projectname': e['project'] ?? e['projectname'] ?? '',
-              })).toList(),
+              (options['projects'] as List).map((e) {
+                final id = e['id'] is int
+                    ? e['id'] as int
+                    : (e['projectid'] is int
+                        ? e['projectid'] as int
+                        : int.tryParse(
+                                (e['id'] ?? e['projectid'])?.toString() ??
+                                    '') ??
+                            0);
+                final name = e['project'] ??
+                    e['projectname'] ??
+                    e['projectName'] ??
+                    '';
+                return TaskProject(
+                  projectId: id,
+                  projectName: name.toString(),
+                );
+              }).toList(),
             );
           }
         }
 
-        // Parse task_data - new API returns a list of month objects with weeks
+        // Parse task_data - returns a list of month objects with weeks
         if (data['task_data'] != null) {
           final taskData = data['task_data'];
           if (taskData is List) {
-            // New format: list of month objects
             taskDataList.assignAll(
               taskData.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
             );
           } else if (taskData is Map) {
-            // Legacy format
             final taskDataMap = taskData as Map<String, dynamic>;
             if (taskDataMap['month_wise'] != null && taskDataMap['month_wise'] is Map) {
               monthWiseData.assignAll(Map<String, dynamic>.from(taskDataMap['month_wise'] as Map));
@@ -192,11 +241,30 @@ class DailyTaskFilterController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
+
+  // region Business Logic & Helpers
+  bool get isFiltered =>
+      selectedProjects.isNotEmpty ||
+      selectedGroups.isNotEmpty ||
+      selectedAssignees.isNotEmpty ||
+      selectedUnits.isNotEmpty ||
+      (selectedYear.value != null && selectedYear.value != DateTime.now().year) ||
+      (selectedFromMonth.value != null && selectedFromMonth.value != DateTime.now().month) ||
+      (selectedToMonth.value != null && selectedToMonth.value != DateTime.now().month);
 
   void changeTab(String tab) {
     if (selectedTab.value != tab) {
       selectedTab.value = tab;
       fetchFilterData();
+    }
+  }
+
+  void toggleExpandedTask(String taskKey) {
+    if (expandedTaskId.value == taskKey) {
+      expandedTaskId.value = '';
+    } else {
+      expandedTaskId.value = taskKey;
     }
   }
 
@@ -210,4 +278,6 @@ class DailyTaskFilterController extends GetxController {
     selectedProjects.clear();
     fetchFilterData();
   }
+  // endregion
 }
+// endregion
