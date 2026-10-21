@@ -117,7 +117,7 @@ class AppCommonExportButton extends StatelessWidget {
       end: Alignment.bottomCenter,
     );
 
-    final btnHeight = height ?? 24.h;
+    final btnHeight = height ?? 22.h;
 
     return Material(
       color: Colors.transparent,

@@ -75,38 +75,27 @@ class LoginScreen extends StatelessWidget {
 
   // region Section Builders
   Widget _buildCard(BuildContext context, LoginController controller) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1.r,
+    final tabHeight = 88.h;
+
+    return Obx(() {
+      final selectedTab = controller.selectedTab.value;
+
+      return CustomPaint(
+        painter: _ElevatedTabCardPainter(
+          selectedIndex: selectedTab,
+          tabHeight: tabHeight,
+          cornerRadius: 16.r,
+          junctionRadius: 14.r,
+          borderColor: AppColors.borderColor,
+          inactiveTabColor: const Color(0xFFF1F5F9),
+          cardColor: AppColors.white,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.06),
-            blurRadius: 20.r,
-            spreadRadius: 0,
-            offset: Offset(0, 6.h),
-          ),
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.02),
-            blurRadius: 6.r,
-            spreadRadius: 0,
-            offset: Offset(0, 2.h),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15.r),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Top Connected Tabs Header with Border & Contrast ──
-            _buildTabHeader(controller),
+            // ── Top Connected Tabs Header ──
+            _buildTabHeader(controller, tabHeight),
 
             // ── Form Content ──
             Padding(
@@ -142,51 +131,39 @@ class LoginScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
+    });
   }
 
-  Widget _buildTabHeader(LoginController controller) {
+  Widget _buildTabHeader(LoginController controller, double tabHeight) {
     return Obx(() {
       final selectedTab = controller.selectedTab.value;
 
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _buildTabItem(
-                    controller: controller,
-                    tabIndex: 0,
-                    title: 'Booking',
-                    type: LoginTabType.booking,
-                    isSelected: selectedTab == 0,
-                  ),
-                ),
-                Container(
-                  width: 1.r,
-                  color: AppColors.borderColor,
-                ),
-                Expanded(
-                  child: _buildTabItem(
-                    controller: controller,
-                    tabIndex: 1,
-                    title: 'Operation',
-                    type: LoginTabType.operation,
-                    isSelected: selectedTab == 1,
-                  ),
-                ),
-              ],
+      return SizedBox(
+        height: tabHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _buildTabItem(
+                controller: controller,
+                tabIndex: 0,
+                title: 'Booking',
+                type: LoginTabType.booking,
+                isSelected: selectedTab == 0,
+              ),
             ),
-          ),
-          Container(
-            height: 1.r,
-            color: AppColors.borderColor,
-          ),
-        ],
+            Expanded(
+              child: _buildTabItem(
+                controller: controller,
+                tabIndex: 1,
+                title: 'Operation',
+                type: LoginTabType.operation,
+                isSelected: selectedTab == 1,
+              ),
+            ),
+          ],
+        ),
       );
     });
   }
@@ -201,52 +178,48 @@ class LoginScreen extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => controller.selectTab(tabIndex),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        color: isSelected ? AppColors.white : const Color(0xFFF8FAFC),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 12.h, bottom: 6.h),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LoginTabAnimationWidget(
-                    type: type,
-                    isSelected: isSelected,
-                    size: 46.r,
-                  ),
-                  SizedBox(height: 3.h),
-                  Text(
-                    title,
-                    style: isSelected
-                        ? AppTextStyle.style_14_700(color: AppColors.primary)
-                        : AppTextStyle.style_14_600(color: AppColors.iconPrimary),
-                  ),
-                ],
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: 12.h, bottom: 6.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LoginTabAnimationWidget(
+                  type: type,
+                  isSelected: isSelected,
+                  size: 46.r,
+                ),
+                SizedBox(height: 3.h),
+                Text(
+                  title,
+                  style: isSelected
+                      ? AppTextStyle.style_14_700(color: AppColors.primary)
+                      : AppTextStyle.style_14_600(color: AppColors.iconPrimary),
+                ),
+              ],
             ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: 3.h,
-              width: isSelected ? 76.w : 0,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : AppColors.transparent,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(3.r)),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.45),
-                          blurRadius: 4.r,
-                          offset: Offset(0, -1.h),
-                        ),
-                      ]
-                    : null,
-              ),
+          ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 3.h,
+            width: isSelected ? 76.w : 0,
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : AppColors.transparent,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(3.r)),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.45),
+                        blurRadius: 4.r,
+                        offset: Offset(0, -1.h),
+                      ),
+                    ]
+                  : null,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -637,5 +610,178 @@ class _LoginTabAnimationWidgetState extends State<LoginTabAnimationWidget>
 
   // endregion
 }
+// endregion
 
+// region Elevated Tab Card Painter
+class _ElevatedTabCardPainter extends CustomPainter {
+  final int selectedIndex;
+  final double tabHeight;
+  final double cornerRadius;
+  final double junctionRadius;
+  final Color borderColor;
+  final Color inactiveTabColor;
+  final Color cardColor;
+
+  _ElevatedTabCardPainter({
+    required this.selectedIndex,
+    required this.tabHeight,
+    this.cornerRadius = 16.0,
+    this.junctionRadius = 14.0,
+    this.borderColor = AppColors.borderColor,
+    this.inactiveTabColor = const Color(0xFFF1F5F9),
+    this.cardColor = AppColors.white,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final th = tabHeight;
+    final midX = w / 2;
+    final rOut = cornerRadius;
+    final rJ = junctionRadius;
+    final rTop = 16.r;
+
+    final paintBorder = Paint()
+      ..color = borderColor
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final elevatedPath = Path();
+
+    if (selectedIndex == 1) {
+      // ══════════════════════════════════════════════════════════════
+      // ── Tab 1 (Operation) is Active; Tab 0 (Booking) is Inactive ──
+      // ══════════════════════════════════════════════════════════════
+
+      // 1. Draw Inactive Tab in notch [0, midX] x [0, th] with all rounded corners
+      final notchPath = Path();
+      notchPath.moveTo(0, rOut);
+      notchPath.quadraticBezierTo(0, 0, rOut, 0);
+      notchPath.lineTo(midX - rTop, 0);
+      notchPath.quadraticBezierTo(midX, 0, midX, rTop);
+      notchPath.lineTo(midX, th - rJ);
+      notchPath.quadraticBezierTo(midX, th, midX - rJ, th);
+      notchPath.lineTo(rOut, th);
+      notchPath.quadraticBezierTo(0, th, 0, th + rOut);
+      notchPath.lineTo(0, rOut);
+      notchPath.close();
+
+      canvas.drawPath(notchPath, Paint()..color = inactiveTabColor);
+
+      // Inactive tab outer border (top and left edges with curves)
+      final notchBorder = Path();
+      notchBorder.moveTo(0, th + rOut);
+      notchBorder.lineTo(0, rOut);
+      notchBorder.quadraticBezierTo(0, 0, rOut, 0);
+      notchBorder.lineTo(midX - rTop, 0);
+      notchBorder.quadraticBezierTo(midX, 0, midX, rTop);
+      canvas.drawPath(notchBorder, paintBorder);
+
+      // 2. Build Elevated Active Shape (Active Tab + Card Body)
+      elevatedPath.moveTo(midX + rTop, 0);
+      elevatedPath.lineTo(w - rOut, 0);
+      elevatedPath.quadraticBezierTo(w, 0, w, rOut);
+      elevatedPath.lineTo(w, h - rOut);
+      elevatedPath.quadraticBezierTo(w, h, w - rOut, h);
+      elevatedPath.lineTo(rOut, h);
+      elevatedPath.quadraticBezierTo(0, h, 0, h - rOut);
+      // Up left edge of card to outer junction curve under inactive tab
+      elevatedPath.lineTo(0, th + rOut);
+      elevatedPath.quadraticBezierTo(0, th, rOut, th);
+      // Across bottom of inactive tab towards vertical divider
+      elevatedPath.lineTo(midX - rJ, th);
+      // Smooth junction curve into vertical divider
+      elevatedPath.quadraticBezierTo(midX, th, midX, th - rJ);
+      // Up vertical divider to top-left curve of active tab
+      elevatedPath.lineTo(midX, rTop);
+      elevatedPath.quadraticBezierTo(midX, 0, midX + rTop, 0);
+      elevatedPath.close();
+    } else {
+      // ══════════════════════════════════════════════════════════════
+      // ── Tab 0 (Booking) is Active; Tab 1 (Operation) is Inactive ──
+      // ══════════════════════════════════════════════════════════════
+
+      // 1. Draw Inactive Tab in notch [midX, w] x [0, th] with all rounded corners
+      final notchPath = Path();
+      notchPath.moveTo(midX, rTop);
+      notchPath.quadraticBezierTo(midX, 0, midX + rTop, 0);
+      notchPath.lineTo(w - rOut, 0);
+      notchPath.quadraticBezierTo(w, 0, w, rOut);
+      notchPath.lineTo(w, th + rOut);
+      notchPath.quadraticBezierTo(w, th, w - rOut, th);
+      notchPath.lineTo(midX + rJ, th);
+      notchPath.quadraticBezierTo(midX, th, midX, th - rJ);
+      notchPath.close();
+
+      canvas.drawPath(notchPath, Paint()..color = inactiveTabColor);
+
+      // Inactive tab outer border (top and right edges with curves)
+      final notchBorder = Path();
+      notchBorder.moveTo(midX, rTop);
+      notchBorder.quadraticBezierTo(midX, 0, midX + rTop, 0);
+      notchBorder.lineTo(w - rOut, 0);
+      notchBorder.quadraticBezierTo(w, 0, w, rOut);
+      notchBorder.lineTo(w, th + rOut);
+      canvas.drawPath(notchBorder, paintBorder);
+
+      // 2. Build Elevated Active Shape (Active Tab + Card Body)
+      elevatedPath.moveTo(0, rOut);
+      elevatedPath.quadraticBezierTo(0, 0, rOut, 0);
+      // Across top of active tab (Booking) to top-right curve
+      elevatedPath.lineTo(midX - rTop, 0);
+      elevatedPath.quadraticBezierTo(midX, 0, midX, rTop);
+      // Down vertical divider to inner junction curve
+      elevatedPath.lineTo(midX, th - rJ);
+      elevatedPath.quadraticBezierTo(midX, th, midX + rJ, th);
+      // Across bottom of inactive tab towards outer right curve
+      elevatedPath.lineTo(w - rOut, th);
+      elevatedPath.quadraticBezierTo(w, th, w, th + rOut);
+      // Down right edge of card
+      elevatedPath.lineTo(w, h - rOut);
+      elevatedPath.quadraticBezierTo(w, h, w - rOut, h);
+      // Across bottom of card
+      elevatedPath.lineTo(rOut, h);
+      elevatedPath.quadraticBezierTo(0, h, 0, h - rOut);
+      // Up left edge of card to top-left
+      elevatedPath.lineTo(0, rOut);
+      elevatedPath.close();
+    }
+
+    // ── 3. Draw Elevation Drop Shadows on ALL sides of Elevated Active Shape ──
+    // Ambient soft blur shadow (spreads equally on all sides including top and junction)
+    final shadowAmbient = Paint()
+      ..color = AppColors.black.withValues(alpha: 0.05)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12.r);
+    canvas.drawPath(elevatedPath, shadowAmbient);
+
+    // Directional elevation drop shadow (creates downward depth on surface)
+    final shadowElevation = Paint()
+      ..color = AppColors.black.withValues(alpha: 0.08)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 20.r);
+    canvas.drawPath(elevatedPath.shift(Offset(0, 6.h)), shadowElevation);
+
+    final shadowContact = Paint()
+      ..color = AppColors.black.withValues(alpha: 0.03)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6.r);
+    canvas.drawPath(elevatedPath.shift(Offset(0, 2.h)), shadowContact);
+
+    // ── 4. Fill Elevated Active Shape Surface ──
+    canvas.drawPath(elevatedPath, Paint()..color = cardColor);
+
+    // ── 5. Draw Crisp Perimeter Border for Elevated Active Shape ──
+    canvas.drawPath(elevatedPath, paintBorder);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ElevatedTabCardPainter oldDelegate) {
+    return oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.tabHeight != tabHeight ||
+        oldDelegate.cornerRadius != cornerRadius ||
+        oldDelegate.junctionRadius != junctionRadius ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.inactiveTabColor != inactiveTabColor ||
+        oldDelegate.cardColor != cardColor;
+  }
+}
 // endregion

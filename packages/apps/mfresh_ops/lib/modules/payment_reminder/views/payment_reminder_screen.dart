@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/payment_reminder_controller.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/widgets/payment_reminder_filter_card.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/widgets/payment_reminder_table.dart';
 import 'package:mfresh_ops/modules/payment_reminder/views/create_payment_reminder_screen.dart';
-import 'package:core/widgets/app_common_search_bar.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 

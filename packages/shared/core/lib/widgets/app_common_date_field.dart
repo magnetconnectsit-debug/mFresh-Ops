@@ -210,15 +210,18 @@ class _AppCommonDateFieldState extends State<AppCommonDateField> {
   @override
   Widget build(BuildContext context) {
     final isInteractive = widget.enabled && !widget.readOnly;
-    final defaultBgColor = isInteractive ? AppColors.white : const Color(0xFFF1F3F5);
+    final defaultBgColor =
+        isInteractive ? AppColors.aliceBlue : const Color(0xFFF1F3F5);
 
-    final cleanLabel = widget.labelText?.replaceAll(' *', '').replaceAll('*', '').trim();
+    final cleanLabel =
+        widget.labelText?.replaceAll(' *', '').replaceAll('*', '').trim();
 
     return AppCommonTextField(
       controller: _effectiveController,
       labelText: cleanLabel,
       hintText: widget.hintText,
-      isRequired: widget.isRequired || (widget.labelText != null && widget.labelText!.contains('*')),
+      isRequired: widget.isRequired ||
+          (widget.labelText != null && widget.labelText!.contains('*')),
       readOnly: true,
       enabled: isInteractive,
       onTap: isInteractive ? _handleTap : null,
@@ -233,7 +236,7 @@ class _AppCommonDateFieldState extends State<AppCommonDateField> {
             padding: EdgeInsets.only(right: 6.w),
             child: Icon(
               Icons.calendar_today_outlined,
-              color: AppColors.grey200,
+              color: AppColors.grey300,
               size: 14.r,
             ),
           ),

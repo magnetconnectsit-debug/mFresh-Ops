@@ -178,7 +178,7 @@ class _AuditSmallUnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = unit.shortForm.isNotEmpty ? unit.shortForm : unit.name;
+    final title = unit.name;
     final subtitle = unit.location.isNotEmpty ? unit.location : '';
     final label = subtitle.isNotEmpty ? '$title, $subtitle' : title;
 

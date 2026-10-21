@@ -13,10 +13,13 @@ import 'dart:io';
 import 'package:mfresh_ops/core/utils/app_media_compressor.dart';
 
 class CreateTicketController extends GetxController {
+  // region Dependencies & Repositories
   final CommonRepository _commonRepository = Get.find<CommonRepository>();
   final SupportRepository _supportRepository = Get.find<SupportRepository>();
   final StorageService _storageService = Get.find<StorageService>();
+  // endregion
 
+  // region Observables & State Variables
   final occurredDate = DateTime.now().obs;
   final isLoading = false.obs;
   final isSubCategoryLoading = false.obs;
@@ -48,7 +51,20 @@ class CreateTicketController extends GetxController {
   final displayReminder = 'Reminder'.obs;
 
   final subjectText = ''.obs;
+  final showValidationErrors = false.obs;
+  final selectedImages = <XFile>[].obs;
+  final selectedVideos = <File>[].obs;
+  final ImagePicker _picker = ImagePicker();
+  // endregion
 
+  // region Text Controllers & Focus Nodes
+  final reminderController = TextEditingController();
+  final subjectController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final subtaskControllers = <TextEditingController>[].obs;
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -58,6 +74,20 @@ class CreateTicketController extends GetxController {
     });
   }
 
+  @override
+  void onClose() {
+    reminderController.dispose();
+    subjectController.dispose();
+    descriptionController.dispose();
+    for (var c in subtaskControllers) {
+      c.dispose();
+    }
+    subtaskControllers.clear();
+    super.onClose();
+  }
+  // endregion
+
+  // region Data Loading & Dropdowns
   Future<void> fetchAllData() async {
     try {
       isLoading.value = true;
@@ -179,13 +209,9 @@ class CreateTicketController extends GetxController {
       fetchSubCategories(category.categoryId);
     }
   }
+  // endregion
 
-  final reminderController = TextEditingController();
-  final subjectController = TextEditingController();
-  final descriptionController = TextEditingController();
-
-  final subtaskControllers = <TextEditingController>[].obs;
-
+  // region Subtasks & Templates
   void addSubtaskField({String text = ''}) {
     subtaskControllers.add(TextEditingController(text: text));
   }
@@ -215,11 +241,9 @@ class CreateTicketController extends GetxController {
       }
     }
   }
+  // endregion
 
-  final selectedImages = <XFile>[].obs;
-  final selectedVideos = <File>[].obs;
-  final ImagePicker _picker = ImagePicker();
-
+  // region Date, Time & Reminder Helpers
   Future<void> selectDate(BuildContext context, {VoidCallback? onSelected}) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -252,7 +276,9 @@ class CreateTicketController extends GetxController {
     final int displayHour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
     return '${displayHour.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}-$period';
   }
+  // endregion
 
+  // region Media Handling
   Future<void> pickImages() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
@@ -342,12 +368,11 @@ class CreateTicketController extends GetxController {
   void removeVideo(int index) {
     selectedVideos.removeAt(index);
   }
+  // endregion
 
-  final showValidationErrors = false.obs;
-
+  // region Form Operations & Ticket Creation
   Future<void> createTicket() async {
     if (selectedCategory.value == null ||
-        selectedSubCategory.value == null ||
         selectedAssignee.value == null ||
         selectedUnit.value == null ||
         selectedProject.value == null ||
@@ -448,7 +473,9 @@ class CreateTicketController extends GetxController {
       AppMediaCompressor.clearCache();
     }
   }
+  // endregion
 
+  // region Helpers
   String _getPriorityId(String? priority) {
     switch (priority) {
       case 'Low':
@@ -463,16 +490,5 @@ class CreateTicketController extends GetxController {
         return '2';
     }
   }
-
-  @override
-  void onClose() {
-    reminderController.dispose();
-    subjectController.dispose();
-    descriptionController.dispose();
-    for (var c in subtaskControllers) {
-      c.dispose();
-    }
-    subtaskControllers.clear();
-    super.onClose();
-  }
+  // endregion
 }

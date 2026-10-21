@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mfresh_ops/modules/payment_reminder/controllers/create_payment_reminder_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/appointment_recurrence_dialog.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 
 class ReminderSetupDialog extends StatefulWidget {
   final CreatePaymentReminderController controller;

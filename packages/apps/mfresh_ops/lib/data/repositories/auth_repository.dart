@@ -1,10 +1,13 @@
 // region Imports
 import 'dart:io';
 import 'package:android_id/android_id.dart';
+import 'package:core/core.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:dio/dio.dart' as dio;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
@@ -22,6 +25,8 @@ class AuthRepository extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
   final rxUserPermissions = <String>[].obs;
+  final rxIsCheckedIn = false.obs;
+  final isSubmittingAttendance = false.obs;
   // endregion
 
   // region Lifecycle Methods
@@ -30,6 +35,7 @@ class AuthRepository extends GetxService {
     super.onInit();
     final user = _storageService.getUser() as User?;
     rxUserPermissions.assignAll(user?.permissions ?? []);
+    rxIsCheckedIn.value = user?.isCheckedIn ?? false;
   }
   // endregion
 
@@ -102,12 +108,8 @@ class AuthRepository extends GetxService {
         await Firebase.initializeApp();
       }
       final FirebaseMessaging messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
+
       // On iOS, the FCM token requires the APNs token to be generated first.
       if (Platform.isIOS) {
         String? apnsToken = await messaging.getAPNSToken();
@@ -116,7 +118,7 @@ class AuthRepository extends GetxService {
           apnsToken = await messaging.getAPNSToken();
         }
       }
-      
+
       final token = await messaging.getToken();
       if (token != null && token.isNotEmpty) {
         fcmToken = token;
@@ -168,6 +170,7 @@ class AuthRepository extends GetxService {
           }
           await _storageService.saveUser(user);
           rxUserPermissions.assignAll(user.permissions ?? []);
+          rxIsCheckedIn.value = user.isCheckedIn ?? false;
 
           try {
             Get.find<TrackingService>().startAutoTracking();
@@ -194,11 +197,12 @@ class AuthRepository extends GetxService {
         final user = User.fromJson(response);
         await _storageService.saveUser(user);
         rxUserPermissions.assignAll(user.permissions ?? []);
-        
+        rxIsCheckedIn.value = user.isCheckedIn ?? false;
+
         try {
           Get.find<TrackingService>().startAutoTracking();
         } catch (_) {}
-        
+
         return user;
       }
       return null;
@@ -214,7 +218,9 @@ class AuthRepository extends GetxService {
         try {
           await Get.find<TrackingService>().stopTracking();
         } catch (e) {
-          debugPrint('AuthRepository: stopTracking Exception during logout: $e');
+          debugPrint(
+            'AuthRepository: stopTracking Exception during logout: $e',
+          );
         }
       } catch (e) {
         debugPrint('AuthRepository: dutyOff Exception during logout: $e');
@@ -224,6 +230,7 @@ class AuthRepository extends GetxService {
       if (response != null && response['status'] == true) {
         await _storageService.clearAllStorage();
         rxUserPermissions.clear();
+        rxIsCheckedIn.value = false;
         return true;
       }
       return false;
@@ -231,6 +238,7 @@ class AuthRepository extends GetxService {
       // Even if API fails, we should clear local storage for safety on logout
       await _storageService.clearAllStorage();
       rxUserPermissions.clear();
+      rxIsCheckedIn.value = false;
       return true;
     }
   }
@@ -241,7 +249,7 @@ class AuthRepository extends GetxService {
         AppConstants.sendOtp,
         data: {'mob': mobile},
       );
-      
+
       if (response != null) {
         if (response['status'] == true) {
           return true;
@@ -266,7 +274,7 @@ class AuthRepository extends GetxService {
       final response = await _apiService.post(
         AppConstants.verifyOtp,
         data: {
-          'mob': mobile, 
+          'mob': mobile,
           'otp': otp,
           'device_id': devInfo['device_id'],
           'is_dev': devInfo['is_dev'],
@@ -288,6 +296,7 @@ class AuthRepository extends GetxService {
           }
           await _storageService.saveUser(user);
           rxUserPermissions.assignAll(user.permissions ?? []);
+          rxIsCheckedIn.value = user.isCheckedIn ?? false;
 
           return user;
         } else if (response['error'] != null) {
@@ -302,5 +311,199 @@ class AuthRepository extends GetxService {
     }
   }
   // endregion
+
+  // region Attendance (Check-In & Check-Out)
+  Future<bool> attendanceCheckIn({
+    required String imagePath,
+    String? unitId,
+    double? latitude,
+    double? longitude,
+  }) async {
+    try {
+      isSubmittingAttendance.value = true;
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        throw Exception('Captured image file not found.');
+      }
+
+      double? lat = latitude;
+      double? lng = longitude;
+      if (lat == null || lng == null) {
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 4),
+          );
+          lat ??= pos.latitude;
+          lng ??= pos.longitude;
+        } catch (_) {
+          try {
+            final lastPos = await Geolocator.getLastKnownPosition();
+            if (lastPos != null) {
+              lat ??= lastPos.latitude;
+              lng ??= lastPos.longitude;
+            }
+          } catch (e) {
+            debugPrint('Failed to get location for check-in: $e');
+          }
+        }
+      }
+
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      final Map<String, dynamic> dataMap = {
+        'image': await dio.MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+        if (unitId != null && unitId.isNotEmpty) 'unit_id': unitId,
+        if (lat != null) 'latitude': lat,
+        if (lng != null) 'longitude': lng,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'long': lng,
+      };
+      final formData = dio.FormData.fromMap(dataMap);
+
+      final response = await _apiService.post(
+        AppConstants.attendanceCheckIn,
+        data: formData,
+      );
+
+      if (response != null &&
+          (response['status'] == true ||
+              response['status'] == 'success' ||
+              response['success'] == true)) {
+        rxIsCheckedIn.value = true;
+
+        final currentUser = _storageService.getUser() as User?;
+        if (currentUser != null) {
+          final updatedUser = currentUser.copyWith(
+            isCheckedIn: true,
+          );
+          await _storageService.saveUser(updatedUser);
+        }
+
+        final msg =
+            response['message']?.toString() ?? 'Checked in successfully.';
+        AppCommonToastMessage.show(message: msg, type: ToastType.success);
+
+        fetchProfile();
+        return true;
+      } else {
+        final errorMsg =
+            response?['message']?.toString() ??
+            response?['error']?.toString() ??
+            'Failed to check in. Please try again.';
+        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error in attendanceCheckIn: $e');
+      AppCommonToastMessage.show(
+        message:
+            'Error during check-in: ${e.toString().replaceAll("Exception: ", "")}',
+        type: ToastType.error,
+      );
+      return false;
+    } finally {
+      isSubmittingAttendance.value = false;
+    }
+  }
+
+  Future<bool> attendanceCheckOut({
+    required String imagePath,
+    double? latitude,
+    double? longitude,
+  }) async {
+    try {
+      isSubmittingAttendance.value = true;
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        throw Exception('Captured image file not found.');
+      }
+
+      double? lat = latitude;
+      double? lng = longitude;
+      if (lat == null || lng == null) {
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 4),
+          );
+          lat ??= pos.latitude;
+          lng ??= pos.longitude;
+        } catch (_) {
+          try {
+            final lastPos = await Geolocator.getLastKnownPosition();
+            if (lastPos != null) {
+              lat ??= lastPos.latitude;
+              lng ??= lastPos.longitude;
+            }
+          } catch (e) {
+            debugPrint('Failed to get location for check-out: $e');
+          }
+        }
+      }
+
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      final Map<String, dynamic> dataMap = {
+        'image': await dio.MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+        if (lat != null) 'latitude': lat,
+        if (lng != null) 'longitude': lng,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'long': lng,
+      };
+      final formData = dio.FormData.fromMap(dataMap);
+
+      final response = await _apiService.post(
+        AppConstants.attendanceCheckOut,
+        data: formData,
+      );
+
+      if (response != null &&
+          (response['status'] == true ||
+              response['status'] == 'success' ||
+              response['success'] == true)) {
+        rxIsCheckedIn.value = false;
+
+        final currentUser = _storageService.getUser() as User?;
+        if (currentUser != null) {
+          final updatedUser = currentUser.copyWith(
+            isCheckedIn: false,
+          );
+          await _storageService.saveUser(updatedUser);
+        }
+
+        final msg =
+            response['message']?.toString() ?? 'Checked out successfully.';
+        AppCommonToastMessage.show(message: msg, type: ToastType.success);
+
+        fetchProfile();
+        return true;
+      } else {
+        final errorMsg =
+            response?['message']?.toString() ??
+            response?['error']?.toString() ??
+            'Failed to check out. Please try again.';
+        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error in attendanceCheckOut: $e');
+      AppCommonToastMessage.show(
+        message:
+            'Error during check-out: ${e.toString().replaceAll("Exception: ", "")}',
+        type: ToastType.error,
+      );
+      return false;
+    } finally {
+      isSubmittingAttendance.value = false;
+    }
+  }
+
+  // endregion
 }
+
 // endregion

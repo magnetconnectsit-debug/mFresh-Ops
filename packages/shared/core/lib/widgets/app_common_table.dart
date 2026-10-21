@@ -493,6 +493,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
     double minWidth,
     Color borderColor, {
     bool isHeader = false,
+    double? rowMinHeight,
   }) {
     if (colIndex >= totalCols - 1) {
       return const SizedBox.shrink();
@@ -520,9 +521,19 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
       );
     }
 
+    final line = Container(width: 1.0, color: borderColor);
+
+    if (rowMinHeight != null) {
+      // Direct Container (no Center) so it fills the constrained height.
+      return ConstrainedBox(
+        constraints: BoxConstraints(minHeight: rowMinHeight),
+        child: Container(width: sepWidth, color: borderColor),
+      );
+    }
+
     return SizedBox(
       width: sepWidth,
-      child: Center(child: Container(width: 1.0, color: borderColor)),
+      child: Center(child: line),
     );
   }
 
@@ -564,6 +575,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
 
     final Widget skeletonList = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: List.generate(skeletonCount, (rowIndex) {
         final isEven = rowIndex % 2 == 0;
         final rowBg = widget.showStripedRows && !isEven
@@ -576,49 +588,48 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
               color: rowBg,
               border: Border(bottom: BorderSide(color: borderColor)),
             ),
-            child: IntrinsicHeight(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: rowHeight),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (
-                      int colIndex = 0;
-                      colIndex < numColumns;
-                      colIndex++
-                    ) ...[
-                      Builder(
-                        builder: (context) {
-                          final colWidth = _getEffectiveColWidth(colIndex);
-                          return Container(
-                            width: colWidth,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: widget.cellHorizontalPadding ?? 6.w,
-                              vertical: widget.cellVerticalPadding ?? 4.h,
+            child: SizedBox(
+              height: rowHeight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (
+                    int colIndex = 0;
+                    colIndex < numColumns;
+                    colIndex++
+                  ) ...[
+                    Builder(
+                      builder: (context) {
+                        final colWidth = _getEffectiveColWidth(colIndex);
+                        return Container(
+                          width: colWidth,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: widget.cellHorizontalPadding ?? 6.w,
+                            vertical: widget.cellVerticalPadding ?? 4.h,
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Loading Task Item',
+                            style: AppTextStyle.style_11_400(
+                              color: AppColors.black,
                             ),
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Loading Task Item',
-                              style: AppTextStyle.style_11_400(
-                                color: AppColors.black,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        },
-                      ),
-                      _buildColumnSeparator(
-                        colIndex,
-                        numColumns,
-                        40.0,
-                        borderColor,
-                        isHeader: false,
-                      ),
-                    ],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
+                    ),
+                    _buildColumnSeparator(
+                      colIndex,
+                      numColumns,
+                      40.0,
+                      borderColor,
+                      isHeader: false,
+                      rowMinHeight: rowHeight,
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
@@ -658,6 +669,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
     if (availableHeight == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: List.generate(
           items.length,
           (rowIndex) => _buildTypedRow(items[rowIndex], rowIndex, borderColor),
@@ -711,27 +723,31 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
               final cellBgColor = col.cellColorGetter?.call(item);
 
               Widget cellContent;
-              if (col.cellBuilder != null) {
-                cellContent = col.cellBuilder!(
-                  context,
-                  item,
-                  rowIndex,
-                  isExpanded,
-                );
-              } else {
-                final textValue = col.valueGetter != null
-                    ? col.valueGetter!(item)
-                    : (item.toString());
-                cellContent = Text(
-                  textValue,
-                  style:
-                      widget.dataTextStyle ??
-                      AppTextStyle.style_11_500(color: AppColors.black),
-                  maxLines: isExpanded ? null : 1,
-                  overflow: isExpanded
-                      ? TextOverflow.visible
-                      : TextOverflow.ellipsis,
-                );
+              try {
+                if (col.cellBuilder != null) {
+                  cellContent = col.cellBuilder!(
+                    context,
+                    item,
+                    rowIndex,
+                    isExpanded,
+                  );
+                } else {
+                  final textValue = col.valueGetter != null
+                      ? col.valueGetter!(item)
+                      : (item.toString());
+                  cellContent = Text(
+                    textValue,
+                    style:
+                        widget.dataTextStyle ??
+                        AppTextStyle.style_11_500(color: AppColors.black),
+                    maxLines: isExpanded ? null : 1,
+                    overflow: isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                  );
+                }
+              } catch (e) {
+                cellContent = const SizedBox.shrink();
               }
 
               return Container(
@@ -752,16 +768,15 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
             cols[colIndex].minWidth,
             borderColor,
             isHeader: false,
+            rowMinHeight: widget.headingRowHeight ?? 24.h,
           ),
         ],
       ],
     );
 
-    final Widget sizedRowFlex = IntrinsicHeight(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: widget.headingRowHeight ?? 24.h),
-        child: rowFlex,
-      ),
+    final Widget sizedRowFlex = SizedBox(
+      height: widget.headingRowHeight ?? 24.h,
+      child: rowFlex,
     );
 
     final rowContent = Container(
@@ -804,6 +819,7 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
     if (availableHeight == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: List.generate(
           rawRows.length,
           (rowIndex) => _buildRawRow(rawRows[rowIndex], rowIndex, borderColor),
@@ -875,16 +891,15 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
             40.0,
             borderColor,
             isHeader: false,
+            rowMinHeight: widget.headingRowHeight ?? 24.h,
           ),
         ],
       ],
     );
 
-    final Widget sizedRowFlex = IntrinsicHeight(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: widget.headingRowHeight ?? 24.h),
-        child: rowFlex,
-      ),
+    final Widget sizedRowFlex = SizedBox(
+      height: widget.headingRowHeight ?? 24.h,
+      child: rowFlex,
     );
 
     return RepaintBoundary(

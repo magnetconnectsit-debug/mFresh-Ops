@@ -40,10 +40,12 @@ class AppColors {
   // endregion
 
   static const white = Color(0xffffffff);
+  static const aliceBlue = Color(0xFFF0F8FF);
   static const purple = Color(0xff5C4CEE);
   static const lightWhite = Color(0x33ffffff);
   static const lightWhite2 = Color(0xffd1cccc);
   static const borderColor = Color(0xffE8E8E8);
+  static const fieldBorderColor = Color(0xFFBDCDE2);
   static const black300 = Color(0xff626262);
   static const black200 = Color(0xff939393);
   static const black1 = Color(0xff252525);

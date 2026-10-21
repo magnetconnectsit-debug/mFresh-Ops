@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/create_ticket_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
 
 class CreateTicketScreen extends StatefulWidget {
   const CreateTicketScreen({super.key});
@@ -18,6 +19,7 @@ class CreateTicketScreen extends StatefulWidget {
 }
 
 class _CreateTicketScreenState extends State<CreateTicketScreen> {
+  // region Global Keys & State Variables
   final GlobalKey<MultiSelectDropdownWidgetState> _unitKey =
       GlobalKey<MultiSelectDropdownWidgetState>();
   final GlobalKey<MultiSelectDropdownWidgetState> _categoryKey =
@@ -35,20 +37,25 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
   final FocusNode _subjectFocusNode = FocusNode();
   final FocusNode _descriptionFocusNode = FocusNode();
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void dispose() {
     _subjectFocusNode.dispose();
     _descriptionFocusNode.dispose();
     super.dispose();
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<CreateTicketController>();
 
     return Scaffold(
       backgroundColor: AppColors.white,
+      drawer: const CommonSidebar(),
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
@@ -64,10 +71,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           children: [
             SafeArea(
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16.w,
-                  vertical: 12.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
@@ -158,9 +162,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                 height: 20.h,
                                 padding: EdgeInsets.symmetric(horizontal: 8.w),
                                 decoration: BoxDecoration(
-                                  color: AppColors.white,
+                                  color: AppColors.aliceBlue,
                                   border: Border.all(
-                                    color: AppColors.borderColor,
+                                    color: AppColors.fieldBorderColor,
                                   ),
                                   borderRadius: BorderRadius.circular(4.r),
                                 ),
@@ -233,6 +237,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       ),
     );
   }
+  // endregion
 
   // region Dropdown Progression Logic
   Future<void> _advanceToNextUnselectedField(String currentField) async {
@@ -246,7 +251,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         await Future.delayed(const Duration(milliseconds: 50));
         if (!mounted) return;
       }
-      if (controller.selectedSubCategory.value == null) {
+      if (controller.selectedSubCategory.value == null &&
+          controller.subCategories.isNotEmpty) {
         _subCategoryKey.currentState?.openMenu();
         return;
       }
@@ -295,6 +301,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   }
   // endregion
 
+  // region Form Builders
   Widget _buildFormGrid(
     BuildContext context,
     CreateTicketController controller,
@@ -302,7 +309,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     return Obx(
       () => Column(
         children: [
-          // Row 1: Category* | S-Category*
+          // Row 1: Category* | S-Category
           _twoFieldRow(
             leftChild: MultiSelectDropdownWidget<SupportCategory>(
               key: _categoryKey,
@@ -335,7 +342,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             ),
             rightChild: MultiSelectDropdownWidget<SupportSubCategory>(
               key: _subCategoryKey,
-              label: "S-Category*",
+              label: "S-Category",
               hint: "Select",
               isLoading: controller.isSubCategoryLoading.value,
               isSingleSelect: true,
@@ -359,9 +366,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                   _advanceToNextUnselectedField('subCategory');
                 }
               },
-              hasError:
-                  controller.showValidationErrors.value &&
-                  controller.selectedSubCategory.value == null,
+              hasError: false,
             ),
           ),
           SizedBox(height: 10.h),
@@ -790,13 +795,13 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     return InputDecoration(
       label: RichText(
         text: TextSpan(
-          text: label.replaceAll('*', ''),
-          style: AppTextStyle.style_11_400(color: AppColors.grey200),
+          text: _capitalizeText(label.replaceAll('*', '')),
+          style: AppTextStyle.style_11_500(color: AppColors.grey300),
           children: label.contains('*')
               ? [
                   TextSpan(
                     text: '*',
-                    style: AppTextStyle.style_11_400(color: AppColors.red),
+                    style: AppTextStyle.style_11_500(color: AppColors.red),
                   ),
                 ]
               : [],
@@ -805,17 +810,19 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       floatingLabelBehavior: FloatingLabelBehavior.always,
       isDense: true,
       contentPadding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+      filled: true,
+      fillColor: AppColors.aliceBlue,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4.r),
         borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
+          color: hasError ? AppColors.red : AppColors.fieldBorderColor,
           width: hasError ? 1.5 : 1.0,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4.r),
         borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
+          color: hasError ? AppColors.red : AppColors.fieldBorderColor,
           width: hasError ? 1.5 : 1.0,
         ),
       ),
@@ -1029,7 +1036,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       );
     });
   }
+  // endregion
 
+  // region Dialogs & Action Handlers
   void _showImageSourceOptions(CreateTicketController controller) {
     AppCommonMediaSource.show(
       onTakePhoto: controller.takePhoto,
@@ -1079,4 +1088,20 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       ],
     );
   }
+
+  String? _capitalizeText(String? text) {
+    if (text == null || text.trim().isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      if (word.contains('-')) {
+        return word.split('-').map((part) {
+          if (part.isEmpty) return part;
+          return '${part[0].toUpperCase()}${part.substring(1)}';
+        }).join('-');
+      }
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join(' ');
+  }
+
+  // endregion
 }

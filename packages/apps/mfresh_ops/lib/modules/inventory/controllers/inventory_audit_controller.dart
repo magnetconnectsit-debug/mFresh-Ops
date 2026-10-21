@@ -460,17 +460,14 @@ class InventoryAuditController extends GetxController {
         final List data = response['data'] ?? [];
         unitOptions.assignAll(data.map((e) {
           final name = (e['unitname'] ?? e['unit_name'] ?? e['Unit_Name'])?.toString() ?? '';
-          final shortForm = (e['unit_shortform'] ?? e['unit_short_form'])?.toString();
-          final label = (shortForm != null && shortForm.isNotEmpty) ? shortForm : name;
           return DropdownOption(
             value: (e['unitid'] ?? e['id'] ?? e['Unit_Id'])?.toString() ?? '',
-            label: label,
+            label: name,
           );
         }));
         unitCardItems.assignAll(data.map((e) {
           final id = (e['unitid'] ?? e['id'] ?? e['Unit_Id'])?.toString() ?? '';
           final name = (e['unitname'] ?? e['unit_name'] ?? e['Unit_Name'])?.toString() ?? id;
-          final shortForm = (e['unit_shortform'] ?? e['unit_short_form'] ?? e['unitshortform'])?.toString() ?? '';
           final location = (e['district_name'] ?? e['unit_location'] ?? e['location'] ?? e['Unit_location'])?.toString() ?? '';
           var img = (e['unit_image'] ?? e['image'] ?? e['Unit_Image'])?.toString() ?? '';
           if (img.isNotEmpty && !img.startsWith('http')) {
@@ -480,7 +477,7 @@ class InventoryAuditController extends GetxController {
           return AuditUnitCardItem(
             id: id,
             name: name,
-            shortForm: shortForm,
+            shortForm: name,
             location: location,
             image: img,
             timing: timing,

@@ -22,6 +22,10 @@ class AppConstants {
   static const String sendOtp = 'adminsend-otp';
   static const String verifyOtp = 'adminverify-otp';
 
+  // Attendance
+  static const String attendanceCheckIn = 'attendance/check-in';
+  static const String attendanceCheckOut = 'attendance/check-out';
+
   // Dashboard
   static const String dashboardData = 'dashboard-data';
   static const String comparisonDashboardData = 'comparison-dashboard-data';

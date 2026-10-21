@@ -2,8 +2,9 @@
 import 'package:core/constants/app_colors.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/widgets/app_common_button.dart';
+import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,8 +13,10 @@ import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:core/utils/app_image_compressor.dart';
 import 'widgets/duty_status_card.dart';
 import 'widgets/home_grid.dart';
+import 'unit_selection_screen.dart';
 // endregion
 
 // region HomeScreen Widget
@@ -32,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // endregion
 
   // region Navigation & Actions
-  void _handleCheckIn(BuildContext context) {
+  Future<void> _handleCheckInOut(BuildContext context, bool isCheckedIn) async {
     final authRepo = Get.find<AuthRepository>();
     if (!authRepo.rxUserPermissions.contains('duty_punch')) {
       AppCommonToastMessage.show(
@@ -41,7 +44,36 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
-    Get.toNamed(AppRoutes.camera);
+
+    String? selectedUnitId;
+    if (!isCheckedIn) {
+      final selectedUnit = await UnitSelectionScreen.show(context);
+      if (selectedUnit == null) {
+        // User dismissed the unit selection
+        return;
+      }
+      selectedUnitId = selectedUnit.id;
+    }
+
+    final capturedPath = await Get.toNamed(AppRoutes.camera);
+    if (capturedPath != null &&
+        capturedPath is String &&
+        capturedPath.isNotEmpty) {
+      final compressedPath = await AppImageCompressor.compressPath(
+            capturedPath,
+            quality: 50,
+          ) ??
+          capturedPath;
+
+      if (isCheckedIn) {
+        await authRepo.attendanceCheckOut(imagePath: compressedPath);
+      } else {
+        await authRepo.attendanceCheckIn(
+          imagePath: compressedPath,
+          unitId: selectedUnitId,
+        );
+      }
+    }
   }
   // endregion
 
@@ -114,31 +146,99 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDutySection(BuildContext context) {
     return Obx(() {
       final authRepo = Get.find<AuthRepository>();
-      if (authRepo.rxUserPermissions.contains('duty_punch')) {
-        return Column(
-          children: [
-            const DutyStatusCard(),
-            SizedBox(height: 8.h),
-            AppCommonButton(
-              text: 'Check In',
-              prefixIcon: Icons.camera_alt_outlined,
-              iconSize: 18.r,
-              width: double.infinity,
-              height: 38.h,
-              textSize: 13.sp,
-              borderRadius: 10.r,
-              useGradient: true,
-              gradientColors: const [
-                AppColors.secondaryGreen,
-                AppColors.primaryGreen,
-              ],
-              onPressed: () => _handleCheckIn(context),
-            ),
-            SizedBox(height: 12.h),
-          ],
-        );
+      if (!authRepo.rxUserPermissions.contains('duty_punch')) {
+        return const SizedBox.shrink();
       }
-      return const SizedBox.shrink();
+
+      final isCheckedIn = authRepo.rxIsCheckedIn.value;
+      final isSubmitting = authRepo.isSubmittingAttendance.value;
+
+      final buttonColors = isCheckedIn
+          ? [AppColors.red, const Color(0xFFD32F2F)]
+          : [AppColors.secondaryGreen, AppColors.primaryGreen];
+
+      return Column(
+        children: [
+          Row(
+            children: [
+              // Duty status card — equal width
+              const Expanded(child: DutyStatusCard()),
+              SizedBox(width: 10.w),
+              // Premium check-in / check-out button — equal width
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: InkWell(
+                    onTap: isSubmitting
+                        ? null
+                        : () => _handleCheckInOut(context, isCheckedIn),
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Ink(
+                      height: 35.h,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: buttonColors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: buttonColors.first.withOpacity(0.28),
+                            blurRadius: 8.r,
+                            spreadRadius: 0,
+                            offset: Offset(0, 3.h),
+                          ),
+                        ],
+                      ),
+                      child: isSubmitting
+                          ? const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CustomAppLoader(
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 22.r,
+                                  height: 22.r,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isCheckedIn
+                                        ? Icons.logout_rounded
+                                        : Icons.camera_alt_rounded,
+                                    color: AppColors.white,
+                                    size: 12.r,
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  isCheckedIn ? 'Selfie Check Out' : 'Selfie Check In',
+                                  style: AppTextStyle.style_12_600(
+                                    color: AppColors.white,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+        ],
+      );
     });
   }
 

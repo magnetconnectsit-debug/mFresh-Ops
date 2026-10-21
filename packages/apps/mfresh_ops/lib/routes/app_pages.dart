@@ -36,6 +36,7 @@ import 'package:mfresh_ops/modules/splash/views/splash_screen.dart';
 import 'package:mfresh_ops/modules/splash/views/location_permission_screen.dart';
 import 'package:mfresh_ops/modules/authentication/views/login_screen.dart';
 import 'package:mfresh_ops/modules/home/views/home_screen.dart';
+import 'package:mfresh_ops/modules/home/views/unit_selection_screen.dart';
 import 'package:mfresh_ops/modules/collections/views/admin_collections_screen.dart';
 import 'package:mfresh_ops/modules/collections/views/collections_screen.dart';
 import 'package:mfresh_ops/modules/deposits/views/deposits_screen.dart';
@@ -130,7 +131,7 @@ class AppPages {
       name: AppRoutes.camera,
       page: () => const AppCameraScreen(
         cameraLens: 1,
-        frontCameraOnly: true,
+        frontCameraOnly: false,
       ),
     ),
     GetPage(
@@ -469,6 +470,10 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.lazyPut(() => RolesResponsibilitiesRepository());
       }),
+    ),
+    GetPage(
+      name: AppRoutes.unitSelection,
+      page: () => const UnitSelectionScreen(),
     ),
   ];
 }

@@ -32,6 +32,7 @@ class AppCommonButton extends StatelessWidget {
   final IconData? suffixIcon;
   final Widget? suffixWidget;
   final double? iconSize;
+  final Color? iconColor;
   final ButtonVariant variant;
   final EdgeInsetsGeometry? padding;
   final bool useGradient;
@@ -60,6 +61,7 @@ class AppCommonButton extends StatelessWidget {
     this.suffixIcon,
     this.suffixWidget,
     this.iconSize,
+    this.iconColor,
     this.variant = ButtonVariant.primary,
     this.padding,
     this.useGradient = true,
@@ -72,7 +74,7 @@ class AppCommonButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isDisabled = onPressed == null || isLoading;
     final effectiveBorderRadius = BorderRadius.circular(borderRadius ?? 6.r);
-    final double effHeight = height ?? (isSmall ? 20.h : 24.h);
+    final double effHeight = height ?? (isSmall ? 21.h : 25.h);
     final EdgeInsetsGeometry effPadding = padding ??
         EdgeInsets.symmetric(
           horizontal: (isSmall || (width != null && width! <= 100.w)) ? 8.w : 16.w,
@@ -204,6 +206,7 @@ class AppCommonButton extends StatelessWidget {
   // region Content Builder
   Widget _buildContent(Color textCol, bool isDisabled) {
     final double effIconSize = iconSize ?? 14.r;
+    final Color effIconColor = iconColor ?? textCol;
     final IconData? effPrefixIcon = prefixIcon ?? icon;
     final Widget textWidget = Text(
       text,
@@ -230,7 +233,7 @@ class AppCommonButton extends StatelessWidget {
               Icon(
                 effPrefixIcon,
                 size: effIconSize,
-                color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
+                color: isDisabled ? effIconColor.withValues(alpha: 0.6) : effIconColor,
               ),
               SizedBox(width: 3.w),
             ],
@@ -246,7 +249,7 @@ class AppCommonButton extends StatelessWidget {
               Icon(
                 suffixIcon,
                 size: effIconSize,
-                color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
+                color: isDisabled ? effIconColor.withValues(alpha: 0.6) : effIconColor,
               ),
             ],
           ],

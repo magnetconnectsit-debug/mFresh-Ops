@@ -87,21 +87,25 @@ class AppCommonTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rawLabel = labelText ?? (useFloatingLabel ? titleText : null);
-    final isMandatoryLabel = isRequired || (rawLabel != null && rawLabel.contains('*'));
+    final isMandatoryLabel =
+        isRequired || (rawLabel != null && rawLabel.contains('*'));
     final cleanLabel = rawLabel?.replaceAll('*', '').trim();
-    final isMandatoryTitle = isRequired || (titleText != null && titleText!.contains('*'));
+    final isMandatoryTitle =
+        isRequired || (titleText != null && titleText!.contains('*'));
     final cleanTitle = titleText?.replaceAll('*', '').trim();
+    final displayLabel = _capitalizeText(cleanLabel);
+    final displayTitle = _capitalizeText(cleanTitle);
     final isFieldDisabled = (enabled == false) || (readOnly && onTap == null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (cleanTitle != null && !useFloatingLabel)
+        if (displayTitle != null && !useFloatingLabel)
           Padding(
             padding: EdgeInsets.only(bottom: 6.h),
             child: Text.rich(
               TextSpan(
-                text: cleanTitle,
+                text: displayTitle,
                 style: AppTextStyle.style_12_500(color: AppColors.black300),
                 children: [
                   if (isMandatoryTitle)
@@ -140,46 +144,63 @@ class AppCommonTextField extends StatelessWidget {
               isDense: true,
               hintText: hintText,
               prefixIcon: prefixIcon,
-              prefixIconConstraints: prefixIconConstraints ??
+              prefixIconConstraints:
+                  prefixIconConstraints ??
                   (prefixIcon != null && height != null
                       ? BoxConstraints(maxHeight: height!, minWidth: 28.w)
                       : prefixIconConstraints),
               suffixIcon: suffixIcon,
-              suffixIconConstraints: suffixIconConstraints ??
+              suffixIconConstraints:
+                  suffixIconConstraints ??
                   (suffixIcon != null && height != null
                       ? BoxConstraints(maxHeight: height!, minWidth: 28.w)
                       : suffixIconConstraints),
               counterText: '',
-              hintStyle: AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+              hintStyle: AppTextStyle.style_12_400(
+                color: AppColors.grey300,
+              ).copyWith(fontSize: 11.sp),
               floatingLabelBehavior: floatingLabelBehavior,
-              label: cleanLabel != null
+              label: displayLabel != null
                   ? Text.rich(
                       TextSpan(
-                        text: cleanLabel,
-                        style: AppTextStyle.style_12_400(color: AppColors.grey200),
+                        text: displayLabel,
+                        style: AppTextStyle.style_11_500(
+                          color: AppColors.grey300,
+                        ),
                         children: [
                           if (isMandatoryLabel)
                             TextSpan(
                               text: ' *',
-                              style: AppTextStyle.style_11_400(color: AppColors.red),
+                              style: AppTextStyle.style_11_500(
+                                color: AppColors.red,
+                              ),
                             ),
                         ],
                       ),
                     )
                   : null,
-              contentPadding: contentPadding ??
+              contentPadding:
+                  contentPadding ??
                   EdgeInsets.symmetric(
                     horizontal: 10.w,
-                    vertical: (maxLines != null && maxLines! > 1) ? 4.h : 2.h,
+                    // increase value to increase container height and decrease to decrease container height
+                    vertical: (maxLines != null && maxLines! > 1) ? 5.h : 3.h,
                   ),
-              filled: fillColor != null || isFieldDisabled,
-              fillColor: fillColor ?? (isFieldDisabled ? const Color(0xFFF1F3F5) : null),
-              border: _buildBorder(color: AppColors.borderColor),
-              enabledBorder: _buildBorder(color: AppColors.borderColor),
-              disabledBorder: _buildBorder(color: AppColors.borderColor),
+              filled: true,
+              fillColor:
+                  fillColor ??
+                  (isFieldDisabled
+                      ? const Color(0xFFF1F3F5)
+                      : AppColors.aliceBlue),
+              border: _buildBorder(color: AppColors.fieldBorderColor),
+              enabledBorder: _buildBorder(color: AppColors.fieldBorderColor),
+              disabledBorder: _buildBorder(color: AppColors.fieldBorderColor),
               focusedBorder: _buildBorder(color: AppColors.primary, width: 1.5),
               errorBorder: _buildBorder(color: AppColors.red),
-              focusedErrorBorder: _buildBorder(color: AppColors.red, width: 1.5),
+              focusedErrorBorder: _buildBorder(
+                color: AppColors.red,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -190,8 +211,22 @@ class AppCommonTextField extends StatelessWidget {
   // endregion
 
   // region Helpers
+  String? _capitalizeText(String? text) {
+    if (text == null || text.trim().isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      if (word.contains('-')) {
+        return word.split('-').map((part) {
+          if (part.isEmpty) return part;
+          return '${part[0].toUpperCase()}${part.substring(1)}';
+        }).join('-');
+      }
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join(' ');
+  }
+
   OutlineInputBorder _buildBorder({
-    Color color = AppColors.borderColor,
+    Color color = AppColors.fieldBorderColor,
     double width = 1.0,
   }) {
     return OutlineInputBorder(
@@ -199,6 +234,7 @@ class AppCommonTextField extends StatelessWidget {
       borderSide: BorderSide(color: color, width: width),
     );
   }
+
   // endregion
 }
 // endregion
@@ -226,7 +262,8 @@ class PhoneNoTextField extends StatelessWidget {
       keyboardType: TextInputType.phone,
       maxLength: 10,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      validator: validator ??
+      validator:
+          validator ??
           (value) {
             if (value == null || value.isEmpty) {
               return 'Mobile number is required';
@@ -248,11 +285,7 @@ class PhoneNoTextField extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.w),
-            child: Container(
-              height: 20.h,
-              width: 1,
-              color: AppColors.grey100,
-            ),
+            child: Container(height: 20.h, width: 1, color: AppColors.grey100),
           ),
         ],
       ),
@@ -322,7 +355,8 @@ class AppLoginTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFieldDisabled = readOnly || (enabled == false);
     final effRadius = borderRadius ?? 8.r;
-    final effFillColor = fillColor ?? (isFieldDisabled ? AppColors.boxColor2 : AppColors.white);
+    final effFillColor =
+        fillColor ?? (isFieldDisabled ? AppColors.boxColor2 : AppColors.white);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,7 +384,8 @@ class AppLoginTextField extends StatelessWidget {
           height: height,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(effRadius),
-            boxShadow: boxShadow ??
+            boxShadow:
+                boxShadow ??
                 [
                   BoxShadow(
                     color: AppColors.black.withValues(alpha: 0.05),
@@ -386,19 +421,41 @@ class AppLoginTextField extends StatelessWidget {
               hintStyle: AppTextStyle.style_11_400(color: AppColors.black200),
               labelText: labelText,
               labelStyle: AppTextStyle.style_11_400(color: AppColors.black200),
-              floatingLabelStyle: AppTextStyle.style_12_500(color: AppColors.primary),
+              floatingLabelStyle: AppTextStyle.style_12_500(
+                color: AppColors.primary,
+              ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 12.w,
                 vertical: 8.h,
               ),
               filled: true,
               fillColor: effFillColor,
-              border: _buildBorder(color: AppColors.borderColor, radius: effRadius),
-              enabledBorder: _buildBorder(color: AppColors.borderColor, radius: effRadius),
-              disabledBorder: _buildBorder(color: AppColors.borderColor, radius: effRadius),
-              focusedBorder: _buildBorder(color: AppColors.primary, width: 1.5, radius: effRadius),
-              errorBorder: _buildBorder(color: AppColors.red, radius: effRadius),
-              focusedErrorBorder: _buildBorder(color: AppColors.red, width: 1.5, radius: effRadius),
+              border: _buildBorder(
+                color: AppColors.borderColor,
+                radius: effRadius,
+              ),
+              enabledBorder: _buildBorder(
+                color: AppColors.borderColor,
+                radius: effRadius,
+              ),
+              disabledBorder: _buildBorder(
+                color: AppColors.borderColor,
+                radius: effRadius,
+              ),
+              focusedBorder: _buildBorder(
+                color: AppColors.primary,
+                width: 1.5,
+                radius: effRadius,
+              ),
+              errorBorder: _buildBorder(
+                color: AppColors.red,
+                radius: effRadius,
+              ),
+              focusedErrorBorder: _buildBorder(
+                color: AppColors.red,
+                width: 1.5,
+                radius: effRadius,
+              ),
             ),
           ),
         ),

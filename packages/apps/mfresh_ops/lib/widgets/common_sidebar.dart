@@ -1,3 +1,4 @@
+// region Imports
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,140 +8,34 @@ import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:services/storage_service.dart';
+// endregion
 
+// region CommonSidebar Widget
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final currentRoute = Get.currentRoute;
-    final userName =
-        Get.find<StorageService>().getUser()?.name ?? 'Ops Manager';
+    final user = Get.find<StorageService>().getUser();
+    final userName = user?.name ?? 'Ops Manager';
+    final userRole =
+        (user?.roleName != null && user!.roleName!.trim().isNotEmpty)
+            ? user.roleName!
+            : 'Operations Team';
+    final userImageUrl = user?.imageUrl;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     return Drawer(
       backgroundColor: AppColors.white,
       child: Column(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: AppColors.primary),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipOval(
-                    child: Container(
-                      width: 60.r,
-                      height: 60.r,
-                      color: AppColors.white,
-                      child:
-                          (Get.find<StorageService>().getUser()?.imageUrl !=
-                                  null &&
-                              Get.find<StorageService>()
-                                  .getUser()!
-                                  .imageUrl!
-                                  .isNotEmpty)
-                          ? Image.network(
-                              Get.find<StorageService>().getUser()!.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Icon(
-                                    Icons.person,
-                                    size: 40.r,
-                                    color: AppColors.primary,
-                                  ),
-                            )
-                          : Icon(
-                              Icons.person,
-                              size: 40.r,
-                              color: AppColors.primary,
-                            ),
-                    ),
-                  ),
-                  SizedBox(height: 10.h),
-                  Text(
-                    userName,
-                    style: AppTextStyle.style_18_600(color: AppColors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Obx(() {
-            final authRepo = Get.find<AuthRepository>();
-            if (!authRepo.rxUserPermissions.contains('duty_punch')) {
-              return const SizedBox.shrink();
-            }
-            final isTracking = TrackingService.to.isTracking.value;
-            return Container(
-              color: isTracking
-                  ? const Color(0xFF10B981).withValues(alpha: 0.05)
-                  : Colors.red.withValues(alpha: 0.05),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              child: Row(
-                children: [
-                  Container(
-                    width: 10.r,
-                    height: 10.r,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isTracking ? const Color(0xFF10B981) : Colors.red,
-                      boxShadow: isTracking
-                          ? [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF10B981,
-                                ).withValues(alpha: 0.5),
-                                blurRadius: 6.r,
-                                spreadRadius: 2.r,
-                              ),
-                            ]
-                          : null,
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isTracking ? 'ON DUTY' : 'OFF DUTY',
-                          style: AppTextStyle.style_14_700(
-                            color: isTracking
-                                ? const Color(0xFF10B981)
-                                : Colors.red,
-                          ),
-                        ),
-                        Text(
-                          isTracking ? 'Duty active' : 'Offline. Tap to start.',
-                          style: AppTextStyle.style_10_400(
-                            color: AppColors.grey500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Switch.adaptive(
-                    value: isTracking,
-                    activeTrackColor: const Color(0xFF10B981),
-                    activeThumbColor: Colors.white,
-                    onChanged: (val) async {
-                      await TrackingService.to.toggleTracking();
-                    },
-                  ),
-                ],
-              ),
-            );
-          }),
           Expanded(
             child: Obx(() {
               final authRepo = Get.find<AuthRepository>();
               final userPermissions = authRepo.rxUserPermissions;
-              final showInventory =
-                  true; // Always true so Inventory section is accessible
-
-              final showTaskScheduler = userPermissions.contains(
-                'Task_Sheduler_Pannel',
-              );
+              final hasDutyPermission = userPermissions.contains('duty_punch');
 
               final supportTicketSubItems = [
                 'Support Ticket',
@@ -152,6 +47,9 @@ class CommonSidebar extends StatelessWidget {
                   'M_Category',
               ];
 
+              final showTaskScheduler = userPermissions.contains(
+                'Task_Sheduler_Pannel',
+              );
               final taskSubItems = [
                 if (userPermissions.contains('All_Task')) 'All Task',
                 if (userPermissions.contains('Daily_Task')) 'Daily Task',
@@ -159,6 +57,7 @@ class CommonSidebar extends StatelessWidget {
                   'Daily Task By Month',
               ];
 
+              final showInventory = true;
               final inventorySubItems = [
                 if (userPermissions.contains('store_inventory_stock'))
                   'Store Inventory',
@@ -178,196 +77,187 @@ class CommonSidebar extends StatelessWidget {
                   'Audit Report',
                 if (userPermissions.contains('m_audit_items_list') ||
                     userPermissions.contains('audit_item_rank'))
-                  'M_Audit_Items_List',
+                  'Audit Item Rank',
               ];
 
               final infoDirectorySubItems = [
-                if (userPermissions.contains('Asset_Panel'))
+                if (userPermissions.contains('Assets_products_panel'))
                   'Assets & Products',
-                if (userPermissions.contains('Account_subscription_panel'))
+                if (userPermissions.contains('Account_Details_Panel'))
                   'Account Details',
-                if (userPermissions.contains('asset_category_panel'))
+                if (userPermissions.contains('Asset_Category_Panel'))
                   'Asset Category',
-                if (userPermissions.contains('c_directory_panel'))
+                if (userPermissions.contains('Contact_directory_panel'))
                   'Contact Directory',
-                if (userPermissions.contains('brand_details'))
+                if (userPermissions.contains('MContact_Brands_Panel'))
                   'MContact_Brands',
-                if (userPermissions.contains('company_details'))
+                if (userPermissions.contains('MContact_Companies_Panel'))
                   'MContact_Companies',
+              ];
+
+              final paymentSchedulerSubItems = [
+                if (userPermissions.contains('scheduler_panel')) 'Scheduler',
+                if (userPermissions.contains('completed_schedulers_panel'))
+                  'Completed Schedulers',
               ];
 
               final rolesSubItems = [
                 if (userPermissions.contains('roles_master')) 'Roles Master',
                 if (userPermissions.contains('responsibilities_master'))
                   'Responsibilities',
-                if (userPermissions.contains('view_responsibilities'))
+                if (userPermissions.contains('view_responsibilities_master'))
                   'View Responsibilities',
               ];
 
-              final paymentSchedulerSubItems = [
-                if (userPermissions.contains('payment_reminder_pannel')) ...[
-                  'Scheduler',
-                  'Completed Schedulers',
-                ],
-              ];
-
-              return ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  if (userPermissions.contains('Dashboard_Panel'))
-                    _buildMenuItem(
-                      icon: Icons.dashboard_outlined,
-                      activeIcon: Icons.dashboard,
-                      title: 'Revenue Report',
-                      route: AppRoutes.dashboard,
-                      currentRoute: currentRoute,
+              return CustomScrollView(
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _CollapsibleDrawerHeaderDelegate(
+                      topPadding: topPadding,
+                      hasDutyPermission: hasDutyPermission,
+                      userName: userName,
+                      userRole: userRole,
+                      userImageUrl: userImageUrl,
                     ),
-                  _buildMenuItem(
-                    icon: Icons.home_outlined,
-                    activeIcon: Icons.home,
-                    title: 'Home',
-                    route: AppRoutes.home,
-                    currentRoute: currentRoute,
                   ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4.h),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (userPermissions.contains('Dashboard_Panel'))
+                            _buildMenuItem(
+                              icon: Icons.dashboard_outlined,
+                              activeIcon: Icons.dashboard,
+                              title: 'Revenue Report',
+                              route: AppRoutes.dashboard,
+                              currentRoute: currentRoute,
+                            ),
+                          _buildMenuItem(
+                            icon: Icons.home_outlined,
+                            activeIcon: Icons.home,
+                            title: 'Home',
+                            route: AppRoutes.home,
+                            currentRoute: currentRoute,
+                          ),
 
-                  if (userPermissions.contains('maintenance_panel') &&
-                      supportTicketSubItems.isNotEmpty)
-                    _buildExpandableMenuItem(
-                      icon: Icons.support_agent_outlined,
-                      title: 'Support Ticket',
-                      subItems: supportTicketSubItems,
-                      currentRoute: currentRoute,
-                    ),
+                          if (userPermissions.contains('maintenance_panel') &&
+                              supportTicketSubItems.isNotEmpty)
+                            _buildExpandableMenuItem(
+                              icon: Icons.support_agent_outlined,
+                              title: 'Support Ticket',
+                              subItems: supportTicketSubItems,
+                              currentRoute: currentRoute,
+                            ),
 
-                  // Task Scheduler Expandable Section
-                  if (showTaskScheduler && taskSubItems.isNotEmpty)
-                    _buildExpandableMenuItem(
-                      icon: Icons.task_alt_outlined,
-                      title: 'Task Scheduler',
-                      subItems: taskSubItems,
-                      currentRoute: currentRoute,
-                    ),
+                          if (showTaskScheduler && taskSubItems.isNotEmpty)
+                            _buildExpandableMenuItem(
+                              icon: Icons.task_alt_outlined,
+                              title: 'Task Scheduler',
+                              subItems: taskSubItems,
+                              currentRoute: currentRoute,
+                            ),
 
-                  // Inventory Expandable Section
-                  if (showInventory && inventorySubItems.isNotEmpty)
-                    _buildExpandableMenuItem(
-                      icon: Icons.inventory_2_outlined,
-                      title: 'Inventory',
-                      subItems: inventorySubItems,
-                      currentRoute: currentRoute,
-                    ),
+                          if (showInventory && inventorySubItems.isNotEmpty)
+                            _buildExpandableMenuItem(
+                              icon: Icons.inventory_2_outlined,
+                              title: 'Inventory',
+                              subItems: inventorySubItems,
+                              currentRoute: currentRoute,
+                            ),
 
-                  // Tracking Section
-                  if (userPermissions.contains('tracking_panel') ||
-                      userPermissions.contains('Attendance_Log'))
-                    _buildExpandableMenuItem(
-                      icon: Icons.location_on_outlined,
-                      title: 'Attendance',
-                      subItems: [
-                        if (userPermissions.contains('tracking_panel'))
-                          'Attendance',
-                        if (userPermissions.contains('Attendance_Log'))
-                          'Report',
-                      ],
-                      currentRoute: currentRoute,
-                    ),
+                          if (userPermissions.contains('tracking_panel') ||
+                              userPermissions.contains('Attendance_Log'))
+                            _buildExpandableMenuItem(
+                              icon: Icons.location_on_outlined,
+                              title: 'Attendance',
+                              subItems: [
+                                if (userPermissions.contains('tracking_panel'))
+                                  'Attendance',
+                                if (userPermissions.contains('Attendance_Log'))
+                                  'Report',
+                              ],
+                              currentRoute: currentRoute,
+                            ),
 
-                  // Collections & Deposits Expandable Section
-                  if (userPermissions.contains('Collections_Deposits_Panel'))
-                    _buildExpandableMenuItem(
-                      icon: Icons.attach_money_outlined,
-                      title: 'Collections & Deposits',
-                      subItems: [
-                        if (userPermissions.contains('collection_panel'))
-                          'Admin Collections',
-                        if (userPermissions.contains('normal_admin_collection'))
-                          'Collections',
-                        if (userPermissions.contains('deposit_panel'))
-                          'Deposits',
-                      ],
-                      currentRoute: currentRoute,
-                    ),
+                          if (userPermissions.contains(
+                            'Collections_Deposits_Panel',
+                          ))
+                            _buildExpandableMenuItem(
+                              icon: Icons.attach_money_outlined,
+                              title: 'Collections & Deposits',
+                              subItems: [
+                                if (userPermissions.contains(
+                                  'collection_panel',
+                                ))
+                                  'Admin Collections',
+                                if (userPermissions.contains(
+                                  'normal_admin_collection',
+                                ))
+                                  'Collections',
+                                if (userPermissions.contains('deposit_panel'))
+                                  'Deposits',
+                              ],
+                              currentRoute: currentRoute,
+                            ),
 
-                  // Info Directory Module
-                  if (userPermissions.contains('c_directory_panel'))
-                    _buildExpandableMenuItem(
-                      icon: Icons.contact_phone_outlined,
-                      title: 'Info Directory',
-                      subItems: infoDirectorySubItems,
-                      currentRoute: currentRoute,
-                    ),
+                          if (userPermissions.contains('c_directory_panel'))
+                            _buildExpandableMenuItem(
+                              icon: Icons.contact_phone_outlined,
+                              title: 'Info Directory',
+                              subItems: infoDirectorySubItems,
+                              currentRoute: currentRoute,
+                            ),
 
-                  if (userPermissions.contains('payment_reminder_pannel') &&
-                      paymentSchedulerSubItems.isNotEmpty)
-                    _buildExpandableMenuItem(
-                      icon: Icons.payment_outlined,
-                      title: 'Payment Scheduler',
-                      subItems: paymentSchedulerSubItems,
-                      currentRoute: currentRoute,
+                          if (userPermissions.contains(
+                                'payment_reminder_pannel',
+                              ) &&
+                              paymentSchedulerSubItems.isNotEmpty)
+                            _buildExpandableMenuItem(
+                              icon: Icons.payment_outlined,
+                              title: 'Payment Scheduler',
+                              subItems: paymentSchedulerSubItems,
+                              currentRoute: currentRoute,
+                            ),
+
+                          if (userPermissions.contains(
+                                'roles_responsibility_panel',
+                              ) &&
+                              rolesSubItems.isNotEmpty)
+                            _buildExpandableMenuItem(
+                              icon: Icons.badge_outlined,
+                              title: 'Roles & Responsibilities',
+                              subItems: rolesSubItems,
+                              currentRoute: currentRoute,
+                            ),
+
+                          _buildMenuItem(
+                            icon: Icons.person_outline,
+                            activeIcon: Icons.person,
+                            title: 'Profile',
+                            route: AppRoutes.profile,
+                            currentRoute: currentRoute,
+                          ),
+                        ],
+                      ),
                     ),
-                  if (userPermissions.contains('roles_responsibility_panel') &&
-                      rolesSubItems.isNotEmpty)
-                    _buildExpandableMenuItem(
-                      icon: Icons.badge_outlined,
-                      title: 'Roles & Responsibilities',
-                      subItems: rolesSubItems,
-                      currentRoute: currentRoute,
-                    ),
-                  _buildMenuItem(
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    title: 'Profile',
-                    route: AppRoutes.profile,
-                    currentRoute: currentRoute,
                   ),
                 ],
               );
             }),
           ),
-          const Divider(),
-          _buildMenuItem(
-            icon: Icons.logout_outlined,
-            activeIcon: Icons.logout,
-            title: 'Logout',
-            route: AppRoutes.login,
-            currentRoute: currentRoute,
-            onTap: () async {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (ctx) => const PopScope(
-                  canPop: false,
-                  child: Center(child: CustomAppLoader()),
-                ),
-              );
-              try {
-                await Get.find<AuthRepository>().logout();
-              } catch (e) {
-                // Already handled in repository
-              } finally {
-                Get.offAllNamed(AppRoutes.login);
-              }
-            },
-          ),
-          FutureBuilder<PackageInfo>(
-            future: PackageInfo.fromPlatform(),
-            builder: (context, snapshot) {
-              final version = snapshot.data?.version ?? '1.0.0';
-              return Padding(
-                padding: EdgeInsets.only(bottom: 16.h, top: 8.h),
-                child: Text(
-                  'Version $version',
-                  style: AppTextStyle.style_14_500(color: AppColors.grey400),
-                  textAlign: TextAlign.center,
-                ),
-              );
-            },
-          ),
+          Divider(height: 1.h, color: AppColors.borderColor),
+          _buildLogoutItem(context, currentRoute),
+          _buildVersionInfo(),
         ],
       ),
     );
   }
+  // endregion
 
+  // region Menu Item Builders
   Widget _buildMenuItem({
     required IconData icon,
     required IconData activeIcon,
@@ -414,9 +304,6 @@ class CommonSidebar extends StatelessWidget {
     required List<String> subItems,
     required String currentRoute,
   }) {
-    // Determine if any sub-item is active (not applicable yet)
-    final bool isExpanded = false;
-
     final GlobalKey expansionTileKey = GlobalKey();
 
     return Theme(
@@ -449,7 +336,7 @@ class CommonSidebar extends StatelessWidget {
         ),
         iconColor: AppColors.grey300,
         collapsedIconColor: AppColors.grey300,
-        initiallyExpanded: isExpanded,
+        initiallyExpanded: false,
         tilePadding: EdgeInsets.symmetric(horizontal: 16.w),
         children: subItems
             .map(
@@ -552,4 +439,420 @@ class CommonSidebar extends StatelessWidget {
       ),
     );
   }
+  // endregion
+
+  // region Logout & Action Handlers
+  Widget _buildLogoutItem(BuildContext context, String currentRoute) {
+    return _buildMenuItem(
+      icon: Icons.logout_outlined,
+      activeIcon: Icons.logout,
+      title: 'Logout',
+      route: AppRoutes.login,
+      currentRoute: currentRoute,
+      onTap: () => _handleLogout(context),
+    );
+  }
+
+  void _handleLogout(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: Center(child: CustomAppLoader()),
+      ),
+    );
+    try {
+      await Get.find<AuthRepository>().logout();
+    } catch (e) {
+      // Handled in repository
+    } finally {
+      Get.offAllNamed(AppRoutes.login);
+    }
+  }
+
+  Widget _buildVersionInfo() {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final version = snapshot.data?.version ?? '1.0.0';
+        return Padding(
+          padding: EdgeInsets.only(bottom: 16.h, top: 6.h),
+          child: Text(
+            'Version $version',
+            style: AppTextStyle.style_12_400(color: AppColors.grey400),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
+    );
+  }
+  // endregion
 }
+// endregion
+
+// region Collapsible Header Delegate
+class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double topPadding;
+  final bool hasDutyPermission;
+  final String userName;
+  final String? userRole;
+  final String? userImageUrl;
+
+  _CollapsibleDrawerHeaderDelegate({
+    required this.topPadding,
+    required this.hasDutyPermission,
+    required this.userName,
+    this.userRole,
+    this.userImageUrl,
+  });
+
+  @override
+  double get maxExtent => topPadding + (hasDutyPermission ? 104.h : 64.h);
+
+  @override
+  double get minExtent => topPadding + 48.h;
+
+  @override
+  bool shouldRebuild(covariant _CollapsibleDrawerHeaderDelegate oldDelegate) {
+    return oldDelegate.hasDutyPermission != hasDutyPermission ||
+        oldDelegate.userName != userName ||
+        oldDelegate.userRole != userRole ||
+        oldDelegate.userImageUrl != userImageUrl ||
+        oldDelegate.topPadding != topPadding;
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final double scrollRange = (maxExtent - minExtent).clamp(
+      0.001,
+      double.infinity,
+    );
+    final double progress = (shrinkOffset / scrollRange).clamp(0.0, 1.0);
+
+    return Obx(() {
+      final isTracking = TrackingService.to.isTracking.value;
+
+      // Interpolations
+      // Avatar size: 40.r -> 28.r
+      final double avatarSize = 40.r - (12.r * progress);
+
+      // Avatar top: (topPadding + 8.h) -> topPadding + ((48.h - 28.r) / 2)
+      final double avatarTopExpanded = topPadding + 8.h;
+      final double avatarTopCollapsed = topPadding + ((48.h - 28.r) / 2);
+      final double avatarTop =
+          avatarTopExpanded +
+          (avatarTopCollapsed - avatarTopExpanded) * progress;
+
+      // Name top: (topPadding + 10.h) -> topPadding + ((48.h - 16.sp) / 2)
+      final double nameTopExpanded = topPadding + 10.h;
+      final double nameTopCollapsed = topPadding + ((48.h - 16.sp) / 2);
+      final double nameTop =
+          nameTopExpanded + (nameTopCollapsed - nameTopExpanded) * progress;
+
+      // Name left: (14.w + 40.r + 10.w) -> (14.w + 28.r + 8.w)
+      final double nameLeftExpanded = 14.w + 40.r + 10.w;
+      final double nameLeftCollapsed = 14.w + 28.r + 8.w;
+      final double nameLeft =
+          nameLeftExpanded + (nameLeftCollapsed - nameLeftExpanded) * progress;
+
+      // Subtitle fade
+      final double subtitleOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
+
+      // Expanded Duty Card fade & slide
+      final double dutyCardOpacity = (1.0 - progress * 1.8).clamp(0.0, 1.0);
+      final double dutyCardOffset = -8.h * progress;
+
+      // Collapsed Duty Switch fade in
+      final double collapsedDutyOpacity = ((progress - 0.45) / 0.55).clamp(
+        0.0,
+        1.0,
+      );
+
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          boxShadow: progress > 0.15
+              ? [
+                  BoxShadow(
+                    color: AppColors.black.withValues(alpha: 0.15 * progress),
+                    blurRadius: 8.r * progress,
+                    offset: Offset(0, 3.h * progress),
+                  ),
+                ]
+              : null,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // ── Background Accent Circle ──
+            Positioned(
+              right: -16.w,
+              top: -16.h,
+              child: Container(
+                width: 76.r,
+                height: 76.r,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+            ),
+
+            // ── Avatar ──
+            Positioned(
+              left: 14.w,
+              top: avatarTop,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: avatarSize,
+                    height: avatarSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.black.withValues(alpha: 0.12),
+                          blurRadius: 4.r,
+                          offset: Offset(0, 2.h),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: (userImageUrl != null && userImageUrl!.isNotEmpty)
+                          ? AppImageView(
+                              imageUrl: userImageUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: Icon(
+                                Icons.person,
+                                size: (avatarSize * 0.65).clamp(16.0, 26.0),
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : Container(
+                              color: AppColors.white,
+                              child: Icon(
+                                Icons.person,
+                                size: (avatarSize * 0.65).clamp(16.0, 26.0),
+                                color: AppColors.primary,
+                              ),
+                            ),
+                    ),
+                  ),
+                  // Online/Duty pulse dot on avatar (especially visible when collapsed)
+                  if (hasDutyPermission && isTracking)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 9.r,
+                        height: 9.r,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.8),
+                              blurRadius: 4.r,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ── User Name & Role ──
+            Positioned(
+              left: nameLeft,
+              top: nameTop,
+              right: hasDutyPermission && progress > 0.4 ? 82.w : 16.w,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    userName,
+                    style: AppTextStyle.style_16_600(
+                      color: AppColors.white,
+                    ).copyWith(fontSize: (15.0 - 2.0 * progress).sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (subtitleOpacity > 0.01)
+                    Opacity(
+                      opacity: subtitleOpacity,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 1.h),
+                        child: Text(
+                          userRole ?? 'Operations Team',
+                          style: AppTextStyle.style_11_400(
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Collapsed Duty Toggle (Right side of compact bar) ──
+            if (hasDutyPermission && collapsedDutyOpacity > 0.01)
+              Positioned(
+                right: 8.w,
+                top: topPadding + ((48.h - 26.h) / 2),
+                child: Opacity(
+                  opacity: collapsedDutyOpacity,
+                  child: IgnorePointer(
+                    ignoring: progress < 0.5,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(8.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withValues(alpha: 0.1),
+                                blurRadius: 3.r,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            isTracking ? 'ON' : 'OFF',
+                            style: AppTextStyle.style_10_700(
+                              color: isTracking
+                                  ? const Color(0xFF10B981)
+                                  : AppColors.red,
+                            ),
+                          ),
+                        ),
+                        Transform.scale(
+                          scale: 0.68,
+                          child: Switch.adaptive(
+                            value: isTracking,
+                            activeTrackColor: const Color(0xFF10B981),
+                            activeThumbColor: Colors.white,
+                            onChanged: (val) async {
+                              await TrackingService.to.toggleTracking();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // ── Expanded Duty Card (Bottom of expanded header) ──
+            if (hasDutyPermission && dutyCardOpacity > 0.01)
+              Positioned(
+                left: 14.w,
+                right: 14.w,
+                top: topPadding + 56.h + dutyCardOffset,
+                child: Opacity(
+                  opacity: dutyCardOpacity,
+                  child: IgnorePointer(
+                    ignoring: progress > 0.5,
+                    child: Container(
+                      height: 34.h,
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(8.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withValues(alpha: 0.08),
+                            blurRadius: 4.r,
+                            offset: Offset(0, 1.5.h),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8.r,
+                            height: 8.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isTracking
+                                  ? const Color(0xFF10B981)
+                                  : AppColors.red,
+                              boxShadow: isTracking
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF10B981,
+                                        ).withValues(alpha: 0.5),
+                                        blurRadius: 4.r,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  isTracking ? 'ON DUTY' : 'OFF DUTY',
+                                  style: AppTextStyle.style_11_700(
+                                    color: isTracking
+                                        ? const Color(0xFF10B981)
+                                        : AppColors.red,
+                                  ),
+                                ),
+                                Text(
+                                  isTracking
+                                      ? 'Duty active'
+                                      : 'Offline. Tap switch to start.',
+                                  style: AppTextStyle.style_9_400(
+                                    color: AppColors.grey500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.68,
+                            child: Switch.adaptive(
+                              value: isTracking,
+                              activeTrackColor: const Color(0xFF10B981),
+                              activeThumbColor: Colors.white,
+                              onChanged: (val) async {
+                                await TrackingService.to.toggleTracking();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+}
+// endregion

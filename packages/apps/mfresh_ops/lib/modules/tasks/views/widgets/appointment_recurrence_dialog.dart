@@ -1661,7 +1661,7 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
       hintText: 'Select time',
       readOnly: true,
       enabled: !isReadOnly,
-      fillColor: isReadOnly ? const Color(0xFFF1F3F5) : Colors.white,
+      fillColor: isReadOnly ? const Color(0xFFF1F3F5) : AppColors.aliceBlue,
       focusNode: focusNode,
       onTap: isReadOnly
           ? null
@@ -1688,7 +1688,7 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
         padding: EdgeInsets.only(right: 6.w),
         child: Icon(
           Icons.access_time_rounded,
-          color: AppColors.grey200,
+          color: AppColors.grey300,
           size: 14.r,
         ),
       ),

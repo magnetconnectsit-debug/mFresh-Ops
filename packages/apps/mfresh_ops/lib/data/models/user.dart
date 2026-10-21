@@ -53,6 +53,9 @@ class User extends HiveObject {
   @HiveField(16)
   final int? trackingSessionId;
 
+  @HiveField(17)
+  final bool? isCheckedIn;
+
   User({
     required this.id,
     this.name,
@@ -71,8 +74,10 @@ class User extends HiveObject {
     this.trackingConfig,
     this.imageUrl,
     this.trackingSessionId,
+    this.isCheckedIn,
   });
 
+  // region Factory & Serialization
   factory User.fromJson(Map<String, dynamic> json) {
     final userData = json['user'] ?? json;
     final List<String> permissions = [];
@@ -85,6 +90,16 @@ class User extends HiveObject {
       });
     } else if (permissionsSource is List) {
       permissions.addAll(List<String>.from(permissionsSource));
+    }
+
+    final attendanceData = userData['attendance'] ?? json['attendance'];
+    bool? isCheckedIn;
+    if (attendanceData is Map) {
+      final rawChecked = attendanceData['is_checked_in'];
+      isCheckedIn = rawChecked == true ||
+          rawChecked == 1 ||
+          rawChecked == '1' ||
+          rawChecked == 'true';
     }
 
     return User(
@@ -113,6 +128,7 @@ class User extends HiveObject {
           : null,
       imageUrl: userData['image_url']?.toString(),
       trackingSessionId: null, // Ignore from API since it provides stale data, use current-status instead
+      isCheckedIn: isCheckedIn,
     );
   }
 
@@ -133,8 +149,58 @@ class User extends HiveObject {
       'is_on_duty': isOnDuty,
       'device_id': deviceId,
       'tracking_config': trackingConfig,
+      'is_checked_in': isCheckedIn,
+      if (isCheckedIn != null)
+        'attendance': {
+          'is_checked_in': isCheckedIn,
+        },
     };
   }
+  // endregion
+
+  // region CopyWith
+  User copyWith({
+    int? id,
+    String? name,
+    String? email,
+    String? role,
+    String? mob,
+    String? uimage,
+    List<String>? permissions,
+    String? securityGroupIds,
+    int? activeStatus,
+    String? createdAt,
+    String? updatedAt,
+    String? roleName,
+    int? isOnDuty,
+    String? deviceId,
+    Map<dynamic, dynamic>? trackingConfig,
+    String? imageUrl,
+    int? trackingSessionId,
+    bool? isCheckedIn,
+  }) {
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      mob: mob ?? this.mob,
+      uimage: uimage ?? this.uimage,
+      permissions: permissions ?? this.permissions,
+      securityGroupIds: securityGroupIds ?? this.securityGroupIds,
+      activeStatus: activeStatus ?? this.activeStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      roleName: roleName ?? this.roleName,
+      isOnDuty: isOnDuty ?? this.isOnDuty,
+      deviceId: deviceId ?? this.deviceId,
+      trackingConfig: trackingConfig ?? this.trackingConfig,
+      imageUrl: imageUrl ?? this.imageUrl,
+      trackingSessionId: trackingSessionId ?? this.trackingSessionId,
+      isCheckedIn: isCheckedIn ?? this.isCheckedIn,
+    );
+  }
+  // endregion
 }
 
 class UserAdapter extends TypeAdapter<User> {
@@ -184,6 +250,11 @@ class UserAdapter extends TypeAdapter<User> {
       trackingSessionId = reader.read();
     } catch (_) {}
 
+    dynamic isCheckedIn;
+    try {
+      isCheckedIn = reader.read();
+    } catch (_) {}
+
     return User(
       id: id,
       name: name,
@@ -202,6 +273,7 @@ class UserAdapter extends TypeAdapter<User> {
       trackingConfig: trackingConfig,
       imageUrl: imageUrl,
       trackingSessionId: trackingSessionId,
+      isCheckedIn: isCheckedIn is bool ? isCheckedIn : null,
     );
   }
 
@@ -224,6 +296,7 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.trackingConfig);
     writer.write(obj.imageUrl);
     writer.write(obj.trackingSessionId);
+    writer.write(obj.isCheckedIn);
   }
 }
 

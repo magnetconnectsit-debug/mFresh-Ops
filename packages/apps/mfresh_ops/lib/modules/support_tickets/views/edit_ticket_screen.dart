@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/ticket_details_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
 
 // region EditTicketScreen Widget
 class EditTicketScreen extends StatefulWidget {
@@ -57,14 +58,13 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
       }
     }
 
-    if (currentField == 'status' ||
-        currentField == 'assignee' ||
-        currentField == 'category') {
+    if (currentField == 'category') {
       while (controller.isSubCategoryLoading.value) {
         await Future.delayed(const Duration(milliseconds: 50));
         if (!mounted) return;
       }
-      if (controller.selectedSubCategory.value == null) {
+      if (controller.selectedSubCategory.value == null &&
+          controller.subCategories.isNotEmpty) {
         _subCategoryKey.currentState?.openMenu();
         return;
       }
@@ -112,6 +112,7 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
+      drawer: const CommonSidebar(),
       appBar: AppCommonAppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
@@ -1053,13 +1054,13 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
     return InputDecoration(
       label: RichText(
         text: TextSpan(
-          text: label.replaceAll('*', ''),
-          style: AppTextStyle.style_11_400(color: AppColors.grey200),
+          text: _capitalizeText(label.replaceAll('*', '')),
+          style: AppTextStyle.style_11_500(color: AppColors.grey300),
           children: label.contains('*')
               ? [
                   TextSpan(
                     text: '*',
-                    style: AppTextStyle.style_11_400(color: AppColors.red),
+                    style: AppTextStyle.style_11_500(color: AppColors.red),
                   ),
                 ]
               : [],
@@ -1068,17 +1069,19 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
       floatingLabelBehavior: FloatingLabelBehavior.always,
       isDense: true,
       contentPadding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+      filled: true,
+      fillColor: AppColors.aliceBlue,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4.r),
         borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
+          color: hasError ? AppColors.red : AppColors.fieldBorderColor,
           width: hasError ? 1.5 : 1.0,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(4.r),
         borderSide: BorderSide(
-          color: hasError ? AppColors.red : AppColors.borderColor,
+          color: hasError ? AppColors.red : AppColors.fieldBorderColor,
           width: hasError ? 1.5 : 1.0,
         ),
       ),
@@ -1139,6 +1142,20 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
         ),
       ],
     );
+  }
+
+  String? _capitalizeText(String? text) {
+    if (text == null || text.trim().isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      if (word.contains('-')) {
+        return word.split('-').map((part) {
+          if (part.isEmpty) return part;
+          return '${part[0].toUpperCase()}${part.substring(1)}';
+        }).join('-');
+      }
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join(' ');
   }
 }
 // endregion

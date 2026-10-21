@@ -346,82 +346,38 @@ class SupportFilterSection extends StatelessWidget {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Material(
-                              color: AppColors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(4.r),
-                                onTap: () => controller.resetFilters(),
-                                child: Container(
-                                  height: 20.h,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        AppColors.grey200,
-                                        AppColors.grey300,
-                                      ],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                    borderRadius: BorderRadius.circular(4.r),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    "RESET",
-                                    style: AppTextStyle.style_11_600(
-                                      color: AppColors.white,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
+                            child: AppCommonButton(
+                              text: "Reset",
+                              width: double.infinity,
+                              variant: ButtonVariant.outline,
+                              borderColor: AppColors.red,
+                              textColor: AppColors.red,
+                              buttonColor: AppColors.white,
+                              height: 22.h,
+                              borderRadius: 4.r,
+                              padding: EdgeInsets.zero,
+                              onPressed: () => controller.resetFilters(),
                             ),
                           ),
                           if (canSaveFilter) ...[
                             SizedBox(width: 4.w),
                             Expanded(
                               child: Obx(
-                                () => InkWell(
-                                  onTap: controller.isSavingFilter.value
-                                      ? null
-                                      : () => _showSaveFilterDialog(
-                                          context,
-                                          controller,
-                                        ),
-                                  child: Container(
-                                    height: 20.h,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: controller.isSavingFilter.value
-                                            ? [
-                                                AppColors.grey100,
-                                                AppColors.grey300,
-                                              ]
-                                            : [
-                                                AppColors.successDark,
-                                                AppColors.green,
-                                              ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
-                                      borderRadius: BorderRadius.circular(4.r),
-                                    ),
-                                    child: controller.isSavingFilter.value
-                                        ? SizedBox(
-                                            width: 10.r,
-                                            height: 10.r,
-                                            child: const CircularProgressIndicator(
-                                              strokeWidth: 1.5,
-                                              color: AppColors.white,
-                                            ),
-                                          )
-                                        : Text(
-                                            'Save Filter',
-                                            style: AppTextStyle.style_11_500(
-                                              color: AppColors.white,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                () => AppCommonButton(
+                                  text: "Save Filter",
+                                  width: double.infinity,
+                                  isLoading: controller.isSavingFilter.value,
+                                  loaderSize: 10.r,
+                                  gradientColors: const [
+                                    AppColors.successDark,
+                                    AppColors.green,
+                                  ],
+                                  height: 22.h,
+                                  borderRadius: 4.r,
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () => _handleSaveFilter(
+                                    context,
+                                    controller,
                                   ),
                                 ),
                               ),
@@ -434,74 +390,45 @@ class SupportFilterSection extends StatelessWidget {
                   ],
                 ),
                 // endregion
+                // region Quick Filters Dropdown
                 if (canSaveFilter) ...[
                   SizedBox(height: 3.h),
                   Obx(() {
                     final filters = controller.quickFilters;
-                    return Container(
-                      height: 22.h,
-                      padding: EdgeInsets.symmetric(horizontal: 6.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.blue50,
-                        borderRadius: BorderRadius.circular(6.r),
-                        border: Border.all(color: AppColors.blue200),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<QuickFilter>(
-                          value: controller.selectedQuickFilter.value,
-                          isExpanded: true,
-                          isDense: true,
-                          hint: Row(
-                            children: [
-                              Icon(
-                                Icons.bookmark_border,
-                                size: 13.r,
-                                color: AppColors.blue500,
-                              ),
-                              SizedBox(width: 3.w),
-                              Text(
-                                filters.isEmpty
-                                    ? 'No saved filters'
-                                    : 'Quick Filters',
-                                style: AppTextStyle.style_11_600(
-                                  color: AppColors.blue500,
+                    return AppCommonMultiSelectDropdown<QuickFilter>(
+                      label: "Quick Filters",
+                      hint: filters.isEmpty
+                          ? "No saved filters"
+                          : "Quick Filters",
+                      isSingleSelect: true,
+                      selectedValues: controller.selectedQuickFilter.value != null
+                          ? {controller.selectedQuickFilter.value!}
+                          : <QuickFilter>{},
+                      items: filters
+                          .map(
+                            (f) => DropdownMenuItem<QuickFilter>(
+                              value: f,
+                              child: Text(
+                                f.name,
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                          icon: Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 14.r,
-                            color: AppColors.blue500,
-                          ),
-                          items: filters
-                              .map(
-                                (f) => DropdownMenuItem(
-                                  value: f,
-                                  child: Text(
-                                    f.name,
-                                    style: AppTextStyle.style_11_400(
-                                      color: AppColors.grey900,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              controller.applyQuickFilter(val);
-                            }
-                          },
-                        ),
-                      ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        if (values.isNotEmpty) {
+                          controller.applyQuickFilter(values.first);
+                        } else {
+                          controller.selectedQuickFilter.value = null;
+                        }
+                      },
                     );
                   }),
                 ],
                 // endregion
-
-
-
               ],
             );
           },
@@ -512,7 +439,21 @@ class SupportFilterSection extends StatelessWidget {
 
   // endregion
 
-  // region _showSaveFilterDialog
+  // region Dialogs & Action Handlers
+  void _handleSaveFilter(
+    BuildContext context,
+    SupportTicketsController controller,
+  ) {
+    if (!Get.find<AuthRepository>().rxUserPermissions.contains('save_filter')) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    _showSaveFilterDialog(context, controller);
+  }
+
   void _showSaveFilterDialog(
     BuildContext context,
     SupportTicketsController controller,
@@ -523,8 +464,16 @@ class SupportFilterSection extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
         ),
-        child: Padding(
+        backgroundColor: AppColors.surface,
+        insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+        child: Container(
+          width: Get.width * 0.9,
+          constraints: BoxConstraints(maxWidth: 400.w),
           padding: EdgeInsets.all(20.r),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,38 +487,37 @@ class SupportFilterSection extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: () => Get.back(),
-                    child: const Icon(
-                      Icons.close,
-                      color: AppColors.grey100,
-                      size: 20,
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(4.r),
+                      child: Icon(
+                        Icons.close,
+                        color: AppColors.grey700,
+                        size: 20.r,
+                      ),
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 16.h),
-              TextField(
+              AppCommonTextField(
                 controller: nameController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Filter name (e.g. IT Team)',
-                  hintStyle: AppTextStyle.style_12_400(
-                    color: AppColors.grey200,
-                  ),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 10.h,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
+                hintText: 'Filter name (e.g. IT Team)',
               ),
               SizedBox(height: 16.h),
               Align(
                 alignment: Alignment.centerRight,
-                child: InkWell(
-                  onTap: () {
+                child: AppCommonButton(
+                  text: 'Save',
+                  useGradient: false,
+                  buttonColor: AppColors.purple,
+                  textSize: 14.sp,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  borderRadius: 8.r,
+                  onPressed: () {
                     final name = nameController.text.trim();
                     if (name.isEmpty) {
                       AppCommonToastMessage.show(
@@ -581,20 +529,6 @@ class SupportFilterSection extends StatelessWidget {
                     Get.back();
                     controller.saveCurrentFilter(name);
                   },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 10.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.purple,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Text(
-                      'Save',
-                      style: AppTextStyle.style_14_600(color: AppColors.white),
-                    ),
-                  ),
                 ),
               ),
             ],

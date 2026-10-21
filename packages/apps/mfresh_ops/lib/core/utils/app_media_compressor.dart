@@ -1,10 +1,15 @@
+// region Imports
 import 'dart:io';
-import 'dart:ui' as ui;
+import 'package:core/core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:video_compress/video_compress.dart';
+// endregion
 
+// region AppMediaCompressor Class
 class AppMediaCompressor {
+  AppMediaCompressor._();
+
+  // region Video Compression
   /// Compress video using video_compress
   static Future<File> compressVideo(File file) async {
     try {
@@ -22,38 +27,20 @@ class AppMediaCompressor {
     }
     return file;
   }
+  // endregion
 
-  /// Compress image by resizing and re-encoding it using Flutter's native ImageCodec
+  // region Image Compression
+  /// Compress image using centralized AppImageCompressor
   static Future<File> compressImage(File file, {int targetWidth = 1080}) async {
-    try {
-      final bytes = await file.readAsBytes();
-      final codec = await ui.instantiateImageCodec(
-        bytes,
-        targetWidth: targetWidth,
-      );
-      final frameInfo = await codec.getNextFrame();
-      final byteData = await frameInfo.image.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
-      if (byteData != null) {
-        final compressedBytes = byteData.buffer.asUint8List();
-        final tempDir = await getTemporaryDirectory();
-        final tempFile = File(
-          '${tempDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.png',
-        );
-        await tempFile.writeAsBytes(compressedBytes);
-
-        // Only return if it's actually smaller in size
-        if (await tempFile.length() < await file.length()) {
-          return tempFile;
-        }
-      }
-    } catch (e) {
-      debugPrint('Image compression error: $e');
-    }
-    return file;
+    return AppImageCompressor.compressFile(
+      file,
+      targetWidth: targetWidth,
+      quality: 70,
+    );
   }
+  // endregion
 
+  // region Cache Management
   /// Delete compression cache
   static Future<void> clearCache() async {
     try {
@@ -65,4 +52,6 @@ class AppMediaCompressor {
       debugPrint('Error clearing compressor cache: $e');
     }
   }
+  // endregion
 }
+// endregion

@@ -45,6 +45,7 @@ abstract class AppRoutes {
   static const deposits = '/deposits';
   static const createDeposit = '/create-deposit';
   static const camera = '/camera';
+  static const unitSelection = '/unit-selection';
   
   // Booking Module
   static const bookingConfirmed = '/booking-confirmed';

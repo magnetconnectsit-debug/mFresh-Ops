@@ -1,18 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+// region Imports
 import 'package:core/core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/support_tickets/controllers/support_tickets_controller.dart';
-import 'package:mfresh_ops/data/models/models.dart';
-import 'package:core/widgets/app_common_dropdown_page.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+// endregion
 
+// region SupportActionButtons Widget
 class SupportActionButtons extends StatelessWidget {
+  // region Properties
   final SupportTicketsController controller;
+  // endregion
 
+  // region Constructor
   const SupportActionButtons({super.key, required this.controller});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -22,109 +29,86 @@ class SupportActionButtons extends StatelessWidget {
       final canBulkEdit = userPermissions.contains('bulk_edit');
 
       return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          if (canAddTicket) ...[
-            _actionButton(
-              label: "Create Ticket",
-              colors: const [AppColors.secondaryBlue, AppColors.primaryBlue],
-              onTap: () => Get.toNamed(AppRoutes.createSupportTicket),
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            if (canAddTicket) ...[
+              AppCommonButton(
+                icon: Icons.add,
+                height: 22.h,
+                text: "Create Ticket",
+                gradientColors: const [
+                  AppColors.secondaryBlue,
+                  AppColors.primaryBlue,
+                ],
+                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                onPressed: _handleCreateTicket,
+              ),
+              SizedBox(width: 4.w),
+            ],
+            AppCommonExportButton(
+              onExportExcel: () => controller.exportTickets(),
             ),
-            SizedBox(width: 4.w),
+            if (canBulkEdit) ...[
+              Obx(() {
+                final isDisabled = controller.selectedTickets.isEmpty;
+                return Padding(
+                  padding: EdgeInsets.only(left: 4.w),
+                  child: AppCommonButton(
+                    icon: Icons.edit_document,
+                    height: 22.h,
+                    text: "Bulk Edit",
+                    gradientColors: const [
+                      AppColors.mediumblue,
+                      AppColors.blue,
+                    ],
+                    padding: EdgeInsets.symmetric(horizontal: 8.w),
+                    onPressed: isDisabled ? null : _handleBulkEdit,
+                  ),
+                );
+              }),
+            ],
           ],
-          AppCommonExportButton(
-            onExportExcel: () => controller.exportTickets(),
-          ),
-          if (canBulkEdit) ...[
-            Obx(() {
-              final isDisabled = controller.selectedTickets.isEmpty;
-              return Padding(
-                padding: EdgeInsets.only(left: 4.w),
-                child: _actionButton(
-                  label: "Bulk Edit",
-                  colors: const [AppColors.mediumblue, AppColors.blue],
-                  onTap: () => _showBulkEditDialog(controller),
-                  isDisabled: isDisabled,
-                ),
-              );
-            }),
-          ],
-        ],
-      ),
-    );
+        ),
+      );
     });
   }
+  // endregion
 
-  Widget _actionButton({
-    required String label,
-    required List<Color> colors,
-    required VoidCallback onTap,
-    bool isDisabled = false,
-    IconData? icon,
-    Widget? iconWidget,
-  }) {
-    return InkWell(
-      onTap: isDisabled ? null : onTap,
-      child: Container(
-        height: 24.h,
-        alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(horizontal: 8.w),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDisabled
-                ? colors.map((c) => c.withValues(alpha: 0.4)).toList()
-                : colors,
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          borderRadius: BorderRadius.circular(6.r),
-          boxShadow: [
-            if (!isDisabled)
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.12),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (iconWidget != null) ...[
-              iconWidget,
-              SizedBox(width: 4.w),
-            ] else if (icon != null) ...[
-              Icon(
-                icon,
-                size: 14.r,
-                color: isDisabled
-                    ? AppColors.white.withValues(alpha: 0.6)
-                    : AppColors.white,
-              ),
-              SizedBox(width: 3.w),
-            ],
-            Text(
-              label,
-              style: AppTextStyle.style_11_600(
-                color: isDisabled
-                    ? AppColors.white.withValues(alpha: 0.6)
-                    : AppColors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  // region Dialogs & Action Handlers
+  void _handleCreateTicket() {
+    if (!Get.find<AuthRepository>().rxUserPermissions.contains(
+      'add_maintenance',
+    )) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    Get.toNamed(AppRoutes.createSupportTicket);
   }
 
-  void _showBulkEditDialog(SupportTicketsController controller) {
+  void _handleBulkEdit() {
+    if (!Get.find<AuthRepository>().rxUserPermissions.contains('bulk_edit')) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    _showBulkEditDialog();
+  }
+
+  void _showBulkEditDialog() {
     controller.resetBulkEdit();
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
         ),
+        backgroundColor: AppColors.surface,
+        insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
         child: Container(
           width: Get.width * 0.9,
           constraints: BoxConstraints(maxWidth: 400.w),
@@ -145,7 +129,15 @@ class SupportActionButtons extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: () => Get.back(),
-                    child: const Icon(Icons.close, color: AppColors.grey100),
+                    borderRadius: BorderRadius.circular(20.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(4.r),
+                      child: Icon(
+                        Icons.close,
+                        size: 20.r,
+                        color: AppColors.grey700,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -153,35 +145,37 @@ class SupportActionButtons extends StatelessWidget {
               Column(
                 children: [
                   _buildBulkDropdownRow<SupportUnit>(
-                    "Units",
-                    controller.bulkEnableUnit,
-                    controller.bulkSelectedUnit,
-                    controller.unitOptions,
-                    (val) => controller.bulkSelectedUnit.value = val,
+                    label: "Units",
+                    isEnabled: controller.bulkEnableUnit,
+                    selectedValue: controller.bulkSelectedUnit,
+                    options: controller.unitOptions,
+                    onChanged: (val) => controller.bulkSelectedUnit.value = val,
                   ),
                   SizedBox(height: 10.h),
                   _buildBulkDropdownRow<String>(
-                    "Priority",
-                    controller.bulkEnablePriority,
-                    controller.bulkSelectedPriority,
-                    controller.priorityOptions,
-                    (val) => controller.bulkSelectedPriority.value = val,
+                    label: "Priority",
+                    isEnabled: controller.bulkEnablePriority,
+                    selectedValue: controller.bulkSelectedPriority,
+                    options: controller.priorityOptions,
+                    onChanged: (val) =>
+                        controller.bulkSelectedPriority.value = val,
                   ),
                   SizedBox(height: 10.h),
                   _buildBulkDropdownRow<String>(
-                    "Status",
-                    controller.bulkEnableStatus,
-                    controller.bulkSelectedStatus,
-                    controller.statusOptions,
-                    (val) => controller.bulkSelectedStatus.value = val,
+                    label: "Status",
+                    isEnabled: controller.bulkEnableStatus,
+                    selectedValue: controller.bulkSelectedStatus,
+                    options: controller.statusOptions,
+                    onChanged: (val) =>
+                        controller.bulkSelectedStatus.value = val,
                   ),
                   SizedBox(height: 10.h),
                   _buildBulkDropdownRow<SupportCategory>(
-                    "Category",
-                    controller.bulkEnableCategory,
-                    controller.bulkSelectedCategory,
-                    controller.categoryOptions,
-                    (val) {
+                    label: "Category",
+                    isEnabled: controller.bulkEnableCategory,
+                    selectedValue: controller.bulkSelectedCategory,
+                    options: controller.categoryOptions,
+                    onChanged: (val) {
                       controller.bulkSelectedCategory.value = val;
                       if (val != null) {
                         controller.fetchBulkSubCategories(val.categoryId);
@@ -191,10 +185,10 @@ class SupportActionButtons extends StatelessWidget {
                   SizedBox(height: 10.h),
                   Obx(
                     () => _buildBulkDropdownRow<SupportSubCategory>(
-                      "Sub-Cat",
-                      controller.bulkEnableSubCategory,
-                      controller.bulkSelectedSubCategory,
-                      controller.bulkSubCategories
+                      label: "Sub-Cat",
+                      isEnabled: controller.bulkEnableSubCategory,
+                      selectedValue: controller.bulkSelectedSubCategory,
+                      options: controller.bulkSubCategories
                           .map(
                             (e) => DropdownOption(
                               value: e,
@@ -202,37 +196,37 @@ class SupportActionButtons extends StatelessWidget {
                             ),
                           )
                           .toList(),
-                      (val) => controller.bulkSelectedSubCategory.value = val,
+                      onChanged: (val) =>
+                          controller.bulkSelectedSubCategory.value = val,
                     ),
                   ),
                   SizedBox(height: 10.h),
                   _buildBulkDropdownRow<AssigneeModel>(
-                    "Assignee",
-                    controller.bulkEnableAssignee,
-                    controller.bulkSelectedAssignee,
-                    controller.assigneeOptions,
-                    (val) => controller.bulkSelectedAssignee.value = val,
+                    label: "Assignee",
+                    isEnabled: controller.bulkEnableAssignee,
+                    selectedValue: controller.bulkSelectedAssignee,
+                    options: controller.assigneeOptions,
+                    onChanged: (val) =>
+                        controller.bulkSelectedAssignee.value = val,
                   ),
                 ],
               ),
               SizedBox(height: 20.h),
               Align(
                 alignment: Alignment.centerRight,
-                child: InkWell(
-                  onTap: () => controller.submitBulkEdit(),
-                  child: Container(
+                child: Obx(
+                  () => AppCommonButton(
+                    text: "Update",
+                    isLoading: controller.isLoading.value,
+                    useGradient: false,
+                    buttonColor: AppColors.successDark,
+                    textSize: 14.sp,
                     padding: EdgeInsets.symmetric(
                       horizontal: 24.w,
                       vertical: 10.h,
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.successDark,
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                    child: Text(
-                      "Update",
-                      style: AppTextStyle.style_14_600(color: AppColors.white),
-                    ),
+                    borderRadius: 6.r,
+                    onPressed: () => controller.submitBulkEdit(),
                   ),
                 ),
               ),
@@ -242,14 +236,16 @@ class SupportActionButtons extends StatelessWidget {
       ),
     );
   }
+  // endregion
 
-  Widget _buildBulkDropdownRow<T>(
-    String label,
-    RxBool isEnabled,
-    Rxn<T> selectedValue,
-    List<DropdownOption<T>> options,
-    Function(T?) onChanged,
-  ) {
+  // region Section & Component Builders
+  Widget _buildBulkDropdownRow<T>({
+    required String label,
+    required RxBool isEnabled,
+    required Rxn<T> selectedValue,
+    required List<DropdownOption<T>> options,
+    required ValueChanged<T?> onChanged,
+  }) {
     return Row(
       children: [
         Obx(
@@ -259,6 +255,7 @@ class SupportActionButtons extends StatelessWidget {
               isEnabled.value = val ?? false;
               if (!isEnabled.value) selectedValue.value = null;
             },
+            activeColor: AppColors.primary,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
@@ -274,48 +271,44 @@ class SupportActionButtons extends StatelessWidget {
         ),
         SizedBox(width: 4.w),
         Expanded(
-          child: Obx(
-            () => Container(
+          child: Obx(() {
+            final hasMatchingValue =
+                selectedValue.value != null &&
+                options.any((opt) => opt.value == selectedValue.value);
+            final effectiveValue = hasMatchingValue
+                ? selectedValue.value
+                : null;
+
+            return AppCommonDropdown<T>(
+              key: ValueKey('${isEnabled.value}_$effectiveValue'),
+              hintText: "Select",
+              value: effectiveValue,
               height: 34.h,
-              padding: EdgeInsets.symmetric(horizontal: 6.w),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                border: Border.all(color: AppColors.borderColor),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<T>(
-                  value: selectedValue.value,
-                  isExpanded: true,
-                  isDense: true,
-                  hint: Text(
-                    "Select",
-                    style: AppTextStyle.style_12_400(color: AppColors.grey200),
+              fillColor: isEnabled.value ? AppColors.white : AppColors.surface,
+              borderColor: AppColors.borderColor,
+              items: options.map((opt) {
+                return DropdownMenuItem<T>(
+                  value: opt.value,
+                  child: Text(
+                    opt.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyle.style_12_400(
+                      color: isEnabled.value
+                          ? AppColors.grey900
+                          : AppColors.grey300,
+                    ),
                   ),
-                  icon: Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 16.r,
-                    color: AppColors.grey200,
-                  ),
-                  items: options.map((opt) {
-                    return DropdownMenuItem<T>(
-                      value: opt.value,
-                      child: Text(
-                        opt.label,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyle.style_12_400(
-                          color: AppColors.grey900,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: isEnabled.value ? onChanged : null,
-                ),
-              ),
-            ),
-          ),
+                );
+              }).toList(),
+              onChanged: isEnabled.value ? onChanged : null,
+            );
+          }),
         ),
       ],
     );
   }
+
+  // endregion
 }
+
+// endregion

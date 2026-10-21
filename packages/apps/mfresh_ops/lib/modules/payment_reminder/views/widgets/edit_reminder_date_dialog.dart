@@ -318,7 +318,7 @@ class EditReminderDateDialog extends StatelessWidget {
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.aliceBlue,
           isDense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
           border: OutlineInputBorder(
@@ -367,7 +367,7 @@ class EditReminderDateDialog extends StatelessWidget {
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.aliceBlue,
         isDense: true,
         contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
         border: OutlineInputBorder(

@@ -164,9 +164,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFFF15A24),
-            onPrimary: Colors.white,
-            onSurface: Colors.black,
+            primary: AppColors.primary,
+            onPrimary: AppColors.white,
+            onSurface: AppColors.black,
           ),
         ),
         child: child!,
@@ -178,6 +178,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           controller.selectedEndDate.value!.isBefore(picked)) {
         controller.selectedEndDate.value = picked;
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        _jumpToNextUnfilledField(
+          context,
+          controller,
+          controller.isRecurring.value,
+        );
+      });
     }
   }
 
@@ -198,9 +206,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFFF15A24),
-            onPrimary: Colors.white,
-            onSurface: Colors.black,
+            primary: AppColors.primary,
+            onPrimary: AppColors.white,
+            onSurface: AppColors.black,
           ),
         ),
         child: child!,
@@ -208,6 +216,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     );
     if (picked != null) {
       controller.selectedEndDate.value = picked;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        _jumpToNextUnfilledField(
+          context,
+          controller,
+          controller.isRecurring.value,
+        );
+      });
     }
   }
 
@@ -227,9 +243,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           child: Theme(
             data: Theme.of(context).copyWith(
               colorScheme: const ColorScheme.light(
-                primary: Color(0xFFF15A24),
-                onPrimary: Colors.white,
-                onSurface: Colors.black,
+                primary: AppColors.primary,
+                onPrimary: AppColors.white,
+                onSurface: AppColors.black,
               ),
             ),
             child: child!,
@@ -240,8 +256,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     if (time != null) {
       controller.selectedStartTime.value = time;
       if (autoProceedToEndTime) {
-        if (!context.mounted) return;
-        await _pickEndTime(context, controller);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          _jumpToNextUnfilledField(
+            context,
+            controller,
+            controller.isRecurring.value,
+          );
+        });
       }
     }
   }
@@ -268,9 +290,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
           child: Theme(
             data: Theme.of(context).copyWith(
               colorScheme: const ColorScheme.light(
-                primary: Color(0xFFF15A24),
-                onPrimary: Colors.white,
-                onSurface: Colors.black,
+                primary: AppColors.primary,
+                onPrimary: AppColors.white,
+                onSurface: AppColors.black,
               ),
             ),
             child: child!,
@@ -280,6 +302,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     );
     if (time != null) {
       controller.selectedEndTime.value = time;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        _jumpToNextUnfilledField(
+          context,
+          controller,
+          controller.isRecurring.value,
+        );
+      });
     }
   }
 
@@ -719,35 +749,59 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDateTimeField(
-                        label: 'Start Date',
+                      child: AppCommonDateField(
+                        labelText: 'Start Date',
                         isRequired: true,
-                        icon: Icons.calendar_today_outlined,
-                        value: controller.selectedStartDate.value != null
-                            ? AppDateUtils.formatToShortOrdinalDate(
-                                controller.selectedStartDate.value!
-                                    .toIso8601String(),
-                              )
-                            : null,
+                        selectedDate: controller.selectedStartDate.value,
+                        firstDate: DateTime(
+                          DateTime.now().year,
+                          DateTime.now().month,
+                          DateTime.now().day,
+                        ),
+                        lastDate: DateTime(2100),
+                        helpText: 'Select Start Date',
                         readOnly: isReadOnly,
-                        onTap: () => _pickStartDate(context, controller),
+                        dateFormatter: (d) =>
+                            AppDateUtils.formatToShortOrdinalDate(
+                          d.toIso8601String(),
+                        ),
+                        onDateSelected: (picked) {
+                          controller.selectedStartDate.value = picked;
+                          if (controller.selectedEndDate.value == null ||
+                              controller.selectedEndDate.value!.isBefore(picked)) {
+                            controller.selectedEndDate.value = picked;
+                          }
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!context.mounted) return;
+                            _jumpToNextUnfilledField(
+                              context,
+                              controller,
+                              isRecurring,
+                            );
+                          });
+                        },
                       ),
                     ),
                     SizedBox(width: 12.w),
                     Expanded(
-                      child: _buildDateTimeField(
-                        label: 'Start Time',
+                      child: AppCommonTimeField(
+                        labelText: 'Start Time',
                         isRequired: true,
-                        icon: Icons.access_time_rounded,
-                        value: controller.formatTimeOfDay(
-                          controller.selectedStartTime.value,
-                        ),
+                        selectedTime: controller.selectedStartTime.value,
+                        helpText: 'Select Start Time',
                         readOnly: isReadOnly,
-                        onTap: () => _pickStartTime(
-                          context,
-                          controller,
-                          autoProceedToEndTime: true,
-                        ),
+                        timeFormatter: (t) => controller.formatTimeOfDay(t),
+                        onTimeSelected: (time) {
+                          controller.selectedStartTime.value = time;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!context.mounted) return;
+                            _jumpToNextUnfilledField(
+                              context,
+                              controller,
+                              isRecurring,
+                            );
+                          });
+                        },
                       ),
                     ),
                   ],
@@ -756,31 +810,56 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDateTimeField(
-                        label: 'End Date',
+                      child: AppCommonDateField(
+                        labelText: 'End Date',
                         isRequired: true,
-                        icon: Icons.calendar_today_outlined,
-                        value: controller.selectedEndDate.value != null
-                            ? AppDateUtils.formatToShortOrdinalDate(
-                                controller.selectedEndDate.value!
-                                    .toIso8601String(),
-                              )
-                            : null,
+                        selectedDate: controller.selectedEndDate.value,
+                        firstDate: controller.selectedStartDate.value ??
+                            DateTime(
+                              DateTime.now().year,
+                              DateTime.now().month,
+                              DateTime.now().day,
+                            ),
+                        lastDate: DateTime(2100),
+                        helpText: 'Select End Date',
                         readOnly: isReadOnly,
-                        onTap: () => _pickEndDate(context, controller),
+                        dateFormatter: (d) =>
+                            AppDateUtils.formatToShortOrdinalDate(
+                          d.toIso8601String(),
+                        ),
+                        onDateSelected: (picked) {
+                          controller.selectedEndDate.value = picked;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!context.mounted) return;
+                            _jumpToNextUnfilledField(
+                              context,
+                              controller,
+                              isRecurring,
+                            );
+                          });
+                        },
                       ),
                     ),
                     SizedBox(width: 12.w),
                     Expanded(
-                      child: _buildDateTimeField(
-                        label: 'End Time',
+                      child: AppCommonTimeField(
+                        labelText: 'End Time',
                         isRequired: true,
-                        icon: Icons.access_time_rounded,
-                        value: controller.formatTimeOfDay(
-                          controller.selectedEndTime.value,
-                        ),
+                        selectedTime: controller.selectedEndTime.value,
+                        helpText: 'Select End Time',
                         readOnly: isReadOnly,
-                        onTap: () => _pickEndTime(context, controller),
+                        timeFormatter: (t) => controller.formatTimeOfDay(t),
+                        onTimeSelected: (time) {
+                          controller.selectedEndTime.value = time;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!context.mounted) return;
+                            _jumpToNextUnfilledField(
+                              context,
+                              controller,
+                              isRecurring,
+                            );
+                          });
+                        },
                       ),
                     ),
                   ],
@@ -839,7 +918,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 height: 26.h,
                 textSize: 12.sp,
                 borderRadius: 6.r,
-                buttonColor: const Color(0xFFF15A24),
+                buttonColor: AppColors.primary,
                 textColor: AppColors.white,
                 useGradient: false,
                 onPressed: () {
@@ -1554,33 +1633,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   // endregion
 
   // region Helper Widgets
-  Widget _buildDateTimeField({
-    required String label,
-    IconData? icon,
-    String? value,
-    VoidCallback? onTap,
-    bool readOnly = false,
-    bool isRequired = false,
-  }) {
-    return AppCommonTextField(
-      controller: TextEditingController(text: value ?? ''),
-      labelText: label,
-      isRequired: isRequired,
-      hintText: 'Select',
-      readOnly: true,
-      enabled: !readOnly,
-      fillColor: readOnly ? const Color(0xFFF1F3F5) : Colors.white,
-      onTap: readOnly ? null : onTap,
-      suffixIcon: icon != null
-          ? Padding(
-              padding: EdgeInsets.only(right: 6.w),
-              child: Icon(icon, color: AppColors.grey200, size: 14.r),
-            )
-          : null,
-      suffixIconConstraints: BoxConstraints(minWidth: 20.w, minHeight: 0),
-    );
-  }
-
   Widget _buildSwitch(bool value, Function(bool) onChanged) {
     return SizedBox(
       width: 44.w,

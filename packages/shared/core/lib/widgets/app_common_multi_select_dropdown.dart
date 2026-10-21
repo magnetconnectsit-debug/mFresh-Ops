@@ -33,7 +33,7 @@ class AppCommonMultiSelectDropdown<T> extends StatefulWidget {
   final Widget? customChild;
 
   /// Controls the dropdown box height across all modules.
-  static const double _defaultVerticalPadding = 1.0;
+  static const double _defaultVerticalPadding = 2.0;
   // endregion
 
   // region Constructor
@@ -122,15 +122,15 @@ class AppCommonMultiSelectDropdownState<T>
         label: effectiveLabel != null
             ? RichText(
                 text: TextSpan(
-                  text: effectiveLabel.replaceAll('*', ''),
-                  style: AppTextStyle.style_11_400(
-                    color: AppColors.grey200,
+                  text: _capitalizeText(effectiveLabel.replaceAll('*', '')),
+                  style: AppTextStyle.style_11_500(
+                    color: AppColors.grey300,
                   ),
                   children: effectiveLabel.contains('*')
                       ? [
                           TextSpan(
                             text: '*',
-                            style: AppTextStyle.style_11_400(
+                            style: AppTextStyle.style_11_500(
                               color: AppColors.red,
                             ),
                           ),
@@ -147,17 +147,19 @@ class AppCommonMultiSelectDropdownState<T>
           horizontal: 6.w,
           vertical: AppCommonMultiSelectDropdown._defaultVerticalPadding.h,
         ),
+        filled: true,
+        fillColor: AppColors.aliceBlue,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
           borderSide: BorderSide(
-            color: widget.hasError ? AppColors.red : AppColors.borderColor,
+            color: widget.hasError ? AppColors.red : AppColors.fieldBorderColor,
             width: widget.hasError ? 1.5 : 1.0,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4.r),
           borderSide: BorderSide(
-            color: widget.hasError ? AppColors.red : AppColors.borderColor,
+            color: widget.hasError ? AppColors.red : AppColors.fieldBorderColor,
             width: widget.hasError ? 1.5 : 1.0,
           ),
         ),
@@ -282,6 +284,20 @@ class AppCommonMultiSelectDropdownState<T>
       onTap: openMenu,
       child: widget.customChild ?? inputChild,
     );
+  }
+
+  String? _capitalizeText(String? text) {
+    if (text == null || text.trim().isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      if (word.contains('-')) {
+        return word.split('-').map((part) {
+          if (part.isEmpty) return part;
+          return '${part[0].toUpperCase()}${part.substring(1)}';
+        }).join('-');
+      }
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join(' ');
   }
   // endregion
 }

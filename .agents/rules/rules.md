@@ -133,6 +133,7 @@ class SampleItem {
 | **Loading Spinners** | `CustomAppLoader` | `CircularProgressIndicator` directly |
 | **Month / Year Picker** | `MonthYearPickerField` | Custom date pickers for month-year |
 | **Date Fields / Date Pickers** | `AppCommonDateField` | Raw text fields with manual `showDatePicker` |
+| **Time Fields / Time Pickers** | `AppCommonTimeField` | Raw text fields with manual `showTimePicker` |
 | **Connected Tab Bar** | `AppCommonConnectedTabBar` | Ad-hoc tab switchers or raw underline tab rows |
 | **Liquid Glass / Glassmorphism** | `AppCommonLiquidGlass` | Raw opacity stacks, ad-hoc frosted containers |
 | **Document Viewing** | `AppCommonPdfViewer`, `AppCommonExcelViewer` | Third party viewer embeds |

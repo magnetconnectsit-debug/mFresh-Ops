@@ -58,10 +58,10 @@ class TaskTabs extends StatelessWidget {
               borderColor: AppColors.borderColor,
               backgroundColor: const Color(0xFFF1F5F9),
               activeTabColor: AppColors.white,
-              activeTextColor: const Color(0xFFF15A24),
+              activeTextColor: AppColors.primary,
               inactiveTextColor: const Color(0xFF64748B),
               activeTextStyle:
-                  AppTextStyle.style_12_600(color: const Color(0xFFF15A24)),
+                  AppTextStyle.style_12_600(color: AppColors.primary),
               inactiveTextStyle:
                   AppTextStyle.style_12_500(color: const Color(0xFF64748B)),
               borderRadius: BorderRadius.circular(6.r),
@@ -106,10 +106,10 @@ class TaskTabs extends StatelessWidget {
               borderColor: AppColors.borderColor,
               backgroundColor: const Color(0xFFF1F5F9),
               activeTabColor: AppColors.white,
-              activeTextColor: const Color(0xFFF15A24),
+              activeTextColor: AppColors.primary,
               inactiveTextColor: const Color(0xFF64748B),
               activeTextStyle:
-                  AppTextStyle.style_12_600(color: const Color(0xFFF15A24)),
+                  AppTextStyle.style_12_600(color: AppColors.primary),
               inactiveTextStyle:
                   AppTextStyle.style_12_500(color: const Color(0xFF64748B)),
               borderRadius: BorderRadius.circular(6.r),
@@ -155,14 +155,12 @@ class TaskTabs extends StatelessWidget {
           _buildViewModeButton(
             isSelected: !isListView,
             icon: Icons.view_day_outlined,
-            tooltip: 'Detail View',
             onTap: () => onChanged(false),
           ),
           SizedBox(width: 2.w),
           _buildViewModeButton(
             isSelected: isListView,
             icon: Icons.format_list_bulleted_rounded,
-            tooltip: 'List View',
             onTap: () => onChanged(true),
           ),
         ],
@@ -173,44 +171,40 @@ class TaskTabs extends StatelessWidget {
   Widget _buildViewModeButton({
     required bool isSelected,
     required IconData icon,
-    required String tooltip,
     required VoidCallback onTap,
   }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(4.r),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(4.r),
-            border: isSelected
-                ? Border.all(
-                    color: AppColors.borderColor.withValues(alpha: 0.3),
-                    width: 0.5,
-                  )
-                : null,
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Icon(
-            icon,
-            size: 14.r,
-            color: isSelected
-                ? const Color(0xFFF15A24)
-                : const Color(0xFF64748B),
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(4.r),
+          border: isSelected
+              ? Border.all(
+                  color: AppColors.borderColor.withValues(alpha: 0.3),
+                  width: 0.5,
+                )
+              : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          size: 14.r,
+          color: isSelected
+              ? AppColors.primary
+              : const Color(0xFF64748B),
         ),
       ),
     );
