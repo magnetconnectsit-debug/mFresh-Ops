@@ -1,31 +1,39 @@
+// region Imports
 import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:android_id/android_id.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:services/settings_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
-import 'package:services/api_services.dart';
-import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:services/api_services.dart';
+import 'package:services/settings_service.dart';
+import 'package:services/storage_service.dart';
+// endregion
 
+// region AuthRepository Class
 class AuthRepository extends GetxService {
+  // region Dependencies & State
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
   final rxUserPermissions = <String>[].obs;
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
     final user = _storageService.getUser() as User?;
     rxUserPermissions.assignAll(user?.permissions ?? []);
   }
+  // endregion
 
+  // region Device & FCM Info
   Future<Map<String, dynamic>> _getDeviceAndFcmInfo() async {
     bool isDev = kDebugMode;
     try {
@@ -124,10 +132,13 @@ class AuthRepository extends GetxService {
       'is_dev': isDev ? 1 : 0,
     };
   }
+  // endregion
 
+  // region Authentication API Operations
   Future<User?> login({
     required String mobile,
     required String password,
+    String loginMode = 'operation',
   }) async {
     try {
       final devInfo = await _getDeviceAndFcmInfo();
@@ -141,7 +152,7 @@ class AuthRepository extends GetxService {
           'is_dev': devInfo['is_dev'],
           'fcm_token': devInfo['fcm_token'],
           'device_info': devInfo['device_info'],
-          'login_mode': 'operation',
+          'login_mode': loginMode,
         },
       );
 
@@ -244,7 +255,11 @@ class AuthRepository extends GetxService {
     }
   }
 
-  Future<User?> verifyOtp({required String mobile, required String otp}) async {
+  Future<User?> verifyOtp({
+    required String mobile,
+    required String otp,
+    String loginMode = 'operation',
+  }) async {
     try {
       final devInfo = await _getDeviceAndFcmInfo();
 
@@ -257,7 +272,7 @@ class AuthRepository extends GetxService {
           'is_dev': devInfo['is_dev'],
           'fcm_token': devInfo['fcm_token'],
           'device_info': devInfo['device_info'],
-          'login_mode': 'operation',
+          'login_mode': loginMode,
         },
       );
 
@@ -286,4 +301,6 @@ class AuthRepository extends GetxService {
       rethrow;
     }
   }
+  // endregion
 }
+// endregion

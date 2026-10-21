@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/dashboard/views/dashboard_view.dart';
 import 'package:mfresh_ops/modules/dashboard/bindings/dashboard_binding.dart';
@@ -125,6 +126,13 @@ class AppPages {
       binding: BindingsBuilder(() => Get.lazyPut(() => LogViewerController())),
     ),
     GetPage(name: AppRoutes.home, page: () => const HomeScreen()),
+    GetPage(
+      name: AppRoutes.camera,
+      page: () => const AppCameraScreen(
+        cameraLens: 1,
+        frontCameraOnly: true,
+      ),
+    ),
     GetPage(
       name: AppRoutes.notifications,
       page: () => const NotificationScreen(),

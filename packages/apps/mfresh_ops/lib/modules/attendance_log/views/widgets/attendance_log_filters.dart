@@ -2,7 +2,6 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/modules/attendance_log/controllers/attendance_log_controller.dart';
 
 class AttendanceLogFilters extends GetView<AttendanceLogController> {

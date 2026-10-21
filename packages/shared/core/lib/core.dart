@@ -20,6 +20,7 @@ export 'utils/app_utils.dart';
 // endregion
 
 // region Common Widgets
+export 'widgets/app_camera_screen.dart';
 export 'widgets/app_common_app_bar.dart';
 export 'widgets/app_common_bottom_nav_bar.dart';
 export 'widgets/app_common_bottom_sheet.dart';
