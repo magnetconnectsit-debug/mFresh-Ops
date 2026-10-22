@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(12.r),
                         boxShadow: [
                           BoxShadow(
-                            color: buttonColors.first.withOpacity(0.28),
+                            color: buttonColors.first.withValues(alpha: 0.28),
                             blurRadius: 8.r,
                             spreadRadius: 0,
                             offset: Offset(0, 3.h),
@@ -214,15 +214,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 22.r,
                                   height: 22.r,
                                   decoration: BoxDecoration(
-                                    color: AppColors.white.withOpacity(0.2),
+                                    color: AppColors.white.withValues(alpha: 0.2),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
-                                    isCheckedIn
-                                        ? Icons.logout_rounded
-                                        : Icons.camera_alt_rounded,
-                                    color: AppColors.white,
-                                    size: 12.r,
+                                  child: Center(
+                                    child: Image.asset(
+                                      AppImages.selfieIcon,
+                                      width: 14.r,
+                                      height: 14.r,
+                                      color: AppColors.white,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
