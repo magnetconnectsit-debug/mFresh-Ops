@@ -91,27 +91,37 @@ class PaymentReminderFilterCard extends StatelessWidget {
               label: RichText(
                 text: TextSpan(
                   text: label,
-                  style: AppTextStyle.style_12_400(color: AppColors.grey200),
+                  style: AppTextStyle.style_11_500(color: AppColors.grey300),
                 ),
               ),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               isDense: true,
               contentPadding: EdgeInsets.symmetric(
-                  horizontal: 10.w, vertical: 4.h),
+                horizontal: 6.w,
+                vertical: 2.0.h,
+              ),
+              filled: true,
+              fillColor: AppColors.aliceBlue,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.fieldBorderColor,
+                  width: 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.fieldBorderColor,
+                  width: 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4.r),
                 borderSide: BorderSide(
-                    color: AppColors.borderColor, width: 1.0),
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
               suffixIcon: Padding(
                 padding: EdgeInsets.only(right: 4.w),
@@ -124,13 +134,22 @@ class PaymentReminderFilterCard extends StatelessWidget {
               suffixIconConstraints:
                   BoxConstraints(minWidth: 20.w, minHeight: 20.h),
             ),
-            child: Text(
-              hasValue ? valueText : 'Select',
-              style: hasValue
-                  ? AppTextStyle.style_12_400(color: AppColors.grey900)
-                  : AppTextStyle.style_12_400(color: AppColors.grey300)
-                      .copyWith(fontSize: 11.sp),
-              overflow: TextOverflow.ellipsis,
+            child: SizedBox(
+              height: 18.h,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      hasValue ? valueText : 'Select',
+                      style: hasValue
+                          ? AppTextStyle.style_12_400(color: AppColors.grey900)
+                          : AppTextStyle.style_12_400(color: AppColors.grey300),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

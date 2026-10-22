@@ -34,30 +34,34 @@ class MonthYearPickerField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: showFloatingLabel ? label : null,
           floatingLabelBehavior: showFloatingLabel ? FloatingLabelBehavior.always : FloatingLabelBehavior.never,
-          labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+          labelStyle: AppTextStyle.style_11_500(color: AppColors.grey300),
           isDense: true,
           contentPadding:
-              showFloatingLabel ? EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h) : EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              showFloatingLabel ? EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.0.h) : EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+          filled: true,
+          fillColor: AppColors.aliceBlue,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide:
-                BorderSide(color: AppColors.borderColor, width: 1.0),
+                BorderSide(color: AppColors.fieldBorderColor, width: 1.0),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide:
-                BorderSide(color: AppColors.borderColor, width: 1.0),
+                BorderSide(color: AppColors.fieldBorderColor, width: 1.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide:
-                BorderSide(color: AppColors.borderColor, width: 1.0),
+                BorderSide(color: AppColors.primary, width: 1.5),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
+        child: SizedBox(
+          height: 18.h,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
               child: Text(
                 value != null ? _displayLabel(value!) : label,
                 style: value != null
@@ -79,7 +83,7 @@ class MonthYearPickerField extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// Shows 'Jun 2026' in the field.

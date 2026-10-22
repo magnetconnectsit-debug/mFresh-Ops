@@ -17,6 +17,7 @@ import 'package:core/utils/app_image_compressor.dart';
 import 'widgets/duty_status_card.dart';
 import 'widgets/home_grid.dart';
 import 'unit_selection_screen.dart';
+import '../controllers/home_grid_controller.dart';
 // endregion
 
 // region HomeScreen Widget
@@ -34,16 +35,21 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _lastPressed;
   // endregion
 
+  // region Lifecycle Methods
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && Get.isRegistered<AuthRepository>()) {
+        Get.find<AuthRepository>().refreshPermissions();
+      }
+    });
+  }
+  // endregion
+
   // region Navigation & Actions
   Future<void> _handleCheckInOut(BuildContext context, bool isCheckedIn) async {
     final authRepo = Get.find<AuthRepository>();
-    if (!authRepo.rxUserPermissions.contains('duty_punch')) {
-      AppCommonToastMessage.show(
-        message: 'You do not have permission to perform this action.',
-        type: ToastType.warning,
-      );
-      return;
-    }
 
     String? selectedUnitId;
     if (!isCheckedIn) {
@@ -105,9 +111,12 @@ class _HomeScreenState extends State<HomeScreen> {
         body: AppRefreshIndicator(
           onRefresh: () async {
             try {
-              await Get.find<AuthRepository>().fetchProfile();
+              await Get.find<AuthRepository>().refreshPermissions();
+              if (Get.isRegistered<HomeGridController>()) {
+                Get.find<HomeGridController>().refreshGrid();
+              }
             } catch (e) {
-              debugPrint('Error reloading profile on home refresh: $e');
+              debugPrint('Error reloading profile & permissions on home refresh: $e');
             }
           },
           child: SingleChildScrollView(
@@ -146,10 +155,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDutySection(BuildContext context) {
     return Obx(() {
       final authRepo = Get.find<AuthRepository>();
-      if (!authRepo.rxUserPermissions.contains('duty_punch')) {
-        return const SizedBox.shrink();
-      }
-
       final isCheckedIn = authRepo.rxIsCheckedIn.value;
       final isSubmitting = authRepo.isSubmittingAttendance.value;
 

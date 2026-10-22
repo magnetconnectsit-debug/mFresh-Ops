@@ -1,33 +1,25 @@
+// region Imports
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/info_directory/contact_model.dart';
 import 'package:mfresh_ops/data/repositories/contact_repository.dart';
-import 'package:core/utils/app_common_toast_message.dart';
+// endregion
 
+// region CreateContactController
 class CreateContactController extends GetxController {
+  // region Dependencies & Repositories
+  final ContactRepository _contactRepo = Get.find<ContactRepository>();
+  // endregion
+
+  // region Observables & State Variables
   final formKey = GlobalKey<FormState>();
   final isEdit = false.obs;
   ContactModel? editingContact;
 
-  // Loading state
   final isLoading = false.obs;
-
-  // Text Controllers
-  final nameCtrl = TextEditingController();
-  final workedOnCtrl = TextEditingController();
-  final designationCtrl = TextEditingController();
-  final departmentCtrl = TextEditingController();
-  final mobile1Ctrl = TextEditingController();
-  final mobile2Ctrl = TextEditingController();
-  final emailCtrl = TextEditingController();
-  final gstinCtrl = TextEditingController();
-  final commentCtrl = TextEditingController();
-  final typeServiceCtrl = TextEditingController();
-  final locationCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
-  final websiteLinksCtrl = TextEditingController();
 
   // Dropdown Values
   final selectedContactType = RxnString();
@@ -46,17 +38,311 @@ class CreateContactController extends GetxController {
     'MT',
     'Jobs- Front',
     'Jobs- Corp',
-    'Blank'
+    'Blank',
   ].obs;
 
   // File Picker — supports multiple attachments
   final selectedFiles = <File>[].obs;
   final selectedFileNames = <String>[].obs;
+  // endregion
 
+  // region Text Controllers & Focus Nodes
+  final nameCtrl = TextEditingController();
+  final nameFocus = FocusNode();
+
+  final workedOnCtrl = TextEditingController();
+  final workedOnFocus = FocusNode();
+
+  final designationCtrl = TextEditingController();
+  final designationFocus = FocusNode();
+
+  final departmentCtrl = TextEditingController();
+  final departmentFocus = FocusNode();
+
+  final mobile1Ctrl = TextEditingController();
+  final mobile1Focus = FocusNode();
+
+  final mobile2Ctrl = TextEditingController();
+  final mobile2Focus = FocusNode();
+
+  final emailCtrl = TextEditingController();
+  final emailFocus = FocusNode();
+
+  final gstinCtrl = TextEditingController();
+  final gstinFocus = FocusNode();
+
+  final commentCtrl = TextEditingController();
+  final commentFocus = FocusNode();
+
+  final typeServiceCtrl = TextEditingController();
+  final typeServiceFocus = FocusNode();
+
+  final locationCtrl = TextEditingController();
+  final locationFocus = FocusNode();
+
+  final addressCtrl = TextEditingController();
+  final addressFocus = FocusNode();
+
+  final websiteLinksCtrl = TextEditingController();
+  final websiteLinksFocus = FocusNode();
+  // endregion
+
+  // region Dropdown GlobalKeys
+  final contactTypeKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final brandKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final companyKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final levelKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  // endregion
+
+  // region Lifecycle Methods
+  @override
+  void onInit() {
+    super.onInit();
+    fetchFilterOptions();
+    final args = Get.arguments;
+    if (args != null && args is ContactModel) {
+      isEdit.value = true;
+      editingContact = args;
+
+      nameCtrl.text = args.name;
+      selectedContactType.value =
+          args.contactType.isEmpty || args.contactType == '-'
+              ? null
+              : args.contactType;
+      selectedBrand.value =
+          args.brand.isEmpty || args.brand == '-' ? null : args.brand;
+      selectedCompany.value =
+          args.company.isEmpty || args.company == '-' ? null : args.company;
+
+      String parsedLevel = args.level.trim();
+      if (parsedLevel.toLowerCase() == 'high') {
+        parsedLevel = '1';
+      } else if (parsedLevel.toLowerCase() == 'medium') {
+        parsedLevel = '2';
+      } else if (parsedLevel.toLowerCase() == 'low') {
+        parsedLevel = '3';
+      }
+      selectedLevel.value =
+          parsedLevel.isEmpty || parsedLevel == '-' ? null : parsedLevel;
+
+      workedOnCtrl.text = args.workedOn;
+      gstinCtrl.text = args.gstin;
+      designationCtrl.text = args.designation;
+      departmentCtrl.text = args.department;
+      mobile1Ctrl.text = args.mobile1;
+      mobile2Ctrl.text = args.mobile2;
+      emailCtrl.text = args.email;
+      commentCtrl.text = args.description;
+      typeServiceCtrl.text = args.services;
+      locationCtrl.text = args.location;
+      addressCtrl.text = args.address;
+      websiteLinksCtrl.text = args.weblinks;
+    }
+  }
+
+  @override
+  void onClose() {
+    nameCtrl.dispose();
+    nameFocus.dispose();
+
+    workedOnCtrl.dispose();
+    workedOnFocus.dispose();
+
+    designationCtrl.dispose();
+    designationFocus.dispose();
+
+    departmentCtrl.dispose();
+    departmentFocus.dispose();
+
+    mobile1Ctrl.dispose();
+    mobile1Focus.dispose();
+
+    mobile2Ctrl.dispose();
+    mobile2Focus.dispose();
+
+    emailCtrl.dispose();
+    emailFocus.dispose();
+
+    gstinCtrl.dispose();
+    gstinFocus.dispose();
+
+    commentCtrl.dispose();
+    commentFocus.dispose();
+
+    typeServiceCtrl.dispose();
+    typeServiceFocus.dispose();
+
+    locationCtrl.dispose();
+    locationFocus.dispose();
+
+    addressCtrl.dispose();
+    addressFocus.dispose();
+
+    websiteLinksCtrl.dispose();
+    websiteLinksFocus.dispose();
+
+    super.onClose();
+  }
+  // endregion
+
+  // region Field Progression / Pointer Navigation
+  void focusNextUnfilledField(int currentIndex, [BuildContext? context]) {
+    final fields = [
+      // 0: Contact Type
+      (
+        isMandatory: true,
+        isFilled: () =>
+            selectedContactType.value != null &&
+            selectedContactType.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          contactTypeKey.currentState?.openMenu();
+        },
+      ),
+      // 1: Name
+      (
+        isMandatory: true,
+        isFilled: () => nameCtrl.text.trim().isNotEmpty,
+        onFocus: () => nameFocus.requestFocus(),
+      ),
+      // 2: Brand
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedBrand.value != null &&
+            selectedBrand.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          brandKey.currentState?.openMenu();
+        },
+      ),
+      // 3: Company
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedCompany.value != null &&
+            selectedCompany.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          companyKey.currentState?.openMenu();
+        },
+      ),
+      // 4: Worked On
+      (
+        isMandatory: false,
+        isFilled: () => workedOnCtrl.text.trim().isNotEmpty,
+        onFocus: () => workedOnFocus.requestFocus(),
+      ),
+      // 5: GST IN
+      (
+        isMandatory: false,
+        isFilled: () => gstinCtrl.text.trim().isNotEmpty,
+        onFocus: () => gstinFocus.requestFocus(),
+      ),
+      // 6: Designation
+      (
+        isMandatory: false,
+        isFilled: () => designationCtrl.text.trim().isNotEmpty,
+        onFocus: () => designationFocus.requestFocus(),
+      ),
+      // 7: Department
+      (
+        isMandatory: false,
+        isFilled: () => departmentCtrl.text.trim().isNotEmpty,
+        onFocus: () => departmentFocus.requestFocus(),
+      ),
+      // 8: Mobile 1
+      (
+        isMandatory: true,
+        isFilled: () => mobile1Ctrl.text.trim().isNotEmpty,
+        onFocus: () => mobile1Focus.requestFocus(),
+      ),
+      // 9: Mobile 2
+      (
+        isMandatory: false,
+        isFilled: () => mobile2Ctrl.text.trim().isNotEmpty,
+        onFocus: () => mobile2Focus.requestFocus(),
+      ),
+      // 10: Email
+      (
+        isMandatory: false,
+        isFilled: () => emailCtrl.text.trim().isNotEmpty,
+        onFocus: () => emailFocus.requestFocus(),
+      ),
+      // 11: Level
+      (
+        isMandatory: true,
+        isFilled: () =>
+            selectedLevel.value != null &&
+            selectedLevel.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          levelKey.currentState?.openMenu();
+        },
+      ),
+      // 12: Type Service
+      (
+        isMandatory: true,
+        isFilled: () => typeServiceCtrl.text.trim().isNotEmpty,
+        onFocus: () => typeServiceFocus.requestFocus(),
+      ),
+      // 13: Location
+      (
+        isMandatory: false,
+        isFilled: () => locationCtrl.text.trim().isNotEmpty,
+        onFocus: () => locationFocus.requestFocus(),
+      ),
+      // 14: Address
+      (
+        isMandatory: false,
+        isFilled: () => addressCtrl.text.trim().isNotEmpty,
+        onFocus: () => addressFocus.requestFocus(),
+      ),
+      // 15: Website Links
+      (
+        isMandatory: false,
+        isFilled: () => websiteLinksCtrl.text.trim().isNotEmpty,
+        onFocus: () => websiteLinksFocus.requestFocus(),
+      ),
+      // 16: Comment/Description
+      (
+        isMandatory: false,
+        isFilled: () => commentCtrl.text.trim().isNotEmpty,
+        onFocus: () => commentFocus.requestFocus(),
+      ),
+    ];
+
+    if (currentIndex < 0) {
+      // Focus first unfilled mandatory field on form validation
+      for (int i = 0; i < fields.length; i++) {
+        if (fields[i].isMandatory && !fields[i].isFilled()) {
+          fields[i].onFocus();
+          return;
+        }
+      }
+      FocusManager.instance.primaryFocus?.unfocus();
+      return;
+    }
+
+    // Forward progression from current field onwards
+    final int start = currentIndex + 1;
+    for (int i = start; i < fields.length; i++) {
+      if (!fields[i].isFilled()) {
+        fields[i].onFocus();
+        return;
+      }
+    }
+
+    // End of form reached or no unfilled fields forward - unfocus instead of wrapping to previous non-mandatory fields
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+  // endregion
+
+  // region File Handling
   Future<void> pickFile() async {
     Get.bottomSheet(
       Container(
-        color: Colors.white,
+        color: AppColors.white,
         child: SafeArea(
           child: Wrap(
             children: [
@@ -98,69 +384,45 @@ class CreateContactController extends GetxController {
       selectedFileNames.removeAt(index);
     }
   }
+  // endregion
 
-  @override
-  void onInit() {
-    super.onInit();
-    fetchFilterOptions();
-    final args = Get.arguments;
-    if (args != null && args is ContactModel) {
-      isEdit.value = true;
-      editingContact = args;
-
-      nameCtrl.text = args.name;
-      selectedContactType.value = args.contactType.isEmpty || args.contactType == '-' ? null : args.contactType;
-      selectedBrand.value = args.brand.isEmpty || args.brand == '-' ? null : args.brand;
-      selectedCompany.value = args.company.isEmpty || args.company == '-' ? null : args.company;
-      
-      String parsedLevel = args.level.trim();
-      if (parsedLevel.toLowerCase() == 'high') parsedLevel = '1';
-      else if (parsedLevel.toLowerCase() == 'medium') parsedLevel = '2';
-      else if (parsedLevel.toLowerCase() == 'low') parsedLevel = '3';
-      selectedLevel.value = parsedLevel.isEmpty || parsedLevel == '-' ? null : parsedLevel;
-      
-      workedOnCtrl.text = args.workedOn;
-      gstinCtrl.text = args.gstin;
-      designationCtrl.text = args.designation;
-      departmentCtrl.text = args.department;
-      mobile1Ctrl.text = args.mobile1;
-      mobile2Ctrl.text = args.mobile2;
-      emailCtrl.text = args.email;
-      commentCtrl.text = args.description;
-      typeServiceCtrl.text = args.services;
-      locationCtrl.text = args.location;
-      addressCtrl.text = args.address;
-      websiteLinksCtrl.text = args.weblinks;
-    }
-  }
-
+  // region API & Network Operations
   Future<void> fetchFilterOptions() async {
-    final repo = Get.find<ContactRepository>();
-    final brands = await repo.fetchBrandList();
+    final brands = await _contactRepo.fetchBrandList();
     if (brands.isNotEmpty) availableBrands.assignAll(brands);
-    
-    final companies = await repo.fetchCompanyList();
+
+    final companies = await _contactRepo.fetchCompanyList();
     if (companies.isNotEmpty) availableCompanies.assignAll(companies);
 
     if (isEdit.value && editingContact != null) {
       final brandName = editingContact!.brand;
       if (brandName.isNotEmpty && brandName != '-') {
-        final b = availableBrands.firstWhere((e) => e['name'] == brandName, orElse: () => {});
+        final b = availableBrands.firstWhere(
+          (e) => e['name'] == brandName,
+          orElse: () => {},
+        );
         if (b.isNotEmpty) selectedBrand.value = b['id'].toString();
       }
-      
+
       final companyName = editingContact!.company;
       if (companyName.isNotEmpty && companyName != '-') {
-        final c = availableCompanies.firstWhere((e) => e['name'] == companyName, orElse: () => {});
+        final c = availableCompanies.firstWhere(
+          (e) => e['name'] == companyName,
+          orElse: () => {},
+        );
         if (c.isNotEmpty) selectedCompany.value = c['id'].toString();
       }
     }
   }
 
   Future<void> submit() async {
-    if (!(formKey.currentState?.validate() ?? false)) return;
+    if (!(formKey.currentState?.validate() ?? false)) {
+      focusNextUnfilledField(-1);
+      return;
+    }
 
     if (nameCtrl.text.trim().isEmpty) {
+      nameFocus.requestFocus();
       AppCommonToastMessage.show(
         message: 'Name is required',
         type: ToastType.warning,
@@ -169,6 +431,7 @@ class CreateContactController extends GetxController {
     }
 
     if (mobile1Ctrl.text.trim().isEmpty) {
+      mobile1Focus.requestFocus();
       AppCommonToastMessage.show(
         message: 'Mobile 1 is required',
         type: ToastType.warning,
@@ -177,6 +440,8 @@ class CreateContactController extends GetxController {
     }
 
     if (selectedLevel.value == null || selectedLevel.value!.trim().isEmpty) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      levelKey.currentState?.openMenu();
       AppCommonToastMessage.show(
         message: 'Level is required',
         type: ToastType.warning,
@@ -185,6 +450,7 @@ class CreateContactController extends GetxController {
     }
 
     if (typeServiceCtrl.text.trim().isEmpty) {
+      typeServiceFocus.requestFocus();
       AppCommonToastMessage.show(
         message: 'Type Service is required',
         type: ToastType.warning,
@@ -194,12 +460,10 @@ class CreateContactController extends GetxController {
 
     try {
       isLoading.value = true;
-      final repo = Get.find<ContactRepository>();
-
       Map<String, dynamic>? response;
 
       if (isEdit.value && editingContact != null) {
-        response = await repo.updateContact(
+        response = await _contactRepo.updateContact(
           id: editingContact!.id,
           name: nameCtrl.text.trim(),
           workedOn: workedOnCtrl.text.trim(),
@@ -221,7 +485,7 @@ class CreateContactController extends GetxController {
           attachments: selectedFiles.toList(),
         );
       } else {
-        response = await repo.storeContact(
+        response = await _contactRepo.storeContact(
           name: nameCtrl.text.trim(),
           workedOn: workedOnCtrl.text.trim(),
           level: selectedLevel.value ?? '',
@@ -247,12 +511,15 @@ class CreateContactController extends GetxController {
         Get.back(result: true);
         AppCommonToastMessage.show(
           message: response['message'] ??
-              (isEdit.value ? 'Contact Updated Successfully' : 'Contact Added Successfully'),
+              (isEdit.value
+                  ? 'Contact Updated Successfully'
+                  : 'Contact Added Successfully'),
           type: ToastType.success,
         );
       } else {
         AppCommonToastMessage.show(
-          message: response?['message'] ?? 'Something went wrong. Please try again.',
+          message:
+              response?['message'] ?? 'Something went wrong. Please try again.',
           type: ToastType.error,
         );
       }
@@ -265,22 +532,6 @@ class CreateContactController extends GetxController {
       isLoading.value = false;
     }
   }
-
-  @override
-  void onClose() {
-    nameCtrl.dispose();
-    workedOnCtrl.dispose();
-    designationCtrl.dispose();
-    departmentCtrl.dispose();
-    mobile1Ctrl.dispose();
-    mobile2Ctrl.dispose();
-    emailCtrl.dispose();
-    gstinCtrl.dispose();
-    commentCtrl.dispose();
-    typeServiceCtrl.dispose();
-    locationCtrl.dispose();
-    addressCtrl.dispose();
-    websiteLinksCtrl.dispose();
-    super.onClose();
-  }
+  // endregion
 }
+// endregion

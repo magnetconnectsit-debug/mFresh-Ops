@@ -334,9 +334,8 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     final hasBgService = authRepo.rxUserPermissions.contains(
       'background_service',
     );
-    final hasDutyPunch = authRepo.rxUserPermissions.contains('duty_punch');
 
-    if (hasBgService && !hasDutyPunch && !hasTrackingPanel) {
+    if (hasBgService && !hasTrackingPanel) {
       try {
         if (!_isCheckingStatus) await checkCurrentStatus();
       } catch (_) {}

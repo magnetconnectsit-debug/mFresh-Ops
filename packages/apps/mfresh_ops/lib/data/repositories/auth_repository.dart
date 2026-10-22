@@ -193,22 +193,75 @@ class AuthRepository extends GetxService {
     try {
       final response = await _apiService.get(AppConstants.profile);
 
-      if (response != null && response['user'] != null) {
-        final user = User.fromJson(response);
-        await _storageService.saveUser(user);
-        rxUserPermissions.assignAll(user.permissions ?? []);
-        rxIsCheckedIn.value = user.isCheckedIn ?? false;
+      if (response != null) {
+        // Direct permission extraction to guarantee permissions refresh even if response payload format varies
+        final permissionsSource = response['permissions'] ??
+            (response['data'] is Map ? response['data']['permissions'] : null) ??
+            (response['user'] is Map ? response['user']['permissions'] : null);
 
-        try {
-          Get.find<TrackingService>().startAutoTracking();
-        } catch (_) {}
+        final List<String> extractedPermissions = [];
+        if (permissionsSource is Map) {
+          permissionsSource.forEach((key, value) {
+            final bool isGranted = value == true ||
+                value == 1 ||
+                value == 'true' ||
+                value == '1' ||
+                value == 'yes';
+            if (isGranted) {
+              extractedPermissions.add(key.toString());
+            }
+          });
+          rxUserPermissions.assignAll(extractedPermissions);
+        } else if (permissionsSource is List) {
+          for (final item in permissionsSource) {
+            if (item is String) {
+              extractedPermissions.add(item);
+            } else if (item is Map) {
+              final name = item['name'] ?? item['permission'] ?? item['title'];
+              final val = item['value'] ?? item['status'] ?? item['is_active'];
+              final bool isGranted = val == true ||
+                  val == 1 ||
+                  val == 'true' ||
+                  val == '1' ||
+                  val == 'yes';
+              if (name != null && isGranted) {
+                extractedPermissions.add(name.toString());
+              }
+            }
+          }
+          rxUserPermissions.assignAll(extractedPermissions);
+        }
 
-        return user;
+        if (response['user'] != null ||
+            response['id'] != null ||
+            response['data'] != null) {
+          final user = User.fromJson(response);
+          final userToSave = (extractedPermissions.isNotEmpty || permissionsSource is Map)
+              ? user.copyWith(permissions: extractedPermissions)
+              : user;
+          await _storageService.saveUser(userToSave);
+          if (userToSave.permissions != null) {
+            rxUserPermissions.assignAll(userToSave.permissions!);
+          }
+          rxIsCheckedIn.value = userToSave.isCheckedIn ?? false;
+
+          try {
+            Get.find<TrackingService>().startAutoTracking();
+          } catch (_) {}
+
+          return userToSave;
+        }
       }
       return null;
     } catch (e) {
+      debugPrint("AuthRepository.fetchProfile error: $e");
       return null;
     }
+  }
+
+  /// Explicit refresh method for pull-to-refresh to reload permissions and user state
+  Future<void> refreshPermissions() async {
+    await fetchProfile();
   }
 
   Future<bool> logout() async {

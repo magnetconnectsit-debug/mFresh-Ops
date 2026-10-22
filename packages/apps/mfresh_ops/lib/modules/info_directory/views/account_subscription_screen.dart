@@ -1,21 +1,21 @@
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/views/widgets/account_subscription_filters.dart';
 import 'package:mfresh_ops/modules/info_directory/views/widgets/account_subscription_table.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
-import 'package:core/widgets/custom_app_loader.dart';
-import 'package:core/widgets/app_common_search_bar.dart';
+// endregion
 
+// region AccountSubscriptionScreen Class
 class AccountSubscriptionScreen extends StatelessWidget {
   const AccountSubscriptionScreen({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AccountSubscriptionController>();
@@ -23,113 +23,19 @@ class AccountSubscriptionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
-      appBar: AppCommonAppBar(
-        title: Row(
-          children: [
-            Text(
-              'All Account Logins',
-              style: AppTextStyle.style_18_700(color: AppColors.black),
-            ),
-            const Spacer(),
-            AppCommonSearchBar(
-              width: 140.w,
-              controller: controller.searchCtrl,
-              hintText: 'Search',
-              onChanged: (v) {
-                controller.applyFilters(debounce: true);
-              },
-            ),
-          ],
-        ),
-        hasBackButton: false,
-        showAppDrawer: true,
-        topHeader: const CommonShortcutHeader(),
-        toolbarHeight: 45.h,
-      ),
+      appBar: _buildAppBar(controller),
       body: SafeArea(
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16.r),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   AccountSubscriptionFilters(controller: controller),
                   SizedBox(height: 6.h),
-                  Row(
-                    children: [
-                      SizedBox(
-                        height: 24.h,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final result = await Get.toNamed(
-                              AppRoutes.createAccountSubscription,
-                            );
-                            if (result == true) {
-                              controller.fetchSubscriptions();
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF16A3B8),
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(horizontal: 12.w),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            elevation: 1,
-                          ),
-                          child: Text(
-                            'Create Accounts',
-                            style: AppTextStyle.style_12_500(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Obx(
-                        () => Container(
-                          height: 24.h,
-                          padding: EdgeInsets.symmetric(horizontal: 8.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<int>(
-                              value: controller.perPage.value,
-                              dropdownColor: Colors.white,
-                              style: AppTextStyle.style_12_500(
-                                color: AppColors.black,
-                              ),
-                              icon: Icon(
-                                Icons.arrow_drop_down,
-                                size: 16.r,
-                                color: Colors.grey.shade600,
-                              ),
-                              items: [10, 20, 50, 100, 500, 1000]
-                                  .map(
-                                    (val) => DropdownMenuItem<int>(
-                                      value: val,
-                                      child: Text('$val per page'),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  controller.perPage.value = val;
-                                  controller.currentPage.value = 1;
-                                  controller.fetchSubscriptions();
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildActionBar(controller),
                   SizedBox(height: 6.h),
                   Expanded(
                     child: Obx(() {
@@ -146,10 +52,10 @@ class AccountSubscriptionScreen extends StatelessWidget {
             Obx(() {
               if (controller.isLoading.value &&
                   controller.subscriptions.isNotEmpty) {
-                return const Positioned.fill(
+                return Positioned.fill(
                   child: ColoredBox(
-                    color: Colors.black12,
-                    child: Center(child: CustomAppLoader()),
+                    color: AppColors.black.withValues(alpha: 0.2),
+                    child: const Center(child: CustomAppLoader()),
                   ),
                 );
               }
@@ -160,4 +66,101 @@ class AccountSubscriptionScreen extends StatelessWidget {
       ),
     );
   }
+  // endregion
+
+  // region App Bar
+  PreferredSizeWidget _buildAppBar(AccountSubscriptionController controller) {
+    return AppCommonAppBar(
+      title: Row(
+        children: [
+          Text(
+            'All Account Logins',
+            style: AppTextStyle.style_18_700(color: AppColors.black),
+          ),
+          const Spacer(),
+          AppCommonSearchBar(
+            width: 140.w,
+            controller: controller.searchCtrl,
+            hintText: 'Search',
+            onChanged: (v) {
+              controller.applyFilters(debounce: true);
+            },
+          ),
+        ],
+      ),
+      hasBackButton: false,
+      showAppDrawer: true,
+      topHeader: const CommonShortcutHeader(),
+      toolbarHeight: 45.h,
+    );
+  }
+  // endregion
+
+  // region Action Bar
+  Widget _buildActionBar(AccountSubscriptionController controller) {
+    return Row(
+      children: [
+        AppCommonButton(
+          text: 'Create Accounts',
+          buttonColor: AppColors.primary,
+          textColor: AppColors.white,
+          height: 26.h,
+          textSize: 12.sp,
+          borderRadius: 4.r,
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          onPressed: () async {
+            final result = await Get.toNamed(
+              AppRoutes.createAccountSubscription,
+            );
+            if (result == true) {
+              controller.fetchSubscriptions();
+            }
+          },
+        ),
+        const Spacer(),
+        Obx(
+          () => Container(
+            height: 26.h,
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              border: Border.all(color: AppColors.borderColor),
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: controller.perPage.value,
+                dropdownColor: AppColors.white,
+                style: AppTextStyle.style_12_500(
+                  color: AppColors.black,
+                ),
+                icon: Icon(
+                  Icons.arrow_drop_down,
+                  size: 16.r,
+                  color: AppColors.grey600,
+                ),
+                items: [10, 20, 50, 100, 500, 1000]
+                    .map(
+                      (val) => DropdownMenuItem<int>(
+                        value: val,
+                        child: Text('$val per page'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    controller.perPage.value = val;
+                    controller.currentPage.value = 1;
+                    controller.fetchSubscriptions();
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  // endregion
 }
+// endregion

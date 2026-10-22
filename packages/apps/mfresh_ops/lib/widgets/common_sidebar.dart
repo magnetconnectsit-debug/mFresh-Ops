@@ -3,6 +3,7 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -22,8 +23,8 @@ class CommonSidebar extends StatelessWidget {
     final userName = user?.name ?? 'Ops Manager';
     final userRole =
         (user?.roleName != null && user!.roleName!.trim().isNotEmpty)
-            ? user.roleName!
-            : 'Operations Team';
+        ? user.roleName!
+        : 'Operations Team';
     final userImageUrl = user?.imageUrl;
     final topPadding = MediaQuery.of(context).padding.top;
 
@@ -35,77 +36,74 @@ class CommonSidebar extends StatelessWidget {
             child: Obx(() {
               final authRepo = Get.find<AuthRepository>();
               final userPermissions = authRepo.rxUserPermissions;
-              final hasDutyPermission = userPermissions.contains('duty_punch');
+              bool hasPerm(String key) =>
+                  AppPermissions.has(userPermissions, key);
 
               final supportTicketSubItems = [
-                'Support Ticket',
-                if (userPermissions.contains('M_Template')) 'M_Template',
-                if (userPermissions.contains('M_Projects')) 'M_Projects',
-                if (userPermissions.contains('m_sub_category'))
-                  'M_Sub Category',
-                if (userPermissions.contains('maintenance_category'))
-                  'M_Category',
+                // if (hasPerm(AppPermissions.supportTicketDashboard))
+                //   'Support Ticket Dashboard',
+                if (hasPerm(AppPermissions.maintenancePanel)) 'Support Ticket',
+                if (hasPerm(AppPermissions.mTemplate)) 'M_Template',
+                if (hasPerm(AppPermissions.mProjects)) 'M_Projects',
+                if (hasPerm(AppPermissions.mSubCategory)) 'M_Sub Category',
+                if (hasPerm(AppPermissions.maintenanceCategory)) 'M_Category',
               ];
 
-              final showTaskScheduler = userPermissions.contains(
-                'Task_Sheduler_Pannel',
+              final showTaskScheduler = hasPerm(
+                AppPermissions.taskSchedulerPanel,
               );
               final taskSubItems = [
-                if (userPermissions.contains('All_Task')) 'All Task',
-                if (userPermissions.contains('Daily_Task')) 'Daily Task',
-                if (userPermissions.contains('daily_task_by_month'))
+                if (hasPerm(AppPermissions.allTask)) 'All Task',
+                if (hasPerm(AppPermissions.dailyTask)) 'Daily Task',
+                if (hasPerm(AppPermissions.dailyTaskByMonth))
                   'Daily Task By Month',
               ];
 
-              final showInventory = true;
+              final showInventory =
+                  hasPerm(AppPermissions.inventoryPanel);
               final inventorySubItems = [
-                if (userPermissions.contains('store_inventory_stock'))
+                if (hasPerm(AppPermissions.storeInventoryStock))
                   'Store Inventory',
-                if (userPermissions.contains('unit_inventory_stock'))
+                if (hasPerm(AppPermissions.unitInventoryStock))
                   'Unit Inventory',
-                if (userPermissions.contains('Inv_Order_Panel'))
-                  'Inventory Orders',
-                if (userPermissions.contains('Inv_Order_Log_Panel'))
-                  'Order Logs',
-                if (userPermissions.contains('consumption_report')) 'Usage',
-                if (userPermissions.contains('allotments_report')) 'Transfer',
-                if (userPermissions.contains('measurements_panel'))
-                  'M_Measurements',
-                if (userPermissions.contains('inventory_item')) 'M_Items',
-                if (userPermissions.contains('store_room')) 'M_Store',
-                if (userPermissions.contains('unit_audit_report'))
-                  'Audit Report',
-                if (userPermissions.contains('m_audit_items_list') ||
-                    userPermissions.contains('audit_item_rank'))
-                  'Audit Item Rank',
+                if (hasPerm(AppPermissions.invOrderPanel)) 'Inventory Orders',
+                if (hasPerm(AppPermissions.invOrderLogPanel)) 'Order Logs',
+                if (hasPerm(AppPermissions.consumptionReport)) 'Usage',
+                if (hasPerm(AppPermissions.allotmentsReport)) 'Transfer',
+                if (hasPerm(AppPermissions.measurementsPanel)) 'M_Measurements',
+                if (hasPerm(AppPermissions.inventoryItem)) 'M_Items',
+                if (hasPerm(AppPermissions.storeRoom)) 'M_Store',
+                if (hasPerm(AppPermissions.unitAuditReport)) 'Audit Report',
+                if (hasPerm(AppPermissions.auditItemRank)) 'Audit Item Rank',
               ];
 
               final infoDirectorySubItems = [
-                if (userPermissions.contains('Assets_products_panel'))
-                  'Assets & Products',
-                if (userPermissions.contains('Account_Details_Panel'))
-                  'Account Details',
-                if (userPermissions.contains('Asset_Category_Panel'))
-                  'Asset Category',
-                if (userPermissions.contains('Contact_directory_panel'))
+                if (hasPerm(AppPermissions.cDirectoryPanel))
                   'Contact Directory',
-                if (userPermissions.contains('MContact_Brands_Panel'))
-                  'MContact_Brands',
-                if (userPermissions.contains('MContact_Companies_Panel'))
-                  'MContact_Companies',
+                if (hasPerm(AppPermissions.assetPanel) ||
+                    hasPerm(AppPermissions.assetsProductDetails))
+                  'Assets & Products',
+                if (hasPerm(AppPermissions.accountSubscriptionPanel) ||
+                    hasPerm(AppPermissions.accountDetails))
+                  'Account Details',
+                if (hasPerm(AppPermissions.assetCategoryPanel))
+                  'Asset Category',
+                if (hasPerm(AppPermissions.brandDetails)) 'Brands',
+                if (hasPerm(AppPermissions.companyDetails)) 'Companies',
               ];
 
               final paymentSchedulerSubItems = [
-                if (userPermissions.contains('scheduler_panel')) 'Scheduler',
-                if (userPermissions.contains('completed_schedulers_panel'))
+                if (hasPerm(AppPermissions.paymentReminderPannel)) ...[
+                  'Scheduler',
                   'Completed Schedulers',
+                ],
               ];
 
               final rolesSubItems = [
-                if (userPermissions.contains('roles_master')) 'Roles Master',
-                if (userPermissions.contains('responsibilities_master'))
+                if (hasPerm(AppPermissions.rolesMaster)) 'Roles Master',
+                if (hasPerm(AppPermissions.responsibilitiesMaster))
                   'Responsibilities',
-                if (userPermissions.contains('view_responsibilities_master'))
+                if (hasPerm(AppPermissions.viewResponsibilities))
                   'View Responsibilities',
               ];
 
@@ -115,7 +113,6 @@ class CommonSidebar extends StatelessWidget {
                     pinned: true,
                     delegate: _CollapsibleDrawerHeaderDelegate(
                       topPadding: topPadding,
-                      hasDutyPermission: hasDutyPermission,
                       userName: userName,
                       userRole: userRole,
                       userImageUrl: userImageUrl,
@@ -123,11 +120,11 @@ class CommonSidebar extends StatelessWidget {
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4.h),
+                      padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (userPermissions.contains('Dashboard_Panel'))
+                          if (hasPerm(AppPermissions.dashboardPanel))
                             _buildMenuItem(
                               icon: Icons.dashboard_outlined,
                               activeIcon: Icons.dashboard,
@@ -143,7 +140,10 @@ class CommonSidebar extends StatelessWidget {
                             currentRoute: currentRoute,
                           ),
 
-                          if (userPermissions.contains('maintenance_panel') &&
+                          if ((hasPerm(AppPermissions.maintenancePanel) ||
+                                  hasPerm(
+                                    AppPermissions.supportTicketDashboard,
+                                  )) &&
                               supportTicketSubItems.isNotEmpty)
                             _buildExpandableMenuItem(
                               icon: Icons.support_agent_outlined,
@@ -168,42 +168,38 @@ class CommonSidebar extends StatelessWidget {
                               currentRoute: currentRoute,
                             ),
 
-                          if (userPermissions.contains('tracking_panel') ||
-                              userPermissions.contains('Attendance_Log'))
+                          if (hasPerm(AppPermissions.trackingPanel) ||
+                              hasPerm(AppPermissions.attendanceLog))
                             _buildExpandableMenuItem(
                               icon: Icons.location_on_outlined,
                               title: 'Attendance',
                               subItems: [
-                                if (userPermissions.contains('tracking_panel'))
+                                if (hasPerm(AppPermissions.trackingPanel))
                                   'Attendance',
-                                if (userPermissions.contains('Attendance_Log'))
+                                if (hasPerm(AppPermissions.attendanceLog))
                                   'Report',
                               ],
                               currentRoute: currentRoute,
                             ),
 
-                          if (userPermissions.contains(
-                            'Collections_Deposits_Panel',
-                          ))
+                          if (hasPerm(AppPermissions.collectionsDepositsPanel))
                             _buildExpandableMenuItem(
                               icon: Icons.attach_money_outlined,
                               title: 'Collections & Deposits',
                               subItems: [
-                                if (userPermissions.contains(
-                                  'collection_panel',
-                                ))
+                                if (hasPerm(AppPermissions.collectionPanel))
                                   'Admin Collections',
-                                if (userPermissions.contains(
-                                  'normal_admin_collection',
+                                if (hasPerm(
+                                  AppPermissions.normalAdminCollection,
                                 ))
                                   'Collections',
-                                if (userPermissions.contains('deposit_panel'))
+                                if (hasPerm(AppPermissions.depositPanel))
                                   'Deposits',
                               ],
                               currentRoute: currentRoute,
                             ),
 
-                          if (userPermissions.contains('c_directory_panel'))
+                          if (infoDirectorySubItems.isNotEmpty)
                             _buildExpandableMenuItem(
                               icon: Icons.contact_phone_outlined,
                               title: 'Info Directory',
@@ -211,9 +207,7 @@ class CommonSidebar extends StatelessWidget {
                               currentRoute: currentRoute,
                             ),
 
-                          if (userPermissions.contains(
-                                'payment_reminder_pannel',
-                              ) &&
+                          if (hasPerm(AppPermissions.paymentReminderPannel) &&
                               paymentSchedulerSubItems.isNotEmpty)
                             _buildExpandableMenuItem(
                               icon: Icons.payment_outlined,
@@ -222,8 +216,8 @@ class CommonSidebar extends StatelessWidget {
                               currentRoute: currentRoute,
                             ),
 
-                          if (userPermissions.contains(
-                                'roles_responsibility_panel',
+                          if (hasPerm(
+                                AppPermissions.rolesResponsibilityPanel,
                               ) &&
                               rolesSubItems.isNotEmpty)
                             _buildExpandableMenuItem(
@@ -410,11 +404,13 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.accountSubscription);
                   } else if (item == 'Asset Category') {
                     Get.toNamed(AppRoutes.assetCategory);
-                  } else if (item == 'Contact Directory') {
+                  } else if (item == 'Contact Directory' ||
+                      item == 'Contacts') {
                     Get.toNamed(AppRoutes.infoDirectory);
-                  } else if (item == 'MContact_Brands') {
+                  } else if (item == 'MContact_Brands' || item == 'Brands') {
                     Get.toNamed(AppRoutes.contactBrands);
-                  } else if (item == 'MContact_Companies') {
+                  } else if (item == 'MContact_Companies' ||
+                      item == 'Companies') {
                     Get.toNamed(AppRoutes.contactCompanies);
                   } else if (item == 'Scheduler') {
                     Get.toNamed(AppRoutes.paymentReminder);
@@ -487,6 +483,7 @@ class CommonSidebar extends StatelessWidget {
       },
     );
   }
+
   // endregion
 }
 // endregion
@@ -494,33 +491,107 @@ class CommonSidebar extends StatelessWidget {
 // region Collapsible Header Delegate
 class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double topPadding;
-  final bool hasDutyPermission;
   final String userName;
   final String? userRole;
   final String? userImageUrl;
 
   _CollapsibleDrawerHeaderDelegate({
     required this.topPadding,
-    required this.hasDutyPermission,
     required this.userName,
     this.userRole,
     this.userImageUrl,
   });
 
   @override
-  double get maxExtent => topPadding + (hasDutyPermission ? 104.h : 64.h);
+  double get maxExtent => topPadding + 116.h;
 
   @override
-  double get minExtent => topPadding + 48.h;
+  double get minExtent => topPadding + 56.h;
 
   @override
   bool shouldRebuild(covariant _CollapsibleDrawerHeaderDelegate oldDelegate) {
-    return oldDelegate.hasDutyPermission != hasDutyPermission ||
-        oldDelegate.userName != userName ||
+    return oldDelegate.userName != userName ||
         oldDelegate.userRole != userRole ||
         oldDelegate.userImageUrl != userImageUrl ||
         oldDelegate.topPadding != topPadding;
   }
+
+  // region Collapsible Duty Pill Builder
+  Widget _buildCollapsedDutyPill(bool isTracking) {
+    return GestureDetector(
+      onTap: () async {
+        await TrackingService.to.toggleTracking();
+      },
+      child: Container(
+        height: 28.h,
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.12),
+              blurRadius: 4.r,
+              offset: Offset(0, 1.h),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7.r,
+              height: 7.r,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isTracking ? const Color(0xFF10B981) : AppColors.red,
+                boxShadow: isTracking
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                          blurRadius: 4.r,
+                        ),
+                      ]
+                    : null,
+              ),
+            ),
+            SizedBox(width: 5.w),
+            Text(
+              isTracking ? 'ON' : 'OFF',
+              style: AppTextStyle.style_10_700(
+                color: isTracking ? const Color(0xFF10B981) : AppColors.red,
+              ),
+            ),
+            SizedBox(width: 5.w),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 28.w,
+              height: 16.h,
+              padding: EdgeInsets.all(2.r),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10.r),
+                color: isTracking
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFE2E8F0),
+              ),
+              alignment: isTracking
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
+              child: Container(
+                width: 12.r,
+                height: 12.r,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  // endregion
 
   @override
   Widget build(
@@ -537,38 +608,37 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
     return Obx(() {
       final isTracking = TrackingService.to.isTracking.value;
 
-      // Interpolations
-      // Avatar size: 40.r -> 28.r
-      final double avatarSize = 40.r - (12.r * progress);
+      // Avatar sizing: 42.r -> 34.r
+      final double avatarSize = 42.r - (8.r * progress);
 
-      // Avatar top: (topPadding + 8.h) -> topPadding + ((48.h - 28.r) / 2)
-      final double avatarTopExpanded = topPadding + 8.h;
-      final double avatarTopCollapsed = topPadding + ((48.h - 28.r) / 2);
+      // Avatar top centering
+      final double avatarTopExpanded = topPadding + 10.h;
+      final double avatarTopCollapsed = topPadding + ((56.h - 34.r) / 2);
       final double avatarTop =
           avatarTopExpanded +
           (avatarTopCollapsed - avatarTopExpanded) * progress;
 
-      // Name top: (topPadding + 10.h) -> topPadding + ((48.h - 16.sp) / 2)
-      final double nameTopExpanded = topPadding + 10.h;
-      final double nameTopCollapsed = topPadding + ((48.h - 16.sp) / 2);
+      // Name top centering
+      final double nameTopExpanded = topPadding + 12.h;
+      final double nameTopCollapsed = topPadding + ((56.h - 18.sp) / 2);
       final double nameTop =
           nameTopExpanded + (nameTopCollapsed - nameTopExpanded) * progress;
 
-      // Name left: (14.w + 40.r + 10.w) -> (14.w + 28.r + 8.w)
-      final double nameLeftExpanded = 14.w + 40.r + 10.w;
-      final double nameLeftCollapsed = 14.w + 28.r + 8.w;
+      // Name left position
+      final double nameLeftExpanded = 14.w + 42.r + 10.w;
+      final double nameLeftCollapsed = 14.w + 34.r + 10.w;
       final double nameLeft =
           nameLeftExpanded + (nameLeftCollapsed - nameLeftExpanded) * progress;
 
       // Subtitle fade
-      final double subtitleOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
+      final double subtitleOpacity = (1.0 - progress * 2.8).clamp(0.0, 1.0);
 
       // Expanded Duty Card fade & slide
-      final double dutyCardOpacity = (1.0 - progress * 1.8).clamp(0.0, 1.0);
+      final double dutyCardOpacity = (1.0 - progress * 2.0).clamp(0.0, 1.0);
       final double dutyCardOffset = -8.h * progress;
 
       // Collapsed Duty Switch fade in
-      final double collapsedDutyOpacity = ((progress - 0.45) / 0.55).clamp(
+      final double collapsedDutyOpacity = ((progress - 0.4) / 0.6).clamp(
         0.0,
         1.0,
       );
@@ -576,7 +646,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
       return Container(
         decoration: BoxDecoration(
           color: AppColors.primary,
-          boxShadow: progress > 0.15
+          boxShadow: progress > 0.1
               ? [
                   BoxShadow(
                     color: AppColors.black.withValues(alpha: 0.15 * progress),
@@ -645,8 +715,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
                             ),
                     ),
                   ),
-                  // Online/Duty pulse dot on avatar (especially visible when collapsed)
-                  if (hasDutyPermission && isTracking)
+                  if (isTracking)
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -676,7 +745,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
             Positioned(
               left: nameLeft,
               top: nameTop,
-              right: hasDutyPermission && progress > 0.4 ? 82.w : 16.w,
+              right: progress > 0.4 ? 96.w : 16.w,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -685,7 +754,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
                     userName,
                     style: AppTextStyle.style_16_600(
                       color: AppColors.white,
-                    ).copyWith(fontSize: (15.0 - 2.0 * progress).sp),
+                    ).copyWith(fontSize: (15.0 - 1.5 * progress).sp),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -709,141 +778,119 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
 
             // ── Collapsed Duty Toggle (Right side of compact bar) ──
-            if (hasDutyPermission && collapsedDutyOpacity > 0.01)
+            if (collapsedDutyOpacity > 0.01)
               Positioned(
-                right: 8.w,
-                top: topPadding + ((48.h - 26.h) / 2),
+                right: 12.w,
+                top: topPadding + ((56.h - 28.h) / 2),
                 child: Opacity(
                   opacity: collapsedDutyOpacity,
                   child: IgnorePointer(
                     ignoring: progress < 0.5,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(8.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.black.withValues(alpha: 0.1),
-                                blurRadius: 3.r,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            isTracking ? 'ON' : 'OFF',
-                            style: AppTextStyle.style_10_700(
-                              color: isTracking
-                                  ? const Color(0xFF10B981)
-                                  : AppColors.red,
-                            ),
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: 0.68,
-                          child: Switch.adaptive(
-                            value: isTracking,
-                            activeTrackColor: const Color(0xFF10B981),
-                            activeThumbColor: Colors.white,
-                            onChanged: (val) async {
-                              await TrackingService.to.toggleTracking();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: _buildCollapsedDutyPill(isTracking),
                   ),
                 ),
               ),
 
             // ── Expanded Duty Card (Bottom of expanded header) ──
-            if (hasDutyPermission && dutyCardOpacity > 0.01)
+            if (dutyCardOpacity > 0.01)
               Positioned(
                 left: 14.w,
                 right: 14.w,
-                top: topPadding + 56.h + dutyCardOffset,
+                top: topPadding + 62.h + dutyCardOffset,
                 child: Opacity(
                   opacity: dutyCardOpacity,
                   child: IgnorePointer(
                     ignoring: progress > 0.5,
-                    child: Container(
-                      height: 34.h,
-                      padding: EdgeInsets.symmetric(horizontal: 10.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(8.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.black.withValues(alpha: 0.08),
-                            blurRadius: 4.r,
-                            offset: Offset(0, 1.5.h),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 8.r,
-                            height: 8.r,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isTracking
-                                  ? const Color(0xFF10B981)
-                                  : AppColors.red,
-                              boxShadow: isTracking
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF10B981,
-                                        ).withValues(alpha: 0.5),
-                                        blurRadius: 4.r,
-                                      ),
-                                    ]
-                                  : null,
+                    child: GestureDetector(
+                      onTap: () async {
+                        await TrackingService.to.toggleTracking();
+                      },
+                      child: Container(
+                        height: 38.h,
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(10.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withValues(alpha: 0.08),
+                              blurRadius: 4.r,
+                              offset: Offset(0, 1.5.h),
                             ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  isTracking ? 'ON DUTY' : 'OFF DUTY',
-                                  style: AppTextStyle.style_11_700(
-                                    color: isTracking
-                                        ? const Color(0xFF10B981)
-                                        : AppColors.red,
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8.r,
+                              height: 8.r,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isTracking
+                                    ? const Color(0xFF10B981)
+                                    : AppColors.red,
+                                boxShadow: isTracking
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF10B981,
+                                          ).withValues(alpha: 0.5),
+                                          blurRadius: 4.r,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    isTracking ? 'ON DUTY' : 'OFF DUTY',
+                                    style: AppTextStyle.style_11_700(
+                                      color: isTracking
+                                          ? const Color(0xFF10B981)
+                                          : AppColors.red,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  isTracking
-                                      ? 'Duty active'
-                                      : 'Offline. Tap switch to start.',
-                                  style: AppTextStyle.style_9_400(
-                                    color: AppColors.grey500,
+                                  Text(
+                                    isTracking
+                                        ? 'Duty active'
+                                        : 'Offline. Tap switch to start.',
+                                    style: AppTextStyle.style_9_400(
+                                      color: AppColors.grey500,
+                                    ),
                                   ),
+                                ],
+                              ),
+                            ),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 34.w,
+                              height: 20.h,
+                              padding: EdgeInsets.all(2.r),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12.r),
+                                color: isTracking
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFE2E8F0),
+                              ),
+                              alignment: isTracking
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Container(
+                                width: 16.r,
+                                height: 16.r,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                          Transform.scale(
-                            scale: 0.68,
-                            child: Switch.adaptive(
-                              value: isTracking,
-                              activeTrackColor: const Color(0xFF10B981),
-                              activeThumbColor: Colors.white,
-                              onChanged: (val) async {
-                                await TrackingService.to.toggleTracking();
-                              },
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -855,4 +902,5 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
     });
   }
 }
+
 // endregion

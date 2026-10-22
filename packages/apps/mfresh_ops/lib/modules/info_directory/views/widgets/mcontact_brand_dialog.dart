@@ -1,12 +1,17 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/custom_app_loader.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/mcontact_brands_controller.dart';
+// endregion
 
-Future<void> showMContactBrandDialog(BuildContext context, MContactBrandsController controller, {Map<String, dynamic>? brand}) async {
+// region Brand Dialog Function
+Future<void> showMContactBrandDialog(
+  BuildContext context,
+  MContactBrandsController controller, {
+  Map<String, dynamic>? brand,
+}) async {
   if (brand != null) {
     controller.brandNameCtrl.text = brand['name']?.toString() ?? '';
   } else {
@@ -23,92 +28,87 @@ Future<void> showMContactBrandDialog(BuildContext context, MContactBrandsControl
         side: const BorderSide(color: AppColors.borderColor, width: 1),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: BoxConstraints(maxWidth: 480.w),
         child: Padding(
           padding: EdgeInsets.all(20.r),
-        child: Form(
-          key: controller.formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                brand != null ? 'Edit Brand' : 'Create Brand',
-                style: AppTextStyle.style_16_700(color: AppColors.black),
-              ),
-              SizedBox(height: 20.h),
-              TextFormField(
-                controller: controller.brandNameCtrl,
-                style: AppTextStyle.style_14_400(color: AppColors.black),
-                decoration: InputDecoration(
-                  hintText: 'Enter brand name',
-                  hintStyle: AppTextStyle.style_14_400(color: AppColors.grey500),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                    borderSide: const BorderSide(color: AppColors.borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                    borderSide: const BorderSide(color: AppColors.borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          child: Form(
+            key: controller.formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  brand != null ? 'Edit Brand' : 'Create Brand',
+                  style: AppTextStyle.style_16_700(color: AppColors.black),
                 ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Brand name is required';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyle.style_14_600(
-                        color: AppColors.grey600,
+                SizedBox(height: 20.h),
+                AppCommonTextField(
+                  controller: controller.brandNameCtrl,
+                  hintText: 'Enter brand name',
+                  labelText: 'Brand Name',
+                  isRequired: true,
+                  height: 38.h,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) async {
+                    final success = await controller.submitBrand(
+                      brandId: brand?['id'] as int?,
+                    );
+                    if (success && dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                  },
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Brand name is required';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppCommonButton(
+                      text: 'Cancel',
+                      variant: ButtonVariant.outline,
+                      buttonColor: AppColors.white,
+                      borderColor: AppColors.borderColor,
+                      textColor: AppColors.grey600,
+                      height: 34.h,
+                      width: 80.w,
+                      borderRadius: 6.r,
+                      textSize: 13.sp,
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                    SizedBox(width: 12.w),
+                    Obx(
+                      () => AppCommonButton(
+                        text: brand != null ? 'Update' : 'Submit',
+                        isLoading: controller.isLoading.value,
+                        buttonColor: AppColors.primary,
+                        textColor: AppColors.white,
+                        height: 34.h,
+                        width: 80.w,
+                        borderRadius: 6.r,
+                        textSize: 13.sp,
+                        onPressed: () async {
+                          final success = await controller.submitBrand(
+                            brandId: brand?['id'] as int?,
+                          );
+                          if (success && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
                       ),
                     ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Obx(
-                    () => ElevatedButton(
-                      onPressed: controller.isLoading.value
-                          ? null
-                          : () async {
-                              final success = await controller.submitBrand(brandId: brand?['id'] as int?);
-                              if (success && dialogContext.mounted) {
-                                Navigator.of(dialogContext).pop();
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                        minimumSize: Size(80.w, 36.h),
-                      ),
-                      child: controller.isLoading.value
-                          ? SizedBox(
-                              width: 16.w,
-                              height: 16.w,
-                              child: const CustomAppLoader())
-                          : Text(brand != null ? 'Update' : 'Submit', style: AppTextStyle.style_14_600(color: Colors.white)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     ),
-  ),
-);
+  );
 }
+// endregion

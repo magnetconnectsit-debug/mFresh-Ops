@@ -4,6 +4,7 @@ import 'package:dio/dio.dart' as d;
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:services/api_services.dart';
 import 'package:services/storage_service.dart';
 
@@ -14,9 +15,19 @@ class UserRepository extends GetxService {
   Future<User?> getProfile() async {
     try {
       final response = await _apiService.get(AppConstants.profile);
-      if (response != null && response['user'] != null) {
+      if (response != null &&
+          (response['user'] != null ||
+              response['id'] != null ||
+              response['data'] != null)) {
         final user = User.fromJson(response);
         await _storageService.saveUser(user);
+        if (Get.isRegistered<AuthRepository>()) {
+          final authRepo = Get.find<AuthRepository>();
+          if (user.permissions != null) {
+            authRepo.rxUserPermissions.assignAll(user.permissions!);
+          }
+          authRepo.rxIsCheckedIn.value = user.isCheckedIn ?? false;
+        }
         return user;
       }
       return null;

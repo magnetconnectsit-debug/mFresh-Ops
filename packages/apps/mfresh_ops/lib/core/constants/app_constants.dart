@@ -1,3 +1,4 @@
+export 'app_permissions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 

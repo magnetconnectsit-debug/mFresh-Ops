@@ -1,202 +1,30 @@
-import 'package:core/core.dart';
+// region Imports
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/assignee_model.dart';
 import 'package:mfresh_ops/data/models/info_directory/asset_category_model.dart';
 import 'package:mfresh_ops/data/models/info_directory/asset_product_model.dart';
 import 'package:mfresh_ops/data/repositories/asset_category_repository.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
+// endregion
 
+// region CreateAssetController Class
 class CreateAssetController extends GetxController {
+  // region Dependencies & Repositories
   late final AssetProductRepository _repo;
   late final AssetCategoryRepository _categoryRepo;
   late final CommonRepository _commonRepo;
+  // endregion
 
+  // region Observables & State Variables
   final formKey = GlobalKey<FormState>();
   final isLoading = false.obs;
   final isEdit = false.obs;
   AssetProductModel? editingAsset;
-
-  // Text Controllers
-  final itemCtrl = TextEditingController();
-  final brandCtrl = TextEditingController();
-  final modelCtrl = TextEditingController();
-  final serialNoCtrl = TextEditingController();
-  final locationCtrl = TextEditingController();
-  final unitCtrl = TextEditingController();
-  final positionCtrl = TextEditingController();
-  final vendorCtrl = TextEditingController();
-  final qtyCtrl = TextEditingController();
-  final warrantyCtrl = TextEditingController();
-  final descriptionCtrl = TextEditingController();
-  final specificationCtrl = TextEditingController();
-  final warrantyExpiryDisplayCtrl = TextEditingController();
-
-  // Focus Nodes for jumping to next unfilled field
-  final itemFocus = FocusNode();
-  final brandFocus = FocusNode();
-  final modelFocus = FocusNode();
-  final serialNoFocus = FocusNode();
-  final locationFocus = FocusNode();
-  final unitFocus = FocusNode();
-  final positionFocus = FocusNode();
-  final vendorFocus = FocusNode();
-  final qtyFocus = FocusNode();
-  final descriptionFocus = FocusNode();
-  final specificationFocus = FocusNode();
-  final warrantyExpiryFocus = FocusNode();
-
-  // Dropdown GlobalKeys to open menus programmatically
-  final itemTypeKey = GlobalKey<MultiSelectDropdownWidgetState<String>>();
-  final categoryKey =
-      GlobalKey<MultiSelectDropdownWidgetState<AssetCategoryModel>>();
-  final assigneeKey = GlobalKey<MultiSelectDropdownWidgetState<AssigneeModel>>();
-  final projectKey = GlobalKey<MultiSelectDropdownWidgetState<String>>();
-  final warrantyStatusKey = GlobalKey<MultiSelectDropdownWidgetState<String>>();
-
-  void focusNextUnfilledField(int currentIndex, [BuildContext? context]) {
-    final effectiveContext = context ?? Get.context;
-    final fields = [
-      // 0: Item
-      (
-        isFilled: () => itemCtrl.text.trim().isNotEmpty,
-        onFocus: () => itemFocus.requestFocus(),
-      ),
-      // 1: Item Type
-      (
-        isFilled: () =>
-            selectedItemType.value != null &&
-            selectedItemType.value!.trim().isNotEmpty,
-        onFocus: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-          itemTypeKey.currentState?.openMenu();
-        },
-      ),
-      // 2: Brand
-      (
-        isFilled: () => brandCtrl.text.trim().isNotEmpty,
-        onFocus: () => brandFocus.requestFocus(),
-      ),
-      // 3: Model
-      (
-        isFilled: () => modelCtrl.text.trim().isNotEmpty,
-        onFocus: () => modelFocus.requestFocus(),
-      ),
-      // 4: Category
-      (
-        isFilled: () => selectedAssetCategory.value != null,
-        onFocus: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-          categoryKey.currentState?.openMenu();
-        },
-      ),
-      // 5: Assigned To
-      (
-        isFilled: () => selectedAssignee.value != null,
-        onFocus: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-          assigneeKey.currentState?.openMenu();
-        },
-      ),
-      // 6: Serial No
-      (
-        isFilled: () => serialNoCtrl.text.trim().isNotEmpty,
-        onFocus: () => serialNoFocus.requestFocus(),
-      ),
-      // 7: Project
-      (
-        isFilled: () =>
-            selectedProject.value != null &&
-            selectedProject.value!.trim().isNotEmpty,
-        onFocus: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-          projectKey.currentState?.openMenu();
-        },
-      ),
-      // 8: Warranty Expiry Date
-      (
-        isFilled: () =>
-            warrantyExpiryDisplayCtrl.text.trim().isNotEmpty ||
-            (selectedWarrantyExpiry.value != null &&
-                selectedWarrantyExpiry.value!.trim().isNotEmpty),
-        onFocus: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-          warrantyExpiryFocus.requestFocus();
-          if (effectiveContext != null) {
-            selectWarrantyExpiryDate(effectiveContext);
-          }
-        },
-      ),
-      // 9: Warranty Status
-      (
-        isFilled: () =>
-            selectedWarrantyStatus.value != null &&
-            selectedWarrantyStatus.value!.trim().isNotEmpty,
-        onFocus: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-          warrantyStatusKey.currentState?.openMenu();
-        },
-      ),
-      // 10: Installed At (Location)
-      (
-        isFilled: () => locationCtrl.text.trim().isNotEmpty,
-        onFocus: () => locationFocus.requestFocus(),
-      ),
-      // 11: Unit
-      (
-        isFilled: () => unitCtrl.text.trim().isNotEmpty,
-        onFocus: () => unitFocus.requestFocus(),
-      ),
-      // 12: Position
-      (
-        isFilled: () => positionCtrl.text.trim().isNotEmpty,
-        onFocus: () => positionFocus.requestFocus(),
-      ),
-      // 13: Vendor
-      (
-        isFilled: () => vendorCtrl.text.trim().isNotEmpty,
-        onFocus: () => vendorFocus.requestFocus(),
-      ),
-      // 14: Qty
-      (
-        isFilled: () => qtyCtrl.text.trim().isNotEmpty,
-        onFocus: () => qtyFocus.requestFocus(),
-      ),
-      // 15: Description
-      (
-        isFilled: () => descriptionCtrl.text.trim().isNotEmpty,
-        onFocus: () => descriptionFocus.requestFocus(),
-      ),
-      // 16: Specification
-      (
-        isFilled: () => specificationCtrl.text.trim().isNotEmpty,
-        onFocus: () => specificationFocus.requestFocus(),
-      ),
-    ];
-
-    final int start = currentIndex >= 0 ? currentIndex + 1 : 0;
-    // Search forward from start
-    for (int i = start; i < fields.length; i++) {
-      if (!fields[i].isFilled()) {
-        fields[i].onFocus();
-        return;
-      }
-    }
-    // Wrap around to search from 0 up to currentIndex
-    if (currentIndex >= 0) {
-      for (int i = 0; i <= currentIndex; i++) {
-        if (!fields[i].isFilled()) {
-          fields[i].onFocus();
-          return;
-        }
-      }
-    }
-    // All fields filled
-    FocusManager.instance.primaryFocus?.unfocus();
-  }
 
   // Dropdown values
   final selectedItemType = RxnString(); // null, '0' (product), '1' (asset)
@@ -206,13 +34,13 @@ class CreateAssetController extends GetxController {
   final selectedAssetCategory = Rxn<AssetCategoryModel>();
   final selectedAssignee = Rxn<AssigneeModel>();
 
-  // Available options (loaded from API or static)
+  // Available options
   final availableItemTypes = <Map<String, String>>[
     {'label': 'Asset', 'value': '1'},
     {'label': 'Products', 'value': '0'},
   ].obs;
 
-  final availableProjects = <Map<String, dynamic>>[].obs; // from API
+  final availableProjects = <Map<String, dynamic>>[].obs;
   final availableWarrantyStatuses = <String>['Expired', 'Available'].obs;
   final availableCategories = <AssetCategoryModel>[].obs;
   final availableAssignees = <AssigneeModel>[].obs;
@@ -227,7 +55,60 @@ class CreateAssetController extends GetxController {
   final othersFileNames = <String>[].obs;
 
   final ImagePicker _picker = ImagePicker();
+  // endregion
 
+  // region Text Controllers & Focus Nodes
+  final itemCtrl = TextEditingController();
+  final brandCtrl = TextEditingController();
+  final modelCtrl = TextEditingController();
+  final serialNoCtrl = TextEditingController();
+  final locationCtrl = TextEditingController();
+  final unitCtrl = TextEditingController();
+  final positionCtrl = TextEditingController();
+  final vendorCtrl = TextEditingController();
+  final qtyCtrl = TextEditingController();
+  final warrantyCtrl = TextEditingController();
+  final descriptionCtrl = TextEditingController();
+  final specificationCtrl = TextEditingController();
+  final warrantyExpiryDisplayCtrl = TextEditingController();
+
+  final itemFocus = FocusNode();
+  final brandFocus = FocusNode();
+  final modelFocus = FocusNode();
+  final serialNoFocus = FocusNode();
+  final locationFocus = FocusNode();
+  final unitFocus = FocusNode();
+  final positionFocus = FocusNode();
+  final vendorFocus = FocusNode();
+  final qtyFocus = FocusNode();
+  final descriptionFocus = FocusNode();
+  final specificationFocus = FocusNode();
+  final warrantyExpiryFocus = FocusNode();
+  // endregion
+
+  // region Dropdown & Date GlobalKeys
+  final itemTypeKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final categoryKey =
+      GlobalKey<AppCommonMultiSelectDropdownState<AssetCategoryModel>>();
+  final assigneeKey =
+      GlobalKey<AppCommonMultiSelectDropdownState<AssigneeModel>>();
+  final projectKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final warrantyStatusKey =
+      GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final warrantyExpiryKey = GlobalKey<AppCommonDateFieldState>();
+  // endregion
+
+  // region Date Helpers
+  DateTime? get warrantyExpiryDateTime {
+    if (selectedWarrantyExpiry.value == null ||
+        selectedWarrantyExpiry.value!.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(selectedWarrantyExpiry.value!);
+  }
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -283,7 +164,168 @@ class CreateAssetController extends GetxController {
     warrantyExpiryFocus.dispose();
     super.onClose();
   }
+  // endregion
 
+  // region Field Progression / Pointer Navigation
+  void focusNextUnfilledField(int currentIndex, [BuildContext? context]) {
+    final fields = [
+      // 0: Item
+      (
+        isMandatory: true,
+        isFilled: () => itemCtrl.text.trim().isNotEmpty,
+        onFocus: () => itemFocus.requestFocus(),
+      ),
+      // 1: Item Type
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedItemType.value != null &&
+            selectedItemType.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          itemTypeKey.currentState?.openMenu();
+        },
+      ),
+      // 2: Brand
+      (
+        isMandatory: false,
+        isFilled: () => brandCtrl.text.trim().isNotEmpty,
+        onFocus: () => brandFocus.requestFocus(),
+      ),
+      // 3: Model
+      (
+        isMandatory: false,
+        isFilled: () => modelCtrl.text.trim().isNotEmpty,
+        onFocus: () => modelFocus.requestFocus(),
+      ),
+      // 4: Category
+      (
+        isMandatory: false,
+        isFilled: () => selectedAssetCategory.value != null,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          categoryKey.currentState?.openMenu();
+        },
+      ),
+      // 5: Assigned To
+      (
+        isMandatory: false,
+        isFilled: () => selectedAssignee.value != null,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          assigneeKey.currentState?.openMenu();
+        },
+      ),
+      // 6: Serial No
+      (
+        isMandatory: false,
+        isFilled: () => serialNoCtrl.text.trim().isNotEmpty,
+        onFocus: () => serialNoFocus.requestFocus(),
+      ),
+      // 7: Project
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedProject.value != null &&
+            selectedProject.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          projectKey.currentState?.openMenu();
+        },
+      ),
+      // 8: Warranty Expiry Date
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedWarrantyExpiry.value != null &&
+            selectedWarrantyExpiry.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          warrantyExpiryKey.currentState?.openDatePicker();
+        },
+      ),
+      // 9: Warranty Status
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedWarrantyStatus.value != null &&
+            selectedWarrantyStatus.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          warrantyStatusKey.currentState?.openMenu();
+        },
+      ),
+      // 10: Installed At (Location)
+      (
+        isMandatory: false,
+        isFilled: () => locationCtrl.text.trim().isNotEmpty,
+        onFocus: () => locationFocus.requestFocus(),
+      ),
+      // 11: Unit
+      (
+        isMandatory: false,
+        isFilled: () => unitCtrl.text.trim().isNotEmpty,
+        onFocus: () => unitFocus.requestFocus(),
+      ),
+      // 12: Position
+      (
+        isMandatory: false,
+        isFilled: () => positionCtrl.text.trim().isNotEmpty,
+        onFocus: () => positionFocus.requestFocus(),
+      ),
+      // 13: Vendor
+      (
+        isMandatory: false,
+        isFilled: () => vendorCtrl.text.trim().isNotEmpty,
+        onFocus: () => vendorFocus.requestFocus(),
+      ),
+      // 14: Qty
+      (
+        isMandatory: false,
+        isFilled: () => qtyCtrl.text.trim().isNotEmpty,
+        onFocus: () => qtyFocus.requestFocus(),
+      ),
+      // 15: Description
+      (
+        isMandatory: false,
+        isFilled: () => descriptionCtrl.text.trim().isNotEmpty,
+        onFocus: () => descriptionFocus.requestFocus(),
+      ),
+      // 16: Specification
+      (
+        isMandatory: false,
+        isFilled: () => specificationCtrl.text.trim().isNotEmpty,
+        onFocus: () => specificationFocus.requestFocus(),
+      ),
+    ];
+
+    if (currentIndex < 0) {
+      // Focus first unfilled mandatory field on form validation
+      for (int i = 0; i < fields.length; i++) {
+        if (fields[i].isMandatory && !fields[i].isFilled()) {
+          fields[i].onFocus();
+          return;
+        }
+      }
+      FocusManager.instance.primaryFocus?.unfocus();
+      return;
+    }
+
+    // Forward progression from current field onwards
+    final int start = currentIndex + 1;
+    for (int i = start; i < fields.length; i++) {
+      if (!fields[i].isFilled()) {
+        fields[i].onFocus();
+        return;
+      }
+    }
+
+    // End of form reached or no unfilled fields forward - unfocus instead of wrapping to previous non-mandatory fields
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+  // endregion
+
+  // region API & Data Fetching
   Future<void> _loadProjects() async {
     try {
       final response = await _repo.fetchProjects();
@@ -378,14 +420,16 @@ class CreateAssetController extends GetxController {
     selectedProject.value = asset.project;
     _matchCategoryAndAssignee(asset);
   }
+  // endregion
 
+  // region File Attachments
   Future<void> pickFiles(
     RxList<File> filesList,
     RxList<String> namesList,
   ) async {
     Get.bottomSheet(
       Container(
-        color: Colors.white,
+        color: AppColors.white,
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -426,35 +470,16 @@ class CreateAssetController extends GetxController {
   }
 
   void removeFile(
-      RxList<File> filesList, RxList<String> namesList, int index) {
+    RxList<File> filesList,
+    RxList<String> namesList,
+    int index,
+  ) {
     filesList.removeAt(index);
     namesList.removeAt(index);
   }
+  // endregion
 
-  Future<void> selectWarrantyExpiryDate(BuildContext context) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme:
-              const ColorScheme.light(primary: Color(0xFFFF6B35)),
-        ),
-        child: child!,
-      ),
-    );
-
-    if (picked != null) {
-      final formatted =
-          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-      selectedWarrantyExpiry.value = formatted;
-      warrantyExpiryDisplayCtrl.text = AppDateUtils.formatToOrdinalDate(formatted);
-      focusNextUnfilledField(8, context);
-    }
-  }
-
+  // region Submit Operations
   String get _warrantyTypeApiValue {
     if (selectedWarrantyStatus.value == 'Available') return '1';
     if (selectedWarrantyStatus.value == 'Expired') return '0';
@@ -555,4 +580,6 @@ class CreateAssetController extends GetxController {
   }
 
   Future<void> submit() => saveAsset();
+  // endregion
 }
+// endregion

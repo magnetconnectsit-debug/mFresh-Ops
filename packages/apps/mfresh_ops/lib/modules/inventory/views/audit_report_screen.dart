@@ -277,7 +277,7 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
           label: RichText(
             text: TextSpan(
               text: 'Select Date',
-              style: AppTextStyle.style_11_400(color: AppColors.grey200),
+              style: AppTextStyle.style_11_500(color: AppColors.grey300),
             ),
           ),
           floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -286,39 +286,51 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
             horizontal: 6.w,
             vertical: 2.0.h,
           ),
+          filled: true,
+          fillColor: AppColors.aliceBlue,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
+            ),
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                hasValue ? displayText : 'Select Date',
-                style: hasValue
-                    ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
-                    : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
-                overflow: TextOverflow.ellipsis,
+        child: SizedBox(
+          height: 18.h,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  hasValue ? displayText : 'Select Date',
+                  style: hasValue
+                      ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
+                      : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 13.r,
-              color: hasValue ? AppColors.primaryOrange : AppColors.grey300,
-            ),
-          ],
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 13.r,
+                color: hasValue ? AppColors.primaryOrange : AppColors.grey300,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -335,7 +347,7 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
           label: RichText(
             text: TextSpan(
               text: 'Select Month',
-              style: AppTextStyle.style_11_400(color: AppColors.grey200),
+              style: AppTextStyle.style_11_500(color: AppColors.grey300),
             ),
           ),
           floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -344,39 +356,51 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
             horizontal: 6.w,
             vertical: 2.0.h,
           ),
+          filled: true,
+          fillColor: AppColors.aliceBlue,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.borderColor,
+              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
+            ),
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                hasValue ? displayText : 'Select Month',
-                style: hasValue
-                    ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
-                    : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
-                overflow: TextOverflow.ellipsis,
+        child: SizedBox(
+          height: 18.h,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  hasValue ? displayText : 'Select Month',
+                  style: hasValue
+                      ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
+                      : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            Icon(
-              Icons.calendar_month_outlined,
-              size: 13.r,
-              color: hasValue ? AppColors.primaryOrange : AppColors.grey300,
-            ),
-          ],
+              Icon(
+                Icons.calendar_month_outlined,
+                size: 13.r,
+                color: hasValue ? AppColors.primaryOrange : AppColors.grey300,
+              ),
+            ],
+          ),
         ),
       ),
     );

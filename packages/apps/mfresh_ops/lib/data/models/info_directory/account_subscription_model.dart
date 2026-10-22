@@ -1,4 +1,6 @@
+// region Models
 class AccountSubscriptionModel {
+  // region Fields
   final int id;
   final String account;
   final String company;
@@ -24,7 +26,9 @@ class AccountSubscriptionModel {
   final String accountName;
   final String createdAt;
   final String updatedAt;
+  // endregion
 
+  // region Constructor
   AccountSubscriptionModel({
     required this.id,
     required this.account,
@@ -52,7 +56,17 @@ class AccountSubscriptionModel {
     required this.createdAt,
     required this.updatedAt,
   });
+  // endregion
 
+  // region Computed Properties
+  String get paymentText {
+    if (payment == '1') return 'Yes';
+    if (payment == '0') return 'No';
+    return payment.isNotEmpty ? payment : '-';
+  }
+  // endregion
+
+  // region Factory & Serialization
   factory AccountSubscriptionModel.fromJson(Map<String, dynamic> json) {
     return AccountSubscriptionModel(
       id: json['id'] ?? 0,
@@ -82,21 +96,29 @@ class AccountSubscriptionModel {
       updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
+  // endregion
 }
 
 class AccountDropdownModel {
+  // region Fields
   final int id;
   final String accountName;
+  // endregion
 
+  // region Constructor
   AccountDropdownModel({
     required this.id,
     required this.accountName,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory AccountDropdownModel.fromJson(Map<String, dynamic> json) {
     return AccountDropdownModel(
       id: json['id'] ?? 0,
       accountName: json['account_name']?.toString() ?? '',
     );
   }
+  // endregion
 }
+// endregion

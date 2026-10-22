@@ -79,17 +79,49 @@ class User extends HiveObject {
 
   // region Factory & Serialization
   factory User.fromJson(Map<String, dynamic> json) {
-    final userData = json['user'] ?? json;
+    final userData = json['user'] ??
+        (json['data'] is Map
+            ? (json['data']['user'] ?? json['data'])
+            : json);
     final List<String> permissions = [];
-    final permissionsSource = json['permissions'] ?? userData['permissions'];
+
+    dynamic permissionsSource;
+    if (json['permissions'] != null) {
+      permissionsSource = json['permissions'];
+    } else if (json['data'] is Map && json['data']['permissions'] != null) {
+      permissionsSource = json['data']['permissions'];
+    } else if (userData is Map && userData['permissions'] != null) {
+      permissionsSource = userData['permissions'];
+    }
+
     if (permissionsSource is Map) {
       permissionsSource.forEach((key, value) {
-        if (value == true || value == 'true' || value == 1) {
+        final bool isGranted = value == true ||
+            value == 1 ||
+            value == 'true' ||
+            value == '1' ||
+            value == 'yes';
+        if (isGranted) {
           permissions.add(key.toString());
         }
       });
     } else if (permissionsSource is List) {
-      permissions.addAll(List<String>.from(permissionsSource));
+      for (final item in permissionsSource) {
+        if (item is String) {
+          permissions.add(item);
+        } else if (item is Map) {
+          final name = item['name'] ?? item['permission'] ?? item['title'];
+          final val = item['value'] ?? item['status'] ?? item['is_active'];
+          final bool isGranted = val == true ||
+              val == 1 ||
+              val == 'true' ||
+              val == '1' ||
+              val == 'yes';
+          if (name != null && isGranted) {
+            permissions.add(name.toString());
+          }
+        }
+      }
     }
 
     final attendanceData = userData['attendance'] ?? json['attendance'];
@@ -105,7 +137,7 @@ class User extends HiveObject {
     return User(
       id: userData['id'] is int
           ? userData['id']
-          : int.parse(userData['id'].toString()),
+          : int.tryParse(userData['id']?.toString() ?? '0') ?? 0,
       name: userData['name']?.toString(),
       email: userData['email']?.toString(),
       role: userData['role']?.toString(),

@@ -1,14 +1,22 @@
-import 'package:core/core.dart';
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/info_directory_controller.dart';
+// endregion
 
+// region InfoDirectoryFilterCard Widget
 class InfoDirectoryFilterCard extends StatelessWidget {
+  // region Properties
   final InfoDirectoryController controller;
+  // endregion
 
+  // region Constructor
   const InfoDirectoryFilterCard({super.key, required this.controller});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -31,7 +39,7 @@ class InfoDirectoryFilterCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Obx(
-                  () => MultiSelectDropdownWidget<String>(
+                  () => AppCommonMultiSelectDropdown<String>(
                     label: 'Brand',
                     selectedValues: controller.selectedBrands.value,
                     items: controller.availableBrands
@@ -52,7 +60,7 @@ class InfoDirectoryFilterCard extends StatelessWidget {
               SizedBox(width: 8.w),
               Expanded(
                 child: Obx(
-                  () => MultiSelectDropdownWidget<String>(
+                  () => AppCommonMultiSelectDropdown<String>(
                     label: 'Company',
                     selectedValues: controller.selectedCompanies.value,
                     items: controller.availableCompanies
@@ -77,7 +85,7 @@ class InfoDirectoryFilterCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Obx(
-                  () => MultiSelectDropdownWidget<String>(
+                  () => AppCommonMultiSelectDropdown<String>(
                     label: 'Contact Type',
                     isSingleSelect: true,
                     selectedValues: controller.contactType.value.isNotEmpty
@@ -108,4 +116,6 @@ class InfoDirectoryFilterCard extends StatelessWidget {
       ),
     );
   }
+  // endregion
 }
+// endregion

@@ -100,12 +100,12 @@ class AppCommonDateField extends StatefulWidget {
   // endregion
 
   @override
-  State<AppCommonDateField> createState() => _AppCommonDateFieldState();
+  State<AppCommonDateField> createState() => AppCommonDateFieldState();
 }
 // endregion
 
-// region _AppCommonDateFieldState Class
-class _AppCommonDateFieldState extends State<AppCommonDateField> {
+// region AppCommonDateFieldState Class
+class AppCommonDateFieldState extends State<AppCommonDateField> {
   // region State Variables
   late TextEditingController _effectiveController;
   bool _isInternalController = false;
@@ -175,6 +175,8 @@ class _AppCommonDateFieldState extends State<AppCommonDateField> {
   // endregion
 
   // region Date Picker Interaction
+  Future<void> openDatePicker() => _handleTap();
+
   Future<void> _handleTap() async {
     final isInteractive = widget.enabled && !widget.readOnly;
     if (!isInteractive) return;

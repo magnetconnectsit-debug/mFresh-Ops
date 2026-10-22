@@ -1,14 +1,22 @@
-import 'package:core/core.dart';
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
+// endregion
 
+// region AccountSubscriptionFilters Widget
 class AccountSubscriptionFilters extends StatelessWidget {
+  // region Properties
   final AccountSubscriptionController controller;
+  // endregion
 
+  // region Constructor
   const AccountSubscriptionFilters({super.key, required this.controller});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -30,28 +38,32 @@ class AccountSubscriptionFilters extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildSearchField(
-                  'Unit / Location',
-                  controller.unitLocationCtrl,
-                  (v) => controller.applyFilters(debounce: true),
+                child: AppCommonTextField(
+                  controller: controller.unitLocationCtrl,
+                  labelText: 'Unit / Location',
+                  hintText: 'Search',
+                  height: 22.h,
+                  onChanged: (v) => controller.applyFilters(debounce: true),
                 ),
               ),
               SizedBox(width: 8.w),
               Expanded(
-                child: _buildSearchField(
-                  'Company / Brand',
-                  controller.companyBrandCtrl,
-                  (v) => controller.applyFilters(debounce: true),
+                child: AppCommonTextField(
+                  controller: controller.companyBrandCtrl,
+                  labelText: 'Company / Brand',
+                  hintText: 'Search',
+                  height: 22.h,
+                  onChanged: (v) => controller.applyFilters(debounce: true),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 6.h),
           Row(
             children: [
               Expanded(
                 child: Obx(
-                  () => MultiSelectDropdownWidget<String>(
+                  () => AppCommonMultiSelectDropdown<String>(
                     label: 'Account(s)',
                     isSingleSelect: false,
                     selectedValues: controller.selectedAccount.toSet(),
@@ -71,7 +83,7 @@ class AccountSubscriptionFilters extends StatelessWidget {
               SizedBox(width: 8.w),
               Expanded(
                 child: Obx(
-                  () => MultiSelectDropdownWidget<String>(
+                  () => AppCommonMultiSelectDropdown<String>(
                     label: 'Payment',
                     isSingleSelect: true,
                     selectedValues: controller.selectedPayment.value.isNotEmpty
@@ -98,43 +110,6 @@ class AccountSubscriptionFilters extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildSearchField(
-    String hint,
-    TextEditingController textController,
-    Function(String) onChanged,
-  ) {
-    return TextField(
-      controller: textController,
-      onChanged: onChanged,
-      style: AppTextStyle.style_12_400(color: AppColors.grey900),
-      decoration: InputDecoration(
-        labelText: hint,
-        hintText: 'Search',
-        hintStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: 1.0,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: 1.0,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4.r),
-          borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-        ),
-      ),
-    );
-  }
+  // endregion
 }
+// endregion

@@ -70,29 +70,38 @@ class AttendanceLogFilters extends GetView<AttendanceLogController> {
         decoration: InputDecoration(
           labelText: label,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: AppTextStyle.style_12_400(color: AppColors.grey200),
+          labelStyle: AppTextStyle.style_11_500(color: AppColors.grey300),
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.0.h),
+          filled: true,
+          fillColor: AppColors.aliceBlue,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(color: AppColors.grey50),
+            borderSide: BorderSide(color: AppColors.fieldBorderColor, width: 1.0),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(color: AppColors.grey50),
+            borderSide: BorderSide(color: AppColors.fieldBorderColor, width: 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4.r),
+            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                value.isEmpty ? 'Select Date' : value,
-                style: AppTextStyle.style_10_400(color: AppColors.grey900),
-                overflow: TextOverflow.ellipsis,
+        child: SizedBox(
+          height: 18.h,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  value.isEmpty ? 'Select Date' : value,
+                  style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

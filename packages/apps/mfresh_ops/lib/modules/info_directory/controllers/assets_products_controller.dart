@@ -1,4 +1,4 @@
-import 'package:core/widgets/app_common_table.dart';
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
@@ -9,12 +9,17 @@ import 'package:mfresh_ops/data/repositories/asset_category_repository.dart';
 import 'package:mfresh_ops/data/repositories/asset_product_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart' as mfresh_auth;
+// endregion
 
+// region Controller
 class AssetsProductsController extends GetxController {
+  // region Dependencies & Repositories
   late final AssetProductRepository _repo;
   late final AssetCategoryRepository _categoryRepo;
   late final CommonRepository _commonRepo;
+  // endregion
 
+  // region Observables & State Variables
   final isLoading = false.obs;
   final RxList<AssetProductModel> assets = <AssetProductModel>[].obs;
 
@@ -30,6 +35,64 @@ class AssetsProductsController extends GetxController {
 
   AppTableSortOrder get currentSortOrder => sortOrder.value;
 
+  // Expanded Row IDs for responsive row expansion
+  final expandedRowIds = <dynamic>{}.obs;
+
+  // Filter state
+  final selectedItemType = ''.obs; // '' = all, '0' = product, '1' = asset
+  final isSearching = false.obs;
+  final searchQuery = ''.obs;
+
+  // Multi-select filters
+  final RxSet<AssetCategoryModel> selectedCategories =
+      <AssetCategoryModel>{}.obs;
+  final RxSet<AssigneeModel> selectedAssignees = <AssigneeModel>{}.obs;
+
+  // Available filter options
+  final RxList<String> availableItemTypes =
+      <String>['All', 'Asset', 'Products'].obs;
+  final RxList<AssetCategoryModel> availableCategories =
+      <AssetCategoryModel>[].obs;
+  final RxList<AssigneeModel> availableAssignees = <AssigneeModel>[].obs;
+  final isFiltersLoading = false.obs;
+  // endregion
+
+  // region Text Controllers & Focus Nodes
+  final searchController = TextEditingController(); // For appbar global search
+  // endregion
+
+  // region Lifecycle Methods
+  @override
+  void onInit() {
+    super.onInit();
+    _repo = Get.isRegistered<AssetProductRepository>()
+        ? Get.find<AssetProductRepository>()
+        : Get.put(AssetProductRepository());
+    _categoryRepo = Get.isRegistered<AssetCategoryRepository>()
+        ? Get.find<AssetCategoryRepository>()
+        : Get.put(AssetCategoryRepository());
+    _commonRepo = Get.isRegistered<CommonRepository>()
+        ? Get.find<CommonRepository>()
+        : Get.put(CommonRepository());
+
+    _initData();
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
+
+  Future<void> _initData() async {
+    await Future.wait([
+      _loadFilterOptions(),
+      fetchAssets(),
+    ]);
+  }
+  // endregion
+
+  // region Sorting Methods
   void sortBy(String columnKey, AppTableSortOrder order) {
     sortColumn.value = order == AppTableSortOrder.none ? null : columnKey;
     sortOrder.value = order;
@@ -38,6 +101,17 @@ class AssetsProductsController extends GetxController {
       fetchAssets();
       return;
     }
+
+    _applyCurrentSort();
+  }
+
+  void _applyCurrentSort() {
+    if (sortColumn.value == null || sortOrder.value == AppTableSortOrder.none) {
+      return;
+    }
+
+    final columnKey = sortColumn.value!;
+    final order = sortOrder.value;
 
     final sorted = List<AssetProductModel>.from(assets);
     sorted.sort((a, b) {
@@ -102,10 +176,9 @@ class AssetsProductsController extends GetxController {
     });
     assets.assignAll(sorted);
   }
+  // endregion
 
-  // Expanded Row IDs for responsive row expansion
-  final expandedRowIds = <dynamic>{}.obs;
-
+  // region Search & Filter Methods
   void toggleRowExpansion(dynamic id) {
     if (expandedRowIds.contains(id)) {
       expandedRowIds.remove(id);
@@ -114,43 +187,18 @@ class AssetsProductsController extends GetxController {
     }
   }
 
-  // Filter state
-  final selectedItemType = ''.obs; // '' = all, '0' = product, '1' = asset
-  final searchController = TextEditingController(); // For appbar global search
-  final isSearching = false.obs;
-  final searchQuery = ''.obs;
-
-  // Multi-select filters
-  final RxSet<AssetCategoryModel> selectedCategories = <AssetCategoryModel>{}.obs;
-  final RxSet<AssigneeModel> selectedAssignees = <AssigneeModel>{}.obs;
-
-  // Available filter options
-  final RxList<String> availableItemTypes = <String>['All', 'Asset', 'Products'].obs;
-  final RxList<AssetCategoryModel> availableCategories = <AssetCategoryModel>[].obs;
-  final RxList<AssigneeModel> availableAssignees = <AssigneeModel>[].obs;
-  final isFiltersLoading = false.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _repo = Get.isRegistered<AssetProductRepository>()
-        ? Get.find<AssetProductRepository>()
-        : Get.put(AssetProductRepository());
-    _categoryRepo = Get.isRegistered<AssetCategoryRepository>()
-        ? Get.find<AssetCategoryRepository>()
-        : Get.put(AssetCategoryRepository());
-    _commonRepo = Get.isRegistered<CommonRepository>()
-        ? Get.find<CommonRepository>()
-        : Get.put(CommonRepository());
-
-    _loadFilterOptions();
-    fetchAssets();
+  void toggleSearch() {
+    isSearching.value = !isSearching.value;
+    if (!isSearching.value && searchController.text.isNotEmpty) {
+      searchController.clear();
+      searchQuery.value = '';
+      fetchAssets(resetPage: true);
+    }
   }
 
-  @override
-  void onClose() {
-    searchController.dispose();
-    super.onClose();
+  void onSearchSubmitted(String val) {
+    searchQuery.value = val.trim();
+    fetchAssets(resetPage: true);
   }
 
   Future<void> _loadFilterOptions() async {
@@ -160,8 +208,13 @@ class AssetsProductsController extends GetxController {
         _categoryRepo.fetchCategories(),
         _commonRepo.getAllAssignees(),
       ]);
-      availableCategories.assignAll(results[0] as List<AssetCategoryModel>);
-      availableAssignees.assignAll(results[1] as List<AssigneeModel>);
+
+      if (results[0] is List<AssetCategoryModel>) {
+        availableCategories.value = results[0] as List<AssetCategoryModel>;
+      }
+      if (results[1] is List<AssigneeModel>) {
+        availableAssignees.value = results[1] as List<AssigneeModel>;
+      }
     } catch (e) {
       debugPrint('[AssetsProductsController] _loadFilterOptions error: $e');
     } finally {
@@ -169,60 +222,10 @@ class AssetsProductsController extends GetxController {
     }
   }
 
-  // Maps display label → API value
   String get _itemTypeApiValue {
-    switch (selectedItemType.value) {
-      case 'Asset':
-        return '1';
-      case 'Products':
-        return '0';
-      default:
-        return ''; // All
-    }
-  }
-
-  void toggleSearch() {
-    isSearching.value = !isSearching.value;
-    if (!isSearching.value) {
-      searchQuery.value = '';
-      searchController.clear();
-      applyFilters();
-    }
-  }
-
-  Future<void> fetchAssets({bool resetPage = false}) async {
-    if (resetPage) currentPage.value = 1;
-    isLoading.value = true;
-    try {
-      final catIds = selectedCategories.map((c) => c.id).toList();
-      final assigneeIds = selectedAssignees.map((a) => a.id).toList();
-
-      final response = await _repo.fetchList(
-        itemType: _itemTypeApiValue,
-        globalSearch: searchController.text.trim(),
-        perPage: perPage.value,
-        page: currentPage.value,
-        categories: catIds,
-        assignees: assigneeIds,
-      );
-
-      if (response != null && response['status'] == true) {
-        final data = response['data'] as Map<String, dynamic>?;
-        if (data != null) {
-          final list = (data['data'] as List? ?? [])
-              .map((e) => AssetProductModel.fromJson(e as Map<String, dynamic>))
-              .toList();
-          assets.value = list;
-          currentPage.value = (data['current_page'] as num?)?.toInt() ?? 1;
-          lastPage.value = (data['last_page'] as num?)?.toInt() ?? 1;
-          totalRecords.value = (data['total'] as num?)?.toInt() ?? 0;
-        }
-      }
-    } catch (e) {
-      debugPrint('[AssetsProductsController] fetchAssets error: $e');
-    } finally {
-      isLoading.value = false;
-    }
+    if (selectedItemType.value == 'Asset') return '1';
+    if (selectedItemType.value == 'Products') return '0';
+    return '';
   }
 
   void applyFilters() => fetchAssets(resetPage: true);
@@ -243,6 +246,61 @@ class AssetsProductsController extends GetxController {
       fetchAssets(resetPage: true),
     ]);
   }
+  // endregion
+
+  // region Pagination Methods
+  void goToPage(int page) {
+    if (page < 1 || page > lastPage.value) return;
+    currentPage.value = page;
+    fetchAssets();
+  }
+  // endregion
+
+  // region API & Network Operations
+  Future<void> fetchAssets({bool resetPage = false}) async {
+    if (resetPage) currentPage.value = 1;
+    isLoading.value = true;
+
+    try {
+      final catIds = selectedCategories.map((c) => c.id).toList();
+      final assigneeIds = selectedAssignees.map((a) => a.id).toList();
+
+      final response = await _repo.fetchList(
+        itemType: _itemTypeApiValue,
+        globalSearch: searchController.text.trim(),
+        perPage: perPage.value,
+        page: currentPage.value,
+        categories: catIds,
+        assignees: assigneeIds,
+      );
+
+      if (response != null && response['status'] == true) {
+        final data = response['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          final list = (data['data'] as List? ?? [])
+              .map(
+                (e) => AssetProductModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
+              .toList();
+          assets.value = list;
+          currentPage.value = (data['current_page'] as num?)?.toInt() ?? 1;
+          lastPage.value = (data['last_page'] as num?)?.toInt() ?? 1;
+          totalRecords.value = (data['total'] as num?)?.toInt() ?? 0;
+
+          if (sortColumn.value != null &&
+              sortOrder.value != AppTableSortOrder.none) {
+            _applyCurrentSort();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AssetsProductsController] fetchAssets error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   Future<void> deleteAsset(int assetId) async {
     isLoading.value = true;
@@ -261,10 +319,6 @@ class AssetsProductsController extends GetxController {
       isLoading.value = false;
     }
   }
-
-  void goToPage(int page) {
-    if (page < 1 || page > lastPage.value) return;
-    currentPage.value = page;
-    fetchAssets();
-  }
+  // endregion
 }
+// endregion

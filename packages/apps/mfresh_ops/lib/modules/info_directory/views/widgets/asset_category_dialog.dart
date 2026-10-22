@@ -1,13 +1,13 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/info_directory/asset_category_model.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/asset_category_controller.dart';
+// endregion
 
+// region Asset Category Create/Edit Dialog
 Future<void> showAssetCategoryDialog(
   BuildContext context,
   AssetCategoryController controller, {
@@ -30,7 +30,7 @@ Future<void> showAssetCategoryDialog(
         side: const BorderSide(color: AppColors.borderColor, width: 1),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: BoxConstraints(maxWidth: 480.w),
         child: Padding(
           padding: EdgeInsets.all(20.r),
           child: Form(
@@ -43,7 +43,9 @@ Future<void> showAssetCategoryDialog(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      category != null ? 'Edit Asset Category' : 'Create Asset Category',
+                      category != null
+                          ? 'Edit Asset Category'
+                          : 'Create Asset Category',
                       style: AppTextStyle.style_16_700(color: AppColors.black),
                     ),
                     InkWell(
@@ -51,7 +53,11 @@ Future<void> showAssetCategoryDialog(
                       borderRadius: BorderRadius.circular(16.r),
                       child: Padding(
                         padding: EdgeInsets.all(4.r),
-                        child: Icon(Icons.close, size: 20.r, color: AppColors.grey500),
+                        child: Icon(
+                          Icons.close,
+                          size: 20.r,
+                          color: AppColors.grey500,
+                        ),
                       ),
                     ),
                   ],
@@ -62,6 +68,16 @@ Future<void> showAssetCategoryDialog(
                   labelText: 'Asset Category Name',
                   hintText: 'Enter asset category name',
                   isRequired: true,
+                  height: 38.h,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) async {
+                    final success = await controller.submitCategory(
+                      categoryId: category?.id,
+                    );
+                    if (success && dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                  },
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
                       return 'Asset category name is required';
@@ -73,12 +89,17 @@ Future<void> showAssetCategoryDialog(
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
+                    AppCommonButton(
+                      text: 'Cancel',
+                      variant: ButtonVariant.outline,
+                      buttonColor: AppColors.white,
+                      borderColor: AppColors.borderColor,
+                      textColor: AppColors.grey600,
+                      height: 34.h,
+                      width: 80.w,
+                      borderRadius: 6.r,
+                      textSize: 13.sp,
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: Text(
-                        'Cancel',
-                        style: AppTextStyle.style_14_600(color: AppColors.grey600),
-                      ),
                     ),
                     SizedBox(width: 12.w),
                     Obx(
@@ -86,7 +107,10 @@ Future<void> showAssetCategoryDialog(
                         text: category != null ? 'Update' : 'Submit',
                         isLoading: controller.isSubmitting.value,
                         buttonColor: AppColors.primary,
+                        textColor: AppColors.white,
                         height: 34.h,
+                        width: 80.w,
+                        borderRadius: 6.r,
                         textSize: 13.sp,
                         onPressed: () async {
                           final success = await controller.submitCategory(
@@ -108,57 +132,23 @@ Future<void> showAssetCategoryDialog(
     ),
   );
 }
+// endregion
 
+// region Delete Category Confirmation Dialog
 Future<void> showDeleteCategoryDialog(
   BuildContext context,
   AssetCategoryController controller,
   AssetCategoryModel category,
 ) async {
-  await showDialog(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      title: Row(
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: AppColors.red,
-            size: 26.r,
-          ),
-          SizedBox(width: 8.w),
-          Text(
-            'Delete Category',
-            style: AppTextStyle.style_16_700(color: AppColors.black),
-          ),
-        ],
-      ),
-      content: Text(
-        'Are you sure you want to delete "${category.assetCatName}"?',
-        style: AppTextStyle.style_14_400(color: AppColors.grey700),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: Text(
-            'Cancel',
-            style: AppTextStyle.style_14_500(color: AppColors.grey600),
-          ),
-        ),
-        AppCommonButton(
-          text: 'Delete',
-          buttonColor: AppColors.red,
-          height: 32.h,
-          textSize: 13.sp,
-          onPressed: () {
-            Navigator.of(dialogContext).pop();
-            controller.deleteCategory(category.id);
-          },
-        ),
-      ],
-    ),
+  final confirmed = await AppCommonDialogBox.showConfirm(
+    context,
+    title: 'Delete Category',
+    message: 'Are you sure you want to delete "${category.assetCatName}"?',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
   );
+  if (confirmed) {
+    controller.deleteCategory(category.id);
+  }
 }
+// endregion

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:services/storage_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -78,7 +79,7 @@ class HomeGridController extends GetxController {
   final RxBool isEditMode = false.obs;
 
   void toggleEditMode() {
-    if (_authRepo.rxUserPermissions.contains('Dashboard_Customisation')) {
+    if (AppPermissions.has(_authRepo.rxUserPermissions, AppPermissions.dashboardCustomisation)) {
       isEditMode.value = !isEditMode.value;
     }
   }
@@ -358,65 +359,63 @@ class HomeGridController extends GetxController {
     });
   }
 
+  void refreshGrid() {
+    _initGridItems();
+  }
+
   void _initGridItems() {
     final userPermissions = _authRepo.rxUserPermissions;
+    final hasPerm = (String key) => AppPermissions.has(userPermissions, key);
 
     // Filter items based on permissions
     final availableItems = <GridItemData>[];
 
     for (final item in _allItems) {
       if (item.title == 'Support Ticket') {
-        if (userPermissions.contains('maintenance_panel')) {
+        if (hasPerm(AppPermissions.maintenancePanel)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Daily Task') {
-        if (userPermissions.contains('Task_Sheduler_Pannel') &&
-            userPermissions.contains('Daily_Task')) {
+        if (hasPerm(AppPermissions.taskSchedulerPanel) &&
+            hasPerm(AppPermissions.dailyTask)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Unit Inventory') {
-        if (userPermissions.contains('unit_inventory_stock') ||
-            userPermissions.contains('store_inventory_stock') ||
-            userPermissions.contains('inventory_panel') ||
-            userPermissions.contains('unit_audit_report') ||
-            userPermissions.contains('audit_item_rank') ||
-            userPermissions.contains('audit_item_ranks')) {
+        if (hasPerm(AppPermissions.unitInventoryStock)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey) ||
-                    (s.permissionKey == 'audit_item_rank' &&
-                        userPermissions.contains('audit_item_ranks')),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else if (item.title == 'Attendance') {
-        if (userPermissions.contains('tracking_panel')) {
+        if (hasPerm(AppPermissions.trackingPanel)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('Attendance_Log')) {
+        } else if (hasPerm(AppPermissions.attendanceLog)) {
           availableItems.add(
             GridItemData(
               title: 'Attendance Report',
@@ -429,16 +428,16 @@ class HomeGridController extends GetxController {
           );
         }
       } else if (item.title == 'Collection') {
-        if (userPermissions.contains('collection_panel')) {
+        if (hasPerm(AppPermissions.collectionPanel)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('normal_admin_collection')) {
+        } else if (hasPerm(AppPermissions.normalAdminCollection)) {
           availableItems.add(
             GridItemData(
               title: 'Collections',
@@ -449,7 +448,7 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        } else if (userPermissions.contains('deposit_panel')) {
+        } else if (hasPerm(AppPermissions.depositPanel)) {
           availableItems.add(
             GridItemData(
               title: 'Deposits',
@@ -462,16 +461,17 @@ class HomeGridController extends GetxController {
           );
         }
       } else if (item.title == 'Contacts') {
-        if (userPermissions.contains('c_directory_panel')) {
-          final sub = item.subActions
-              .where(
-                (s) =>
-                    s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
-              )
-              .toList();
+        final sub = item.subActions
+            .where(
+              (s) =>
+                  s.permissionKey == null ||
+                  hasPerm(s.permissionKey!),
+            )
+            .toList();
+        if (hasPerm(AppPermissions.cDirectoryPanel) || sub.isNotEmpty) {
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('Asset_Panel')) {
+        } else if (hasPerm(AppPermissions.assetPanel) ||
+            hasPerm(AppPermissions.assetsProductDetails)) {
           availableItems.add(
             GridItemData(
               title: 'Assets',
@@ -482,29 +482,30 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        } else if (userPermissions.contains('account_details')) {
+        } else if (hasPerm(AppPermissions.accountSubscriptionPanel) ||
+            hasPerm(AppPermissions.accountDetails)) {
           availableItems.add(
             GridItemData(
               title: 'Accounts',
               subtitle: 'Manage Accounts',
               icon: Icons.account_box,
               gradient: item.gradient,
-              route: null,
+              route: AppRoutes.accountSubscription,
               subActions: [],
             ),
           );
         }
       } else if (item.title == 'Responsibilities') {
-        if (userPermissions.contains('roles_responsibility_panel')) {
+        if (hasPerm(AppPermissions.rolesResponsibilityPanel)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (userPermissions.contains('view_responsibilities')) {
+        } else if (hasPerm(AppPermissions.viewResponsibilities)) {
           availableItems.add(
             GridItemData(
               title: 'View Responsibilities',
@@ -516,7 +517,7 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        } else if (userPermissions.contains('responsibilities_master')) {
+        } else if (hasPerm(AppPermissions.responsibilitiesMaster)) {
           availableItems.add(
             GridItemData(
               title: 'Responsibilities',
@@ -528,7 +529,7 @@ class HomeGridController extends GetxController {
               subActions: [],
             ),
           );
-        } else if (userPermissions.contains('roles_master')) {
+        } else if (hasPerm(AppPermissions.rolesMaster)) {
           availableItems.add(
             GridItemData(
               title: 'Roles Master',
@@ -542,25 +543,24 @@ class HomeGridController extends GetxController {
           );
         }
       } else if (item.title == 'Payments') {
-        if (userPermissions.contains('payment_reminder_pannel')) {
+        if (hasPerm(AppPermissions.paymentReminderPannel)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
       } else {
         // Fallback for any unknown items
-        if (item.permissionKey == null ||
-            userPermissions.contains(item.permissionKey)) {
+        if (item.permissionKey == null || hasPerm(item.permissionKey!)) {
           final sub = item.subActions
               .where(
                 (s) =>
                     s.permissionKey == null ||
-                    userPermissions.contains(s.permissionKey),
+                    hasPerm(s.permissionKey!),
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
@@ -729,6 +729,6 @@ class HomeGridController extends GetxController {
   }
 
   bool hasPermission(String permissionKey) {
-    return _authRepo.rxUserPermissions.contains(permissionKey);
+    return AppPermissions.has(_authRepo.rxUserPermissions, permissionKey);
   }
 }

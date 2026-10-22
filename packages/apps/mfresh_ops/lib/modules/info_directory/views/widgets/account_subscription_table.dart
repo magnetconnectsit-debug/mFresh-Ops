@@ -1,636 +1,530 @@
+// region Imports
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:core/core.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
 import 'package:mfresh_ops/data/models/info_directory/account_subscription_model.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:mfresh_ops/modules/info_directory/views/widgets/info_directory_table.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
-import 'package:flutter/services.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+// endregion
 
-const List<(String, double)> _kColumns = [
-  ('Action', 65),
-  ('Account', 70),
-  ('Company', 85),
-  ('Brand', 90),
-  ('Service', 100),
-  ('Unit', 90),
-  ('City', 90),
-  ('Location', 90),
-  ('Customer ID', 100),
-  ('Reg. Mob No', 120),
-  ('Reg. Email', 130),
-  ('User Name', 100),
-  ('Password', 130),
-  ('URLs', 110),
-  ('Remarks', 80),
-  ('Plan Name', 80),
-  ('Payment', 75),
-  ('Billing cycle & Due', 130),
-  ('Next Due On', 110),
-  ('Last Payment', 110),
-  ('Payment Details', 120),
-];
-
-class AccountSubscriptionTable extends StatefulWidget {
+// region AccountSubscriptionTable Widget
+class AccountSubscriptionTable extends StatelessWidget {
+  // region Properties
   final AccountSubscriptionController controller;
-
-  const AccountSubscriptionTable({super.key, required this.controller});
-
-  @override
-  State<AccountSubscriptionTable> createState() => _AccountSubscriptionTableState();
-}
-
-class _AccountSubscriptionTableState extends State<AccountSubscriptionTable> {
-  final RxSet<int> _expandedRows = <int>{}.obs;
   final RxSet<int> _visiblePasswords = <int>{}.obs;
-  final ScrollController _verticalController = ScrollController();
-  final ScrollController _headerHorizontalController = ScrollController();
-  final ScrollController _bodyHorizontalController = ScrollController();
-  final ScrollController _bottomBarController = ScrollController();
-  bool _isSyncing = false;
+  // endregion
 
-  @override
-  void initState() {
-    super.initState();
-    _headerHorizontalController.addListener(_syncFromHeader);
-    _bodyHorizontalController.addListener(_syncFromBody);
-    _bottomBarController.addListener(_syncFromBottomBar);
-  }
+  // region Constructor
+  AccountSubscriptionTable({super.key, required this.controller});
+  // endregion
 
-  void _syncFromHeader() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_bodyHorizontalController.hasClients) {
-      _bodyHorizontalController.jumpTo(_headerHorizontalController.offset);
-    }
-    if (_bottomBarController.hasClients) {
-      _bottomBarController.jumpTo(_headerHorizontalController.offset);
-    }
-    _isSyncing = false;
-  }
-
-  void _syncFromBody() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_headerHorizontalController.hasClients) {
-      _headerHorizontalController.jumpTo(_bodyHorizontalController.offset);
-    }
-    if (_bottomBarController.hasClients) {
-      _bottomBarController.jumpTo(_bodyHorizontalController.offset);
-    }
-    _isSyncing = false;
-  }
-
-  void _syncFromBottomBar() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_bodyHorizontalController.hasClients) {
-      _bodyHorizontalController.jumpTo(_bottomBarController.offset);
-    }
-    if (_headerHorizontalController.hasClients) {
-      _headerHorizontalController.jumpTo(_bottomBarController.offset);
-    }
-    _isSyncing = false;
-  }
-
-  @override
-  void dispose() {
-    _verticalController.dispose();
-    _headerHorizontalController.dispose();
-    _bodyHorizontalController.dispose();
-    _bottomBarController.dispose();
-    super.dispose();
-  }
-
-  void _toggleRow(int id) {
-    if (_expandedRows.contains(id)) {
-      _expandedRows.remove(id);
-    } else {
-      _expandedRows.add(id);
-    }
-  }
-
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final userPermissions = Get.find<AuthRepository>().rxUserPermissions;
-      bool canEdit = userPermissions.contains('Account_subscription_Edit');
-      bool canDelete = userPermissions.contains('Account_subscription_Delete');
+      final isLoading = controller.isLoading.value && controller.subscriptions.isEmpty;
+      final items = controller.subscriptions.toList();
+
+      final startItem = controller.totalRecords.value == 0
+          ? 0
+          : (controller.currentPage.value - 1) * controller.perPage.value + 1;
+      final endItem = (controller.currentPage.value * controller.perPage.value)
+          .clamp(0, controller.totalRecords.value);
+
+      final permissions = Get.find<AuthRepository>().rxUserPermissions;
+      final canEdit = permissions.contains(AppPermissions.accountSubscriptionEdit);
+      final canDelete = permissions.contains(AppPermissions.accountSubscriptionDelete);
       final showAction = canEdit || canDelete;
 
-      final activeColumns = _kColumns;
+      final columns = _buildColumns(context, showAction, canEdit, canDelete);
 
-      final columnWidths = <int, TableColumnWidth>{
-        for (int i = 0; i < activeColumns.length; i++) i: FixedColumnWidth(activeColumns[i].$2.w),
-      };
-
-      final double totalTableWidth = activeColumns.fold(0.0, (sum, col) => sum + col.$2.w);
-
-      final isLoadingInitial =
-          widget.controller.isLoading.value &&
-          widget.controller.subscriptions.isEmpty;
-      final showEmpty = !isLoadingInitial && widget.controller.subscriptions.isEmpty;
-
-      if (showEmpty) {
-        return RefreshIndicator(
-          onRefresh: () async => widget.controller.resetFiltersAndRefresh(),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+      return AppRefreshIndicator(
+        onRefresh: () => controller.resetFiltersAndRefresh(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: 400.h,
-                child: Center(
-                  child: Text(
-                    'No records found.',
-                    style: AppTextStyle.style_14_400(color: AppColors.grey600),
-                  ),
+              AppCommonTable<AccountSubscriptionModel>(
+                items: items,
+                columns: columns,
+                currentSortColumn: controller.sortColumn.value,
+                currentSortOrder: controller.currentSortOrder,
+                onSort: (columnKey, sortOrder) =>
+                    controller.sortBy(columnKey, sortOrder),
+                isLoading: isLoading,
+                headingRowColor: AppColors.aliceBlue,
+                headingTextStyle: AppTextStyle.style_12_700(
+                  color: AppColors.black,
                 ),
+                dataTextStyle: AppTextStyle.style_12_500(
+                  color: AppColors.black,
+                ),
+                borderColor: AppColors.borderColor,
+                headingRowHeight: 28.h,
+                cellVerticalPadding: 4.h,
+                cellHorizontalPadding: 8.w,
+                enableColumnResizing: false,
+                emptyText: 'No account subscriptions found.',
               ),
+              if (!isLoading && controller.totalRecords.value > 0) ...[
+                SizedBox(height: 10.h),
+                AppTablePagination(
+                  startItem: startItem,
+                  endItem: endItem,
+                  totalItems: controller.totalRecords.value,
+                  currentPage: controller.currentPage.value,
+                  totalPages: controller.lastPage.value,
+                  onPageChanged: (page) => controller.goToPage(page),
+                  onPreviousPage: () => controller.goToPage(controller.currentPage.value - 1),
+                  onNextPage: () => controller.goToPage(controller.currentPage.value + 1),
+                ),
+                SizedBox(height: 20.h),
+              ],
             ],
           ),
-        );
-      }
+        ),
+      );
+    });
+  }
+  // endregion
 
-      return Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade200,
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              controller: _headerHorizontalController,
-              scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
-              child: Table(
-                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                border: TableBorder.symmetric(
-                  inside: BorderSide(color: Colors.grey.shade300),
-                ),
-                columnWidths: columnWidths,
-                children: [
-                  TableRow(
-                    decoration: const BoxDecoration(color: Color(0xFFC5D5F0)),
-                    children: activeColumns
-                        .map((c) => InfoDirectoryHeaderCell(text: c.$1))
-                        .toList(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async => widget.controller.resetFiltersAndRefresh(),
-              notificationPredicate: (notification) => notification.depth == 1,
-              child: Scrollbar(
-                controller: _verticalController,
-                thumbVisibility: true,
-                interactive: true,
-                thickness: 8.0,
-                radius: const Radius.circular(4),
-                child: SingleChildScrollView(
-                  controller: _bodyHorizontalController,
-                  scrollDirection: Axis.horizontal,
-                  child: Container(
-                    width: totalTableWidth + 2.0,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        left: BorderSide(color: AppColors.borderColor),
-                        right: BorderSide(color: AppColors.borderColor),
-                        bottom: BorderSide(color: AppColors.borderColor),
+  // region Columns Definition
+  List<AppTableColumn<AccountSubscriptionModel>> _buildColumns(
+    BuildContext context,
+    bool showAction,
+    bool canEdit,
+    bool canDelete,
+  ) {
+    return [
+      if (showAction)
+        AppTableColumn<AccountSubscriptionModel>(
+          key: 'action',
+          title: 'Action',
+          width: 65.w,
+          sortable: false,
+          alignment: Alignment.center,
+          cellBuilder: (context, item, index, isExpanded) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canEdit)
+                  InkWell(
+                    onTap: () async {
+                      if (!Get.find<AuthRepository>().rxUserPermissions.contains(AppPermissions.accountSubscriptionEdit)) {
+                        AppCommonToastMessage.show(
+                          message: 'You do not have permission to perform this action.',
+                          type: ToastType.warning,
+                        );
+                        return;
+                      }
+                      final result = await Get.toNamed(
+                        AppRoutes.createAccountSubscription,
+                        arguments: item,
+                      );
+                      if (result == true) {
+                        controller.fetchSubscriptions();
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(3.r),
+                      child: Icon(
+                        Icons.edit_square,
+                        size: 16.r,
+                        color: AppColors.warning,
                       ),
                     ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Obx(() {
-                            final isLoadingInitial =
-                                widget.controller.isLoading.value &&
-                                widget.controller.subscriptions.isEmpty;
-
-                            final listCount = isLoadingInitial
-                                ? 20
-                                : widget.controller.subscriptions.length;
-
-                            return Skeletonizer(
-                              enabled: isLoadingInitial,
-                              child: ListView.builder(
-                                controller: _verticalController,
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                itemCount: listCount,
-                                itemBuilder: (context, index) {
-                                  final sub = isLoadingInitial
-                                      ? AccountSubscriptionModel(
-                                          id: index,
-                                          account: 'Loading',
-                                          accountName: 'Loading Account Name',
-                                          company: 'Loading Company Name',
-                                          brand: 'Loading',
-                                          service: 'Loading',
-                                          unit: 'Loading',
-                                          city: 'Loading',
-                                          location: 'Loading',
-                                          customerID: 'Loading',
-                                          mobileNo: 'Loading',
-                                          email: 'Loading',
-                                          username: 'Loading',
-                                          password: 'Loading',
-                                          urls: 'Loading',
-                                          remarks: 'Loading',
-                                          planName: 'Loading',
-                                          payment: '1',
-                                          billingCycleDue: 'Loading',
-                                          nextDue: 'Loading',
-                                          lastPayment: 'Loading',
-                                          paymentDetails: 'Loading',
-                                          createdAt: 'Loading',
-                                          updatedAt: 'Loading',
-                                        )
-                                      : widget.controller.subscriptions[index];
-
-                                  return Obx(() {
-                                    final isExpanded = _expandedRows.contains(sub.id);
-                                    void toggleRow() => _toggleRow(sub.id);
-
-                                    Widget buildCell(Widget child, double width) {
-                                      return Container(
-                                        width: width,
-                                        alignment: isExpanded ? Alignment.topLeft : Alignment.centerLeft,
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            right: BorderSide(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                          ),
-                                        ),
-                                        child: child,
-                                      );
-                                    }
-
-                                    return Container(
-                                      key: ValueKey('row_${sub.id}'),
-                                      height: isExpanded ? null : 25.h,
-                                      decoration: BoxDecoration(
-                                        border: Border(
-                                          bottom: BorderSide(
-                                            color: Colors.grey.shade300,
-                                          ),
-                                        ),
-                                      ),
-                                      child: IntrinsicHeight(
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        children: [
-                                          if (showAction)
-                                            buildCell(
-                                              Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 4.w,
-                                                  vertical: 2.h,
-                                                ),
-                                                child: FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  alignment: Alignment.center,
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      if (canEdit)
-                                                        InkWell(
-                                                          onTap: () async {
-                                                            final result = await Get.toNamed(
-                                                              AppRoutes.createAccountSubscription,
-                                                              arguments: sub,
-                                                            );
-                                                            if (result == true) {
-                                                              widget.controller.fetchSubscriptions();
-                                                            }
-                                                          },
-                                                          child: Container(
-                                                            padding: const EdgeInsets.all(4),
-                                                            decoration: BoxDecoration(
-                                                              border: Border.all(color: Colors.grey),
-                                                              borderRadius: BorderRadius.circular(4),
-                                                            ),
-                                                            child: const Icon(Icons.edit, size: 16),
-                                                          ),
-                                                        ),
-                                                      if (canEdit && canDelete) SizedBox(width: 4.w),
-                                                      if (canDelete)
-                                                        InkWell(
-                                                          onTap: () {
-                                                            _showDeleteDialog(context, sub.id);
-                                                          },
-                                                          child: Container(
-                                                            padding: const EdgeInsets.all(4),
-                                                            decoration: BoxDecoration(
-                                                              border: Border.all(color: Colors.grey),
-                                                              borderRadius: BorderRadius.circular(4),
-                                                            ),
-                                                            child: const Icon(Icons.delete_outline, size: 16),
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              _kColumns.firstWhere((c) => c.$1 == 'Action').$2.w,
-                                            ),
-                                          
-                                          buildCell(InfoDirectoryDataCell(text: sub.accountName, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Account').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.company, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Company').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.brand, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Brand').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.service, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Service').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.unit, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Unit').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.city, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'City').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.location, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Location').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.customerID, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Customer ID').$2.w),
-                                          buildCell(InfoDirectoryMobileCell(text: sub.mobileNo, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Reg. Mob No').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.email, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Reg. Email').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.username, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'User Name').$2.w),
-                                            buildCell(_PasswordCell(text: sub.password, isExpanded: isExpanded, isVisible: _visiblePasswords.contains(sub.id), onToggle: () {
-                                              if (_visiblePasswords.contains(sub.id)) _visiblePasswords.remove(sub.id);
-                                              else _visiblePasswords.add(sub.id);
-                                            }, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Password').$2.w),
-                                          buildCell(InfoDirectoryWeblinkCell(text: sub.urls ?? '', isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'URLs').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.remarks ?? '', isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Remarks').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.planName, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Plan Name').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.payment == '1' ? 'Yes' : 'No', isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Payment').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.billingCycleDue, isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Billing cycle & Due').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: AppDateUtils.formatToOrdinalDate(sub.nextDue), isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Next Due On').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: AppDateUtils.formatToOrdinalDate(sub.lastPayment), isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Last Payment').$2.w),
-                                          buildCell(InfoDirectoryDataCell(text: sub.paymentDetails ?? '', isExpanded: isExpanded, onTap: toggleRow), _kColumns.firstWhere((c) => c.$1 == 'Payment Details').$2.w),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  });
-                                },
-                              ),
-                            );
-                          }),
-                        ),
-                        if (widget.controller.isLoading.value &&
-                            widget.controller.subscriptions.isNotEmpty)
-                          Positioned.fill(
-                            child: ColoredBox(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            ),
-                          ),
-                      ],
+                  ),
+                if (canEdit && canDelete) SizedBox(width: 2.w),
+                if (canDelete)
+                  InkWell(
+                    onTap: () => _confirmDelete(context, item),
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(3.r),
+                      child: Icon(
+                        Icons.delete,
+                        size: 16.r,
+                        color: AppColors.red,
+                      ),
                     ),
                   ),
-                ),
+              ],
+            );
+          },
+        ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'account',
+        title: 'Account',
+        width: 80.w,
+        sortable: true,
+        valueGetter: (m) => m.accountName,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.accountName,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'company',
+        title: 'Company',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.company,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.company,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'brand',
+        title: 'Brand',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.brand,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.brand,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'service',
+        title: 'Service',
+        width: 100.w,
+        sortable: true,
+        valueGetter: (m) => m.service,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.service,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'unit',
+        title: 'Unit',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.unit,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.unit,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'city',
+        title: 'City',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.city,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.city,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'location',
+        title: 'Location',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.location,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.location,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'customerId',
+        title: 'Customer ID',
+        width: 100.w,
+        sortable: true,
+        valueGetter: (m) => m.customerID,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.customerID,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'mobileNo',
+        title: 'Reg. Mob No',
+        width: 120.w,
+        sortable: true,
+        valueGetter: (m) => m.mobileNo,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.mobileNo,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'email',
+        title: 'Reg. Email',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (m) => m.email,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.email,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'username',
+        title: 'User Name',
+        width: 100.w,
+        sortable: true,
+        valueGetter: (m) => m.username,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.username,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'password',
+        title: 'Password',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (m) => m.password,
+        cellBuilder: (context, m, index, isExpanded) => _buildPasswordCell(m),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'urls',
+        title: 'URLs',
+        width: 110.w,
+        sortable: true,
+        valueGetter: (m) => m.urls ?? '',
+        cellBuilder: (context, m, index, isExpanded) => _buildWeblinkCell(
+          m.urls ?? '',
+          isExpanded,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'remarks',
+        title: 'Remarks',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.remarks ?? '',
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.remarks ?? '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'planName',
+        title: 'Plan Name',
+        width: 90.w,
+        sortable: true,
+        valueGetter: (m) => m.planName,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.planName,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'payment',
+        title: 'Payment',
+        width: 80.w,
+        sortable: true,
+        valueGetter: (m) => m.paymentText,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.paymentText,
+          style: AppTextStyle.style_12_500(
+            color: m.payment == '1' ? AppColors.success : AppColors.red,
+          ),
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'billingCycle',
+        title: 'Billing cycle & Due',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (m) => m.billingCycleDue,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.billingCycleDue,
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'nextDue',
+        title: 'Next Due On',
+        width: 110.w,
+        sortable: true,
+        valueGetter: (m) => m.nextDue,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.nextDue.isNotEmpty && m.nextDue != 'NA' && m.nextDue != '-'
+              ? AppDateUtils.formatToOrdinalDate(m.nextDue)
+              : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'lastPayment',
+        title: 'Last Payment',
+        width: 110.w,
+        sortable: true,
+        valueGetter: (m) => m.lastPayment,
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.lastPayment.isNotEmpty && m.lastPayment != 'NA' && m.lastPayment != '-'
+              ? AppDateUtils.formatToOrdinalDate(m.lastPayment)
+              : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+        ),
+      ),
+      AppTableColumn<AccountSubscriptionModel>(
+        key: 'paymentDetails',
+        title: 'Payment Details',
+        width: 120.w,
+        sortable: true,
+        valueGetter: (m) => m.paymentDetails ?? '',
+        cellBuilder: (context, m, index, isExpanded) => Text(
+          m.paymentDetails ?? '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+    ];
+  }
+  // endregion
+
+  // region Cell Builders
+  Widget _buildPasswordCell(AccountSubscriptionModel model) {
+    if (model.password.isEmpty || model.password == 'NA' || model.password == '-') {
+      return Text('-', style: AppTextStyle.style_12_500(color: AppColors.black));
+    }
+
+    return Obx(() {
+      final isVisible = _visiblePasswords.contains(model.id);
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              isVisible ? model.password : '••••••••',
+              style: AppTextStyle.style_12_500(color: AppColors.black),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(width: 4.w),
+          InkWell(
+            onTap: () {
+              if (isVisible) {
+                _visiblePasswords.remove(model.id);
+              } else {
+                _visiblePasswords.add(model.id);
+              }
+            },
+            child: Padding(
+              padding: EdgeInsets.all(2.r),
+              child: Icon(
+                isVisible ? Icons.visibility_off : Icons.visibility,
+                size: 14.sp,
+                color: AppColors.grey500,
               ),
             ),
           ),
-          
-          // Pagination Bottom Bar
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.borderColor),
+          SizedBox(width: 2.w),
+          InkWell(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: model.password));
+              AppCommonToastMessage.show(
+                message: 'Password copied to clipboard',
+                type: ToastType.success,
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.all(2.r),
+              child: Icon(
+                Icons.copy,
+                size: 13.sp,
+                color: AppColors.grey500,
+              ),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-            child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Showing ${(widget.controller.currentPage.value - 1) * widget.controller.perPage.value + 1} to '
-                      '${(widget.controller.currentPage.value * widget.controller.perPage.value).clamp(0, widget.controller.totalRecords.value)} '
-                      'of ${widget.controller.totalRecords.value} entries',
-                      style: AppTextStyle.style_12_400(color: AppColors.grey600),
-                    ),
-                    SizedBox(height: 6.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildPageBtn(
-                          '',
-                          widget.controller.currentPage.value > 1
-                              ? () => widget.controller
-                                  .goToPage(widget.controller.currentPage.value - 1)
-                              : null,
-                          icon: Icons.chevron_left,
-                        ),
-                        SizedBox(width: 4.w),
-                        _buildPageBtn(
-                          widget.controller.currentPage.value.toString(),
-                          null,
-                          isActive: true,
-                        ),
-                        SizedBox(width: 4.w),
-                        _buildPageBtn(
-                          '',
-                          widget.controller.currentPage.value <
-                                  widget.controller.lastPage.value
-                              ? () => widget.controller
-                                  .goToPage(widget.controller.currentPage.value + 1)
-                              : null,
-                          icon: Icons.chevron_right,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
           ),
         ],
       );
     });
   }
 
-  void _showDeleteDialog(BuildContext context, int id) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        title: Row(
-          children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.red,
-              size: 28,
-            ),
-            SizedBox(width: 8.w),
-            Text(
-              'Delete Subscription',
-              style: AppTextStyle.style_16_700(
-                color: AppColors.black,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to delete this subscription? This action cannot be undone.',
-          style: AppTextStyle.style_14_400(
-            color: AppColors.grey900,
-          ),
-        ),
-        actionsPadding: EdgeInsets.symmetric(
-          horizontal: 16.w,
-          vertical: 12.h,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_600(
-                color: AppColors.black,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              widget.controller.deleteSubscription(id);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6.r),
-              ),
-              elevation: 0,
-            ),
-            child: Text(
-              'Delete',
-              style: AppTextStyle.style_14_600(
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPageBtn(String text, VoidCallback? onTap, {bool isActive = false, IconData? icon}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: isActive
-              ? const Color(0xFF16A3B8)
-              : (onTap == null ? Colors.grey.shade200 : Colors.white),
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        child: icon != null
-            ? Icon(
-                icon,
-                size: 16.sp,
-                color: onTap == null ? Colors.grey.shade500 : AppColors.black,
-              )
-            : Text(
-                text,
-                style: AppTextStyle.style_12_400(
-                  color: isActive
-                      ? Colors.white
-                      : (onTap == null ? Colors.grey.shade500 : AppColors.black),
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class _PasswordCell extends StatelessWidget {
-  final String? text;
-  final bool isExpanded;
-  final bool isVisible;
-  final VoidCallback onToggle;
-  final VoidCallback onTap;
-
-  const _PasswordCell({
-    super.key,
-    required this.text,
-    required this.isExpanded,
-    required this.isVisible,
-    required this.onToggle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final String safeText = text ?? '';
-    if (safeText.isEmpty || safeText == '-') {
-      return GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-          child: Text(
-            safeText.isEmpty ? '-' : safeText,
-            style: AppTextStyle.style_12_400(color: AppColors.grey900),
-            maxLines: isExpanded ? null : 1,
-            overflow: isExpanded ? null : TextOverflow.ellipsis,
-          ),
-        ),
-      );
+  Widget _buildWeblinkCell(String text, bool isExpanded) {
+    if (text.isEmpty || text == '-') {
+      return Text('-', style: AppTextStyle.style_12_500(color: AppColors.black));
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: onTap,
-              behavior: HitTestBehavior.opaque,
-              child: Text(
-                isVisible ? safeText : '********',
-                style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                maxLines: isExpanded ? null : 1,
-                overflow: isExpanded ? null : TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-          SizedBox(width: 4.w),
-          GestureDetector(
-            onTap: onToggle,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 1.w, vertical: 4.h),
-              child: Icon(isVisible ? Icons.visibility_off : Icons.visibility, size: 16.sp, color: Colors.grey.shade600),
-            ),
-          ),
-          SizedBox(width: 4.w),
-          GestureDetector(
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: safeText));
-              AppCommonToastMessage.show(message: 'Password copied', type: ToastType.success);
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 1.w, vertical: 4.h),
-              child: Icon(Icons.copy, size: 16.sp, color: Colors.blue),
-            ),
-          ),
-        ],
+    return InkWell(
+      onTap: () {
+        String finalUrl = text.trim();
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+          finalUrl = 'https://$finalUrl';
+        }
+        Get.to(() => AppCommonWebView(url: finalUrl, title: 'Weblink'));
+      },
+      child: Text(
+        text,
+        style: AppTextStyle.style_12_500(color: AppColors.primary)
+            .copyWith(decoration: TextDecoration.underline),
+        maxLines: isExpanded ? null : 1,
+        overflow: isExpanded ? null : TextOverflow.ellipsis,
       ),
     );
   }
+  // endregion
+
+  // region Actions & Handlers
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AccountSubscriptionModel item,
+  ) async {
+    if (!Get.find<AuthRepository>().rxUserPermissions.contains(AppPermissions.accountSubscriptionDelete)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final confirmed = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Delete Subscription',
+      message: 'Are you sure you want to delete this subscription? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    );
+
+    if (confirmed) {
+      controller.deleteSubscription(item.id);
+    }
+  }
+  // endregion
 }
+// endregion

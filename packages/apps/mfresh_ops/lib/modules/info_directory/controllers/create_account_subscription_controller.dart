@@ -1,49 +1,118 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/info_directory/account_subscription_model.dart';
 import 'package:mfresh_ops/data/repositories/account_subscription_repository.dart';
+// endregion
 
+// region CreateAccountSubscriptionController Class
 class CreateAccountSubscriptionController extends GetxController {
-  late final AccountSubscriptionRepository _repo;
+  // region Dependencies & Repositories
+  final AccountSubscriptionRepository _repo =
+      Get.find<AccountSubscriptionRepository>();
+  // endregion
 
+  // region Observables & State Variables
   final formKey = GlobalKey<FormState>();
 
   final isEdit = false.obs;
   AccountSubscriptionModel? editingModel;
 
   final isLoading = false.obs;
-  
+
   final RxList<AccountDropdownModel> accountList = <AccountDropdownModel>[].obs;
   final RxString selectedAccount = ''.obs;
-
-  final brandCtrl = TextEditingController();
-  final unitCtrl = TextEditingController();
-  final locationCtrl = TextEditingController();
-  final mobileNoCtrl = TextEditingController();
-  final userNameCtrl = TextEditingController();
-  final urlsCtrl = TextEditingController();
-  final planNameCtrl = TextEditingController();
-  final billingCycleCtrl = TextEditingController();
-  final companyCtrl = TextEditingController();
-  final serviceCtrl = TextEditingController();
-  final cityCtrl = TextEditingController();
-  final customerIdCtrl = TextEditingController();
-  final emailCtrl = TextEditingController();
-  final passwordCtrl = TextEditingController();
-  final remarksCtrl = TextEditingController();
-  final paymentDetailsCtrl = TextEditingController();
-  final commentsCtrl = TextEditingController();
 
   final RxString selectedPayment = '1'.obs;
   final Rxn<String> selectedNextDue = Rxn<String>();
   final Rxn<String> selectedLastPayment = Rxn<String>();
+  // endregion
 
+  // region Text Controllers & Focus Nodes
+  final companyCtrl = TextEditingController();
+  final companyFocus = FocusNode();
+
+  final brandCtrl = TextEditingController();
+  final brandFocus = FocusNode();
+
+  final serviceCtrl = TextEditingController();
+  final serviceFocus = FocusNode();
+
+  final unitCtrl = TextEditingController();
+  final unitFocus = FocusNode();
+
+  final cityCtrl = TextEditingController();
+  final cityFocus = FocusNode();
+
+  final locationCtrl = TextEditingController();
+  final locationFocus = FocusNode();
+
+  final customerIdCtrl = TextEditingController();
+  final customerIdFocus = FocusNode();
+
+  final mobileNoCtrl = TextEditingController();
+  final mobileNoFocus = FocusNode();
+
+  final emailCtrl = TextEditingController();
+  final emailFocus = FocusNode();
+
+  final userNameCtrl = TextEditingController();
+  final userNameFocus = FocusNode();
+
+  final passwordCtrl = TextEditingController();
+  final passwordFocus = FocusNode();
+
+  final urlsCtrl = TextEditingController();
+  final urlsFocus = FocusNode();
+
+  final remarksCtrl = TextEditingController();
+  final remarksFocus = FocusNode();
+
+  final planNameCtrl = TextEditingController();
+  final planNameFocus = FocusNode();
+
+  final billingCycleCtrl = TextEditingController();
+  final billingCycleFocus = FocusNode();
+
+  final paymentDetailsCtrl = TextEditingController();
+  final paymentDetailsFocus = FocusNode();
+
+  final commentsCtrl = TextEditingController();
+  final commentsFocus = FocusNode();
+
+  final nextDueFocus = FocusNode();
+  final lastPaymentFocus = FocusNode();
+  // endregion
+
+  // region Dropdown & Date GlobalKeys
+  final accountKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final paymentKey = GlobalKey<AppCommonMultiSelectDropdownState<String>>();
+  final nextDueKey = GlobalKey<AppCommonDateFieldState>();
+  final lastPaymentKey = GlobalKey<AppCommonDateFieldState>();
+  // endregion
+
+  // region Date Helpers
+  DateTime? get nextDueDateTime {
+    if (selectedNextDue.value == null || selectedNextDue.value!.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(selectedNextDue.value!);
+  }
+
+  DateTime? get lastPaymentDateTime {
+    if (selectedLastPayment.value == null ||
+        selectedLastPayment.value!.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(selectedLastPayment.value!);
+  }
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
-    _repo = Get.find<AccountSubscriptionRepository>();
-
     if (Get.arguments != null && Get.arguments is AccountSubscriptionModel) {
       isEdit.value = true;
       editingModel = Get.arguments as AccountSubscriptionModel;
@@ -54,26 +123,238 @@ class CreateAccountSubscriptionController extends GetxController {
 
   @override
   void onClose() {
-    brandCtrl.dispose();
-    unitCtrl.dispose();
-    locationCtrl.dispose();
-    mobileNoCtrl.dispose();
-    userNameCtrl.dispose();
-    urlsCtrl.dispose();
-    planNameCtrl.dispose();
-    billingCycleCtrl.dispose();
     companyCtrl.dispose();
+    companyFocus.dispose();
+
+    brandCtrl.dispose();
+    brandFocus.dispose();
+
     serviceCtrl.dispose();
+    serviceFocus.dispose();
+
+    unitCtrl.dispose();
+    unitFocus.dispose();
+
     cityCtrl.dispose();
+    cityFocus.dispose();
+
+    locationCtrl.dispose();
+    locationFocus.dispose();
+
     customerIdCtrl.dispose();
+    customerIdFocus.dispose();
+
+    mobileNoCtrl.dispose();
+    mobileNoFocus.dispose();
+
     emailCtrl.dispose();
+    emailFocus.dispose();
+
+    userNameCtrl.dispose();
+    userNameFocus.dispose();
+
     passwordCtrl.dispose();
+    passwordFocus.dispose();
+
+    urlsCtrl.dispose();
+    urlsFocus.dispose();
+
     remarksCtrl.dispose();
+    remarksFocus.dispose();
+
+    planNameCtrl.dispose();
+    planNameFocus.dispose();
+
+    billingCycleCtrl.dispose();
+    billingCycleFocus.dispose();
+
     paymentDetailsCtrl.dispose();
+    paymentDetailsFocus.dispose();
+
     commentsCtrl.dispose();
+    commentsFocus.dispose();
+
+    nextDueFocus.dispose();
+    lastPaymentFocus.dispose();
+
     super.onClose();
   }
+  // endregion
 
+  // region Field Progression / Pointer Navigation
+  void focusNextUnfilledField(int currentIndex, [BuildContext? context]) {
+    final fields = [
+      // 0: Account
+      (
+        isMandatory: true,
+        isFilled: () => selectedAccount.value.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          accountKey.currentState?.openMenu();
+        },
+      ),
+      // 1: Company
+      (
+        isMandatory: false,
+        isFilled: () => companyCtrl.text.trim().isNotEmpty,
+        onFocus: () => companyFocus.requestFocus(),
+      ),
+      // 2: Brand
+      (
+        isMandatory: false,
+        isFilled: () => brandCtrl.text.trim().isNotEmpty,
+        onFocus: () => brandFocus.requestFocus(),
+      ),
+      // 3: Service
+      (
+        isMandatory: false,
+        isFilled: () => serviceCtrl.text.trim().isNotEmpty,
+        onFocus: () => serviceFocus.requestFocus(),
+      ),
+      // 4: Unit
+      (
+        isMandatory: false,
+        isFilled: () => unitCtrl.text.trim().isNotEmpty,
+        onFocus: () => unitFocus.requestFocus(),
+      ),
+      // 5: City
+      (
+        isMandatory: false,
+        isFilled: () => cityCtrl.text.trim().isNotEmpty,
+        onFocus: () => cityFocus.requestFocus(),
+      ),
+      // 6: Location
+      (
+        isMandatory: false,
+        isFilled: () => locationCtrl.text.trim().isNotEmpty,
+        onFocus: () => locationFocus.requestFocus(),
+      ),
+      // 7: Customer ID
+      (
+        isMandatory: false,
+        isFilled: () => customerIdCtrl.text.trim().isNotEmpty,
+        onFocus: () => customerIdFocus.requestFocus(),
+      ),
+      // 8: Mobile No
+      (
+        isMandatory: false,
+        isFilled: () => mobileNoCtrl.text.trim().isNotEmpty,
+        onFocus: () => mobileNoFocus.requestFocus(),
+      ),
+      // 9: Email
+      (
+        isMandatory: false,
+        isFilled: () => emailCtrl.text.trim().isNotEmpty,
+        onFocus: () => emailFocus.requestFocus(),
+      ),
+      // 10: User Name
+      (
+        isMandatory: false,
+        isFilled: () => userNameCtrl.text.trim().isNotEmpty,
+        onFocus: () => userNameFocus.requestFocus(),
+      ),
+      // 11: Password
+      (
+        isMandatory: false,
+        isFilled: () => passwordCtrl.text.trim().isNotEmpty,
+        onFocus: () => passwordFocus.requestFocus(),
+      ),
+      // 12: URLs
+      (
+        isMandatory: false,
+        isFilled: () => urlsCtrl.text.trim().isNotEmpty,
+        onFocus: () => urlsFocus.requestFocus(),
+      ),
+      // 13: Remarks
+      (
+        isMandatory: false,
+        isFilled: () => remarksCtrl.text.trim().isNotEmpty,
+        onFocus: () => remarksFocus.requestFocus(),
+      ),
+      // 14: Plan Name
+      (
+        isMandatory: false,
+        isFilled: () => planNameCtrl.text.trim().isNotEmpty,
+        onFocus: () => planNameFocus.requestFocus(),
+      ),
+      // 15: Payment
+      (
+        isMandatory: false,
+        isFilled: () => selectedPayment.value.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          paymentKey.currentState?.openMenu();
+        },
+      ),
+      // 16: Billing cycle & Due
+      (
+        isMandatory: false,
+        isFilled: () => billingCycleCtrl.text.trim().isNotEmpty,
+        onFocus: () => billingCycleFocus.requestFocus(),
+      ),
+      // 17: Next Due On
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedNextDue.value != null &&
+            selectedNextDue.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          nextDueKey.currentState?.openDatePicker();
+        },
+      ),
+      // 18: Last Payment
+      (
+        isMandatory: false,
+        isFilled: () =>
+            selectedLastPayment.value != null &&
+            selectedLastPayment.value!.trim().isNotEmpty,
+        onFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          lastPaymentKey.currentState?.openDatePicker();
+        },
+      ),
+      // 19: Payment Details
+      (
+        isMandatory: false,
+        isFilled: () => paymentDetailsCtrl.text.trim().isNotEmpty,
+        onFocus: () => paymentDetailsFocus.requestFocus(),
+      ),
+      // 20: Comments
+      (
+        isMandatory: false,
+        isFilled: () => commentsCtrl.text.trim().isNotEmpty,
+        onFocus: () => commentsFocus.requestFocus(),
+      ),
+    ];
+
+    if (currentIndex < 0) {
+      // Focus first unfilled mandatory field on form validation
+      for (int i = 0; i < fields.length; i++) {
+        if (fields[i].isMandatory && !fields[i].isFilled()) {
+          fields[i].onFocus();
+          return;
+        }
+      }
+      FocusManager.instance.primaryFocus?.unfocus();
+      return;
+    }
+
+    // Forward progression from current field onwards
+    final int start = currentIndex + 1;
+    for (int i = start; i < fields.length; i++) {
+      if (!fields[i].isFilled()) {
+        fields[i].onFocus();
+        return;
+      }
+    }
+
+    // End of form reached or no unfilled fields forward - unfocus instead of wrapping to previous non-mandatory fields
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+  // endregion
+
+  // region Initialization & Data Fetching
   Future<void> _initData() async {
     await fetchAccountList();
     if (isEdit.value && editingModel != null) {
@@ -88,12 +369,17 @@ class CreateAccountSubscriptionController extends GetxController {
         final dataList = response['data'] as List?;
         if (dataList != null) {
           accountList.value = dataList
-              .map((e) => AccountDropdownModel.fromJson(e as Map<String, dynamic>))
+              .map(
+                (e) =>
+                    AccountDropdownModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList();
         }
       }
     } catch (e) {
-      debugPrint('[CreateAccountSubscriptionController] fetchAccountList error: $e');
+      debugPrint(
+        '[CreateAccountSubscriptionController] fetchAccountList error: $e',
+      );
     }
   }
 
@@ -106,7 +392,8 @@ class CreateAccountSubscriptionController extends GetxController {
     userNameCtrl.text = data.username == 'NA' ? '' : data.username;
     urlsCtrl.text = data.urls ?? '';
     planNameCtrl.text = data.planName == 'NA' ? '' : data.planName;
-    billingCycleCtrl.text = data.billingCycleDue == 'NA' ? '' : data.billingCycleDue;
+    billingCycleCtrl.text =
+        data.billingCycleDue == 'NA' ? '' : data.billingCycleDue;
     companyCtrl.text = data.company == 'NA' ? '' : data.company;
     serviceCtrl.text = data.service == 'NA' ? '' : data.service;
     cityCtrl.text = data.city == 'NA' ? '' : data.city;
@@ -118,39 +405,30 @@ class CreateAccountSubscriptionController extends GetxController {
     commentsCtrl.text = data.comments ?? '';
 
     selectedPayment.value = data.payment;
-    
-    if (data.nextDue.isNotEmpty && data.nextDue != 'NA' && data.nextDue != '-') {
+
+    if (data.nextDue.isNotEmpty &&
+        data.nextDue != 'NA' &&
+        data.nextDue != '-') {
       selectedNextDue.value = data.nextDue;
     }
-    if (data.lastPayment.isNotEmpty && data.lastPayment != 'NA' && data.lastPayment != '-') {
+    if (data.lastPayment.isNotEmpty &&
+        data.lastPayment != 'NA' &&
+        data.lastPayment != '-') {
       selectedLastPayment.value = data.lastPayment;
     }
   }
+  // endregion
 
-  Future<void> selectDate(BuildContext context, Rxn<String> target) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: Color(0xFFFF6B35)),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) {
-      // API expects format like 04-Aug-2026 or YYYY-MM-DD
-      // We will send it as YYYY-MM-DD
-      target.value = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-    }
-  }
-
+  // region API & Network Operations
   Future<void> submit() async {
-    if (!formKey.currentState!.validate()) return;
-    
-    if (selectedAccount.value.isEmpty) {
+    if (!formKey.currentState!.validate()) {
+      focusNextUnfilledField(-1);
+      return;
+    }
+
+    if (selectedAccount.value.trim().isEmpty) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      accountKey.currentState?.openMenu();
       AppCommonToastMessage.show(
         message: 'Please select an account',
         type: ToastType.error,
@@ -238,4 +516,6 @@ class CreateAccountSubscriptionController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 }
+// endregion

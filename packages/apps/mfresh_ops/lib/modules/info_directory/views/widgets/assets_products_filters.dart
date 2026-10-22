@@ -1,16 +1,24 @@
-import 'package:core/core.dart';
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:core/core.dart';
 import 'package:mfresh_ops/data/models/assignee_model.dart';
 import 'package:mfresh_ops/data/models/info_directory/asset_category_model.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/assets_products_controller.dart';
+// endregion
 
+// region AssetsProductsFilters Widget
 class AssetsProductsFilters extends StatelessWidget {
+  // region Properties
   final AssetsProductsController controller;
+  // endregion
 
+  // region Constructor
   const AssetsProductsFilters({super.key, required this.controller});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -32,7 +40,7 @@ class AssetsProductsFilters extends StatelessWidget {
           final isTablet = constraints.maxWidth >= 600;
 
           final itemTypeDropdown = Obx(
-            () => MultiSelectDropdownWidget<String>(
+            () => AppCommonMultiSelectDropdown<String>(
               label: 'Item Type',
               hint: 'Item Type',
               isSingleSelect: true,
@@ -61,7 +69,7 @@ class AssetsProductsFilters extends StatelessWidget {
           );
 
           final categoryDropdown = Obx(
-            () => MultiSelectDropdownWidget<AssetCategoryModel>(
+            () => AppCommonMultiSelectDropdown<AssetCategoryModel>(
               label: 'Category',
               hint: 'Category',
               isLoading: controller.isFiltersLoading.value,
@@ -87,7 +95,7 @@ class AssetsProductsFilters extends StatelessWidget {
           );
 
           final assigneeDropdown = Obx(
-            () => MultiSelectDropdownWidget<AssigneeModel>(
+            () => AppCommonMultiSelectDropdown<AssigneeModel>(
               label: 'Assignee',
               hint: 'Assignee',
               isLoading: controller.isFiltersLoading.value,
@@ -147,4 +155,6 @@ class AssetsProductsFilters extends StatelessWidget {
       ),
     );
   }
+  // endregion
 }
+// endregion

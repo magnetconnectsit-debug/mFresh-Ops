@@ -1,31 +1,24 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/create_account_subscription_controller.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+// endregion
 
+// region CreateAccountSubscriptionScreen Class
 class CreateAccountSubscriptionScreen extends StatelessWidget {
   const CreateAccountSubscriptionScreen({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(CreateAccountSubscriptionController());
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppCommonAppBar(
-        topHeader: const CommonShortcutHeader(),
-        title: Obx(
-          () => Text(
-            controller.isEdit.value ? 'Update Account' : 'Create Account',
-            style: AppTextStyle.style_18_700(color: AppColors.black),
-          ),
-        ),
-        hasBackButton: true,
-        showAppDrawer: false,
-      ),
+      appBar: _buildAppBar(controller),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -33,444 +26,580 @@ class CreateAccountSubscriptionScreen extends StatelessWidget {
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
               child: Container(
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderColor),
-            ),
-            child: Form(
-              key: controller.formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                padding: EdgeInsets.all(24.r),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: AppColors.borderColor),
+                ),
+                child: Form(
+                  key: controller.formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 32.h,
-                          child: Obx(() => MultiSelectDropdownWidget<String>(
-                                label: 'Account',
-                                isSingleSelect: true,
-                                selectedValues: controller.selectedAccount.value.isEmpty
-                                    ? {}
-                                    : {controller.selectedAccount.value},
-                                items: controller.accountList.map((acc) {
-                                  return DropdownMenuItem(
-                                    value: acc.id.toString(),
-                                    child: Text(
-                                      acc.accountName,
-                                      style: AppTextStyle.style_12_400(color: AppColors.grey900),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val.isNotEmpty) {
-                                    controller.selectedAccount.value = val.first;
-                                  } else {
-                                    controller.selectedAccount.value = '';
-                                  }
-                                },
-                              )),
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.companyCtrl,
-                          label: 'Company',
-                        ),
-                      ),
+                      _buildAccountAndCompanyRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildBrandAndServiceRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildUnitAndCityRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildLocationAndCustomerIdRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildMobileAndEmailRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildUserNameAndPasswordRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildUrlsAndRemarksRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildPlanNameAndPaymentRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildBillingCycleAndNextDueRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildLastPaymentRow(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildPaymentDetailsField(context, controller),
+                      SizedBox(height: 8.h),
+                      _buildCommentsField(context, controller),
+                      SizedBox(height: 32.h),
+                      _buildActionButtons(controller),
                     ],
                   ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.brandCtrl,
-                          label: 'Brand',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.serviceCtrl,
-                          label: 'Service',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.unitCtrl,
-                          label: 'Unit',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.cityCtrl,
-                          label: 'City',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.locationCtrl,
-                          label: 'Location',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.customerIdCtrl,
-                          label: 'Customer ID',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.mobileNoCtrl,
-                          label: 'Mobile No',
-                          keyboardType: TextInputType.phone,
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.emailCtrl,
-                          label: 'Email',
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.userNameCtrl,
-                          label: 'User Name',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.passwordCtrl,
-                          label: 'Password',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.urlsCtrl,
-                          label: 'URLs',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.remarksCtrl,
-                          label: 'Remarks',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.planNameCtrl,
-                          label: 'Plan Name',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: SizedBox(
-                          height: 32.h,
-                          child: Obx(() => MultiSelectDropdownWidget<String>(
-                                label: 'Payment',
-                                isSingleSelect: true,
-                                selectedValues: controller.selectedPayment.value.isEmpty
-                                    ? {}
-                                    : {controller.selectedPayment.value},
-                                items: [
-                                  DropdownMenuItem(value: '1', child: Text('Yes', style: AppTextStyle.style_12_400(color: AppColors.grey900))),
-                                  DropdownMenuItem(value: '0', child: Text('No', style: AppTextStyle.style_12_400(color: AppColors.grey900))),
-                                ],
-                                onChanged: (val) {
-                                  if (val.isNotEmpty) {
-                                    controller.selectedPayment.value = val.first;
-                                  } else {
-                                    controller.selectedPayment.value = '';
-                                  }
-                                },
-                              )),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          ctrl: controller.billingCycleCtrl,
-                          label: 'Billing cycle & Due',
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Obx(
-                          () => _buildDateField(
-                            label: 'Next Due On',
-                            value: controller.selectedNextDue.value,
-                            onTap: () => controller.selectDate(
-                                context, controller.selectedNextDue),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Obx(
-                          () => _buildDateField(
-                            label: 'Last Payment',
-                            value: controller.selectedLastPayment.value,
-                            onTap: () => controller.selectDate(
-                                context, controller.selectedLastPayment),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      const Expanded(child: SizedBox()),
-                    ],
-                  ),
-                  SizedBox(height: 8.h),
-                  _buildTextField(
-                    ctrl: controller.paymentDetailsCtrl,
-                    label: 'Payment Details',
-                    maxLines: 2,
-                  ),
-                  SizedBox(height: 8.h),
-                  _buildTextField(
-                    ctrl: controller.commentsCtrl,
-                    label: 'Comments',
-                    maxLines: 1,
-                  ),
-                  SizedBox(height: 32.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      SizedBox(
-                        height: 30.h,
-                        width: 80.w,
-                        child: OutlinedButton(
-                          onPressed: () => Get.back(),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: Text(
-                            'Cancel',
-                            style: AppTextStyle.style_12_600(color: AppColors.black),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Obx(
-                        () => SizedBox(
-                          height: 30.h,
-                          width: 80.w,
-                          child: ElevatedButton(
-                            onPressed: controller.isLoading.value
-                                ? null
-                                : controller.submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF6B35),
-                              disabledBackgroundColor:
-                                  const Color(0xFFFF6B35).withValues(alpha: 0.6),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                              padding: EdgeInsets.zero,
-                              elevation: 0,
-                            ),
-                            child: controller.isLoading.value
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    'Submit',
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  ));
-}
-
-  Widget _buildTextField({
-    required TextEditingController ctrl,
-    required String label,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-    bool readOnly = false,
-    VoidCallback? onTap,
-    Widget? suffixIcon,
-    TextStyle? style,
-  }) {
-    return SizedBox(
-      height: maxLines == 1 ? 32.h : null,
-      child: TextFormField(
-        controller: ctrl,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        validator: validator,
-        readOnly: readOnly,
-        onTap: onTap,
-        textAlignVertical: TextAlignVertical.center,
-        style: style ?? AppTextStyle.style_12_400(color: AppColors.grey900),
-        decoration: InputDecoration(
-          suffixIcon: suffixIcon,
-          suffixIconConstraints: suffixIcon != null
-              ? BoxConstraints(maxHeight: 32.h, minWidth: 32.w)
-              : null,
-          label: RichText(
-            text: TextSpan(
-              text: label.replaceAll('*', ''),
-              style: AppTextStyle.style_12_400(color: AppColors.grey200),
-              children: label.contains('*')
-                  ? [
-                      const TextSpan(
-                        text: '*',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ]
-                  : [],
-            ),
-          ),
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          counterText: '',
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 10.w,
-            vertical: maxLines > 1 ? 6.h : 4.h,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: AppColors.borderColor),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(4.r),
-            borderSide: const BorderSide(color: Color(0xffF15A24), width: 1.5),
-          ),
-          isDense: true,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required String? value,
-    required VoidCallback onTap,
-  }) {
-    return SizedBox(
-      height: 32.h,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(4.r),
-        child: InputDecorator(
-          decoration: InputDecoration(
-            label: RichText(
-              text: TextSpan(
-                text: label.replaceAll('*', ''),
-                style: AppTextStyle.style_12_400(color: AppColors.grey200),
-                children: label.contains('*')
-                    ? [
-                        const TextSpan(
-                          text: '*',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ]
-                    : [],
-              ),
-            ),
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4.r),
-              borderSide: const BorderSide(color: AppColors.borderColor, width: 1.0),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4.r),
-              borderSide: const BorderSide(color: AppColors.borderColor, width: 1.0),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  value == null ? 'Select Date' : AppDateUtils.formatToOrdinalDate(value),
-                  style: value == null 
-                      ? AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp)
-                      : AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Icon(Icons.calendar_today, size: 14.sp, color: AppColors.grey200),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+  // endregion
+
+  // region App Bar
+  PreferredSizeWidget _buildAppBar(
+    CreateAccountSubscriptionController controller,
+  ) {
+    return AppCommonAppBar(
+      topHeader: const CommonShortcutHeader(),
+      title: Obx(
+        () => Text(
+          controller.isEdit.value ? 'Update Account' : 'Create Account',
+          style: AppTextStyle.style_18_700(color: AppColors.black),
+        ),
+      ),
+      hasBackButton: true,
+      showAppDrawer: false,
+    );
+  }
+  // endregion
+
+  // region Form Field Rows
+  Widget _buildAccountAndCompanyRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 0: Account *
+        Expanded(
+          child: SizedBox(
+            height: 32.h,
+            child: Obx(
+              () => AppCommonMultiSelectDropdown<String>(
+                key: controller.accountKey,
+                label: 'Account *',
+                isSingleSelect: true,
+                selectedValues: controller.selectedAccount.value.isEmpty
+                    ? {}
+                    : {controller.selectedAccount.value},
+                items: controller.accountList.map((acc) {
+                  return DropdownMenuItem(
+                    value: acc.id.toString(),
+                    child: Text(
+                      acc.accountName,
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val.isNotEmpty) {
+                    controller.selectedAccount.value = val.first;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      controller.focusNextUnfilledField(0, context);
+                    });
+                  } else {
+                    controller.selectedAccount.value = '';
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 1: Company
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.companyCtrl,
+            focusNode: controller.companyFocus,
+            labelText: 'Company',
+            hintText: 'Enter company',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(1, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBrandAndServiceRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 2: Brand
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.brandCtrl,
+            focusNode: controller.brandFocus,
+            labelText: 'Brand',
+            hintText: 'Enter brand',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(2, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 3: Service
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.serviceCtrl,
+            focusNode: controller.serviceFocus,
+            labelText: 'Service',
+            hintText: 'Enter service',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(3, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnitAndCityRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 4: Unit
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.unitCtrl,
+            focusNode: controller.unitFocus,
+            labelText: 'Unit',
+            hintText: 'Enter unit',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(4, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 5: City
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.cityCtrl,
+            focusNode: controller.cityFocus,
+            labelText: 'City',
+            hintText: 'Enter city',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(5, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationAndCustomerIdRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 6: Location
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.locationCtrl,
+            focusNode: controller.locationFocus,
+            labelText: 'Location',
+            hintText: 'Enter location',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(6, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 7: Customer ID
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.customerIdCtrl,
+            focusNode: controller.customerIdFocus,
+            labelText: 'Customer ID',
+            hintText: 'Enter customer ID',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(7, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileAndEmailRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 8: Mobile No
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.mobileNoCtrl,
+            focusNode: controller.mobileNoFocus,
+            labelText: 'Mobile No',
+            hintText: 'Enter mobile number',
+            height: 32.h,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(8, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 9: Email
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.emailCtrl,
+            focusNode: controller.emailFocus,
+            labelText: 'Email',
+            hintText: 'Enter email address',
+            height: 32.h,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(9, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserNameAndPasswordRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 10: User Name
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.userNameCtrl,
+            focusNode: controller.userNameFocus,
+            labelText: 'User Name',
+            hintText: 'Enter user name',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(10, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 11: Password
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.passwordCtrl,
+            focusNode: controller.passwordFocus,
+            labelText: 'Password',
+            hintText: 'Enter password',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(11, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUrlsAndRemarksRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 12: URLs
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.urlsCtrl,
+            focusNode: controller.urlsFocus,
+            labelText: 'URLs',
+            hintText: 'Enter URLs',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(12, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 13: Remarks
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.remarksCtrl,
+            focusNode: controller.remarksFocus,
+            labelText: 'Remarks',
+            hintText: 'Enter remarks',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(13, context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlanNameAndPaymentRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 14: Plan Name
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.planNameCtrl,
+            focusNode: controller.planNameFocus,
+            labelText: 'Plan Name',
+            hintText: 'Enter plan name',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(14, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 15: Payment
+        Expanded(
+          child: SizedBox(
+            height: 32.h,
+            child: Obx(
+              () => AppCommonMultiSelectDropdown<String>(
+                key: controller.paymentKey,
+                label: 'Payment',
+                isSingleSelect: true,
+                selectedValues: controller.selectedPayment.value.isEmpty
+                    ? {}
+                    : {controller.selectedPayment.value},
+                items: [
+                  DropdownMenuItem(
+                    value: '1',
+                    child: Text(
+                      'Yes',
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: '0',
+                    child: Text(
+                      'No',
+                      style: AppTextStyle.style_12_400(
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val.isNotEmpty) {
+                    controller.selectedPayment.value = val.first;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      controller.focusNextUnfilledField(15, context);
+                    });
+                  } else {
+                    controller.selectedPayment.value = '';
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBillingCycleAndNextDueRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 16: Billing cycle & Due
+        Expanded(
+          child: AppCommonTextField(
+            controller: controller.billingCycleCtrl,
+            focusNode: controller.billingCycleFocus,
+            labelText: 'Billing cycle & Due',
+            hintText: 'Enter billing cycle & due',
+            height: 32.h,
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                controller.focusNextUnfilledField(16, context),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        // 17: Next Due On
+        Expanded(
+          child: Obx(
+            () => AppCommonDateField(
+              key: controller.nextDueKey,
+              focusNode: controller.nextDueFocus,
+              labelText: 'Next Due On',
+              hintText: 'Select Date',
+              height: 32.h,
+              selectedDate: controller.nextDueDateTime,
+              onDateSelected: (date) {
+                controller.selectedNextDue.value =
+                    "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  controller.focusNextUnfilledField(17, context);
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLastPaymentRow(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 18: Last Payment
+        Expanded(
+          child: Obx(
+            () => AppCommonDateField(
+              key: controller.lastPaymentKey,
+              focusNode: controller.lastPaymentFocus,
+              labelText: 'Last Payment',
+              hintText: 'Select Date',
+              height: 32.h,
+              selectedDate: controller.lastPaymentDateTime,
+              onDateSelected: (date) {
+                controller.selectedLastPayment.value =
+                    "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  controller.focusNextUnfilledField(18, context);
+                });
+              },
+            ),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        const Expanded(child: SizedBox()),
+      ],
+    );
+  }
+
+  Widget _buildPaymentDetailsField(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    // 19: Payment Details
+    return AppCommonTextField(
+      controller: controller.paymentDetailsCtrl,
+      focusNode: controller.paymentDetailsFocus,
+      labelText: 'Payment Details',
+      hintText: 'Enter payment details',
+      maxLines: 2,
+      textInputAction: TextInputAction.next,
+      onFieldSubmitted: (_) => controller.focusNextUnfilledField(19, context),
+    );
+  }
+
+  Widget _buildCommentsField(
+    BuildContext context,
+    CreateAccountSubscriptionController controller,
+  ) {
+    // 20: Comments
+    return AppCommonTextField(
+      controller: controller.commentsCtrl,
+      focusNode: controller.commentsFocus,
+      labelText: 'Comments',
+      hintText: 'Enter comments',
+      maxLines: 1,
+      height: 32.h,
+      textInputAction: TextInputAction.done,
+      onFieldSubmitted: (_) => controller.focusNextUnfilledField(20, context),
+    );
+  }
+  // endregion
+
+  // region Action Handlers & Submit Buttons
+  Widget _buildActionButtons(CreateAccountSubscriptionController controller) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        AppCommonButton(
+          text: 'Cancel',
+          onPressed: () => Get.back(),
+          variant: ButtonVariant.outline,
+          buttonColor: AppColors.white,
+          borderColor: AppColors.borderColor,
+          textColor: AppColors.black,
+          height: 30.h,
+          width: 80.w,
+          borderRadius: 4.r,
+        ),
+        SizedBox(width: 12.w),
+        Obx(
+          () => AppCommonButton(
+            text: 'Submit',
+            isLoading: controller.isLoading.value,
+            onPressed: controller.isLoading.value ? null : controller.submit,
+            buttonColor: AppColors.primary,
+            textColor: AppColors.white,
+            height: 30.h,
+            width: 80.w,
+            borderRadius: 4.r,
+          ),
+        ),
+      ],
+    );
+  }
+  // endregion
 }
+// endregion

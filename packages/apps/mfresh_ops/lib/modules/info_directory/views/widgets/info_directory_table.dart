@@ -1,47 +1,425 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_webview.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:core/core.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/info_directory_controller.dart';
 import 'package:mfresh_ops/data/models/info_directory/contact_model.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+// endregion
 
-class InfoDirectoryHeaderCell extends StatelessWidget {
-  final String text;
+// region InfoDirectoryTable Widget
+class InfoDirectoryTable extends StatelessWidget {
+  // region Properties
+  final InfoDirectoryController controller;
+  // endregion
 
-  const InfoDirectoryHeaderCell({super.key, required this.text});
+  // region Constructor
+  const InfoDirectoryTable({super.key, required this.controller});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+    return Obx(() {
+      final isLoading = controller.isLoading.value && !controller.isRefreshing.value;
+      final items = controller.contacts.toList();
+
+      final startItem = controller.totalRecords.value == 0
+          ? 0
+          : (controller.currentPage.value - 1) * controller.perPage.value + 1;
+      final endItem = (controller.currentPage.value * controller.perPage.value)
+          .clamp(0, controller.totalRecords.value);
+
+      final permissions = Get.find<AuthRepository>().rxUserPermissions;
+      final canEdit = permissions.contains(AppPermissions.contactEdit);
+      final canDelete = permissions.contains(AppPermissions.contactDelete);
+      final showAction = canEdit || canDelete;
+
+      final columns = _buildColumns(context, showAction, canEdit, canDelete);
+
+      return AppRefreshIndicator(
+        onRefresh: () => controller.resetFiltersAndRefresh(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppCommonTable<ContactModel>(
+                items: items,
+                columns: columns,
+                currentSortColumn: controller.sortColumn.value,
+                currentSortOrder: controller.currentSortOrder,
+                onSort: (columnKey, sortOrder) =>
+                    controller.sortBy(columnKey, sortOrder),
+                isLoading: isLoading,
+                headingRowColor: AppColors.aliceBlue,
+                headingTextStyle: AppTextStyle.style_12_700(
+                  color: AppColors.black,
+                ),
+                dataTextStyle: AppTextStyle.style_12_500(
+                  color: AppColors.black,
+                ),
+                borderColor: AppColors.borderColor,
+                headingRowHeight: 28.h,
+                cellVerticalPadding: 4.h,
+                cellHorizontalPadding: 8.w,
+                enableColumnResizing: false,
+                emptyText: 'No contacts found.',
+              ),
+              if (!isLoading && controller.totalRecords.value > 0) ...[
+                SizedBox(height: 10.h),
+                AppTablePagination(
+                  startItem: startItem,
+                  endItem: endItem,
+                  totalItems: controller.totalRecords.value,
+                  currentPage: controller.currentPage.value,
+                  totalPages: controller.totalPages.value,
+                  onPageChanged: (page) => controller.goToPage(page),
+                  onPreviousPage: () => controller.previousPage(),
+                  onNextPage: () => controller.nextPage(),
+                ),
+                SizedBox(height: 20.h),
+              ],
+            ],
+          ),
+        ),
+      );
+    });
+  }
+  // endregion
+
+  // region Columns Definition
+  List<AppTableColumn<ContactModel>> _buildColumns(
+    BuildContext context,
+    bool showAction,
+    bool canEdit,
+    bool canDelete,
+  ) {
+    return [
+      if (showAction)
+        AppTableColumn<ContactModel>(
+          key: 'action',
+          title: 'Action',
+          width: 70.w,
+          sortable: false,
+          alignment: Alignment.center,
+          cellBuilder: (context, contact, index, isExpanded) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canEdit)
+                  InkWell(
+                    onTap: () async {
+                      if (!Get.find<AuthRepository>().rxUserPermissions.contains(AppPermissions.contactEdit)) {
+                        AppCommonToastMessage.show(
+                          message: 'You do not have permission to perform this action.',
+                          type: ToastType.warning,
+                        );
+                        return;
+                      }
+                      final result = await Get.toNamed(
+                        AppRoutes.createContact,
+                        arguments: contact,
+                      );
+                      if (result == true) {
+                        controller.fetchContacts(showFullScreenLoader: false);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(3.r),
+                      child: Icon(
+                        Icons.edit_square,
+                        size: 16.r,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ),
+                if (canEdit && canDelete) SizedBox(width: 4.w),
+                if (canDelete)
+                  InkWell(
+                    onTap: () => _confirmDeleteContact(context, contact),
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(3.r),
+                      child: Icon(
+                        Icons.delete,
+                        size: 16.r,
+                        color: AppColors.red,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      AppTableColumn<ContactModel>(
+        key: 'name',
+        title: 'Name',
+        width: 135.w,
+        sortable: true,
+        valueGetter: (c) => c.name,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.name.isNotEmpty ? c.name : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'contact_type',
+        title: 'Contact Type',
+        width: 100.w,
+        sortable: true,
+        valueGetter: (c) => c.contactType,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.contactType.isNotEmpty ? c.contactType : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'brand',
+        title: 'Brand',
+        width: 120.w,
+        sortable: true,
+        valueGetter: (c) => c.brand,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.brand.isNotEmpty ? c.brand : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'company',
+        title: 'Company',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (c) => c.company,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.company.isNotEmpty ? c.company : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'mobile1',
+        title: 'Mobile 1',
+        width: 125.w,
+        sortable: true,
+        valueGetter: (c) => c.mobile1,
+        cellBuilder: (context, c, index, isExpanded) => _buildPhoneCell(
+          c.mobile1,
+          isExpanded,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'mobile2',
+        title: 'Mobile 2',
+        width: 125.w,
+        sortable: true,
+        valueGetter: (c) => c.mobile2,
+        cellBuilder: (context, c, index, isExpanded) => _buildPhoneCell(
+          c.mobile2,
+          isExpanded,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'services',
+        title: 'Services',
+        width: 180.w,
+        sortable: true,
+        valueGetter: (c) => c.services,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.services.isNotEmpty ? c.services : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'description',
+        title: 'Description',
+        width: 200.w,
+        sortable: true,
+        valueGetter: (c) => c.description,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.description.isNotEmpty ? c.description : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'worked_on',
+        title: 'Worked On',
+        width: 140.w,
+        sortable: true,
+        valueGetter: (c) => c.workedOn,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.workedOn.isNotEmpty ? c.workedOn : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'location',
+        title: 'Location',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (c) => c.location,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.location.isNotEmpty ? c.location : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'department',
+        title: 'Department',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (c) => c.department,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.department.isNotEmpty ? c.department : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'designation',
+        title: 'Designation',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (c) => c.designation,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.designation.isNotEmpty ? c.designation : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'email',
+        title: 'Email',
+        width: 170.w,
+        sortable: true,
+        valueGetter: (c) => c.email,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.email.isNotEmpty ? c.email : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'weblinks',
+        title: 'Weblinks',
+        width: 140.w,
+        sortable: true,
+        valueGetter: (c) => c.weblinks,
+        cellBuilder: (context, c, index, isExpanded) => _buildWeblinkCell(
+          c.weblinks,
+          isExpanded,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'gstin',
+        title: 'GSTIN',
+        width: 130.w,
+        sortable: true,
+        valueGetter: (c) => c.gstin,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.gstin.isNotEmpty ? c.gstin : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+      AppTableColumn<ContactModel>(
+        key: 'address',
+        title: 'Address',
+        width: 160.w,
+        sortable: true,
+        valueGetter: (c) => c.address,
+        cellBuilder: (context, c, index, isExpanded) => Text(
+          c.address.isNotEmpty ? c.address : '-',
+          style: AppTextStyle.style_12_500(color: AppColors.black),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+    ];
+  }
+  // endregion
+
+  // region Cell Builders
+  Widget _buildPhoneCell(String text, bool isExpanded) {
+    if (text.isEmpty || text == '-') {
+      return Text(
+        '-',
+        style: AppTextStyle.style_12_500(color: AppColors.black),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            text,
+            style: AppTextStyle.style_12_500(color: AppColors.black),
+            maxLines: isExpanded ? null : 1,
+            overflow: isExpanded ? null : TextOverflow.ellipsis,
+          ),
+        ),
+        SizedBox(width: 4.w),
+        InkWell(
+          onTap: () => _makePhoneCall(text),
+          borderRadius: BorderRadius.circular(12.r),
+          child: Padding(
+            padding: EdgeInsets.all(2.r),
+            child: Icon(Icons.call, size: 14.sp, color: AppColors.success),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeblinkCell(String text, bool isExpanded) {
+    if (text.isEmpty || text == '-') {
+      return Text(
+        '-',
+        style: AppTextStyle.style_12_500(color: AppColors.black),
+      );
+    }
+
+    return InkWell(
+      onTap: () => _openWeblink(text),
       child: Text(
         text,
-        style: AppTextStyle.style_11_600(color: AppColors.grey900),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        style: AppTextStyle.style_12_500(
+          color: AppColors.primary,
+        ).copyWith(decoration: TextDecoration.underline),
+        maxLines: isExpanded ? null : 1,
+        overflow: isExpanded ? null : TextOverflow.ellipsis,
       ),
     );
   }
-}
+  // endregion
 
-class InfoDirectoryMobileCell extends StatelessWidget {
-  final String text;
-  final bool isExpanded;
-  final VoidCallback onTap;
-
-  const InfoDirectoryMobileCell({
-    super.key,
-    required this.text,
-    required this.isExpanded,
-    required this.onTap,
-  });
-
+  // region Actions & Handlers
   Future<void> _makePhoneCall(String phoneNumber) async {
     final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
     final Uri launchUri = Uri(scheme: 'tel', path: cleanNumber);
@@ -50,759 +428,43 @@ class InfoDirectoryMobileCell extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (text.isEmpty || text == '-') {
-      return InfoDirectoryDataCell(
-        text: text,
-        isExpanded: isExpanded,
-        onTap: onTap,
-      );
+  void _openWeblink(String url) {
+    final cleanUrl = url.trim();
+    if (cleanUrl.isEmpty || cleanUrl == '-') return;
+
+    String finalUrl = cleanUrl;
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://$finalUrl';
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              text,
-              style: AppTextStyle.style_12_400(color: AppColors.grey900),
-              maxLines: isExpanded ? null : 1,
-              overflow: isExpanded ? null : TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(width: 4.w),
-          GestureDetector(
-            onTap: () => _makePhoneCall(text),
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 1.w, vertical: 4.h),
-              child: Icon(Icons.call, size: 16.sp, color: Colors.green),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class InfoDirectoryDataCell extends StatelessWidget {
-  final String text;
-  final bool isExpanded;
-  final VoidCallback onTap;
-
-  const InfoDirectoryDataCell({
-    super.key,
-    required this.text,
-    required this.isExpanded,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-          maxLines: isExpanded ? null : 1,
-          overflow: isExpanded ? null : TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-}
-
-class InfoDirectoryWeblinkCell extends StatelessWidget {
-  final String text;
-  final bool isExpanded;
-  final VoidCallback onTap;
-
-  const InfoDirectoryWeblinkCell({
-    super.key,
-    required this.text,
-    required this.isExpanded,
-    required this.onTap,
-  });
-
-  Future<void> _openWeblink(String url) async {
-    if (url.isEmpty || url == '-') return;
-    String finalUrl = url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      finalUrl = 'https://$url';
-    }
     Get.to(() => AppCommonWebView(url: finalUrl, title: 'Weblink'));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (text.isEmpty || text == '-') {
-      return InfoDirectoryDataCell(
-        text: text,
-        isExpanded: isExpanded,
-        onTap: onTap,
+  Future<void> _confirmDeleteContact(
+    BuildContext context,
+    ContactModel contact,
+  ) async {
+    if (!Get.find<AuthRepository>().rxUserPermissions.contains(AppPermissions.contactDelete)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
       );
+      return;
     }
 
-    return GestureDetector(
-      onTap: () => _openWeblink(text),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_400(color: AppColors.grey900),
-          maxLines: isExpanded ? null : 1,
-          overflow: isExpanded ? null : TextOverflow.ellipsis,
-        ),
-      ),
+    final confirmed = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Delete Contact',
+      message:
+          'Are you sure you want to delete "${contact.name}"? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     );
+
+    if (confirmed) {
+      controller.deleteContact(contact.id);
+    }
   }
+  // endregion
 }
-
-const List<(String, double)> _kColumns = [
-  ('Action', 65),
-  ('Name', 135),
-  ('Contact Type', 95),
-  ('Brand', 120),
-  ('Company', 130),
-  ('Mobile 1', 115),
-  ('Mobile 2', 115),
-  ('Services', 190),
-  ('Description', 200),
-  ('Worked On', 140),
-  ('Location', 130),
-  ('Department', 130),
-  ('Designation', 130),
-  ('Email', 170),
-  ('Weblinks', 130),
-  ('Gstin', 125),
-  ('Address', 150),
-];
-
-class InfoDirectoryTable extends StatefulWidget {
-  final InfoDirectoryController controller;
-
-  const InfoDirectoryTable({super.key, required this.controller});
-
-  @override
-  State<InfoDirectoryTable> createState() => _InfoDirectoryTableState();
-}
-
-class _InfoDirectoryTableState extends State<InfoDirectoryTable> {
-  final RxSet<String> _expandedRows = <String>{}.obs;
-  final ScrollController _verticalController = ScrollController();
-  final ScrollController _headerHorizontalController = ScrollController();
-  final ScrollController _bodyHorizontalController = ScrollController();
-  final ScrollController _bottomBarController = ScrollController();
-  bool _isSyncing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _headerHorizontalController.addListener(_syncFromHeader);
-    _bodyHorizontalController.addListener(_syncFromBody);
-    _bottomBarController.addListener(_syncFromBottomBar);
-  }
-
-  void _syncFromHeader() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_bodyHorizontalController.hasClients) {
-      _bodyHorizontalController.jumpTo(_headerHorizontalController.offset);
-    }
-    if (_bottomBarController.hasClients) {
-      _bottomBarController.jumpTo(_headerHorizontalController.offset);
-    }
-    _isSyncing = false;
-  }
-
-  void _syncFromBody() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_headerHorizontalController.hasClients) {
-      _headerHorizontalController.jumpTo(_bodyHorizontalController.offset);
-    }
-    if (_bottomBarController.hasClients) {
-      _bottomBarController.jumpTo(_bodyHorizontalController.offset);
-    }
-    _isSyncing = false;
-  }
-
-  void _syncFromBottomBar() {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    if (_bodyHorizontalController.hasClients) {
-      _bodyHorizontalController.jumpTo(_bottomBarController.offset);
-    }
-    if (_headerHorizontalController.hasClients) {
-      _headerHorizontalController.jumpTo(_bottomBarController.offset);
-    }
-    _isSyncing = false;
-  }
-
-  @override
-  void dispose() {
-    _verticalController.dispose();
-    _headerHorizontalController.dispose();
-    _bodyHorizontalController.dispose();
-    _bottomBarController.dispose();
-    super.dispose();
-  }
-
-  void _toggleRow(String id) {
-    if (_expandedRows.contains(id)) {
-      _expandedRows.remove(id);
-    } else {
-      _expandedRows.add(id);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      final authRepo = Get.find<AuthRepository>();
-      final userPermissions = authRepo.rxUserPermissions;
-      final canEdit = userPermissions.contains('contact_edit');
-      final canDelete = userPermissions.contains('contact_delete');
-      final showAction = canEdit || canDelete;
-
-      final activeColumns = showAction 
-          ? _kColumns 
-          : _kColumns.where((col) => col.$1 != 'Action').toList();
-
-      final columnWidths = <int, TableColumnWidth>{
-        for (int i = 0; i < activeColumns.length; i++) i: FixedColumnWidth(activeColumns[i].$2.w),
-      };
-
-      final double totalTableWidth = activeColumns.fold(0.0, (sum, col) => sum + col.$2.w);
-
-      final isLoadingInitial =
-          widget.controller.isLoading.value &&
-          widget.controller.contacts.isEmpty;
-      final showEmpty = !isLoadingInitial && widget.controller.contacts.isEmpty;
-
-      if (showEmpty) {
-        return RefreshIndicator(
-          onRefresh: () async => widget.controller.resetFiltersAndRefresh(),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              SizedBox(
-                height: 400.h,
-                child: Center(
-                  child: Text(
-                    'No contacts found.',
-                    style: AppTextStyle.style_14_400(color: AppColors.grey600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-
-      return Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade200,
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              controller: _headerHorizontalController,
-              scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
-              child: Table(
-                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                border: TableBorder.symmetric(
-                  inside: BorderSide(color: Colors.grey.shade300),
-                ),
-                columnWidths: columnWidths,
-                children: [
-                  TableRow(
-                    decoration: const BoxDecoration(color: Color(0xFFC5D5F0)),
-                    children: activeColumns
-                        .map((c) => InfoDirectoryHeaderCell(text: c.$1))
-                        .toList(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async => widget.controller.resetFiltersAndRefresh(),
-              notificationPredicate: (notification) => notification.depth == 1,
-              child: Scrollbar(
-                controller: _verticalController,
-                thumbVisibility: true,
-                interactive: true,
-                thickness: 8.0,
-                radius: const Radius.circular(4),
-                child: SingleChildScrollView(
-                  controller: _bodyHorizontalController,
-                  scrollDirection: Axis.horizontal,
-                  child: Container(
-                    width: totalTableWidth + 2.0,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        left: BorderSide(color: AppColors.borderColor),
-                        right: BorderSide(color: AppColors.borderColor),
-                        bottom: BorderSide(color: AppColors.borderColor),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Obx(() {
-                            final isLoadingInitial =
-                                widget.controller.isLoading.value &&
-                                widget.controller.contacts.isEmpty;
-
-                            final listCount = isLoadingInitial
-                                ? 20
-                                : widget.controller.contacts.length;
-
-                            return Skeletonizer(
-                              enabled: isLoadingInitial,
-                              child: ListView.builder(
-                                controller: _verticalController,
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                itemCount: listCount,
-                                itemBuilder: (context, index) {
-                                  final contact = isLoadingInitial
-                                      ? ContactModel(
-                                          id: index.toString(),
-                                          name: 'Loading Name...',
-                                          contactType: 'Loading...',
-                                          brand: 'Loading...',
-                                          company: 'Loading...',
-                                        )
-                                      : widget.controller.contacts[index];
-
-                                  return Obx(() {
-                                    final isExpanded = _expandedRows.contains(
-                                      contact.id,
-                                    );
-                                    void toggleRow() => _toggleRow(contact.id);
-
-                                    Widget buildCell(
-                                      Widget child,
-                                      double width,
-                                    ) {
-                                      return Container(
-                                        width: width,
-                                        alignment: Alignment.centerLeft,
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            right: BorderSide(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                          ),
-                                        ),
-                                        child: child,
-                                      );
-                                    }
-
-                                    return Container(
-                                      constraints: BoxConstraints(minHeight: 25.h),
-                                      decoration: BoxDecoration(
-                                        border: Border(
-                                          bottom: BorderSide(
-                                            color: Colors.grey.shade300,
-                                          ),
-                                        ),
-                                      ),
-                                      child: IntrinsicHeight(
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                          if (showAction)
-                                            buildCell(
-                                              Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 4.w,
-                                                vertical: 2.h,
-                                              ),
-                                              child: FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.center,
-                                                child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  if (canEdit)
-                                                    InkWell(
-                                                      onTap: () async {
-                                                        final result =
-                                                            await Get.toNamed(
-                                                              AppRoutes
-                                                                  .createContact,
-                                                              arguments: contact,
-                                                            );
-                                                        if (result == true) {
-                                                          widget.controller
-                                                              .fetchContacts(
-                                                                showFullScreenLoader:
-                                                                    false,
-                                                              );
-                                                        }
-                                                      },
-                                                      child: Container(
-                                                        padding:
-                                                            const EdgeInsets.all(
-                                                              4,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          border: Border.all(
-                                                            color: Colors.grey,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                4,
-                                                              ),
-                                                        ),
-                                                        child: const Icon(
-                                                          Icons.edit,
-                                                          size: 16,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  if (canEdit && canDelete) SizedBox(width: 4.w),
-                                                  if (canDelete)
-                                                    InkWell(
-                                                      onTap: () {
-                                                        Get.dialog(
-                                                          AlertDialog(
-                                                            backgroundColor:
-                                                                Colors.white,
-                                                            surfaceTintColor:
-                                                                Colors
-                                                                    .transparent,
-                                                            shape: RoundedRectangleBorder(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    12.r,
-                                                                  ),
-                                                            ),
-                                                            title: Row(
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .warning_amber_rounded,
-                                                                  color:
-                                                                      Colors.red,
-                                                                  size: 28,
-                                                                ),
-                                                                SizedBox(
-                                                                  width: 8.w,
-                                                                ),
-                                                                Text(
-                                                                  'Delete Contact',
-                                                                  style: AppTextStyle.style_16_700(
-                                                                    color:
-                                                                        AppColors
-                                                                            .black,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            content: Text(
-                                                              'Are you sure you want to delete this contact? This action cannot be undone.',
-                                                              style:
-                                                                  AppTextStyle.style_14_400(
-                                                                    color: AppColors
-                                                                        .grey900,
-                                                                  ),
-                                                            ),
-                                                            actionsPadding:
-                                                                EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      16.w,
-                                                                  vertical: 12.h,
-                                                                ),
-                                                            actions: [
-                                                            TextButton(
-                                                              onPressed: () =>
-                                                                  Get.back(),
-                                                              child: Text(
-                                                                'Cancel',
-                                                                style: AppTextStyle.style_14_600(
-                                                                  color:
-                                                                      AppColors
-                                                                          .black,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            ElevatedButton(
-                                                              onPressed: () {
-                                                                Get.back();
-                                                                widget
-                                                                    .controller
-                                                                    .deleteContact(
-                                                                      contact
-                                                                          .id,
-                                                                    );
-                                                              },
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    Colors.red,
-                                                                shape: RoundedRectangleBorder(
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        6.r,
-                                                                      ),
-                                                                ),
-                                                                elevation: 0,
-                                                              ),
-                                                              child: Text(
-                                                                'Delete',
-                                                                style: AppTextStyle.style_14_600(
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                            4,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        border: Border.all(
-                                                          color: Colors.grey,
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
-                                                      ),
-                                                      child: const Icon(
-                                                        Icons.delete,
-                                                        size: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                                ),
-                                              ),
-                                            ),
-                                            _kColumns[0].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.name,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[1].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.contactType,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[2].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.brand,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[3].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.company,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[4].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryMobileCell(
-                                              text: contact.mobile1,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[5].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryMobileCell(
-                                              text: contact.mobile2,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[6].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.services,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[7].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.description,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[8].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.workedOn,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[9].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.location,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[10].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.department,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[11].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.designation,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[12].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.email,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[13].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryWeblinkCell(
-                                              text: contact.weblinks,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[14].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.gstin,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[15].$2.w,
-                                          ),
-                                          buildCell(
-                                            InfoDirectoryDataCell(
-                                              text: contact.address,
-                                              isExpanded: isExpanded,
-                                              onTap: toggleRow,
-                                            ),
-                                            _kColumns[16].$2.w,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                  });
-                                },
-                              ),
-                            );
-                          }),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            ),
-          ),
-          Scrollbar(
-            controller: _bottomBarController,
-            thumbVisibility: true,
-            interactive: true,
-            thickness: 8.0,
-            radius: const Radius.circular(4),
-            child: SingleChildScrollView(
-              controller: _bottomBarController,
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(width: totalTableWidth, height: 16),
-            ),
-          ),
-        ],
-      );
-    });
-  }
-}
-
-class InfoDirectoryPaginationButton extends StatelessWidget {
-  final String text;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const InfoDirectoryPaginationButton({
-    super.key,
-    required this.text,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4.r),
-      child: Container(
-        margin: EdgeInsets.only(left: 4.w),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
-          border: Border.all(
-            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_500(
-            color: isActive ? Colors.white : Colors.blue.shade600,
-          ),
-        ),
-      ),
-    );
-  }
-}
+// endregion

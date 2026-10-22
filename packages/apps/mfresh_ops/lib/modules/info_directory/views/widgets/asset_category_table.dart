@@ -1,22 +1,29 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_table.dart';
-import 'package:core/widgets/app_table_pagination.dart';
+import 'package:core/core.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/models/info_directory/asset_category_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/asset_category_controller.dart';
 import 'package:mfresh_ops/modules/info_directory/views/widgets/asset_category_dialog.dart';
+// endregion
 
+// region AssetCategoryTable Widget
 class AssetCategoryTable extends StatelessWidget {
+  // region Properties
   final AssetCategoryController controller;
+  // endregion
 
+  // region Constructor
   const AssetCategoryTable({super.key, required this.controller});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return AppRefreshIndicator(
       onRefresh: () => controller.onRefresh(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -40,98 +47,10 @@ class AssetCategoryTable extends StatelessWidget {
           final endItem = (controller.currentPage.value * controller.perPage.value)
               .clamp(0, controller.totalEntries);
 
-          final sortColumn = controller.sortColumn.value;
-          final isAsc = controller.sortAscending.value;
+          final permissions = Get.find<AuthRepository>().rxUserPermissions;
+          final canManage = permissions.contains(AppPermissions.assetCategoryPanel);
 
-          final columns = [
-            AppTableColumn<AssetCategoryModel>(
-              key: 'Sl No',
-              title: 'Sl No.',
-              width: 55.w,
-              sortable: true,
-              cellBuilder: (context, item, index, isExpanded) {
-                final isSlNoDescending =
-                    (sortColumn == 'Sl No' || sortColumn == 'Sl No.') &&
-                        !isAsc;
-                final slNoDisplay = isSlNoDescending
-                    ? controller.totalEntries - (startItem + index - 1)
-                    : (startItem + index);
-                return Center(
-                  child: Text(
-                    '$slNoDisplay',
-                    style: AppTextStyle.style_12_500(
-                      color: AppColors.grey900,
-                    ),
-                  ),
-                );
-              },
-            ),
-            AppTableColumn<AssetCategoryModel>(
-              key: 'Asset Category',
-              title: 'Asset Category',
-              width: 180.w,
-              sortable: true,
-              valueGetter: (item) => item.assetCatName,
-              cellBuilder: (context, item, index, isExpanded) {
-                return Text(
-                  item.assetCatName,
-                  style: AppTextStyle.style_12_500(
-                    color: AppColors.black,
-                  ),
-                  maxLines: isExpanded ? null : 1,
-                  overflow: isExpanded ? null : TextOverflow.ellipsis,
-                );
-              },
-            ),
-            AppTableColumn<AssetCategoryModel>(
-              key: 'Action',
-              title: 'Action',
-              width: 55.w,
-              sortable: false,
-              cellBuilder: (context, item, index, isExpanded) {
-                if (isLoading) return const SizedBox.shrink();
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    InkWell(
-                      onTap: () => showAssetCategoryDialog(
-                        context,
-                        controller,
-                        category: item,
-                      ),
-                      borderRadius: BorderRadius.circular(4.r),
-                      child: Padding(
-                        padding: EdgeInsets.all(2.r),
-                        child: Icon(
-                          Icons.edit_square,
-                          size: 17.r,
-                          color: const Color(0xFFF59E0B),
-                        ),
-                      ),
-                    ),
-                    // SizedBox(width: 2.w),
-                    InkWell(
-                      onTap: () => showDeleteCategoryDialog(
-                        context,
-                        controller,
-                        item,
-                      ),
-                      borderRadius: BorderRadius.circular(4.r),
-                      child: Padding(
-                        padding: EdgeInsets.all(2.r),
-                        child: Icon(
-                          Icons.delete,
-                          size: 17.r,
-                          color: AppColors.red,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ];
+          final columns = _buildColumns(context, canManage, isLoading, startItem);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -144,7 +63,7 @@ class AssetCategoryTable extends StatelessWidget {
                 onSort: (columnKey, sortOrder) =>
                     controller.sortBy(columnKey, sortOrder),
                 isLoading: isLoading,
-                headingRowColor: const Color(0xFFC5D5F0),
+                headingRowColor: AppColors.aliceBlue,
                 headingTextStyle: AppTextStyle.style_12_700(
                   color: AppColors.black,
                 ),
@@ -176,4 +95,126 @@ class AssetCategoryTable extends StatelessWidget {
       ),
     );
   }
+  // endregion
+
+  // region Columns Definition
+  List<AppTableColumn<AssetCategoryModel>> _buildColumns(
+    BuildContext context,
+    bool canManage,
+    bool isLoading,
+    int startItem,
+  ) {
+    final sortColumn = controller.sortColumn.value;
+    final isAsc = controller.sortAscending.value;
+
+    return [
+      AppTableColumn<AssetCategoryModel>(
+        key: 'Sl No',
+        title: 'Sl No.',
+        width: 55.w,
+        sortable: true,
+        cellBuilder: (context, item, index, isExpanded) {
+          final isSlNoDescending =
+              (sortColumn == 'Sl No' || sortColumn == 'Sl No.') &&
+                  !isAsc;
+          final slNoDisplay = isSlNoDescending
+              ? controller.totalEntries - (startItem + index - 1)
+              : (startItem + index);
+          return Center(
+            child: Text(
+              '$slNoDisplay',
+              style: AppTextStyle.style_12_500(
+                color: AppColors.grey900,
+              ),
+            ),
+          );
+        },
+      ),
+      AppTableColumn<AssetCategoryModel>(
+        key: 'Asset Category',
+        title: 'Asset Category',
+        width: 180.w,
+        sortable: true,
+        valueGetter: (item) => item.assetCatName,
+        cellBuilder: (context, item, index, isExpanded) {
+          return Text(
+            item.assetCatName,
+            style: AppTextStyle.style_12_500(
+              color: AppColors.black,
+            ),
+            maxLines: isExpanded ? null : 1,
+            overflow: isExpanded ? null : TextOverflow.ellipsis,
+          );
+        },
+      ),
+      if (canManage)
+        AppTableColumn<AssetCategoryModel>(
+          key: 'Action',
+          title: 'Action',
+          width: 55.w,
+          sortable: false,
+          cellBuilder: (context, item, index, isExpanded) {
+            if (isLoading) return const SizedBox.shrink();
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InkWell(
+                  onTap: () {
+                    if (!Get.find<AuthRepository>().rxUserPermissions.contains(AppPermissions.assetCategoryPanel)) {
+                      AppCommonToastMessage.show(
+                        message: 'You do not have permission to perform this action.',
+                        type: ToastType.warning,
+                      );
+                      return;
+                    }
+                    showAssetCategoryDialog(
+                      context,
+                      controller,
+                      category: item,
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(4.r),
+                  child: Padding(
+                    padding: EdgeInsets.all(2.r),
+                    child: Icon(
+                      Icons.edit_square,
+                      size: 17.r,
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    if (!Get.find<AuthRepository>().rxUserPermissions.contains(AppPermissions.assetCategoryPanel)) {
+                      AppCommonToastMessage.show(
+                        message: 'You do not have permission to perform this action.',
+                        type: ToastType.warning,
+                      );
+                      return;
+                    }
+                    showDeleteCategoryDialog(
+                      context,
+                      controller,
+                      item,
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(4.r),
+                  child: Padding(
+                    padding: EdgeInsets.all(2.r),
+                    child: Icon(
+                      Icons.delete,
+                      size: 17.r,
+                      color: AppColors.red,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+    ];
+  }
+  // endregion
 }
+// endregion
