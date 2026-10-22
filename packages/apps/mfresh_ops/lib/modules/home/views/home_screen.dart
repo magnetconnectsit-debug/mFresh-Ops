@@ -211,18 +211,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 22.r,
-                                  height: 22.r,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.white.withValues(alpha: 0.2),
+                                  width: 24.r,
+                                  height: 24.r,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.white,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
                                     child: Image.asset(
                                       AppImages.selfieIcon,
-                                      width: 14.r,
-                                      height: 14.r,
-                                      color: AppColors.white,
+                                      width: 17.r,
+                                      height: 17.r,
                                       fit: BoxFit.contain,
                                     ),
                                   ),
