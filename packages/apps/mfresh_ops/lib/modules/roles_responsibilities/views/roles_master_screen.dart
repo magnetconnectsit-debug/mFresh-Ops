@@ -1,324 +1,316 @@
+// region Imports
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/core.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
+import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/modules/roles_responsibilities/controllers/roles_master_controller.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
-import 'package:mfresh_ops/modules/roles_responsibilities/controllers/roles_master_controller.dart';
+// endregion
 
+// region View
 class RolesMasterScreen extends StatelessWidget {
   const RolesMasterScreen({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(RolesMasterController());
+    final controller = Get.isRegistered<RolesMasterController>()
+        ? Get.find<RolesMasterController>()
+        : Get.put(RolesMasterController());
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        showAppDrawer: true,
-        hasBackButton: false,
-        topHeader: const CommonShortcutHeader(),
-        showSearchBar: true,
-        searchController: controller.searchCtrl,
-        onSearchChanged: (v) => controller.searchQuery.value = v,
-        title: Text(
-          'Roles Master',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
-        ),
-      ),
+      appBar: _buildAppBar(context, controller),
       body: SafeArea(
         top: false,
-        child: Obx(
-          () => controller.isLoading.value
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: () => controller.fetchRoles(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(
-                      left: 12.w,
-                      right: 12.w,
-                      top: 0,
-                      bottom: 4.h,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Action Bar Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            AppCommonButton(
-                              text: 'Add Role',
-                              variant: ButtonVariant.primary,
-                              buttonColor: const Color(0xFF16A3B8),
-                              height: 24.h,
-                              textSize: 11.sp,
-                              isSmall: true,
-                              borderRadius: 4.r,
-                              padding: EdgeInsets.symmetric(horizontal: 8.w),
-                              onPressed: () =>
-                                  _showAddEditRoleDialog(context, controller),
-                            ),
-                            Text(
-                              'Roles Master',
-                              style: AppTextStyle.style_11_400(
-                                color: AppColors.grey400,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 2.h),
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CustomAppLoader());
+          }
 
-                        // Table
-                        Obx(() {
-                          final rolesList = controller.paginatedRoles;
-
-                          if (rolesList.isEmpty) {
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: 40.h),
-                              child: Center(
-                                child: Text(
-                                  'No roles found',
-                                  style: AppTextStyle.style_14_500(
-                                    color: AppColors.grey300,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(4.r),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4.r),
-                              child: Table(
-                                defaultVerticalAlignment:
-                                    TableCellVerticalAlignment.middle,
-                                border: TableBorder.symmetric(
-                                  inside: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                columnWidths: {
-                                  0: FixedColumnWidth(80.w),
-                                  1: const FlexColumnWidth(),
-                                  2: FixedColumnWidth(90.w),
-                                },
-                                children: [
-                                  // Header Row
-                                  TableRow(
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF1F5F9),
-                                    ),
-                                    children: [
-                                      _buildSortableHeaderCell(
-                                        'Sl.No',
-                                        'id',
-                                        controller,
-                                      ),
-                                      _buildSortableHeaderCell(
-                                        'Role Name',
-                                        'roleName',
-                                        controller,
-                                      ),
-                                      _buildHeaderCell(
-                                        'Action',
-                                        align: Alignment.center,
-                                      ),
-                                    ],
-                                  ),
-                                  // Data Rows
-                                  ...rolesList.asMap().entries.map((entry) {
-                                    final role = entry.value;
-                                    final originalIdx = controller.roles
-                                        .indexOf(role);
-                                    final slNo = originalIdx != -1
-                                        ? originalIdx + 1
-                                        : (controller.currentPage.value - 1) *
-                                                  controller.perPage.value +
-                                              entry.key +
-                                              1;
-
-                                    return TableRow(
-                                      children: [
-                                        _buildDataCell('$slNo'),
-                                        _buildDataCell(role.roleName),
-                                        _buildActionCell(
-                                          onEdit: () => _showAddEditRoleDialog(
-                                            context,
-                                            controller,
-                                            roleItem: role,
-                                          ),
-                                          onDelete: () => _confirmDelete(
-                                            context,
-                                            controller,
-                                            role,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  }),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-                        SizedBox(height: 12.h),
-
-                        // Pagination Footer
-                        Obx(() {
-                          final totalItems = controller.filteredRoles.length;
-                          final startItem = totalItems == 0
-                              ? 0
-                              : ((controller.currentPage.value - 1) *
-                                        controller.perPage.value) +
-                                    1;
-                          final endItem =
-                              (startItem + controller.perPage.value - 1).clamp(
-                                0,
-                                totalItems,
-                              );
-
-                          return AppTablePagination(
-                            startItem: startItem,
-                            endItem: endItem,
-                            totalItems: totalItems,
-                            currentPage: controller.currentPage.value,
-                            totalPages: controller.totalPages,
-                            onPageChanged: (page) => controller.goToPage(page),
-                            onPreviousPage: controller.previousPage,
-                            onNextPage: controller.nextPage,
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-        ),
+          return AppRefreshIndicator(
+            onRefresh: () => controller.fetchRoles(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildActionBar(context, controller),
+                  SizedBox(height: 10.h),
+                  _buildTableSection(context, controller),
+                  SizedBox(height: 12.h),
+                  _buildPaginationFooter(controller),
+                ],
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
+  // endregion
 
-  Widget _buildSortableHeaderCell(
-    String text,
-    String columnKey,
+  // region Header & App Bar
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    RolesMasterController controller,
+  ) {
+    return AppCommonAppBar(
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      showAppDrawer: true,
+      hasBackButton: false,
+      topHeader: const CommonShortcutHeader(),
+      showSearchBar: true,
+      searchController: controller.searchCtrl,
+      onSearchChanged: (v) => controller.searchQuery.value = v,
+      toolbarHeight: 45.h,
+      title: Text(
+        'Roles Master',
+        style: AppTextStyle.style_16_700(color: AppColors.black),
+      ),
+    );
+  }
+  // endregion
+
+  // region Section Builders
+  Widget _buildActionBar(
+    BuildContext context,
+    RolesMasterController controller,
+  ) {
+    final hasAddPerm = _hasPermission(AppPermissions.rolesMaster);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (hasAddPerm)
+          AppCommonButton(
+            text: 'Add Role',
+            variant: ButtonVariant.primary,
+            buttonColor: AppColors.primary,
+            height: 24.h,
+            textSize: 11.sp,
+            isSmall: true,
+            borderRadius: 4.r,
+            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            onPressed: () => _showAddEditRoleDialog(context, controller),
+          )
+        else
+          const SizedBox.shrink(),
+        Obx(
+          () => Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.borderColor, width: 1.r),
+            ),
+            child: Text(
+              'Total: ${controller.filteredRoles.length}',
+              style: AppTextStyle.style_11_600(color: AppColors.grey600),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTableSection(
+    BuildContext context,
     RolesMasterController controller,
   ) {
     return Obx(() {
-      final isSorted = controller.sortColumn.value == columnKey;
-      final sortAscending = controller.sortAscending.value;
+      final rolesList = controller.paginatedRoles;
 
-      return InkWell(
-        onTap: () => controller.toggleSort(columnKey),
-        child: Container(
+      if (rolesList.isEmpty) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: AppColors.borderColor),
+          ),
+          child: Center(
+            child: Text(
+              'No roles found',
+              style: AppTextStyle.style_13_500(color: AppColors.grey400),
+            ),
+          ),
+        );
+      }
+
+      final columns = <AppTableColumn<RoleItem>>[
+        AppTableColumn<RoleItem>(
+          key: 'sl_no',
+          title: 'Sl.No',
+          width: 70.w,
+          alignment: Alignment.center,
+          cellBuilder: (context, item, index, isExpanded) {
+            final originalIdx = controller.roles.indexOf(item);
+            final slNo = originalIdx != -1
+                ? originalIdx + 1
+                : (controller.currentPage.value - 1) * controller.perPage.value +
+                    index +
+                    1;
+            return Text(
+              '$slNo',
+              style: AppTextStyle.style_11_400(color: AppColors.black87),
+              textAlign: TextAlign.center,
+            );
+          },
+        ),
+        AppTableColumn<RoleItem>(
+          key: 'role_name',
+          title: 'Role Name',
+          width: 250.w,
           alignment: Alignment.centerLeft,
-          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                text,
-                style: AppTextStyle.style_12_700(color: AppColors.black),
-              ),
-              if (isSorted) ...[
-                SizedBox(width: 3.w),
-                Icon(
-                  sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 13.sp,
-                  color: AppColors.black,
+          sortable: true,
+          cellBuilder: (context, item, index, isExpanded) {
+            return Text(
+              item.roleName,
+              style: AppTextStyle.style_11_600(color: AppColors.black),
+              maxLines: isExpanded ? null : 1,
+              overflow: isExpanded ? null : TextOverflow.ellipsis,
+            );
+          },
+        ),
+        AppTableColumn<RoleItem>(
+          key: 'action',
+          title: 'Action',
+          width: 90.w,
+          alignment: Alignment.center,
+          cellBuilder: (context, item, index, isExpanded) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                InkWell(
+                  onTap: () => _handleEditRole(context, controller, item),
+                  borderRadius: BorderRadius.circular(4.r),
+                  child: Container(
+                    padding: EdgeInsets.all(3.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      border: Border.all(color: AppColors.borderColor),
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 13.sp,
+                      color: AppColors.grey700,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 6.w),
+                InkWell(
+                  onTap: () => _handleDeleteRole(context, controller, item),
+                  borderRadius: BorderRadius.circular(4.r),
+                  child: Container(
+                    padding: EdgeInsets.all(3.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      border: Border.all(color: AppColors.borderColor),
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 13.sp,
+                      color: AppColors.red,
+                    ),
+                  ),
                 ),
               ],
-            ],
-          ),
+            );
+          },
         ),
+      ];
+
+      return AppCommonTable<RoleItem>(
+        items: rolesList,
+        columns: columns,
+        onSort: (key, sortOrder) {
+          controller.toggleSort(key == 'role_name' ? 'roleName' : key);
+        },
       );
     });
   }
 
-  Widget _buildHeaderCell(
-    String text, {
-    Alignment align = Alignment.centerLeft,
-  }) {
-    return Container(
-      alignment: align,
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_700(color: AppColors.black),
-      ),
-    );
+  Widget _buildPaginationFooter(RolesMasterController controller) {
+    return Obx(() {
+      final totalItems = controller.filteredRoles.length;
+      final startItem = totalItems == 0
+          ? 0
+          : ((controller.currentPage.value - 1) * controller.perPage.value) + 1;
+      final endItem = (startItem + controller.perPage.value - 1).clamp(
+        0,
+        totalItems,
+      );
+
+      return AppTablePagination(
+        startItem: startItem,
+        endItem: endItem,
+        totalItems: totalItems,
+        currentPage: controller.currentPage.value,
+        totalPages: controller.totalPages,
+        onPageChanged: (page) => controller.goToPage(page),
+        onPreviousPage: controller.previousPage,
+        onNextPage: controller.nextPage,
+      );
+    });
+  }
+  // endregion
+
+  // region Dialogs & Action Handlers
+  bool _hasPermission(String key) {
+    if (!Get.isRegistered<AuthRepository>()) return true;
+    final perms = Get.find<AuthRepository>().rxUserPermissions;
+    return perms.contains(key);
   }
 
-  Widget _buildDataCell(String text) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-      child: Text(
-        text,
-        style: AppTextStyle.style_12_400(color: AppColors.black),
-      ),
-    );
+  void _handleEditRole(
+    BuildContext context,
+    RolesMasterController controller,
+    RoleItem role,
+  ) {
+    if (!_hasPermission(AppPermissions.rolesMaster)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to edit roles.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    _showAddEditRoleDialog(context, controller, roleItem: role);
   }
 
-  Widget _buildActionCell({
-    required VoidCallback onEdit,
-    required VoidCallback onDelete,
-  }) {
-    return Container(
-      alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          InkWell(
-            onTap: onEdit,
-            borderRadius: BorderRadius.circular(4.r),
-            child: Container(
-              padding: EdgeInsets.all(3.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade400),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: Icon(
-                Icons.edit_outlined,
-                size: 13.r,
-                color: const Color(0xFF64748B),
-              ),
-            ),
-          ),
-          SizedBox(width: 6.w),
-          InkWell(
-            onTap: onDelete,
-            borderRadius: BorderRadius.circular(4.r),
-            child: Container(
-              padding: EdgeInsets.all(3.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade400),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: Icon(
-                Icons.delete_outline,
-                size: 13.r,
-                color: const Color(0xFFDC3545),
-              ),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _handleDeleteRole(
+    BuildContext context,
+    RolesMasterController controller,
+    RoleItem role,
+  ) async {
+    if (!_hasPermission(AppPermissions.rolesMaster)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to delete roles.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final confirmed = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Delete Role',
+      message: 'Are you sure you want to delete role "${role.roleName}"?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     );
+
+    if (confirmed) {
+      await controller.deleteRole(role.id);
+    }
   }
 
   void _showAddEditRoleDialog(
@@ -331,104 +323,96 @@ class RolesMasterScreen extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.white,
+        insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(color: Colors.grey.shade300),
+          side: const BorderSide(color: AppColors.borderColor),
         ),
-        title: Text(
-          isEdit ? 'Edit Role' : 'Add Role',
-          style: AppTextStyle.style_16_700(color: AppColors.black),
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppCommonTextField(
-                controller: controller.roleNameCtrl,
-                titleText: 'Role Name *',
-                hintText: 'Enter role name',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 440.w),
+          child: Padding(
+            padding: EdgeInsets.all(16.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEdit ? 'Edit Role' : 'Add Role',
+                      style: AppTextStyle.style_16_700(color: AppColors.black),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.pop(ctx),
+                      borderRadius: BorderRadius.circular(16.r),
+                      child: Padding(
+                        padding: EdgeInsets.all(4.r),
+                        child: Icon(
+                          Icons.close,
+                          size: 18.sp,
+                          color: AppColors.grey600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 14.h),
+                AppCommonTextField(
+                  controller: controller.roleNameCtrl,
+                  titleText: 'Role Name *',
+                  hintText: 'Enter role name',
+                ),
+                SizedBox(height: 18.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppCommonButton(
+                      text: 'Cancel',
+                      variant: ButtonVariant.outline,
+                      height: 32.h,
+                      width: 80.w,
+                      borderRadius: 4.r,
+                      textSize: 12.sp,
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                    SizedBox(width: 8.w),
+                    AppCommonButton(
+                      text: isEdit ? 'Update' : 'Save',
+                      variant: ButtonVariant.primary,
+                      buttonColor: AppColors.primary,
+                      height: 32.h,
+                      width: 85.w,
+                      borderRadius: 4.r,
+                      textSize: 12.sp,
+                      onPressed: () async {
+                        final name = controller.roleNameCtrl.text.trim();
+                        if (name.isEmpty) {
+                          AppCommonToastMessage.show(
+                            message: 'Role Name is required',
+                            type: ToastType.error,
+                          );
+                          return;
+                        }
+                        final bool success = isEdit
+                            ? await controller.updateRole(roleItem.id, name)
+                            : await controller.addRole(name);
+                        if (success && ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          AppCommonButton(
-            text: isEdit ? 'Update' : 'Save',
-            variant: ButtonVariant.primary,
-            buttonColor: const Color(0xFFF2562B),
-            onPressed: () async {
-              final name = controller.roleNameCtrl.text;
-              final bool success = isEdit
-                  ? await controller.updateRole(roleItem.id, name)
-                  : await controller.addRole(name);
-              if (success && ctx.mounted) {
-                Navigator.pop(ctx);
-              }
-            },
-            width: 90.w,
-            height: 36.h,
-          ),
-        ],
+        ),
       ),
     );
   }
-
-  void _confirmDelete(
-    BuildContext context,
-    RolesMasterController controller,
-    RoleItem role,
-  ) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(color: Colors.grey.shade300),
-        ),
-        title: Text(
-          'Delete Role',
-          style: AppTextStyle.style_16_700(color: AppColors.black),
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Text(
-            'Are you sure you want to delete role "${role.roleName}"?',
-            style: AppTextStyle.style_14_400(color: AppColors.black),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              controller.deleteRole(role.id);
-            },
-            child: Text(
-              'Delete',
-              style: AppTextStyle.style_14_600(color: const Color(0xFFDC3545)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // endregion
 }
+// endregion

@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+// region Imports
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+// endregion
 
+// region Renderer Widget
 class SimpleHtmlRenderer extends StatelessWidget {
   final String htmlContent;
   final TextStyle? baseStyle;
@@ -13,6 +16,7 @@ class SimpleHtmlRenderer extends StatelessWidget {
     this.baseStyle,
   });
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     if (htmlContent.trim().isEmpty) {
@@ -27,13 +31,15 @@ class SimpleHtmlRenderer extends StatelessWidget {
       children: blocks.map((block) => _buildBlockWidget(block)).toList(),
     );
   }
+  // endregion
 
+  // region Section Builders
   Widget _buildBlockWidget(_HtmlBlock block) {
     switch (block.tag) {
       case 'h1':
       case 'h2':
         return Padding(
-          padding: EdgeInsets.only(top: 12.h, bottom: 6.h),
+          padding: EdgeInsets.only(top: 10.h, bottom: 4.h),
           child: Text(
             block.text,
             style: AppTextStyle.style_16_700(color: AppColors.black),
@@ -41,7 +47,7 @@ class SimpleHtmlRenderer extends StatelessWidget {
         );
       case 'h3':
         return Padding(
-          padding: EdgeInsets.only(top: 10.h, bottom: 4.h),
+          padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
           child: Text(
             block.text,
             style: AppTextStyle.style_14_700(color: AppColors.black),
@@ -49,7 +55,7 @@ class SimpleHtmlRenderer extends StatelessWidget {
         );
       case 'h4':
         return Padding(
-          padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
+          padding: EdgeInsets.only(top: 6.h, bottom: 4.h),
           child: Text(
             block.text,
             style: AppTextStyle.style_13_600(color: AppColors.black),
@@ -69,7 +75,7 @@ class SimpleHtmlRenderer extends StatelessWidget {
                   children: [
                     Text(
                       '• ',
-                      style: AppTextStyle.style_14_700(color: const Color(0xFFF2562B)),
+                      style: AppTextStyle.style_14_700(color: AppColors.primary),
                     ),
                     Expanded(
                       child: Text.rich(
@@ -87,9 +93,9 @@ class SimpleHtmlRenderer extends StatelessWidget {
           margin: EdgeInsets.symmetric(vertical: 8.h),
           padding: EdgeInsets.all(12.r),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF7F5),
-            border: const Border(
-              left: BorderSide(color: Color(0xFFF2562B), width: 4),
+            color: AppColors.aliceBlue,
+            border: Border(
+              left: BorderSide(color: AppColors.primary, width: 4.w),
             ),
             borderRadius: BorderRadius.circular(4.r),
           ),
@@ -113,7 +119,9 @@ class SimpleHtmlRenderer extends StatelessWidget {
         .replaceAll('&gt;', '>');
 
     final spans = <InlineSpan>[];
-    final defaultStyle = baseStyle ?? AppTextStyle.style_13_400(color: AppColors.grey900).copyWith(height: 1.4);
+    final defaultStyle = baseStyle ??
+        AppTextStyle.style_13_400(color: AppColors.grey900)
+            .copyWith(height: 1.4);
 
     bool isBold = false;
     bool isItalic = false;
@@ -137,13 +145,21 @@ class SimpleHtmlRenderer extends StatelessWidget {
       } else {
         if (token.isNotEmpty) {
           TextStyle currentStyle = defaultStyle;
-          if (isBold) currentStyle = currentStyle.copyWith(fontWeight: FontWeight.w700);
-          if (isItalic) currentStyle = currentStyle.copyWith(fontStyle: FontStyle.italic);
+          if (isBold) {
+            currentStyle =
+                currentStyle.copyWith(fontWeight: FontWeight.w700);
+          }
+          if (isItalic) {
+            currentStyle =
+                currentStyle.copyWith(fontStyle: FontStyle.italic);
+          }
 
-          spans.add(TextSpan(
-            text: token,
-            style: currentStyle,
-          ));
+          spans.add(
+            TextSpan(
+              text: token,
+              style: currentStyle,
+            ),
+          );
         }
       }
     }
@@ -159,7 +175,10 @@ class SimpleHtmlRenderer extends StatelessWidget {
     final blocks = <_HtmlBlock>[];
     final String clean = html.replaceAll('\r\n', '\n');
 
-    final regExp = RegExp(r'<(h[1-6]|p|ul|ol|blockquote)[\s\S]*?>([\s\S]*?)<\/\1>', caseSensitive: false);
+    final regExp = RegExp(
+      r'<(h[1-6]|p|ul|ol|blockquote)[\s\S]*?>([\s\S]*?)<\/\1>',
+      caseSensitive: false,
+    );
     final matches = regExp.allMatches(clean);
 
     if (matches.isEmpty) {
@@ -170,22 +189,52 @@ class SimpleHtmlRenderer extends StatelessWidget {
         final trimmed = l.trim();
         if (trimmed.isEmpty) continue;
 
-        if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-          final itemText = trimmed.replaceFirst(RegExp(r'^[•\-\*]\s*'), '').trim();
-          bulletChildren.add(_HtmlBlock(tag: 'li', text: itemText, rawContent: itemText));
+        if (trimmed.startsWith('•') ||
+            trimmed.startsWith('-') ||
+            trimmed.startsWith('*')) {
+          final itemText =
+              trimmed.replaceFirst(RegExp(r'^[•\-\*]\s*'), '').trim();
+          bulletChildren.add(
+            _HtmlBlock(
+              tag: 'li',
+              text: itemText,
+              rawContent: itemText,
+            ),
+          );
         } else if (RegExp(r'^\d+\.').hasMatch(trimmed)) {
-          final itemText = trimmed.replaceFirst(RegExp(r'^\d+\.\s*'), '').trim();
-          bulletChildren.add(_HtmlBlock(tag: 'li', text: itemText, rawContent: itemText));
+          final itemText =
+              trimmed.replaceFirst(RegExp(r'^\d+\.\s*'), '').trim();
+          bulletChildren.add(
+            _HtmlBlock(
+              tag: 'li',
+              text: itemText,
+              rawContent: itemText,
+            ),
+          );
         } else {
           if (bulletChildren.isNotEmpty) {
-            blocks.add(_HtmlBlock(tag: 'ul', text: '', rawContent: '', children: List.from(bulletChildren)));
+            blocks.add(
+              _HtmlBlock(
+                tag: 'ul',
+                text: '',
+                rawContent: '',
+                children: List.from(bulletChildren),
+              ),
+            );
             bulletChildren.clear();
           }
           blocks.add(_HtmlBlock(tag: 'p', text: trimmed, rawContent: trimmed));
         }
       }
       if (bulletChildren.isNotEmpty) {
-        blocks.add(_HtmlBlock(tag: 'ul', text: '', rawContent: '', children: List.from(bulletChildren)));
+        blocks.add(
+          _HtmlBlock(
+            tag: 'ul',
+            text: '',
+            rawContent: '',
+            children: List.from(bulletChildren),
+          ),
+        );
       }
       return blocks;
     }
@@ -195,23 +244,56 @@ class SimpleHtmlRenderer extends StatelessWidget {
       final innerContent = m.group(2) ?? '';
 
       if (tag == 'ul' || tag == 'ol') {
-        final liMatches = RegExp(r'<li[\s\S]*?>([\s\S]*?)<\/li>', caseSensitive: false).allMatches(innerContent);
+        final liMatches = RegExp(
+          r'<li[\s\S]*?>([\s\S]*?)<\/li>',
+          caseSensitive: false,
+        ).allMatches(innerContent);
         final children = <_HtmlBlock>[];
         for (final li in liMatches) {
-          final liText = li.group(1)?.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll('&amp;', '&').trim() ?? '';
-          children.add(_HtmlBlock(tag: 'li', text: liText, rawContent: li.group(1) ?? ''));
+          final liText = li
+                  .group(1)
+                  ?.replaceAll(RegExp(r'<[^>]*>'), '')
+                  .replaceAll('&amp;', '&')
+                  .trim() ??
+              '';
+          children.add(
+            _HtmlBlock(
+              tag: 'li',
+              text: liText,
+              rawContent: li.group(1) ?? '',
+            ),
+          );
         }
-        blocks.add(_HtmlBlock(tag: tag, text: '', rawContent: innerContent, children: children));
+        blocks.add(
+          _HtmlBlock(
+            tag: tag,
+            text: '',
+            rawContent: innerContent,
+            children: children,
+          ),
+        );
       } else {
-        final plainText = innerContent.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll('&amp;', '&').trim();
-        blocks.add(_HtmlBlock(tag: tag, text: plainText, rawContent: innerContent));
+        final plainText = innerContent
+            .replaceAll(RegExp(r'<[^>]*>'), '')
+            .replaceAll('&amp;', '&')
+            .trim();
+        blocks.add(
+          _HtmlBlock(
+            tag: tag,
+            text: plainText,
+            rawContent: innerContent,
+          ),
+        );
       }
     }
 
     return blocks;
   }
+  // endregion
 }
+// endregion
 
+// region Models
 class _HtmlBlock {
   final String tag;
   final String text;
@@ -225,3 +307,4 @@ class _HtmlBlock {
     this.children = const [],
   });
 }
+// endregion

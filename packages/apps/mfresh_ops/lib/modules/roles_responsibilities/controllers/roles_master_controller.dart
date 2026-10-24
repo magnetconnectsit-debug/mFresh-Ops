@@ -1,12 +1,19 @@
+// region Imports
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
 import 'package:mfresh_ops/data/repositories/roles_responsibilities_repository.dart';
+// endregion
 
+// region Controller
 class RolesMasterController extends GetxController {
+  // region Dependencies & Repositories
   late final RolesResponsibilitiesRepository _repository;
+  Worker? _searchWorker;
+  // endregion
 
+  // region Observables & State Variables
   final roles = <RoleItem>[].obs;
   final filteredRoles = <RoleItem>[].obs;
   final isLoading = false.obs;
@@ -14,37 +21,18 @@ class RolesMasterController extends GetxController {
   final isSearching = false.obs;
   final sortAscending = true.obs;
   final sortColumn = ''.obs; // '' (none), 'id', or 'roleName'
-
-  final searchCtrl = TextEditingController();
-  final roleNameCtrl = TextEditingController();
+  final searchQuery = ''.obs;
 
   final currentPage = 1.obs;
   final perPage = 15.obs;
+  // endregion
 
-  void toggleSearch() {
-    isSearching.value = !isSearching.value;
-    if (!isSearching.value) {
-      resetSearch();
-    }
-  }
+  // region Text Controllers & Focus Nodes
+  final searchCtrl = TextEditingController();
+  final roleNameCtrl = TextEditingController();
+  // endregion
 
-  void toggleSort(String column) {
-    if (sortColumn.value == column) {
-      if (sortAscending.value) {
-        sortAscending.value = false;
-      } else {
-        sortColumn.value = '';
-        sortAscending.value = true;
-      }
-    } else {
-      sortColumn.value = column;
-      sortAscending.value = true;
-    }
-    _sortRolesList();
-  }
-
-  final searchQuery = ''.obs;
-
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -54,48 +42,27 @@ class RolesMasterController extends GetxController {
       _repository = Get.put(RolesResponsibilitiesRepository());
     }
 
-    debounce(searchQuery, (_) => fetchRoles(showLoading: false), time: const Duration(milliseconds: 600));
-
-    fetchRoles();
+    _searchWorker = debounce(
+      searchQuery,
+      (_) => fetchRoles(showLoading: false),
+      time: const Duration(milliseconds: 600),
+    );
 
     searchCtrl.addListener(_onSearchChanged);
+    fetchRoles();
   }
 
   @override
   void onClose() {
+    _searchWorker?.dispose();
     searchCtrl.removeListener(_onSearchChanged);
     searchCtrl.dispose();
     roleNameCtrl.dispose();
     super.onClose();
   }
+  // endregion
 
-  void _onSearchChanged() {
-    searchQuery.value = searchCtrl.text.trim();
-  }
-
-  void _sortRolesList() {
-    if (sortColumn.value.isEmpty) {
-      filteredRoles.assignAll(roles);
-      return;
-    }
-
-    if (sortColumn.value == 'roleName') {
-      filteredRoles.sort((a, b) => sortAscending.value
-          ? a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase())
-          : b.roleName.toLowerCase().compareTo(a.roleName.toLowerCase()));
-    } else if (sortColumn.value == 'id' || sortColumn.value == 'slNo') {
-      filteredRoles.sort((a, b) {
-        final aIndex = roles.indexOf(a);
-        final bIndex = roles.indexOf(b);
-        final aVal = aIndex != -1 ? aIndex + 1 : a.id;
-        final bVal = bIndex != -1 ? bIndex + 1 : b.id;
-        return sortAscending.value
-            ? aVal.compareTo(bVal)
-            : bVal.compareTo(aVal);
-      });
-    }
-  }
-
+  // region API & Network Operations
   Future<void> fetchRoles({bool showLoading = true}) async {
     if (showLoading) isLoading.value = true;
     try {
@@ -115,42 +82,6 @@ class RolesMasterController extends GetxController {
       );
     } finally {
       if (showLoading) isLoading.value = false;
-    }
-  }
-
-  void resetSearch() {
-    searchCtrl.clear();
-    searchQuery.value = '';
-    fetchRoles(showLoading: false);
-  }
-
-  List<RoleItem> get paginatedRoles {
-    final start = (currentPage.value - 1) * perPage.value;
-    if (start >= filteredRoles.length) return [];
-    final end = (start + perPage.value).clamp(0, filteredRoles.length);
-    return filteredRoles.sublist(start, end);
-  }
-
-  int get totalPages {
-    if (filteredRoles.isEmpty) return 1;
-    return (filteredRoles.length / perPage.value).ceil();
-  }
-
-  void goToPage(int page) {
-    if (page >= 1 && page <= totalPages) {
-      currentPage.value = page;
-    }
-  }
-
-  void nextPage() {
-    if (currentPage.value < totalPages) {
-      currentPage.value++;
-    }
-  }
-
-  void previousPage() {
-    if (currentPage.value > 1) {
-      currentPage.value--;
     }
   }
 
@@ -239,4 +170,93 @@ class RolesMasterController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
+
+  // region Business Logic & Helpers
+  void _onSearchChanged() {
+    searchQuery.value = searchCtrl.text.trim();
+  }
+
+  void toggleSearch() {
+    isSearching.value = !isSearching.value;
+    if (!isSearching.value) {
+      resetSearch();
+    }
+  }
+
+  void toggleSort(String column) {
+    if (sortColumn.value == column) {
+      if (sortAscending.value) {
+        sortAscending.value = false;
+      } else {
+        sortColumn.value = '';
+        sortAscending.value = true;
+      }
+    } else {
+      sortColumn.value = column;
+      sortAscending.value = true;
+    }
+    _sortRolesList();
+  }
+
+  void _sortRolesList() {
+    if (sortColumn.value.isEmpty) {
+      filteredRoles.assignAll(roles);
+      return;
+    }
+
+    if (sortColumn.value == 'roleName') {
+      filteredRoles.sort((a, b) => sortAscending.value
+          ? a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase())
+          : b.roleName.toLowerCase().compareTo(a.roleName.toLowerCase()));
+    } else if (sortColumn.value == 'id' || sortColumn.value == 'slNo') {
+      filteredRoles.sort((a, b) {
+        final aIndex = roles.indexOf(a);
+        final bIndex = roles.indexOf(b);
+        final aVal = aIndex != -1 ? aIndex + 1 : a.id;
+        final bVal = bIndex != -1 ? bIndex + 1 : b.id;
+        return sortAscending.value
+            ? aVal.compareTo(bVal)
+            : bVal.compareTo(aVal);
+      });
+    }
+  }
+
+  void resetSearch() {
+    searchCtrl.clear();
+    searchQuery.value = '';
+    fetchRoles(showLoading: false);
+  }
+
+  List<RoleItem> get paginatedRoles {
+    final start = (currentPage.value - 1) * perPage.value;
+    if (start >= filteredRoles.length) return [];
+    final end = (start + perPage.value).clamp(0, filteredRoles.length);
+    return filteredRoles.sublist(start, end);
+  }
+
+  int get totalPages {
+    if (filteredRoles.isEmpty) return 1;
+    return (filteredRoles.length / perPage.value).ceil();
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage.value = page;
+    }
+  }
+
+  void nextPage() {
+    if (currentPage.value < totalPages) {
+      currentPage.value++;
+    }
+  }
+
+  void previousPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  }
+  // endregion
 }
+// endregion

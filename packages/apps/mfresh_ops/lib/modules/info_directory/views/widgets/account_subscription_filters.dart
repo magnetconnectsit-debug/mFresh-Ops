@@ -1,8 +1,8 @@
 // region Imports
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/core.dart';
 import 'package:mfresh_ops/modules/info_directory/controllers/account_subscription_controller.dart';
 // endregion
 
@@ -10,10 +10,12 @@ import 'package:mfresh_ops/modules/info_directory/controllers/account_subscripti
 class AccountSubscriptionFilters extends StatelessWidget {
   // region Properties
   final AccountSubscriptionController controller;
+
   // endregion
 
   // region Constructor
   const AccountSubscriptionFilters({super.key, required this.controller});
+
   // endregion
 
   // region Main Build
@@ -68,10 +70,12 @@ class AccountSubscriptionFilters extends StatelessWidget {
                     isSingleSelect: false,
                     selectedValues: controller.selectedAccount.toSet(),
                     items: controller.accountList
-                        .map((acc) => DropdownMenuItem(
-                              value: acc.id.toString(),
-                              child: Text(acc.accountName),
-                            ))
+                        .map(
+                          (acc) => DropdownMenuItem(
+                            value: acc.id.toString(),
+                            child: Text(acc.accountName),
+                          ),
+                        )
                         .toList(),
                     onChanged: (values) {
                       controller.selectedAccount.assignAll(values);
@@ -110,6 +114,8 @@ class AccountSubscriptionFilters extends StatelessWidget {
       ),
     );
   }
+
   // endregion
 }
+
 // endregion

@@ -26,7 +26,7 @@ class CreateDepositScreen extends StatelessWidget {
         hasBackButton: true,
         topHeader: const CommonShortcutHeader(),
         title: Text(
-          controller.editingItem != null ? 'Edit Deposit' : 'Deposite Cash',
+          controller.editingItem != null ? 'Edit Deposit' : 'Deposit Cash',
           style: const TextStyle(
             color: AppColors.black,
             fontSize: 18,

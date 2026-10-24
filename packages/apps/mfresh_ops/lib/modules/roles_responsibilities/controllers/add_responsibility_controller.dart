@@ -1,28 +1,38 @@
+// region Imports
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
 import 'package:mfresh_ops/data/repositories/roles_responsibilities_repository.dart';
 import 'package:mfresh_ops/modules/roles_responsibilities/controllers/responsibilities_master_controller.dart';
+// endregion
 
+// region Controller
 class AddResponsibilityController extends GetxController {
+  // region Dependencies & Repositories
   final ResponsibilityItem? responsibilityItem;
 
   AddResponsibilityController({this.responsibilityItem});
 
   late final RolesResponsibilitiesRepository _repository;
-  final formKey = GlobalKey<FormState>();
+  // endregion
 
+  // region Observables & State Variables
+  final formKey = GlobalKey<FormState>();
   final roles = <RoleItem>[].obs;
   final selectedRoleIds = <int>{}.obs;
   final isFetchingRoles = false.obs;
 
-  final guidelinesEnglishCtrl = TextEditingController();
-  final guidelinesOdiaCtrl = TextEditingController();
-
   final isLoading = false.obs;
   final isEditing = false.obs;
+  // endregion
 
+  // region Text Controllers & Focus Nodes
+  final guidelinesEnglishCtrl = TextEditingController();
+  final guidelinesOdiaCtrl = TextEditingController();
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -34,67 +44,13 @@ class AddResponsibilityController extends GetxController {
 
     if (responsibilityItem != null) {
       isEditing.value = true;
-      guidelinesEnglishCtrl.text = _htmlToCleanText(responsibilityItem!.guidelinesEnglish);
-      guidelinesOdiaCtrl.text = _htmlToCleanText(responsibilityItem!.guidelinesOdia);
+      guidelinesEnglishCtrl.text =
+          _htmlToCleanText(responsibilityItem!.guidelinesEnglish);
+      guidelinesOdiaCtrl.text =
+          _htmlToCleanText(responsibilityItem!.guidelinesOdia);
     }
 
     fetchRoles();
-  }
-
-  String _htmlToCleanText(String? html) {
-    if (html == null || html.trim().isEmpty) return '';
-    String text = html;
-
-    text = text.replaceAll(RegExp(r'<li[\s\S]*?>', caseSensitive: false), '• ');
-    text = text.replaceAll(RegExp(r'<\/li>', caseSensitive: false), '\n');
-    text = text.replaceAll(RegExp(r'<(h[1-6]|p)[\s\S]*?>', caseSensitive: false), '');
-    text = text.replaceAll(RegExp(r'<\/(h[1-6]|p)>', caseSensitive: false), '\n');
-    text = text.replaceAll(RegExp(r'<br\s*\/?>', caseSensitive: false), '\n');
-    text = text.replaceAll(RegExp(r'<[^>]*>'), '');
-
-    text = text
-        .replaceAll('&amp;', '&')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>');
-
-    final lines = text.split('\n').map((l) => l.trimRight()).where((l) => l.isNotEmpty);
-    return lines.join('\n');
-  }
-
-  String _cleanTextToHtml(String text) {
-    if (text.trim().isEmpty) return '';
-    final lines = text.split('\n');
-    final sb = StringBuffer();
-    bool inList = false;
-
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      if (line.isEmpty) continue;
-
-      if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
-        if (!inList) {
-          sb.write('<ul>');
-          inList = true;
-        }
-        final item = line.replaceFirst(RegExp(r'^[•\-\*]\s*'), '').trim();
-        sb.write('<li>$item</li>');
-      } else {
-        if (inList) {
-          sb.write('</ul>');
-          inList = false;
-        }
-        if (i == 0) {
-          sb.write('<h3>$line</h3>');
-        } else {
-          sb.write('<p>$line</p>');
-        }
-      }
-    }
-    if (inList) {
-      sb.write('</ul>');
-    }
-    return sb.toString();
   }
 
   @override
@@ -103,7 +59,9 @@ class AddResponsibilityController extends GetxController {
     guidelinesOdiaCtrl.dispose();
     super.onClose();
   }
+  // endregion
 
+  // region API & Network Operations
   Future<void> fetchRoles() async {
     isFetchingRoles.value = true;
     try {
@@ -111,7 +69,8 @@ class AddResponsibilityController extends GetxController {
       roles.assignAll(res.roles);
 
       if (responsibilityItem != null) {
-        final match = roles.firstWhereOrNull((r) => r.id == responsibilityItem!.roleId);
+        final match =
+            roles.firstWhereOrNull((r) => r.id == responsibilityItem!.roleId);
         if (match != null) {
           selectedRoleIds.assignAll([match.id]);
         } else if (responsibilityItem!.roleName != null) {
@@ -136,6 +95,15 @@ class AddResponsibilityController extends GetxController {
     if (selectedRoleIds.isEmpty) {
       AppCommonToastMessage.show(
         message: 'Please select at least one Role',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    if (guidelinesEnglishCtrl.text.trim().isEmpty &&
+        guidelinesOdiaCtrl.text.trim().isEmpty) {
+      AppCommonToastMessage.show(
+        message: 'Please enter guidelines in English or Odia',
         type: ToastType.error,
       );
       return;
@@ -197,4 +165,72 @@ class AddResponsibilityController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
+
+  // region Business Logic & Helpers
+  String _htmlToCleanText(String? html) {
+    if (html == null || html.trim().isEmpty) return '';
+    String text = html;
+
+    text =
+        text.replaceAll(RegExp(r'<li[\s\S]*?>', caseSensitive: false), '• ');
+    text = text.replaceAll(RegExp(r'<\/li>', caseSensitive: false), '\n');
+    text =
+        text.replaceAll(RegExp(r'<(h[1-6]|p)[\s\S]*?>', caseSensitive: false), '');
+    text =
+        text.replaceAll(RegExp(r'<\/(h[1-6]|p)>', caseSensitive: false), '\n');
+    text = text.replaceAll(RegExp(r'<br\s*\/?>', caseSensitive: false), '\n');
+    text = text.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    text = text
+        .replaceAll('&amp;', '&')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>');
+
+    final lines = text
+        .split('\n')
+        .map((l) => l.trimRight())
+        .where((l) => l.isNotEmpty);
+    return lines.join('\n');
+  }
+
+  String _cleanTextToHtml(String text) {
+    if (text.trim().isEmpty) return '';
+    final lines = text.split('\n');
+    final sb = StringBuffer();
+    bool inList = false;
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (line.isEmpty) continue;
+
+      if (line.startsWith('•') ||
+          line.startsWith('-') ||
+          line.startsWith('*')) {
+        if (!inList) {
+          sb.write('<ul>');
+          inList = true;
+        }
+        final item = line.replaceFirst(RegExp(r'^[•\-\*]\s*'), '').trim();
+        sb.write('<li>$item</li>');
+      } else {
+        if (inList) {
+          sb.write('</ul>');
+          inList = false;
+        }
+        if (i == 0) {
+          sb.write('<h3>$line</h3>');
+        } else {
+          sb.write('<p>$line</p>');
+        }
+      }
+    }
+    if (inList) {
+      sb.write('</ul>');
+    }
+    return sb.toString();
+  }
+  // endregion
 }
+// endregion

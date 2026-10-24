@@ -1,12 +1,18 @@
+// region Imports
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:services/api_services.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
+import 'package:services/api_services.dart';
+// endregion
 
+// region Repository
 class RolesResponsibilitiesRepository extends GetxService {
+  // region Dependencies & Services
   final ApiService _apiService = Get.find<ApiService>();
+  // endregion
 
+  // region API Operations
   /// Fetch Roles
   Future<RolesResponse> getRoles({
     String search = '',
@@ -217,4 +223,6 @@ class RolesResponsibilitiesRepository extends GetxService {
       );
     }
   }
+  // endregion
 }
+// endregion

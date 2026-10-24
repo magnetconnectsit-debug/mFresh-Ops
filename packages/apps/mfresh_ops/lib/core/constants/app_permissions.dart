@@ -182,6 +182,7 @@ abstract class AppPermissions {
   static const dutyPunch = 'duty_punch';
   static const backgroundService = 'background_service';
   static const staffTab = 'staff_tab';
+  static const selfieAttendance = 'selfie_attendance';
   // endregion
 
   // region Global & Common Controls
@@ -376,6 +377,7 @@ abstract class AppPermissions {
     rentalBooking,
     rentalCustomer,
     rentalServices,
+    selfieAttendance,
   };
 
   /// Returns true if the key is valid and exists in user permissions (case-insensitive)

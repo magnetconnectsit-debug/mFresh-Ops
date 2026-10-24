@@ -1,17 +1,23 @@
+// region Imports
+import 'dart:math';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_table.dart';
+import 'package:core/widgets/app_table_pagination.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/data/models/inventory/audit_report_model.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:mfresh_ops/core/utils/app_date_utils.dart';
-import 'package:core/widgets/app_common_table.dart';
 import '../../controllers/audit_report_controller.dart';
 import '../audit_report_detail_screen.dart';
+// endregion
 
+// region View
 class AuditReportTable extends StatelessWidget {
   const AuditReportTable({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AuditReportController>();
@@ -25,9 +31,9 @@ class AuditReportTable extends StatelessWidget {
       ],
     );
   }
+  // endregion
 
-  // ── Main Audit Reports Data Table Card ─────────────────────────────────────
-
+  // region Section Builders
   Widget _buildTableCard(AuditReportController controller) {
     return Obx(() {
       final isTableLoading = controller.isLoading.value;
@@ -36,15 +42,15 @@ class AuditReportTable extends StatelessWidget {
       if (sortedList.isEmpty && !isTableLoading) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(4.r),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppColors.grey50),
           ),
-          padding: EdgeInsets.all(20.r),
+          padding: EdgeInsets.all(24.r),
           child: Center(
             child: Text(
               'No inventory audit records found.',
-              style: AppTextStyle.style_14_400(color: AppColors.grey300),
+              style: AppTextStyle.style_14_400(color: AppColors.grey400),
             ),
           ),
         );
@@ -55,16 +61,22 @@ class AuditReportTable extends StatelessWidget {
               10,
               (index) => AuditReportEntry(
                 id: index,
-                auditNumber: 'AUD-LOADING-$index',
+                representativeId: index,
+                auditNumber: 'AUD-00000$index',
+                auditDay: '2026-10-22',
+                auditDateDisplay: '22-Oct-2026',
+                dayName: 'Thursday',
+                auditCount: 3,
+                unitCount: 3,
+                unitNames: 'm2, m3, m4',
+                units: const [],
                 unitId: 0,
-                unitName: 'Loading Unit',
+                unitName: 'm2',
                 districtName: '',
                 imageUrl: '',
                 auditorId: 0,
                 auditorName: 'Auditor Name',
-                auditDate: '2026-01-01 00:00:00',
-                auditDateDisplay: '01 Jan 2026',
-                auditDay: 'Thu',
+                auditDate: '2026-10-22',
                 createdAt: '',
               ),
             )
@@ -78,18 +90,38 @@ class AuditReportTable extends StatelessWidget {
       }
 
       final columns = [
+        // AppTableColumn<AuditReportEntry>(
+        //   key: 'Audit No',
+        //   title: 'Audit No',
+        //   width: 100.w,
+        //   cellBuilder: (context, entry, index, isExpanded) {
+        //     return GestureDetector(
+        //       onTap: () => _navigateToDetail(controller, entry),
+        //       child: Text(
+        //         entry.auditNumber,
+        //         style: AppTextStyle.style_12_500(
+        //           color: AppColors.grey900,
+        //         ),
+        //         maxLines: isExpanded ? null : 1,
+        //         overflow:
+        //             isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+        //       ),
+        //     );
+        //   },
+        // ),
         AppTableColumn<AuditReportEntry>(
-          key: 'Audit Number',
-          title: 'Audit No',
-          width: 90.w,
+          key: 'Audit Date',
+          title: 'Audit Date',
+          width: 100.w,
           cellBuilder: (context, entry, index, isExpanded) {
             return GestureDetector(
-              onTap: () => _navigateToDetail(controller, entry),
+                            onTap: () => _navigateToDetail(controller, entry),
+
               child: Text(
-                entry.auditNumber,
-                style: AppTextStyle.style_11_700(
-                  color: const Color(0xFF009BD9),
-                ),
+                entry.auditDateDisplay.isNotEmpty
+                    ? entry.auditDateDisplay
+                    : entry.auditDay,
+                style: AppTextStyle.style_12_500(color: AppColors.blue500),
                 maxLines: isExpanded ? null : 1,
                 overflow:
                     isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
@@ -98,26 +130,46 @@ class AuditReportTable extends StatelessWidget {
           },
         ),
         AppTableColumn<AuditReportEntry>(
-          key: 'Unit',
-          title: 'Unit',
-          width: 68.w,
-          valueGetter: (entry) => entry.unitName,
+          key: 'Units',
+          title: 'Units',
+          width: 150.w,
+          cellBuilder: (context, entry, index, isExpanded) {
+            return Text(
+              entry.unitNames,
+              style: AppTextStyle.style_12_400(color: AppColors.grey900),
+              maxLines: isExpanded ? null : 1,
+              overflow:
+                  isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            );
+          },
         ),
         AppTableColumn<AuditReportEntry>(
-          key: 'Audit Date',
-          title: 'Audit Date',
+          key: 'Total Units',
+          title: 'Total Units',
+          width: 85.w,
+          alignment: Alignment.center,
+          cellBuilder: (context, entry, index, isExpanded) {
+            return Center(
+              child: Text(
+                '${entry.unitCount}',
+                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+              ),
+            );
+          },
+        ),
+        AppTableColumn<AuditReportEntry>(
+          key: 'Audit Records',
+          title: 'Audit Records',
           width: 95.w,
-          valueGetter: (entry) => AppDateUtils.formatToShortOrdinalDate(
-            entry.auditDateDisplay.isNotEmpty
-                ? entry.auditDateDisplay
-                : entry.auditDate,
-          ),
-        ),
-        AppTableColumn<AuditReportEntry>(
-          key: 'Audited By',
-          title: 'Audited By',
-          width: 100.w,
-          valueGetter: (entry) => entry.auditorName,
+          alignment: Alignment.center,
+          cellBuilder: (context, entry, index, isExpanded) {
+            return Center(
+              child: Text(
+                '${entry.auditCount}',
+                style: AppTextStyle.style_12_400(color: AppColors.grey900),
+              ),
+            );
+          },
         ),
       ];
 
@@ -128,92 +180,85 @@ class AuditReportTable extends StatelessWidget {
               ? AppTableSortOrder.ascending
               : AppTableSortOrder.descending);
 
-      return Skeletonizer(
-        enabled: isTableLoading,
-        child: AppCommonTable<AuditReportEntry>(
-          items: itemsToRender,
-          columns: columns,
-          currentSortColumn: currentSortKey,
-          currentSortOrder: currentSortOrder,
-          onSort: (columnKey, sortOrder) {
-            controller.sortBy(columnKey);
-          },
-          expandedRowIndices: expandedIndices,
-          onRowExpandToggle: (index, isExpanded) {
-            if (index >= 0 && index < itemsToRender.length) {
-              controller.toggleRowExpansion(itemsToRender[index].id);
-            }
-          },
-          headingRowColor: const Color(0xFFDCE5F8),
-          borderColor: Colors.grey.shade300,
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(6.r),
+          border: Border.all(color: AppColors.grey50),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6.r),
+          child: Skeletonizer(
+            enabled: isTableLoading,
+            child: AppCommonTable<AuditReportEntry>(
+              items: itemsToRender,
+              columns: columns,
+              currentSortColumn: currentSortKey,
+              currentSortOrder: currentSortOrder,
+              onSort: (columnKey, sortOrder) {
+                controller.sortBy(columnKey);
+              },
+              onRowTap: (entry, index) => _navigateToDetail(controller, entry),
+              expandedRowIndices: expandedIndices,
+              onRowExpandToggle: (index, isExpanded) {
+                if (index >= 0 && index < itemsToRender.length) {
+                  controller.toggleRowExpansion(itemsToRender[index].id);
+                }
+              },
+              headingRowColor: const Color(0xFF009BD9),
+              headingTextStyle:
+                  AppTextStyle.style_12_700(color: AppColors.white),
+              headingBorderColor: AppColors.white,
+              borderColor: AppColors.grey50,
+            ),
+          ),
         ),
       );
     });
   }
 
+  Widget _buildPagination(AuditReportController controller) {
+    return Obx(() {
+      final totalItems = controller.totalCount.value;
+      final totalPages = controller.totalPages.value;
+      final currentPage = controller.currentPage.value;
+      final perPage = controller.perPage.value;
+
+      if (totalItems <= 0 && totalPages <= 1) {
+        return const SizedBox.shrink();
+      }
+
+      final startItem = totalItems == 0 ? 0 : ((currentPage - 1) * perPage) + 1;
+      final endItem = min(currentPage * perPage, totalItems);
+
+      return AppTablePagination(
+        startItem: startItem,
+        endItem: endItem,
+        totalItems: totalItems,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        itemUnitName: 'records',
+        onPageChanged: (page) => controller.goToPage(page),
+        onPreviousPage: () => controller.prevPage(),
+        onNextPage: () => controller.nextPage(),
+      );
+    });
+  }
+  // endregion
+
+  // region Dialogs & Action Handlers
   void _navigateToDetail(
     AuditReportController controller,
     AuditReportEntry entry,
   ) {
     controller.selectedAuditEntry.value = entry;
+    final targetId =
+        entry.representativeId != 0 ? entry.representativeId : entry.id;
     Get.to(
-      () => const AuditReportDetailScreen(),
-      arguments: {'auditId': entry.id},
+      () => AuditReportDetailScreen(auditId: targetId),
+      arguments: {'auditId': targetId},
     );
   }
-
-  // ── Pagination Controls matching Store/Unit Inventory Table ─────────────────────
-
-  Widget _buildPagination(AuditReportController controller) {
-    return Obx(() {
-      if (controller.totalPages.value <= 1) return const SizedBox.shrink();
-
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildPaginationButton('←', false, controller.prevPage),
-            ...List.generate(controller.totalPages.value, (index) {
-              final pageNumber = index + 1;
-              return _buildPaginationButton(
-                '$pageNumber',
-                controller.currentPage.value == pageNumber,
-                () => controller.fetchAuditReport(),
-              );
-            }),
-            _buildPaginationButton('→', false, controller.nextPage),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildPaginationButton(
-    String text,
-    bool isActive,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4.r),
-      child: Container(
-        margin: EdgeInsets.only(left: 4.w),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue.shade600 : const Color(0xFFF1F5F9),
-          border: Border.all(
-            color: isActive ? Colors.blue.shade600 : Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(4.r),
-        ),
-        child: Text(
-          text,
-          style: AppTextStyle.style_12_500(
-            color: isActive ? Colors.white : Colors.blue.shade600,
-          ),
-        ),
-      ),
-    );
-  }
+  // endregion
 }
+// endregion

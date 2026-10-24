@@ -1,3 +1,4 @@
+// region Imports
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,50 +7,37 @@ import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import '../controllers/audit_report_controller.dart';
 import 'widgets/audit_report_table.dart';
+// endregion
 
+// region View
 class AuditReportScreen extends StatefulWidget {
   const AuditReportScreen({super.key});
 
   @override
   State<AuditReportScreen> createState() => _AuditReportScreenState();
 }
+// endregion
 
+// region State
 class _AuditReportScreenState extends State<AuditReportScreen> {
+  // region Dependencies & Repositories
   late final AuditReportController controller;
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void initState() {
     super.initState();
     controller = Get.put(AuditReportController());
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        showAppDrawer: true,
-        hasBackButton: false,
-        topHeader: const CommonShortcutHeader(),
-        toolbarHeight: 45.h,
-        title: Row(
-          children: [
-            Text(
-              'Inventory Audit Report',
-              style: AppTextStyle.style_16_700(color: AppColors.black),
-            ),
-            const Spacer(),
-            AppCommonSearchBar(
-              width: 140.w,
-              controller: controller.searchController,
-              hintText: 'Search',
-              onChanged: (_) => controller.applySearch(),
-            ),
-          ],
-        ),
-      ),
+      appBar: _buildAppBar(context),
       drawer: const CommonSidebar(),
       body: AppRefreshIndicator(
         onRefresh: controller.onRefresh,
@@ -69,9 +57,37 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
       ),
     );
   }
+  // endregion
 
-  // ── Module Table Filter Card UI ──────────────────────────────────────────────
+  // region Header & App Bar
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppCommonAppBar(
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      showAppDrawer: true,
+      hasBackButton: false,
+      topHeader: const CommonShortcutHeader(),
+      toolbarHeight: 45.h,
+      title: Row(
+        children: [
+          Text(
+            'Inventory Audit Report',
+            style: AppTextStyle.style_16_700(color: AppColors.black),
+          ),
+          const Spacer(),
+          AppCommonSearchBar(
+            width: 140.w,
+            controller: controller.searchController,
+            hintText: 'Search',
+            onChanged: (_) => controller.applySearch(),
+          ),
+        ],
+      ),
+    );
+  }
+  // endregion
 
+  // region Section Builders
   Widget _buildFilterCard() {
     return Container(
       padding: EdgeInsets.fromLTRB(6.w, 8.h, 6.w, 6.h),
@@ -87,7 +103,8 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
         final auditorOptions = controller.auditorOptions;
         final selectedAuditors = controller.selectedAuditorOptions;
 
-        final hasDateFilter = controller.fromDate.value != null && controller.fromDate.value!.isNotEmpty;
+        final hasDateFilter = controller.fromDate.value != null &&
+            controller.fromDate.value!.isNotEmpty;
         final hasMonthFilter = controller.selectedFromMonth.value != null;
         final hasAnyFilter = selectedUnits.isNotEmpty ||
             selectedAuditors.isNotEmpty ||
@@ -98,7 +115,7 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Filter Rows
+            // Filter Fields Grid/Row
             LayoutBuilder(
               builder: (context, constraints) {
                 final isMobile = constraints.maxWidth < 600;
@@ -116,7 +133,9 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                           value: opt.id,
                           child: Text(
                             opt.name,
-                            style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey900,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -124,7 +143,8 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                       .toList(),
                   onChanged: (values) {
                     controller.selectedUnitIds.assignAll(values);
-                    controller.fetchAuditReport();
+                    controller.currentPage.value = 1;
+                    controller.fetchAuditReport(page: 1);
                   },
                 );
 
@@ -141,7 +161,9 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                           value: opt.id,
                           child: Text(
                             opt.name,
-                            style: AppTextStyle.style_12_400(color: AppColors.grey900),
+                            style: AppTextStyle.style_12_400(
+                              color: AppColors.grey900,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -149,7 +171,8 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                       .toList(),
                   onChanged: (values) {
                     controller.selectedAuditorIds.assignAll(values);
-                    controller.fetchAuditReport();
+                    controller.currentPage.value = 1;
+                    controller.fetchAuditReport(page: 1);
                   },
                 );
 
@@ -204,7 +227,9 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                   children: [
                     Text(
                       'Active Filters:',
-                      style: AppTextStyle.style_11_600(color: AppColors.grey500),
+                      style: AppTextStyle.style_11_600(
+                        color: AppColors.grey500,
+                      ),
                     ),
                     SizedBox(width: 6.w),
                     // Unit chips
@@ -223,7 +248,8 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                         padding: EdgeInsets.only(right: 4.w),
                         child: _buildFilterChip(
                           label: 'Auditor: ${auditor.name}',
-                          onRemove: () => controller.removeAuditorFilter(auditor.id),
+                          onRemove: () =>
+                              controller.removeAuditorFilter(auditor.id),
                         ),
                       ),
                     ),
@@ -267,7 +293,8 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
   }
 
   Widget _buildDatePickerField(BuildContext context) {
-    final hasValue = controller.fromDate.value != null && controller.fromDate.value!.isNotEmpty;
+    final hasValue = controller.fromDate.value != null &&
+        controller.fromDate.value!.isNotEmpty;
     final displayText = controller.dateRangeDisplayText;
 
     return InkWell(
@@ -291,20 +318,24 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
+              color: hasValue
+                  ? AppColors.primaryOrange
+                  : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
+              color: hasValue
+                  ? AppColors.primaryOrange
+                  : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(
+            borderSide: const BorderSide(
               color: AppColors.primary,
               width: 1.5,
             ),
@@ -319,8 +350,10 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                 child: Text(
                   hasValue ? displayText : 'Select Date',
                   style: hasValue
-                      ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
-                      : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                      ? AppTextStyle.style_12_400(color: AppColors.grey900)
+                          .copyWith(fontSize: 11.sp)
+                      : AppTextStyle.style_12_400(color: AppColors.grey300)
+                          .copyWith(fontSize: 11.sp),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -361,20 +394,24 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
+              color: hasValue
+                  ? AppColors.primaryOrange
+                  : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
             borderSide: BorderSide(
-              color: hasValue ? AppColors.primaryOrange : AppColors.fieldBorderColor,
+              color: hasValue
+                  ? AppColors.primaryOrange
+                  : AppColors.fieldBorderColor,
               width: 1.0,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4.r),
-            borderSide: BorderSide(
+            borderSide: const BorderSide(
               color: AppColors.primary,
               width: 1.5,
             ),
@@ -389,8 +426,10 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
                 child: Text(
                   hasValue ? displayText : 'Select Month',
                   style: hasValue
-                      ? AppTextStyle.style_12_400(color: AppColors.grey900).copyWith(fontSize: 11.sp)
-                      : AppTextStyle.style_12_400(color: AppColors.grey300).copyWith(fontSize: 11.sp),
+                      ? AppTextStyle.style_12_400(color: AppColors.grey900)
+                          .copyWith(fontSize: 11.sp)
+                      : AppTextStyle.style_12_400(color: AppColors.grey300)
+                          .copyWith(fontSize: 11.sp),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -441,4 +480,6 @@ class _AuditReportScreenState extends State<AuditReportScreen> {
       ),
     );
   }
+  // endregion
 }
+// endregion

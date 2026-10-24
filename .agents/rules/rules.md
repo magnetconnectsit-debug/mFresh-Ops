@@ -16,96 +16,22 @@ Mandatory standards and architectural rules that MUST be strictly followed when 
 Every file (Controller, View, Repository, Model, or Utility) must organize its logic into explicit, labeled `// region` and `// endregion` blocks.
 
 ### 1.1 Controllers (`GetxController`)
-```dart
-class SampleController extends GetxController {
-  // region Dependencies & Repositories
-  final SampleRepository _repository = Get.find<SampleRepository>();
-  // endregion
-
-  // region Observables & State Variables
-  final isLoading = false.obs;
-  final items = <SampleItem>[].obs;
-  // endregion
-
-  // region Text Controllers & Focus Nodes
-  final titleController = TextEditingController();
-  final titleFocusNode = FocusNode();
-  // endregion
-
-  // region Lifecycle Methods
-  @override
-  void onInit() { super.onInit(); fetchData(); }
-
-  @override
-  void onClose() {
-    titleController.dispose();
-    titleFocusNode.dispose();
-    super.onClose();
-  }
-  // endregion
-
-  // region API & Network Operations
-  Future<void> fetchData() async { /* ... */ }
-  // endregion
-
-  // region Business Logic & Helpers
-  void updateItem(...) { /* ... */ }
-  // endregion
-}
-```
+- `// region Dependencies & Repositories` (repositories, services, `Get.find`)
+- `// region Observables & State Variables` (`.obs`, rx variables, lists)
+- `// region Text Controllers & Focus Nodes` (`TextEditingController`, `FocusNode`)
+- `// region Lifecycle Methods` (`onInit`, `onReady`, `onClose` with disposals)
+- `// region API & Network Operations` (network calls, async fetches)
+- `// region Business Logic & Helpers` (data processing, event handlers, validation)
 
 ### 1.2 Views (`StatelessWidget` / `StatefulWidget`)
-```dart
-class SampleScreen extends StatelessWidget {
-  const SampleScreen({super.key});
+- `// region Main Build` (`build()` returning Scaffold/Root)
+- `// region Header & App Bar` (`_buildAppBar`, title widgets)
+- `// region Section Builders` (`_buildBody`, filter bars, content lists, grids)
+- `// region Dialogs & Action Handlers` (modals, bottom sheets, tap handlers)
 
-  // region Main Build
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<SampleController>();
-    return Scaffold(
-      appBar: _buildAppBar(context, controller),
-      body: _buildBody(context, controller),
-    );
-  }
-  // endregion
-
-  // region Header & App Bar
-  PreferredSizeWidget _buildAppBar(BuildContext context, SampleController controller) => AppCommonAppBar(...);
-  // endregion
-
-  // region Section Builders
-  Widget _buildBody(BuildContext context, SampleController controller) {
-    return Column(children: [_buildFilterBar(controller), _buildContentList(controller)]);
-  }
-  Widget _buildFilterBar(SampleController controller) => ...;
-  Widget _buildContentList(SampleController controller) => ...;
-  // endregion
-
-  // region Dialogs & Action Handlers
-  void _showConfirmDialog(BuildContext context, SampleController controller) => ...;
-  // endregion
-}
-```
-
-### 1.3 Data Models
-```dart
-// region Models
-class SampleItem {
-  final int id;
-  SampleItem({required this.id});
-
-  // region Factory & Serialization
-  factory SampleItem.fromJson(Map<String, dynamic> json) => ...;
-  Map<String, dynamic> toJson() => ...;
-  // endregion
-
-  // region CopyWith & Equatable
-  SampleItem copyWith({...}) => ...;
-  // endregion
-}
-// endregion
-```
+### 1.3 Repositories & Data Models
+- Repositories: `// region Dependencies & Services`, `// region API Operations`
+- Models: `// region Models`, `// region Factory & Serialization`, `// region CopyWith & Equatable`
 
 ---
 
@@ -145,6 +71,52 @@ class SampleItem {
 ### 2.2 Rules for Responsive Sizing
 * **Always use ScreenUtil extensions**: Use `.w`, `.h`, `.r`, and `.sp` from `package:flutter_screenutil/flutter_screenutil.dart`.
 * Example: `padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h)`, `borderRadius: BorderRadius.circular(8.r)`, `fontSize: 14.sp`.
+
+### 2.3 Standardized Filter Container Pattern
+All filter panels across modules (Inventory, Collections, Deposits, Tasks, Attendance, Selfie Attendance, etc.) **MUST** strictly follow the standardized card container architecture:
+1. **Container Styling**:
+   ```dart
+   Container(
+     padding: EdgeInsets.fromLTRB(10.w, 8.h, 10.w, 10.h),
+     decoration: BoxDecoration(
+       color: AppColors.white,
+       borderRadius: BorderRadius.circular(12.r),
+       boxShadow: [
+         BoxShadow(
+           color: Colors.black.withValues(alpha: 0.05),
+           blurRadius: 10,
+           offset: const Offset(0, 4),
+         ),
+       ],
+     ),
+     child: Column(...),
+   )
+   ```
+2. **Header & Reset Action**:
+   - Header: `Text('Filters', style: AppTextStyle.style_14_600(color: AppColors.black))`
+   - Reset Trigger: If active filters exist, show `'Reset All'` action link in `Color(0xFFF15A24)` or an explicit Reset button.
+3. **Responsive Field Layout**:
+   - Wrap filter fields in `LayoutBuilder` with responsive `Row`s using `crossAxisAlignment: CrossAxisAlignment.end` (or `GridView` with `crossAxisCount: isMobile ? 2 : 4`, `mainAxisSpacing: 8.h`, `crossAxisSpacing: 6.w`).
+4. **Standard Field Components**:
+   - **Dropdowns**: Mandatory use of `AppCommonMultiSelectDropdown<T>` with `label: 'Select ...'` (renders floating label), `hint: '...'`, `aliceBlue` background, and compact padding.
+   - **Date Range / Pickers**: Use `InputDecorator` with `labelText: 'Select Date Range'`, `floatingLabelBehavior: FloatingLabelBehavior.always`, `fillColor: AppColors.aliceBlue`, inner height `18.h`, and `Icons.calendar_today_outlined`.
+   - **Action Buttons**: `AppCommonButton` with height `24.h`, `width: double.infinity`, `padding: EdgeInsets.symmetric(horizontal: 4.w)`, `borderRadius: 4.r`, `textSize: 11.sp` (bottom-aligned via `CrossAxisAlignment.end` to match floating label input boxes).
+5. **Active Filter Chips**:
+   - When filters are selected, display horizontal scrollable active filter chips with remove (`X`) icons below the grid.
+
+### 2.4 Default Table Row Height & Dense Presentation Standards
+1. **Default Row Height (`24.h`)**:
+   - All data tables created using `AppCommonTable` **MUST rely on the default row height of `24.h`** (omit `headingRowHeight` or set to `24.h`).
+   - Do **NOT** use tall or oversized rows (`38.h`, `48.h`, `50.h`) unless explicitly displaying multiline expandable notes/descriptions.
+   - Custom table views must also standardize on:
+     - Header row height: `24.h`
+     - Data row height: `24.h` (or max `26.h`)
+     - Divider / break rows: `20.h`
+     - Footer / daily total rows: `24.h`
+2. **Dense Cell Styling**:
+   - Cell vertical padding: `2.h`.
+   - Typography: `AppTextStyle.style_11_700` for headers and `AppTextStyle.style_11_400` / `style_11_500` for data cells.
+   - Action icons / thumbnails: keep compact (`13.sp` icon size, `16.r` thumbnail size) to ensure vertical alignment without stretching row height.
 
 ---
 
@@ -203,3 +175,4 @@ Whenever touching, refactoring, fixing bugs, or adding functionality to **ANY ex
    * Replace custom glass containers with `AppCommonLiquidGlass`.
 4. **Responsive Sizing**: Retrofit all pixel measurements (paddings, margins, dimensions, border radii, icon sizes, font sizes) to use ScreenUtil extensions (`.w`, `.h`, `.r`, `.sp`).
 5. **Clean State & Disposal**: Ensure any newly touched or existing controllers, focus nodes, animations, or subscriptions are cleanly initialized and disposed of in `dispose()` or `onClose()`.
+6. **Filter Container & Table Standards**: Bring any filter section into compliance with the Standard Filter Container (Section 2.3) and ensure tables use the default `24.h` row height (Section 2.4).

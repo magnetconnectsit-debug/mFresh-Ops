@@ -33,14 +33,16 @@ import 'package:services/services.dart';
 
 // region TrackingService Class
 class TrackingService extends GetxService with WidgetsBindingObserver {
-  // region Dependencies & State
+  // region Dependencies & Repositories
   static TrackingService get to => Get.find<TrackingService>();
 
   final TrackingRepository _repository = Get.find<TrackingRepository>();
   final StorageService _storageService = Get.find<StorageService>();
   final LocationService _locationService = GeolocatorLocationService();
   final Battery _battery = Battery();
+  // endregion
 
+  // region Observables & State Variables
   final RxBool isTracking = false.obs;
   final Rx<int?> sessionId = Rx<int?>(null);
   final Rx<Position?> currentPosition = Rx<Position?>(null);
@@ -305,19 +307,40 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
     await checkCurrentStatus();
   }
 
+  Future<void> syncDutyStatus(bool onDuty) async {
+    if (!onDuty) {
+      await _flushQueueAndStop();
+    } else {
+      await startAutoTracking();
+    }
+  }
+
   Future<void> startAutoTracking() async {
     if (_isStartingTracking) return;
     if (isTracking.value && sessionId.value != null && sessionId.value! > 0) {
       return;
     }
 
-    // Offline-first startup rescue: check if user was active before app kill
+    final user = _storageService.getUser();
+
+    // 1. If local user profile explicitly confirms off duty (isOnDuty == 0),
+    // immediately reset local tracking state and abort.
+    if (user != null && user.isOnDuty == 0) {
+      debugPrint(
+        'User is explicitly off duty in profile (isOnDuty == 0). Resetting tracking flags.',
+      );
+      await _flushQueueAndStop();
+      return;
+    }
+
+    // 2. Offline-first startup rescue: check if user was active before app kill
     final savedSessionId = _storageService.getTrackingSessionId();
     final intendedStatus = _storageService.getIntendedTrackingStatus();
 
     if (intendedStatus == true &&
         savedSessionId != null &&
-        savedSessionId > 0) {
+        savedSessionId > 0 &&
+        (user == null || user.isOnDuty == 1)) {
       debugPrint(
         'Resuming tracking from local storage offline-first: session $savedSessionId',
       );
@@ -327,35 +350,26 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       await _refreshLocationSyncLoop();
     }
 
-    final authRepo = Get.find<AuthRepository>();
-    final hasTrackingPanel = authRepo.rxUserPermissions.contains(
-      'tracking_panel',
-    );
-    final hasBgService = authRepo.rxUserPermissions.contains(
-      'background_service',
-    );
-
-    if (hasBgService && !hasTrackingPanel) {
-      try {
-        if (!_isCheckingStatus) await checkCurrentStatus();
-      } catch (_) {}
-      if (!isTracking.value) {
-        try {
-          await startTracking();
-        } catch (_) {}
-      }
-      return;
-    }
-
+    // 3. Fetch authoritative duty status from server
     try {
       if (!_isCheckingStatus) await checkCurrentStatus();
     } catch (_) {}
-    if (isTracking.value) return;
 
-    if (intendedStatus == true) {
+    // 4. If server confirms the user is OFF duty, do NOT start tracking
+    if (!isTracking.value) {
+      debugPrint(
+        'User is off duty (is_on_duty == 0). Auto-tracking skipped.',
+      );
+      return;
+    }
+
+    // 5. If confirmed ON duty but tracking session is not yet active, start tracking
+    if (sessionId.value == null || sessionId.value! <= 0) {
       try {
         await startTracking();
       } catch (_) {}
+    } else {
+      await _refreshLocationSyncLoop();
     }
   }
 
@@ -506,9 +520,19 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         bool active = user.isOnDuty == 1;
         int? newSessionId = _storageService.getTrackingSessionId();
 
-        final List emps = statusResp['employees'] ?? [];
+        final List emps = (statusResp['employees'] is List)
+            ? statusResp['employees']
+            : (statusResp['data'] is Map && statusResp['data']['employees'] is List)
+                ? statusResp['data']['employees']
+                : [];
+
+        final String currentUserId = user.id.toString();
         final emp = emps.firstWhere(
-          (e) => (e['id'] ?? e['user_id']) == user.id,
+          (e) {
+            if (e is! Map) return false;
+            final empId = (e['id'] ?? e['user_id'] ?? e['employee_id'] ?? e['emp_id'])?.toString();
+            return empId != null && empId == currentUserId;
+          },
           orElse: () => null,
         );
 
@@ -523,13 +547,42 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           newSessionId = emp['session_id'] != null
               ? int.tryParse(emp['session_id'].toString())
               : null;
+        } else {
+          // Check root or data level for current user's duty status
+          final dynamic rootDutyRaw = statusResp['is_on_duty'] ??
+              statusResp['is_duty_on'] ??
+              statusResp['duty_status'] ??
+              (statusResp['data'] is Map
+                  ? (statusResp['data']['is_on_duty'] ??
+                      statusResp['data']['is_duty_on'] ??
+                      statusResp['data']['duty_status'])
+                  : null);
+
+          if (rootDutyRaw != null) {
+            active = rootDutyRaw == 1 ||
+                rootDutyRaw == '1' ||
+                rootDutyRaw == true ||
+                rootDutyRaw == 'true';
+            final dynamic rootSessionId = statusResp['session_id'] ??
+                (statusResp['data'] is Map ? statusResp['data']['session_id'] : null);
+            newSessionId = rootSessionId != null
+                ? int.tryParse(rootSessionId.toString())
+                : null;
+          } else {
+            // No direct duty flag in status response: use local user profile
+            if (user.isOnDuty != null) {
+              active = user.isOnDuty == 1;
+            } else {
+              final intendedStatus = _storageService.getIntendedTrackingStatus();
+              active = intendedStatus == true &&
+                  (sessionId.value != null && sessionId.value! > 0);
+            }
+          }
         }
 
-        final intendedStatus = _storageService.getIntendedTrackingStatus();
-        if (intendedStatus == true &&
-            (sessionId.value != null && sessionId.value! > 0)) {
-          // Local active session takes priority to prevent accidental stop on resume
-          active = true;
+        // Sync local user model if duty status was obtained from server
+        if (user.isOnDuty != (active ? 1 : 0)) {
+          await _storageService.saveUser(user.copyWith(isOnDuty: active ? 1 : 0));
         }
 
         isTracking.value = active;
@@ -545,12 +598,7 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
         if (isTracking.value) {
           await _refreshLocationSyncLoop();
         } else {
-          _stopForegroundUpdateTimer();
-          await FlutterForegroundTask.removeData(key: 'bg_owner');
-          await FlutterForegroundTask.removeData(key: 'last_lat');
-          await FlutterForegroundTask.removeData(key: 'last_lng');
-          await FlutterForegroundTask.removeData(key: 'last_time');
-          await FlutterForegroundTask.stopService();
+          await _flushQueueAndStop();
         }
       }
     } catch (e) {

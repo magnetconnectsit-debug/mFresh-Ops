@@ -229,12 +229,17 @@ class HomeGridController extends GetxController {
       route: AppRoutes.staffTracking,
       permissionKey: 'tracking_panel',
       subActions: [
-
         GridSubAction(
           title: 'Report',
           icon: Icons.assignment_rounded,
           route: AppRoutes.attendanceLog,
           permissionKey: 'Attendance_Log',
+        ),
+        GridSubAction(
+          title: 'Selfie Attendance',
+          icon: Icons.face_retouching_natural,
+          route: AppRoutes.selfieAttendanceReport,
+          permissionKey: AppPermissions.selfieAttendance,
         ),
       ],
     ),
@@ -415,15 +420,40 @@ class HomeGridController extends GetxController {
               )
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
-        } else if (hasPerm(AppPermissions.attendanceLog)) {
+        } else if (hasPerm(AppPermissions.attendanceLog) ||
+            hasPerm(AppPermissions.selfieAttendance)) {
+          final sub = <GridSubAction>[
+            if (hasPerm(AppPermissions.attendanceLog))
+              GridSubAction(
+                title: 'Attendance Report',
+                icon: Icons.assignment_rounded,
+                route: AppRoutes.attendanceLog,
+                permissionKey: AppPermissions.attendanceLog,
+              ),
+            if (hasPerm(AppPermissions.selfieAttendance))
+              GridSubAction(
+                title: 'Selfie Attendance',
+                icon: Icons.face_retouching_natural,
+                route: AppRoutes.selfieAttendanceReport,
+                permissionKey: AppPermissions.selfieAttendance,
+              ),
+          ];
           availableItems.add(
             GridItemData(
-              title: 'Attendance Report',
-              subtitle: 'View attendance records',
-              icon: Icons.assignment_rounded,
+              title: hasPerm(AppPermissions.attendanceLog)
+                  ? 'Attendance Report'
+                  : 'Selfie Attendance',
+              subtitle: hasPerm(AppPermissions.attendanceLog)
+                  ? 'View attendance records'
+                  : 'Selfie attendance records',
+              icon: hasPerm(AppPermissions.attendanceLog)
+                  ? Icons.assignment_rounded
+                  : Icons.face_retouching_natural,
               gradient: item.gradient,
-              route: AppRoutes.attendanceLog,
-              subActions: [],
+              route: hasPerm(AppPermissions.attendanceLog)
+                  ? AppRoutes.attendanceLog
+                  : AppRoutes.selfieAttendanceReport,
+              subActions: sub.length > 1 ? sub : const [],
             ),
           );
         }

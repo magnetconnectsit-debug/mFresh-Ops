@@ -35,6 +35,7 @@ import 'package:dev/controllers/log_viewer_controller.dart';
 import 'package:mfresh_ops/modules/splash/views/splash_screen.dart';
 import 'package:mfresh_ops/modules/splash/views/location_permission_screen.dart';
 import 'package:mfresh_ops/modules/authentication/views/login_screen.dart';
+import 'package:mfresh_ops/modules/authentication/controllers/login_controller.dart';
 import 'package:mfresh_ops/modules/home/views/home_screen.dart';
 import 'package:mfresh_ops/modules/home/views/unit_selection_screen.dart';
 import 'package:mfresh_ops/modules/collections/views/admin_collections_screen.dart';
@@ -77,6 +78,9 @@ import 'package:mfresh_ops/modules/staff_tracking/bindings/staff_tracking_bindin
 import 'package:mfresh_ops/modules/staff_tracking/views/staff_tracking_screen.dart';
 import 'package:mfresh_ops/modules/attendance_log/views/attendance_log_view.dart';
 import 'package:mfresh_ops/modules/attendance_log/bindings/attendance_log_binding.dart';
+import 'package:mfresh_ops/modules/selfie_attendance/views/selfie_attendance_report_screen.dart';
+import 'package:mfresh_ops/modules/selfie_attendance/views/selfie_attendance_detail_screen.dart';
+import 'package:mfresh_ops/modules/selfie_attendance/bindings/selfie_attendance_binding.dart';
 import 'package:mfresh_ops/modules/attendance_log/views/attendance_breakdown_screen.dart';
 import 'package:mfresh_ops/modules/service_details/views/service_details_screen.dart';
 import 'package:mfresh_ops/modules/map/bindings/location_binding.dart';
@@ -106,7 +110,16 @@ import 'package:mfresh_ops/modules/info_directory/controllers/create_asset_contr
 class AppPages {
   static final pages = [
     GetPage(name: AppRoutes.splash, page: () => const SplashScreen()),
-    GetPage(name: AppRoutes.login, page: () => const LoginScreen()),
+    GetPage(
+      name: AppRoutes.login,
+      page: () => const LoginScreen(),
+      binding: BindingsBuilder(() {
+        if (Get.isRegistered<LoginController>()) {
+          Get.delete<LoginController>(force: true);
+        }
+        Get.put<LoginController>(LoginController());
+      }),
+    ),
     GetPage(
       name: DevRoutes.devPasscode,
       page: () => const DevPasscodeScreen(),
@@ -132,6 +145,7 @@ class AppPages {
       page: () => const AppCameraScreen(
         cameraLens: 1,
         frontCameraOnly: false,
+        isSelfieMode: true,
       ),
     ),
     GetPage(
@@ -321,6 +335,16 @@ class AppPages {
         employeeName: Get.arguments['employeeName'],
         date: Get.arguments['date'],
       ),
+    ),
+    GetPage(
+      name: AppRoutes.selfieAttendanceReport,
+      page: () => const SelfieAttendanceReportScreen(),
+      binding: SelfieAttendanceBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.selfieAttendanceDetail,
+      page: () => const SelfieAttendanceDetailScreen(),
+      binding: SelfieAttendanceDetailBinding(),
     ),
     GetPage(
       name: AppRoutes.adminCollections,

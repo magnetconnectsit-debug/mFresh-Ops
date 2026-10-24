@@ -1,16 +1,22 @@
+// region Imports
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_common_textfield.dart';
+import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
 import 'package:intl/intl.dart';
-import 'package:mfresh_ops/modules/collections/controllers/admin_collections_controller.dart';
-import 'package:core/widgets/custom_app_loader.dart';
 import 'package:mfresh_ops/data/models/collections/admin_collection_model.dart';
+import 'package:mfresh_ops/modules/collections/controllers/admin_collections_controller.dart';
+// endregion
 
+// region View
 class AdminCollectionsTable extends StatelessWidget {
   const AdminCollectionsTable({super.key});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<AdminCollectionsController>();
@@ -52,7 +58,7 @@ class AdminCollectionsTable extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeaderCell('Month', width: monthWidth, height: 48.h),
+                    _buildHeaderCell('Month', width: monthWidth, height: 48.h, hasLeftBorder: true),
                     _buildHeaderCell('Date', width: dateWidth, height: 48.h),
                     ...stores.map((store) => _buildStoreHeader(store, unitWidth, subColWidth)),
                     _buildStoreHeader('Other', unitWidth, subColWidth),
@@ -70,7 +76,7 @@ class AdminCollectionsTable extends StatelessWidget {
 
                         return Row(
                           children: [
-                            _buildDataCell(row.month, width: monthWidth, color: AppColors.white),
+                            _buildDataCell(row.month, width: monthWidth, color: AppColors.white, hasLeftBorder: true),
                             _buildDataCell(row.date, width: dateWidth, color: AppColors.white),
                             ...stores.map((store) {
                               return _buildMetricCells(
@@ -98,30 +104,45 @@ class AdminCollectionsTable extends StatelessWidget {
       );
     });
   }
+  // endregion
 
+  // region Header Builders
   Widget _buildStoreHeader(String title, double totalWidth, double subWidth) {
     return Column(
       children: [
-        _buildHeaderCell(title, width: totalWidth, height: 24.h),
+        _buildHeaderCell(title, width: totalWidth, height: 24.h, isInside: false),
         Row(
           children: [
-            _buildHeaderCell('Actual', width: subWidth, height: 24.h),
-            _buildHeaderCell('Revenue Report', width: subWidth, height: 24.h),
-            _buildHeaderCell('Difference', width: subWidth, height: 24.h),
+            _buildHeaderCell('Actual', width: subWidth, height: 24.h, isInside: true),
+            _buildHeaderCell('Revenue Report', width: subWidth, height: 24.h, isInside: true),
+            _buildHeaderCell('Difference', width: subWidth, height: 24.h, isInside: false),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildHeaderCell(String text, {required double width, required double height}) {
+  Widget _buildHeaderCell(
+    String text, {
+    required double width,
+    required double height,
+    bool isInside = false,
+    bool hasLeftBorder = false,
+  }) {
+    final borderColor = isInside ? const Color(0xFF475569) : AppColors.borderColor;
     return Container(
       width: width,
       height: height,
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: AppColors.collectionHeader, // Dark blue header
-        border: Border.all(color: AppColors.borderColor),
+        border: Border(
+          left: hasLeftBorder
+              ? const BorderSide(color: AppColors.borderColor, width: 1.0)
+              : BorderSide.none,
+          bottom: const BorderSide(color: AppColors.black, width: 1.0),
+          right: BorderSide(color: borderColor, width: 1.0),
+        ),
       ),
       child: Center(
         child: Text(
@@ -134,7 +155,9 @@ class AdminCollectionsTable extends StatelessWidget {
       ),
     );
   }
+  // endregion
 
+  // region Metric & Data Builders
   Widget _buildMetricCells(
     AdminStoreMetricModel? metric,
     double width, {
@@ -168,7 +191,12 @@ class AdminCollectionsTable extends StatelessWidget {
     // Allow clicking even if isEmpty is true
     final bool isClickable = !isTotal && date != null && context != null && unitId != null;
 
-    Widget actualCell = _buildDataCell(actualText, width: width, color: actualBg);
+    Widget actualCell = _buildDataCell(
+      actualText,
+      width: width,
+      color: actualBg,
+      isInside: true, // Lightened inside border between Actual and Revenue
+    );
     if (isClickable) {
       actualCell = InkWell(
         onTap: () => _showUpdateDialog(context, date, unitId, currentValue: metric?.actualNum),
@@ -179,8 +207,20 @@ class AdminCollectionsTable extends StatelessWidget {
     return Row(
       children: [
         actualCell,
-        _buildDataCell(dashText, width: width, color: AppColors.white),
-        _buildDataCell(diffText, width: width, color: diffBg, textColor: diffTextCol, isBold: true),
+        _buildDataCell(
+          dashText,
+          width: width,
+          color: AppColors.white,
+          isInside: true, // Lightened inside border between Revenue and Difference
+        ),
+        _buildDataCell(
+          diffText,
+          width: width,
+          color: diffBg,
+          textColor: diffTextCol,
+          isBold: true,
+          isInside: false, // Solid black border at the end of the unit group
+        ),
       ],
     );
   }
@@ -191,6 +231,8 @@ class AdminCollectionsTable extends StatelessWidget {
     Color color = AppColors.white,
     Color? textColor,
     bool isBold = false,
+    bool isInside = false,
+    bool hasLeftBorder = false,
   }) {
     return Container(
       width: width,
@@ -198,7 +240,16 @@ class AdminCollectionsTable extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
       decoration: BoxDecoration(
         color: color,
-        border: Border.all(color: AppColors.black),
+        border: Border(
+          left: hasLeftBorder
+              ? const BorderSide(color: AppColors.black, width: 1.0)
+              : BorderSide.none,
+          bottom: const BorderSide(color: AppColors.black, width: 1.0),
+          right: BorderSide(
+            color: isInside ? const Color(0xFFCBD5E1) : AppColors.black,
+            width: 1.0,
+          ),
+        ),
       ),
       child: Center(
         child: Text(
@@ -213,9 +264,9 @@ class AdminCollectionsTable extends StatelessWidget {
       ),
     );
   }
+  // endregion
 
-
-
+  // region Dialogs & Action Handlers
   void _showUpdateDialog(BuildContext context, String date, String unitId, {num? currentValue}) {
     final TextEditingController actualController = TextEditingController(
       text: currentValue != null && currentValue != 0 ? currentValue.toString() : '',
@@ -243,15 +294,17 @@ class AdminCollectionsTable extends StatelessWidget {
                   style: AppTextStyle.style_10_400(color: AppColors.grey600),
                 ),
                 SizedBox(height: 16.h),
-                TextFormField(
-                  autofocus: true,
+                AppCommonTextField(
                   controller: actualController,
+                  titleText: 'Actual Collection Value',
+                  hintText: 'Enter value',
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Actual Collection Value',
-                    labelStyle: AppTextStyle.style_12_400(color: AppColors.grey600),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r)),
-                    prefixText: '₹ ',
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.only(left: 12.w, top: 12.h),
+                    child: Text(
+                      '₹ ',
+                      style: AppTextStyle.style_14_600(color: AppColors.grey800),
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -267,17 +320,14 @@ class AdminCollectionsTable extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
+                    AppCommonButton(
+                      text: 'Cancel',
+                      variant: ButtonVariant.outline,
                       onPressed: () => Get.back(),
-                      child: Text('Cancel', style: AppTextStyle.style_12_600(color: AppColors.grey600)),
                     ),
                     SizedBox(width: 8.w),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                      ),
+                    AppCommonButton(
+                      text: 'Save',
                       onPressed: () async {
                         if (formKey.currentState?.validate() ?? false) {
                           final double value = double.parse(actualController.text.trim());
@@ -287,7 +337,6 @@ class AdminCollectionsTable extends StatelessWidget {
                           await adminController.updateActualValue(date: date, unitId: unitId, actual: value);
                         }
                       },
-                      child: Text('Save', style: AppTextStyle.style_12_600(color: AppColors.white)),
                     ),
                   ],
                 ),
@@ -299,4 +348,6 @@ class AdminCollectionsTable extends StatelessWidget {
       barrierDismissible: false,
     );
   }
+  // endregion
 }
+// endregion

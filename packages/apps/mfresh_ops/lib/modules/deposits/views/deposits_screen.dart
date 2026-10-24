@@ -75,7 +75,7 @@ class DepositsScreen extends StatelessWidget {
                               elevation: 1,
                             ),
                             child: Text(
-                              'Deposite Cash',
+                              'Deposit Cash',
                               style: AppTextStyle.style_12_500(
                                 color: AppColors.white,
                               ),

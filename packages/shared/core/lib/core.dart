@@ -22,6 +22,7 @@ export 'utils/app_utils.dart';
 
 // region Common Widgets
 export 'widgets/app_camera_screen.dart';
+export 'widgets/app_selfie_camera_overlay.dart';
 export 'widgets/app_common_app_bar.dart';
 export 'widgets/app_common_bottom_nav_bar.dart';
 export 'widgets/app_common_bottom_sheet.dart';

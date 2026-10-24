@@ -21,9 +21,12 @@ import 'package:services/storage_service.dart';
 
 // region AuthRepository Class
 class AuthRepository extends GetxService {
-  // region Dependencies & State
+  // region Dependencies & Services
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
+  // endregion
+
+  // region Observables & State Variables
   final rxUserPermissions = <String>[].obs;
   final rxIsCheckedIn = false.obs;
   final isSubmittingAttendance = false.obs;
@@ -172,8 +175,11 @@ class AuthRepository extends GetxService {
           rxUserPermissions.assignAll(user.permissions ?? []);
           rxIsCheckedIn.value = user.isCheckedIn ?? false;
 
+          final bool isOnDuty = user.isOnDuty == 1;
           try {
-            Get.find<TrackingService>().startAutoTracking();
+            if (Get.isRegistered<TrackingService>()) {
+              await Get.find<TrackingService>().syncDutyStatus(isOnDuty);
+            }
           } catch (_) {}
 
           return user;
@@ -245,8 +251,11 @@ class AuthRepository extends GetxService {
           }
           rxIsCheckedIn.value = userToSave.isCheckedIn ?? false;
 
+          final bool isOnDuty = userToSave.isOnDuty == 1;
           try {
-            Get.find<TrackingService>().startAutoTracking();
+            if (Get.isRegistered<TrackingService>()) {
+              await Get.find<TrackingService>().syncDutyStatus(isOnDuty);
+            }
           } catch (_) {}
 
           return userToSave;
@@ -350,6 +359,13 @@ class AuthRepository extends GetxService {
           await _storageService.saveUser(user);
           rxUserPermissions.assignAll(user.permissions ?? []);
           rxIsCheckedIn.value = user.isCheckedIn ?? false;
+
+          final bool isOnDuty = user.isOnDuty == 1;
+          try {
+            if (Get.isRegistered<TrackingService>()) {
+              await Get.find<TrackingService>().syncDutyStatus(isOnDuty);
+            }
+          } catch (_) {}
 
           return user;
         } else if (response['error'] != null) {

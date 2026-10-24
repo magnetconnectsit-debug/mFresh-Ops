@@ -18,41 +18,50 @@ class LoginScreen extends StatelessWidget {
   // region Main Build
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(LoginController());
+    final controller = Get.isRegistered<LoginController>()
+        ? Get.find<LoginController>()
+        : Get.put(LoginController());
 
     return Scaffold(
       backgroundColor: AppColors.white,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 360.w),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Form(
-                      key: controller.formKey,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      child: Column(
-                        children: [
-                          SizedBox(height: 28.h),
-                          _buildLogo(controller),
-                          SizedBox(height: 20.h),
-                          _buildCard(context, controller),
-                          const Spacer(),
-                          _buildFooter(),
-                          SizedBox(height: 16.h),
-                        ],
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: Form(
+            key: controller.formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: CustomScrollView(
+              physics: const ClampingScrollPhysics(),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 360.w),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        child: Column(
+                          children: [
+                            SizedBox(height: 28.h),
+                            _buildLogo(controller),
+                            SizedBox(height: 20.h),
+                            _buildCard(context, controller),
+                            const Spacer(),
+                            _buildFooter(),
+                            SizedBox(height: 16.h),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -77,6 +86,31 @@ class LoginScreen extends StatelessWidget {
   Widget _buildCard(BuildContext context, LoginController controller) {
     final tabHeight = 88.h;
 
+    final cardContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Top Connected Tabs Header ──
+        _buildTabHeader(controller, tabHeight),
+
+        // ── Form Content ──
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildMobileField(controller),
+              _buildPasswordSection(controller),
+              SizedBox(height: 18.h),
+              _buildActionButton(controller),
+              SizedBox(height: 14.h),
+              _buildModeSwitcher(controller),
+            ],
+          ),
+        ),
+      ],
+    );
+
     return Obx(() {
       final selectedTab = controller.selectedTab.value;
 
@@ -90,46 +124,31 @@ class LoginScreen extends StatelessWidget {
           inactiveTabColor: const Color(0xFFF1F5F9),
           cardColor: AppColors.white,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Top Connected Tabs Header ──
-            _buildTabHeader(controller, tabHeight),
+        child: cardContent,
+      );
+    });
+  }
 
-            // ── Form Content ──
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildMobileField(controller),
-                  Obx(
-                    () => AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 250),
-                      crossFadeState: controller.isOtpLogin.value
-                          ? CrossFadeState.showFirst
-                          : CrossFadeState.showSecond,
-                      firstChild: const SizedBox.shrink(),
-                      secondChild: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(height: 12.h),
-                          _buildPasswordField(controller),
-                          SizedBox(height: 8.h),
-                          _buildRememberMe(controller),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 18.h),
-                  _buildActionButton(controller),
-                  SizedBox(height: 14.h),
-                  _buildModeSwitcher(controller),
-                ],
-              ),
-            ),
-          ],
+  Widget _buildPasswordSection(LoginController controller) {
+    return Obx(() {
+      final isOtp = controller.isOtpLogin.value;
+      return Visibility(
+        visible: !isOtp,
+        maintainState: true,
+        child: AnimatedCrossFade(
+          firstChild: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: 12.h),
+              _buildPasswordField(controller),
+              SizedBox(height: 8.h),
+              _buildRememberMe(controller),
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+          crossFadeState:
+              isOtp ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
         ),
       );
     });
@@ -225,44 +244,48 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildMobileField(LoginController controller) {
-    return AppCommonTextField(
-      controller: controller.usernameController,
-      focusNode: controller.mobileFocusNode,
-      titleText: 'Mobile Number',
-      hintText: 'Enter Mobile Number',
-      useFloatingLabel: true,
-      keyboardType: TextInputType.phone,
-      maxLength: 10,
-      borderRadius: 8.r,
-      fillColor: AppColors.white,
-      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-      prefixIconConstraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
-      prefixIcon: Icon(
-        Icons.phone_android_rounded,
-        size: 18.sp,
-        color: AppColors.iconPrimary,
+    return Obx(
+      () => AppCommonTextField(
+        key: const ValueKey('login_mobile_field'),
+        controller: controller.usernameController,
+        focusNode: controller.mobileFocusNode,
+        titleText: 'Mobile Number',
+        hintText: 'Enter Mobile Number',
+        useFloatingLabel: true,
+        keyboardType: TextInputType.phone,
+        maxLength: 10,
+        borderRadius: 8.r,
+        fillColor: AppColors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        prefixIconConstraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
+        prefixIcon: Icon(
+          Icons.phone_android_rounded,
+          size: 18.sp,
+          color: AppColors.iconPrimary,
+        ),
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ],
+        validator: controller.validateMobileNumber,
+        textInputAction: controller.isOtpLogin.value
+            ? TextInputAction.done
+            : TextInputAction.next,
+        onFieldSubmitted: (_) {
+          if (controller.isOtpLogin.value) {
+            controller.handleLoginAction();
+          } else {
+            controller.passwordFocusNode.requestFocus();
+          }
+        },
       ),
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(10),
-      ],
-      validator: controller.validateMobileNumber,
-      textInputAction: controller.isOtpLogin.value
-          ? TextInputAction.done
-          : TextInputAction.next,
-      onFieldSubmitted: (_) {
-        if (controller.isOtpLogin.value) {
-          controller.handleLoginAction();
-        } else {
-          controller.passwordFocusNode.requestFocus();
-        }
-      },
     );
   }
 
   Widget _buildPasswordField(LoginController controller) {
     return Obx(
       () => AppCommonTextField(
+        key: const ValueKey('login_password_field'),
         controller: controller.passwordController,
         focusNode: controller.passwordFocusNode,
         titleText: 'Password',

@@ -1,3 +1,4 @@
+// region Models
 class InventoryOrderSummary {
   final int totalOrders;
   final int unitOrders;
@@ -6,6 +7,7 @@ class InventoryOrderSummary {
   final int waitingForReceive;
   final int completed;
 
+  // region Constructor
   InventoryOrderSummary({
     this.totalOrders = 0,
     this.unitOrders = 0,
@@ -14,7 +16,9 @@ class InventoryOrderSummary {
     this.waitingForReceive = 0,
     this.completed = 0,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory InventoryOrderSummary.fromJson(Map<String, dynamic> json) {
     return InventoryOrderSummary(
       totalOrders: json['total_orders'] is int
@@ -37,14 +41,18 @@ class InventoryOrderSummary {
           : (int.tryParse(json['completed']?.toString() ?? '') ?? 0),
     );
   }
+  // endregion
 }
 
 class InventoryOrderUser {
   final int? id;
   final String? name;
 
+  // region Constructor
   InventoryOrderUser({this.id, this.name});
+  // endregion
 
+  // region Factory & Serialization
   factory InventoryOrderUser.fromJson(Map<String, dynamic>? json) {
     if (json == null) return InventoryOrderUser();
     return InventoryOrderUser(
@@ -54,6 +62,7 @@ class InventoryOrderUser {
       name: json['name']?.toString(),
     );
   }
+  // endregion
 }
 
 class InventoryReceiveLog {
@@ -63,6 +72,7 @@ class InventoryReceiveLog {
   final InventoryOrderUser? receivedBy;
   final String? receivedAt;
 
+  // region Constructor
   InventoryReceiveLog({
     this.id,
     this.requestedQty,
@@ -70,7 +80,9 @@ class InventoryReceiveLog {
     this.receivedBy,
     this.receivedAt,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory InventoryReceiveLog.fromJson(Map<String, dynamic>? json) {
     if (json == null) return InventoryReceiveLog();
     return InventoryReceiveLog(
@@ -83,6 +95,7 @@ class InventoryReceiveLog {
       receivedAt: json['received_at']?.toString(),
     );
   }
+  // endregion
 }
 
 class InventoryOrderModel {
@@ -110,6 +123,7 @@ class InventoryOrderModel {
   final String createdAt;
   final String updatedAt;
 
+  // region Constructor
   InventoryOrderModel({
     required this.id,
     required this.orderId,
@@ -135,7 +149,9 @@ class InventoryOrderModel {
     required this.createdAt,
     required this.updatedAt,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory InventoryOrderModel.fromJson(Map<String, dynamic> json) {
     return InventoryOrderModel(
       id: json['id'] is int
@@ -185,7 +201,9 @@ class InventoryOrderModel {
       updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
+  // endregion
 
+  // region Getters & Helpers
   String get displayName {
     if (unitName != null && unitName!.isNotEmpty) return unitName!;
     if (storeName != null && storeName!.isNotEmpty) return storeName!;
@@ -200,14 +218,18 @@ class InventoryOrderModel {
     }
     return str;
   }
+  // endregion
 }
 
 class BulkColumnHeader {
   final int? id;
   final String name;
 
+  // region Constructor
   BulkColumnHeader({this.id, required this.name});
+  // endregion
 
+  // region Factory & Serialization
   factory BulkColumnHeader.fromJson(Map<String, dynamic> json) {
     return BulkColumnHeader(
       id: json['unit_id'] is int
@@ -225,6 +247,7 @@ class BulkColumnHeader {
           '',
     );
   }
+  // endregion
 }
 
 class BulkQuantityItem {
@@ -233,13 +256,16 @@ class BulkQuantityItem {
   final num orderQty;
   final String orderQtyDisplay;
 
+  // region Constructor
   BulkQuantityItem({
     this.locationId,
     required this.locationName,
     required this.orderQty,
     required this.orderQtyDisplay,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory BulkQuantityItem.fromJson(Map<String, dynamic> json) {
     num parsedOrderQty = 0;
     final rawQty = json['order_qty'];
@@ -257,9 +283,13 @@ class BulkQuantityItem {
               : int.tryParse((json['unit_id'] ?? json['store_id'])?.toString() ?? '')),
       locationName: json['unit_name']?.toString() ?? json['store_name']?.toString() ?? json['location_name']?.toString() ?? '',
       orderQty: parsedOrderQty,
-      orderQtyDisplay: json['order_qty_display']?.toString() ?? '',
+      orderQtyDisplay: (json['order_qty_display'] == null ||
+              json['order_qty_display'].toString().trim() == 'null')
+          ? ''
+          : json['order_qty_display'].toString().trim(),
     );
   }
+  // endregion
 }
 
 class BulkRowItem {
@@ -270,6 +300,7 @@ class BulkRowItem {
   final num totalQty;
   final String totalQtyDisplay;
 
+  // region Constructor
   BulkRowItem({
     required this.itemId,
     required this.itemName,
@@ -278,7 +309,9 @@ class BulkRowItem {
     required this.totalQty,
     required this.totalQtyDisplay,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory BulkRowItem.fromJson(Map<String, dynamic> json) {
     var rawList = json['quantities'] as List? ?? [];
     num parsedTotalQty = 0;
@@ -297,9 +330,13 @@ class BulkRowItem {
       measurementUnit: json['measurement_unit']?.toString() ?? '',
       quantities: rawList.map((q) => BulkQuantityItem.fromJson(q)).toList(),
       totalQty: parsedTotalQty,
-      totalQtyDisplay: json['total_qty_display']?.toString() ?? '',
+      totalQtyDisplay: (json['total_qty_display'] == null ||
+              json['total_qty_display'].toString().trim() == 'null')
+          ? ''
+          : json['total_qty_display'].toString().trim(),
     );
   }
+  // endregion
 }
 
 class BulkPreviewSection {
@@ -313,6 +350,7 @@ class BulkPreviewSection {
   final int totalItems;
   final bool canCreateOrders;
 
+  // region Constructor
   BulkPreviewSection({
     required this.title,
     required this.consumptionDays,
@@ -324,7 +362,9 @@ class BulkPreviewSection {
     required this.totalItems,
     required this.canCreateOrders,
   });
+  // endregion
 
+  // region Factory & Serialization
   factory BulkPreviewSection.fromJson(Map<String, dynamic> json) {
     var rawColumns = json['columns'] as List? ?? [];
     var rawRows = json['rows'] as List? ?? [];
@@ -346,14 +386,18 @@ class BulkPreviewSection {
       canCreateOrders: json['can_create_orders'] == true,
     );
   }
+  // endregion
 }
 
 class BulkPreviewData {
   final BulkPreviewSection? unitOrders;
   final BulkPreviewSection? storeOrders;
 
+  // region Constructor
   BulkPreviewData({this.unitOrders, this.storeOrders});
+  // endregion
 
+  // region Factory & Serialization
   factory BulkPreviewData.fromJson(Map<String, dynamic>? json) {
     if (json == null) return BulkPreviewData();
     return BulkPreviewData(
@@ -365,4 +409,6 @@ class BulkPreviewData {
           : null,
     );
   }
+  // endregion
 }
+// endregion

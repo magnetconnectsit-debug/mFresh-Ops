@@ -94,8 +94,14 @@ class BookingRepository extends GetxService {
         data: {},
       );
 
-      if (response != null && response['status'] == 'success') {
-        final List data = response['data'] ?? [];
+      if (response != null &&
+          (response['status'] == 'success' ||
+              response['status'] == true ||
+              response['status'] == 'true' ||
+              response is List)) {
+        final List data = response is List
+            ? response
+            : ((response['data'] is List) ? response['data'] : []);
         return data.map((e) => UnitModel.fromJson(e)).toList();
       }
       return [];

@@ -8,6 +8,8 @@ abstract class AppRoutes {
   static const dailyTaskFilter = '/daily-task-filter';
   static const attendanceLog = '/attendance-log';
   static const attendanceBreakdown = '/attendance-breakdown';
+  static const selfieAttendanceReport = '/selfie-attendance-report';
+  static const selfieAttendanceDetail = '/selfie-attendance-detail';
   static const supportTickets = '/support-tickets';
   static const supportDashboard = '/support-dashboard';
   static const supportCategory = '/support-category';

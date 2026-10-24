@@ -113,10 +113,12 @@ class InventoryRepository extends GetxService {
     String? auditNumber,
     String? fromDate,
     String? toDate,
+    int? page,
   }) async {
     try {
       final queryParams = <String, dynamic>{
         if (auditNumber != null && auditNumber.isNotEmpty) 'audit_number': auditNumber,
+        if (page != null) 'page': page,
       };
 
       final bodyData = <String, dynamic>{

@@ -1,21 +1,33 @@
+// region Imports
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
 import 'package:mfresh_ops/data/repositories/roles_responsibilities_repository.dart';
 import 'package:mfresh_ops/modules/roles_responsibilities/controllers/roles_master_controller.dart';
+// endregion
 
+// region Controller
 class AddRoleController extends GetxController {
+  // region Dependencies & Repositories
   final RoleItem? roleItem;
 
   AddRoleController({this.roleItem});
 
   late final RolesResponsibilitiesRepository _repository;
+  // endregion
+
+  // region Observables & State Variables
   final formKey = GlobalKey<FormState>();
-  final roleNameCtrl = TextEditingController();
   final isLoading = false.obs;
   final isEditing = false.obs;
+  // endregion
 
+  // region Text Controllers & Focus Nodes
+  final roleNameCtrl = TextEditingController();
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -36,7 +48,9 @@ class AddRoleController extends GetxController {
     roleNameCtrl.dispose();
     super.onClose();
   }
+  // endregion
 
+  // region API & Network Operations
   Future<void> submit() async {
     if (!formKey.currentState!.validate()) return;
 
@@ -75,4 +89,6 @@ class AddRoleController extends GetxController {
       isLoading.value = false;
     }
   }
+  // endregion
 }
+// endregion

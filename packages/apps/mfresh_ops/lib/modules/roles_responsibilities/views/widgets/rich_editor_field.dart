@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+// region Imports
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+// endregion
 
+// region Models & Controller
 class CharStyle {
   bool isBold;
   bool isItalic;
@@ -745,4 +748,5 @@ class _RichEditorFieldState extends State<RichEditorField> {
     );
   }
 }
+// endregion
 

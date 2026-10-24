@@ -5,6 +5,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_image_compressor.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_selfie_camera_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 // endregion
@@ -15,6 +16,7 @@ class AppCameraScreen extends StatefulWidget {
   final int imageCompressionQuality;
   final int cameraLens;
   final bool frontCameraOnly;
+  final bool isSelfieMode;
   // endregion
 
   // region Constructor
@@ -23,6 +25,7 @@ class AppCameraScreen extends StatefulWidget {
     this.imageCompressionQuality = 80,
     this.cameraLens = 1,
     this.frontCameraOnly = false,
+    this.isSelfieMode = true,
   });
   // endregion
 
@@ -125,16 +128,29 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
         sensor: Sensor.position(initialSensor),
       ),
       saveConfig: SaveConfig.photo(mirrorFrontCamera: false),
+      previewDecoratorBuilder: (state, preview) {
+        if (!widget.isSelfieMode) return const SizedBox.shrink();
+        return const IgnorePointer(
+          child: AppSelfieCameraOverlay(),
+        );
+      },
       topActionsBuilder: (state) => AwesomeTopActions(
         state: state,
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         children: [
-          IconButton(
-            icon: Icon(Icons.close_rounded, color: AppColors.white, size: 26.r),
-            onPressed: () => Navigator.of(context).pop(),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.black.withValues(alpha: 0.45),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(Icons.close_rounded, color: AppColors.white, size: 24.r),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
           AwesomeFlashButton(state: state),
-          if (state is PhotoCameraState) AwesomeAspectRatioButton(state: state),
+          if (state is PhotoCameraState && !widget.isSelfieMode)
+            AwesomeAspectRatioButton(state: state),
         ],
       ),
       bottomActionsBuilder: (state) => AwesomeBottomActions(
@@ -198,7 +214,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
             child: Center(
               child: Image.file(
                 File(_capturedImagePath!),
-                fit: BoxFit.contain,
+                fit: widget.isSelfieMode ? BoxFit.cover : BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => Center(
                   child: Text(
                     'Failed to load preview',
@@ -208,6 +224,16 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
               ),
             ),
           ),
+
+          // In selfie mode: show wood frame & person outline overlay on preview
+          if (widget.isSelfieMode)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: AppSelfieCameraOverlay(
+                  showInstructionText: false,
+                ),
+              ),
+            ),
 
           // Top Header Bar
           Positioned(
@@ -219,7 +245,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.black.withOpacity(0.7),
+                    AppColors.black.withValues(alpha: 0.7),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -263,8 +289,8 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    AppColors.black.withOpacity(0.75),
-                    AppColors.black.withOpacity(0.95),
+                    AppColors.black.withValues(alpha: 0.75),
+                    AppColors.black.withValues(alpha: 0.95),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -279,7 +305,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
                         borderRadius: BorderRadius.circular(24.r),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.black.withOpacity(0.3),
+                            color: AppColors.black.withValues(alpha: 0.3),
                             blurRadius: 10.r,
                             offset: Offset(0, 3.h),
                           ),
@@ -293,7 +319,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
                         variant: ButtonVariant.primary,
                         useGradient: false,
                         buttonColor: const Color(0xFF26262A),
-                        borderColor: AppColors.white.withOpacity(0.28),
+                        borderColor: AppColors.white.withValues(alpha: 0.28),
                         textColor: AppColors.white,
                         height: 48.h,
                         borderRadius: 24.r,
@@ -310,7 +336,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
                         borderRadius: BorderRadius.circular(24.r),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryGreen.withOpacity(0.38),
+                            color: AppColors.primaryGreen.withValues(alpha: 0.38),
                             blurRadius: 12.r,
                             spreadRadius: 1.r,
                             offset: Offset(0, 4.h),

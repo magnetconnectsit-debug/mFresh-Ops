@@ -26,6 +26,8 @@ class AppConstants {
   // Attendance
   static const String attendanceCheckIn = 'attendance/check-in';
   static const String attendanceCheckOut = 'attendance/check-out';
+  static const String selfieAttendanceIndex = 'selfie-attendance/index';
+  static const String selfieAttendanceLogs = 'selfie-attendance/logs';
 
   // Dashboard
   static const String dashboardData = 'dashboard-data';

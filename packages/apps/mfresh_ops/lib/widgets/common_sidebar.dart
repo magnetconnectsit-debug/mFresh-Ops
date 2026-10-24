@@ -15,6 +15,16 @@ import 'package:services/storage_service.dart';
 class CommonSidebar extends StatelessWidget {
   const CommonSidebar({super.key});
 
+  // region Helpers
+  bool _hasPerm(String key) {
+    if (!Get.isRegistered<AuthRepository>()) return false;
+    return AppPermissions.has(
+      Get.find<AuthRepository>().rxUserPermissions,
+      key,
+    );
+  }
+  // endregion
+
   // region Main Build
   @override
   Widget build(BuildContext context) {
@@ -59,8 +69,7 @@ class CommonSidebar extends StatelessWidget {
                   'Daily Task By Month',
               ];
 
-              final showInventory =
-                  hasPerm(AppPermissions.inventoryPanel);
+              final showInventory = hasPerm(AppPermissions.inventoryPanel);
               final inventorySubItems = [
                 if (hasPerm(AppPermissions.storeInventoryStock))
                   'Store Inventory',
@@ -169,7 +178,8 @@ class CommonSidebar extends StatelessWidget {
                             ),
 
                           if (hasPerm(AppPermissions.trackingPanel) ||
-                              hasPerm(AppPermissions.attendanceLog))
+                              hasPerm(AppPermissions.attendanceLog) ||
+                              hasPerm(AppPermissions.selfieAttendance))
                             _buildExpandableMenuItem(
                               icon: Icons.location_on_outlined,
                               title: 'Attendance',
@@ -178,6 +188,8 @@ class CommonSidebar extends StatelessWidget {
                                   'Attendance',
                                 if (hasPerm(AppPermissions.attendanceLog))
                                   'Report',
+                                if (hasPerm(AppPermissions.selfieAttendance))
+                                  'Selfie Attendance',
                               ],
                               currentRoute: currentRoute,
                             ),
@@ -369,6 +381,17 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.staffTracking);
                   } else if (item == 'Log' || item == 'Report') {
                     Get.toNamed(AppRoutes.attendanceLog);
+                  } else if (item == 'Selfie Attendance' ||
+                      item == 'Selfie Attendance Report') {
+                    if (!_hasPerm(AppPermissions.selfieAttendance)) {
+                      AppCommonToastMessage.show(
+                        message:
+                            'You do not have permission to view Selfie Attendance.',
+                        type: ToastType.warning,
+                      );
+                      return;
+                    }
+                    Get.toNamed(AppRoutes.selfieAttendanceReport);
                   } else if (item == 'Store Inventory') {
                     Get.toNamed(AppRoutes.storeInventory);
                   } else if (item == 'Unit Inventory') {
@@ -463,6 +486,9 @@ class CommonSidebar extends StatelessWidget {
     } catch (e) {
       // Handled in repository
     } finally {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
       Get.offAllNamed(AppRoutes.login);
     }
   }

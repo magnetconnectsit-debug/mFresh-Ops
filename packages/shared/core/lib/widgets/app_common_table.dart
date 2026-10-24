@@ -531,10 +531,14 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
       );
     }
 
-    return SizedBox(
-      width: sepWidth,
-      child: Center(child: line),
-    );
+    if (isHeader) {
+      return SizedBox(
+        width: sepWidth,
+        child: Center(child: line),
+      );
+    }
+
+    return Container(width: sepWidth, color: borderColor);
   }
 
   // Empty State
@@ -768,16 +772,22 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
             cols[colIndex].minWidth,
             borderColor,
             isHeader: false,
-            rowMinHeight: widget.headingRowHeight ?? 24.h,
+            rowMinHeight: isExpanded ? null : (widget.headingRowHeight ?? 24.h),
           ),
         ],
       ],
     );
 
-    final Widget sizedRowFlex = SizedBox(
-      height: widget.headingRowHeight ?? 24.h,
-      child: rowFlex,
-    );
+    final defaultHeight = widget.headingRowHeight ?? 24.h;
+    final Widget sizedRowFlex = isExpanded
+        ? ConstrainedBox(
+            constraints: BoxConstraints(minHeight: defaultHeight),
+            child: IntrinsicHeight(child: rowFlex),
+          )
+        : SizedBox(
+            height: defaultHeight,
+            child: rowFlex,
+          );
 
     final rowContent = Container(
       color: effectiveBgColor,
@@ -891,16 +901,22 @@ class _AppCommonTableState<T> extends State<AppCommonTable<T>> {
             40.0,
             borderColor,
             isHeader: false,
-            rowMinHeight: widget.headingRowHeight ?? 24.h,
+            rowMinHeight: isExpanded ? null : (widget.headingRowHeight ?? 24.h),
           ),
         ],
       ],
     );
 
-    final Widget sizedRowFlex = SizedBox(
-      height: widget.headingRowHeight ?? 24.h,
-      child: rowFlex,
-    );
+    final defaultHeight = widget.headingRowHeight ?? 24.h;
+    final Widget sizedRowFlex = isExpanded
+        ? ConstrainedBox(
+            constraints: BoxConstraints(minHeight: defaultHeight),
+            child: IntrinsicHeight(child: rowFlex),
+          )
+        : SizedBox(
+            height: defaultHeight,
+            child: rowFlex,
+          );
 
     return RepaintBoundary(
       child: Stack(

@@ -45,12 +45,28 @@ class UnitModel {
       }
     }
 
+    final rawId = json['Id'] ?? json['id'] ?? json['unitid'] ?? json['unit_id'] ?? 0;
+    final int id = rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
+    final String unitId = (json['Unit_Id'] ??
+            json['unit_id'] ??
+            json['unitId'] ??
+            json['unit_name'] ??
+            json['unitname'] ??
+            '')
+        .toString();
+    final String unitLocation = (json['Unit_location'] ??
+            json['unit_location'] ??
+            json['location'] ??
+            '')
+        .toString();
+    final String timing = (json['timing'] ?? json['Timing'] ?? '').toString();
+
     return UnitModel(
-      id: json['Id'] ?? 0,
-      unitId: json['Unit_Id'] ?? '',
+      id: id,
+      unitId: unitId,
       unitImage: img,
-      unitLocation: json['Unit_location'] ?? '',
-      timing: json['timing'] ?? '',
+      unitLocation: unitLocation,
+      timing: timing,
       printingType: pType,
       paperRollSize: pRollSize,
     );

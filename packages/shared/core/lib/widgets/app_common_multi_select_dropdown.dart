@@ -27,6 +27,7 @@ class AppCommonMultiSelectDropdown<T> extends StatefulWidget {
   final bool isSingleSelect;
   final bool showSelectAll;
   final double? height;
+  final double? menuMaxHeight;
   final bool hasError;
   final bool isLoading;
   final TextStyle? selectedTextStyle;
@@ -49,6 +50,7 @@ class AppCommonMultiSelectDropdown<T> extends StatefulWidget {
     this.isSingleSelect = false,
     this.showSelectAll = false,
     this.height,
+    this.menuMaxHeight,
     this.hasError = false,
     this.isLoading = false,
     this.selectedTextStyle,
@@ -105,6 +107,7 @@ class AppCommonMultiSelectDropdownState<T>
             isSingleSelect: widget.isSingleSelect,
             showSelectAll: !widget.isSingleSelect && widget.showSelectAll,
             width: size.width,
+            menuMaxHeight: widget.menuMaxHeight,
           ),
         ),
       ],
@@ -145,7 +148,9 @@ class AppCommonMultiSelectDropdownState<T>
         isDense: true,
         contentPadding: EdgeInsets.symmetric(
           horizontal: 6.w,
-          vertical: AppCommonMultiSelectDropdown._defaultVerticalPadding.h,
+          vertical: widget.height != null
+              ? ((widget.height! - 18.h) / 2).clamp(2.0, 12.0)
+              : AppCommonMultiSelectDropdown._defaultVerticalPadding.h,
         ),
         filled: true,
         fillColor: AppColors.aliceBlue,
@@ -315,6 +320,7 @@ class _MultiSelectMenuContent<T> extends StatefulWidget {
   final bool isSingleSelect;
   final bool showSelectAll;
   final double width;
+  final double? menuMaxHeight;
   // endregion
 
   // region Constructor
@@ -329,6 +335,7 @@ class _MultiSelectMenuContent<T> extends StatefulWidget {
     required this.isSingleSelect,
     required this.showSelectAll,
     required this.width,
+    this.menuMaxHeight,
   });
   // endregion
 
@@ -473,7 +480,8 @@ class _MultiSelectMenuContentState<T>
               ),
             ),
           ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 220.h),
+            constraints:
+                BoxConstraints(maxHeight: widget.menuMaxHeight ?? 220.h),
             child: Scrollbar(
               controller: _scrollController,
               thumbVisibility: true,

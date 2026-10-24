@@ -1,5 +1,8 @@
+// region Imports
 import 'package:hive_ce/hive_ce.dart';
+// endregion
 
+// region Models
 @HiveType(typeId: 0)
 class User extends HiveObject {
   @HiveField(0)
@@ -56,6 +59,7 @@ class User extends HiveObject {
   @HiveField(17)
   final bool? isCheckedIn;
 
+  // region Constructor
   User({
     required this.id,
     this.name,
@@ -76,6 +80,7 @@ class User extends HiveObject {
     this.trackingSessionId,
     this.isCheckedIn,
   });
+  // endregion
 
   // region Factory & Serialization
   factory User.fromJson(Map<String, dynamic> json) {
@@ -134,6 +139,23 @@ class User extends HiveObject {
           rawChecked == 'true';
     }
 
+    dynamic rawDuty = userData is Map ? userData['is_on_duty'] : null;
+    rawDuty ??= json['is_on_duty'];
+    if (rawDuty == null && json['data'] is Map) {
+      rawDuty = json['data']['is_on_duty'];
+    }
+    if (rawDuty == null && json['user'] is Map) {
+      rawDuty = json['user']['is_on_duty'];
+    }
+
+    final int? parsedIsOnDuty = rawDuty == null
+        ? null
+        : (rawDuty == 1 || rawDuty == '1' || rawDuty == true || rawDuty == 'true'
+            ? 1
+            : (rawDuty == 0 || rawDuty == '0' || rawDuty == false || rawDuty == 'false'
+                ? 0
+                : (rawDuty is int ? rawDuty : int.tryParse(rawDuty.toString()))));
+
     return User(
       id: userData['id'] is int
           ? userData['id']
@@ -151,9 +173,7 @@ class User extends HiveObject {
       createdAt: userData['created_at']?.toString(),
       updatedAt: userData['updated_at']?.toString(),
       roleName: userData['role_name']?.toString(),
-      isOnDuty: userData['is_on_duty'] is int
-          ? userData['is_on_duty']
-          : int.tryParse(userData['is_on_duty']?.toString() ?? ''),
+      isOnDuty: parsedIsOnDuty,
       deviceId: json['device_id']?.toString() ?? userData['device_id']?.toString(),
       trackingConfig: json['tracking_config'] != null || userData['tracking_config'] != null
           ? Map<dynamic, dynamic>.from(json['tracking_config'] ?? userData['tracking_config'])
@@ -234,7 +254,9 @@ class User extends HiveObject {
   }
   // endregion
 }
+// endregion
 
+// region Adapters
 class UserAdapter extends TypeAdapter<User> {
   @override
   final int typeId = 0;
@@ -300,7 +322,13 @@ class UserAdapter extends TypeAdapter<User> {
       createdAt: createdAt,
       updatedAt: updatedAt,
       roleName: roleName,
-      isOnDuty: isOnDuty,
+      isOnDuty: isOnDuty is int
+          ? isOnDuty
+          : (isOnDuty == true || isOnDuty == '1' || isOnDuty == 'true'
+              ? 1
+              : (isOnDuty == false || isOnDuty == '0' || isOnDuty == 'false'
+                  ? 0
+                  : int.tryParse(isOnDuty?.toString() ?? ''))),
       deviceId: deviceId,
       trackingConfig: trackingConfig,
       imageUrl: imageUrl,
@@ -331,7 +359,9 @@ class UserAdapter extends TypeAdapter<User> {
     writer.write(obj.isCheckedIn);
   }
 }
+// endregion
 
+// region User Permissions
 class UserPermissions {
   final List<String> _permissions;
   UserPermissions(this._permissions);
@@ -353,3 +383,4 @@ extension UserPermissionsExtension on User {
   UserPermissions get appPermissions => UserPermissions(permissions ?? []);
   String get customeUserID => id.toString(); // Map customUserID to id.toString()
 }
+// endregion

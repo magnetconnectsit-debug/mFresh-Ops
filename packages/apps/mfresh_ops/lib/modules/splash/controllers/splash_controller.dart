@@ -1,3 +1,4 @@
+// region Imports
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -5,18 +6,25 @@ import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+// endregion
 
+// region SplashController Class
 class SplashController extends GetxController {
+  // region Dependencies & Repositories
   final StorageService _storageService = Get.find<StorageService>();
   final AppUpdateService _updateService = Get.find<AppUpdateService>();
   final TrackingService _trackingService = Get.find<TrackingService>();
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void onReady() {
     super.onReady();
     _navigateToNext();
   }
+  // endregion
 
+  // region Business Logic & Helpers
   Future<void> _navigateToNext() async {
     // 1. Check for updates first
     try {
@@ -52,9 +60,13 @@ class SplashController extends GetxController {
     final token = _storageService.getToken();
 
     if (token != null && token.isNotEmpty) {
-      _trackingService.startAutoTracking();
       // Proactively fetch latest profile and permissions on startup
       final user = await Get.find<AuthRepository>().fetchProfile();
+      if (user == null) {
+        final cachedUser = _storageService.getUser();
+        final bool isOnDuty = cachedUser?.isOnDuty == 1;
+        await _trackingService.syncDutyStatus(isOnDuty);
+      }
 
       final roleId = user?.role ?? _storageService.getUser()?.role;
       if (roleId == '1' || roleId == 1) {
@@ -71,4 +83,6 @@ class SplashController extends GetxController {
       Get.offAllNamed(AppRoutes.login);
     }
   }
+  // endregion
 }
+// endregion

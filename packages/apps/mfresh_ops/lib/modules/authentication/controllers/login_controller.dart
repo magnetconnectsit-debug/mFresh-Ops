@@ -41,6 +41,7 @@ class LoginController extends GetxController {
   final otpController = TextEditingController();
   final mobileFocusNode = FocusNode();
   final passwordFocusNode = FocusNode();
+  final otpFocusNode = FocusNode();
   // endregion
 
   // region Lifecycle Methods
@@ -52,11 +53,13 @@ class LoginController extends GetxController {
 
   @override
   void onClose() {
+    FocusManager.instance.primaryFocus?.unfocus();
     usernameController.dispose();
     passwordController.dispose();
     otpController.dispose();
     mobileFocusNode.dispose();
     passwordFocusNode.dispose();
+    otpFocusNode.dispose();
     super.onClose();
   }
   // endregion
@@ -153,10 +156,10 @@ class LoginController extends GetxController {
           await _storageService.clearCredentials();
         }
 
-        Get.find<TrackingService>().startAutoTracking();
+        FocusManager.instance.primaryFocus?.unfocus();
         final updatedUser = await _authRepository.fetchProfile() ?? user;
         final roleId = updatedUser.role;
-        if (roleId == '1' || roleId == 1) {
+        if (roleId?.toString() == '1') {
           Get.offAllNamed(AppRoutes.home);
         } else {
           Get.offAllNamed(AppRoutes.dailyTasks);
@@ -209,6 +212,7 @@ class LoginController extends GetxController {
       );
 
       if (user != null) {
+        FocusManager.instance.primaryFocus?.unfocus();
         Get.back(); // close bottom sheet
 
         await _storageService.saveRememberMe(rememberMe.value);
@@ -221,10 +225,9 @@ class LoginController extends GetxController {
           await _storageService.clearCredentials();
         }
 
-        Get.find<TrackingService>().startAutoTracking();
         final updatedUser = await _authRepository.fetchProfile() ?? user;
         final roleId = updatedUser.role;
-        if (roleId == '1' || roleId == 1) {
+        if (roleId?.toString() == '1') {
           Get.offAllNamed(AppRoutes.home);
         } else {
           Get.offAllNamed(AppRoutes.dailyTasks);
@@ -250,12 +253,15 @@ class LoginController extends GetxController {
   // endregion
 
   // region Dialogs & Bottom Sheets
-  void showOtpBottomSheet([BuildContext? context]) {
+  Future<void> showOtpBottomSheet([BuildContext? context]) async {
     final ctx = context ?? Get.context;
     if (ctx == null) return;
 
+    // Unfocus any active input field before opening bottom sheet to prevent focus desynchronization
+    FocusManager.instance.primaryFocus?.unfocus();
     otpController.clear();
-    AppCommonBottomSheet.showModal(
+
+    await AppCommonBottomSheet.showModal(
       ctx,
       title: 'Enter OTP',
       child: Column(
@@ -269,7 +275,11 @@ class LoginController extends GetxController {
           SizedBox(height: 24.h),
           Obx(
             () => Pinput(
+              key: const ValueKey('otp_pinput_field'),
+              focusNode: otpFocusNode,
               length: 6,
+              autofocus: true,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               autofillHints: const [AutofillHints.oneTimeCode],
               controller: otpController,
               readOnly: isLoading.value,
@@ -331,11 +341,15 @@ class LoginController extends GetxController {
         ],
       ),
     );
+
+    // Clean up focus after modal closes
+    FocusManager.instance.primaryFocus?.unfocus();
   }
   // endregion
 
   // region Business Logic & Helpers
   void selectTab(int index) {
+    FocusManager.instance.primaryFocus?.unfocus();
     selectedTab.value = index;
   }
 
@@ -413,6 +427,7 @@ class LoginController extends GetxController {
   }
 
   void toggleLoginMode() {
+    FocusManager.instance.primaryFocus?.unfocus();
     isOtpLogin.value = !isOtpLogin.value;
   }
   // endregion

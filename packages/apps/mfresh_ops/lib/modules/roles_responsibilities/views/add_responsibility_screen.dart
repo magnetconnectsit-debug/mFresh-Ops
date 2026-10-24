@@ -1,17 +1,21 @@
+// region Imports
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/core.dart';
-import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
-import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/data/models/roles_responsibilities/roles_responsibilities_model.dart';
 import 'package:mfresh_ops/modules/roles_responsibilities/controllers/add_responsibility_controller.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
+// endregion
 
+// region View
 class AddResponsibilityScreen extends StatelessWidget {
   final ResponsibilityItem? responsibilityItem;
 
   const AddResponsibilityScreen({super.key, this.responsibilityItem});
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     if (Get.isRegistered<AddResponsibilityController>()) {
@@ -24,231 +28,178 @@ class AddResponsibilityScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const CommonSidebar(),
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        showAppDrawer: true,
-        hasBackButton: false,
-        topHeader: const CommonShortcutHeader(),
-        toolbarHeight: 45.h,
-        title: Obx(
+      appBar: _buildAppBar(context, controller),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 800.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildBreadcrumbs(controller),
+                  SizedBox(height: 12.h),
+                  _buildFormCard(controller),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  // endregion
+
+  // region Header & App Bar
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AddResponsibilityController controller,
+  ) {
+    return AppCommonAppBar(
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      showAppDrawer: true,
+      hasBackButton: false,
+      topHeader: const CommonShortcutHeader(),
+      toolbarHeight: 45.h,
+      title: Obx(
+        () => Text(
+          controller.isEditing.value
+              ? 'Edit Responsibility'
+              : 'Add Responsibility',
+          style: AppTextStyle.style_16_700(color: AppColors.black),
+        ),
+      ),
+    );
+  }
+  // endregion
+
+  // region Section Builders
+  Widget _buildBreadcrumbs(AddResponsibilityController controller) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Obx(
           () => Text(
             controller.isEditing.value
                 ? 'Edit Responsibility'
                 : 'Add Responsibility',
-            style: AppTextStyle.style_18_700(color: AppColors.black),
+            style: AppTextStyle.style_16_700(color: AppColors.black),
           ),
         ),
-      ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            left: 12.w,
-            right: 12.w,
-            top: 4.h,
-            bottom: 16.h,
+        Flexible(
+          child: Obx(
+            () => Text(
+              'Responsibility Master  /  ${controller.isEditing.value ? "Edit" : "Add"}',
+              style: AppTextStyle.style_11_400(color: AppColors.grey400),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(16.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(color: Colors.grey.shade300),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormCard(AddResponsibilityController controller) {
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Form(
+        key: controller.formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Responsibility Details',
+              style: AppTextStyle.style_14_700(color: AppColors.black),
+            ),
+            SizedBox(height: 16.h),
+            Obx(
+              () => AppCommonMultiSelectDropdown<int>(
+                label: 'Select Role *',
+                hint: 'Role(s)',
+                showSelectAll: false,
+                showSearch: true,
+                isSingleSelect: true,
+                selectedValues: controller.selectedRoleIds.toSet(),
+                items: controller.roles.map((r) {
+                  return DropdownMenuItem<int>(
+                    value: r.id,
+                    child: Text(
+                      r.roleName,
+                      style:
+                          AppTextStyle.style_12_400(color: AppColors.grey900),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (selectedSet) {
+                  controller.selectedRoleIds.assignAll(selectedSet);
+                },
+              ),
+            ),
+            SizedBox(height: 16.h),
+            AppCommonTextField(
+              controller: controller.guidelinesEnglishCtrl,
+              titleText: 'Guidelines in English',
+              hintText: 'Enter or paste guidelines in English...',
+              maxLines: 6,
+            ),
+            SizedBox(height: 16.h),
+            AppCommonTextField(
+              controller: controller.guidelinesOdiaCtrl,
+              titleText: 'Guidelines in Odia',
+              hintText: 'Enter or paste guidelines in Odia...',
+              maxLines: 6,
+            ),
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                AppCommonButton(
+                  text: 'Cancel',
+                  variant: ButtonVariant.outline,
+                  height: 34.h,
+                  width: 90.w,
+                  borderRadius: 4.r,
+                  textSize: 12.sp,
+                  onPressed: () => Get.back(),
                 ),
-                child: Form(
-                  key: controller.formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Role *',
-                            style: AppTextStyle.style_12_600(
-                              color: AppColors.black,
-                            ),
-                          ),
-                          SizedBox(width: 40.w),
-                          Expanded(
-                            child: Obx(
-                              () => MultiSelectDropdownWidget<int>(
-                                hint: 'Select Role(s)',
-                                selectedValues: controller.selectedRoleIds
-                                    .toSet(),
-                                items: controller.roles.map((r) {
-                                  return DropdownMenuItem<int>(
-                                    value: r.id,
-                                    child: Text(
-                                      r.roleName,
-                                      style: AppTextStyle.style_12_400(
-                                        color: AppColors.grey900,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (selectedSet) {
-                                  controller.selectedRoleIds.assignAll(
-                                    selectedSet,
-                                  );
-                                },
-                                showSearch: true,
-                                showSelectAll: false,
-                                isSingleSelect: true,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Guidelines in English',
-                            style: AppTextStyle.style_12_600(
-                              color: AppColors.black,
-                            ),
-                          ),
-                          SizedBox(height: 6.h),
-                          TextFormField(
-                            controller: controller.guidelinesEnglishCtrl,
-                            maxLines: 6,
-                            minLines: 4,
-                            style: AppTextStyle.style_12_400(
-                              color: AppColors.grey900,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Paste guidelines in English...',
-                              hintStyle: AppTextStyle.style_12_400(
-                                color: AppColors.grey300,
-                              ),
-                              contentPadding: EdgeInsets.all(10.r),
-                              isDense: true,
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFF2562B),
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Guidelines in Odia',
-                            style: AppTextStyle.style_12_600(
-                              color: AppColors.black,
-                            ),
-                          ),
-                          SizedBox(height: 6.h),
-                          TextFormField(
-                            controller: controller.guidelinesOdiaCtrl,
-                            maxLines: 6,
-                            minLines: 4,
-                            style: AppTextStyle.style_12_400(
-                              color: AppColors.grey900,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Paste guidelines in Odia...',
-                              hintStyle: AppTextStyle.style_12_400(
-                                color: AppColors.grey300,
-                              ),
-                              contentPadding: EdgeInsets.all(10.r),
-                              isDense: true,
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFF2562B),
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 24.h),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          AppCommonButton(
-                            text: 'Cancel',
-                            variant: ButtonVariant.outline,
-                            isSmall: true,
-                            height: 34.h,
-                            width: 90.w,
-                            onPressed: () => Get.back(),
-                          ),
-                          SizedBox(width: 12.w),
-                          Obx(
-                            () => AppCommonButton(
-                              text: controller.isEditing.value
-                                  ? 'Update'
-                                  : 'Save',
-                              variant: ButtonVariant.primary,
-                              buttonColor: const Color(0xFFF2562B),
-                              isSmall: true,
-                              isLoading: controller.isLoading.value,
-                              height: 34.h,
-                              width: 100.w,
-                              onPressed: controller.submit,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                SizedBox(width: 10.w),
+                Obx(
+                  () => AppCommonButton(
+                    text: controller.isEditing.value
+                        ? 'Update Responsibility'
+                        : 'Save Responsibility',
+                    variant: ButtonVariant.primary,
+                    buttonColor: AppColors.primary,
+                    isLoading: controller.isLoading.value,
+                    height: 34.h,
+                    width: 150.w,
+                    borderRadius: 4.r,
+                    textSize: 12.sp,
+                    onPressed: controller.submit,
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
-    ),
-    ));
+    );
+  }
+  // endregion
 }
-}
+// endregion
