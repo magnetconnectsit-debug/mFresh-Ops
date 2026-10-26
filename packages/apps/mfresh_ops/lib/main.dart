@@ -91,7 +91,6 @@ class MyTaskHandler extends TaskHandler {
   int _totalUploads = 0;
   DateTime? _lastDiskWriteAt;
   Timer? _notificationUpdateTimer;
-  DateTime? _lastNotificationShownTime;
 
   // endregion
 
@@ -121,7 +120,6 @@ class MyTaskHandler extends TaskHandler {
     ); // Ownership claim
     await _updateBatteryState();
     _lastProcessedLocationTime = DateTime.now();
-    _lastNotificationShownTime = null;
 
     try {
       await Hive.initFlutter();
@@ -705,14 +703,18 @@ void main() async {
     await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
   } catch (_) {}
 
-  if (Firebase.apps.isEmpty) await Firebase.initializeApp();
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
+  }
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await Hive.initFlutter();
-  if (!Hive.isAdapterRegistered(UserAdapter().typeId))
+  if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
     Hive.registerAdapter(UserAdapter());
-  if (!Hive.isAdapterRegistered(LocationDataAdapter().typeId))
+  }
+  if (!Hive.isAdapterRegistered(LocationDataAdapter().typeId)) {
     Hive.registerAdapter(LocationDataAdapter());
+  }
 
   await initServices();
   runApp(const OpsApp());

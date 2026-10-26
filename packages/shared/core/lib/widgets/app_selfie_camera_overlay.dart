@@ -1,8 +1,6 @@
 // region Imports
-import 'dart:math' as math;
 import 'dart:ui';
 import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_images.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -27,30 +25,37 @@ class AppSelfieCameraOverlay extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final boxRect = _SelfieGeometry.getViewfinderSquare(size);
+        final signboardRect = _SelfieGeometry.getSignboardRect(size);
+        final silhouetteData = _SelfieGeometry.computeSilhouette(size, signboardRect);
 
         return Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Semi-transparent Scrim with 4 Camera Focus Corner Brackets
+            // 1. Top Signboard Dashed Border & Green Focus Corner Brackets
             CustomPaint(
               size: size,
-              painter: _ViewfinderScrimPainter(boxRect: boxRect),
+              painter: _SelfieViewfinderPainter(
+                signboardRect: signboardRect,
+                silhouetteData: silhouetteData,
+              ),
             ),
 
-            // 2. Human Outlined White Dashed Contour (Inside the Focus Box)
+            // 2. Dashed White Person Silhouette Outline (Directly Below Top Box)
             CustomPaint(
               size: size,
-              painter: _SelfieSilhouettePainter(boxRect: boxRect),
+              painter: _SelfieSilhouettePainter(
+                silhouettePath: silhouetteData.openPath,
+              ),
             ),
 
-            // 3. Brand Logo Card at Top
-            if (showLogo)
-              _buildTopLogo(),
+            // 3. Top Signboard Box Guide Label ("[m] mFresh Board")
+            if (showLogo) _buildSignboardGuideLabel(signboardRect),
 
-            // 4. Warning Guidance Text Pill (Centered horizontally, never wrapped vertically)
-            if (showInstructionText)
-              _buildInstructionText(),
+            // 4. Shoulder Guide Label ("Face & shoulders")
+            _buildShoulderGuideLabel(silhouetteData.labelY),
+
+            // 5. Guidance Text Pill ("Face, uniform & board should be visible")
+            if (showInstructionText) _buildInstructionText(silhouetteData.instructionY),
           ],
         );
       },
@@ -59,241 +64,414 @@ class AppSelfieCameraOverlay extends StatelessWidget {
   // endregion
 
   // region Section Builders
-  Widget _buildTopLogo() {
+  Widget _buildSignboardGuideLabel(Rect signboardRect) {
     return Positioned(
-      top: 14.h,
-      left: 56.w,
-      right: 56.w,
+      top: signboardRect.top - 14.h,
+      left: 0,
+      right: 0,
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(10.r),
-            boxShadow: [
+            color: AppColors.black.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.25),
+              width: 1.r,
+            ),
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: Colors.black45,
+                blurRadius: 6,
+                offset: Offset(0, 2),
               ),
             ],
           ),
-          child: Image.asset(
-            AppImages.appLogo,
-            height: 48.h,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => Text(
-              'mFresh',
-              style: AppTextStyle.style_22_600(
-                color: AppColors.primary,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 16.r,
+                height: 16.r,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE50914),
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Center(
+                  child: Text(
+                    'm',
+                    style: AppTextStyle.style_11_700(color: AppColors.white).copyWith(
+                      height: 1.05,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              SizedBox(width: 6.w),
+              Text(
+                'mFresh Board',
+                style: AppTextStyle.style_12_700(
+                  color: AppColors.white,
+                ).copyWith(letterSpacing: 0.3),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInstructionText() {
+  Widget _buildShoulderGuideLabel(double labelY) {
     return Positioned(
-      bottom: 135.h,
+      top: labelY,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: AppColors.black.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.25),
+              width: 1.r,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black45,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            'Face & shoulders',
+            style: AppTextStyle.style_12_700(color: AppColors.white),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInstructionText(double topY) {
+    return Positioned(
+      top: topY,
       left: 16.w,
       right: 16.w,
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 14.w,
-            vertical: 6.h,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
           decoration: BoxDecoration(
-            color: AppColors.black.withValues(alpha: 0.70),
+            color: AppColors.black.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.20),
+              color: AppColors.white.withValues(alpha: 0.25),
               width: 1.r,
             ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black45,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: Text(
-            'Face, Uniform & mFresh should be visible.',
+            'Face, uniform & board should be visible',
             maxLines: 1,
             softWrap: false,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: AppTextStyle.style_12_700(
-              color: const Color(0xFFFF3B30),
-            ).copyWith(
+            style: AppTextStyle.style_12_600(color: AppColors.white).copyWith(
               letterSpacing: 0.2,
-              shadows: const [
-                Shadow(
-                  color: Colors.black87,
-                  blurRadius: 4,
-                  offset: Offset(0, 1),
-                ),
-              ],
             ),
           ),
         ),
       ),
     );
   }
+
   // endregion
 }
 // endregion
 
-// region Helper Geometry Functions
+// region Helper Geometry Functions & Data
+class _SilhouetteData {
+  final Path openPath;
+  final double shoulderY;
+  final double shoulderBottomY;
+  final double labelY;
+  final double instructionY;
+  final double leftArmX;
+  final double rightArmX;
+
+  const _SilhouetteData({
+    required this.openPath,
+    required this.shoulderY,
+    required this.shoulderBottomY,
+    required this.labelY,
+    required this.instructionY,
+    required this.leftArmX,
+    required this.rightArmX,
+  });
+}
+
 class _SelfieGeometry {
-  /// Computes a responsive square viewfinder box centered between the top logo and bottom camera controls.
-  static Rect getViewfinderSquare(Size size) {
-    final boxSize = (size.width * 0.88).clamp(280.0, 360.0);
-    final boxLeft = (size.width - boxSize) / 2;
-
-    // Available vertical space between top logo (~75.h) and bottom controls (~size.height - 165.h)
-    final availableTop = 75.h;
-    final availableBottom = size.height - 165.h;
-    final availableCenterY = (availableTop + availableBottom) / 2;
-    final boxTop = (availableCenterY - (boxSize / 2)).clamp(75.h, size.height - boxSize - 160.h);
-
-    return Rect.fromLTWH(boxLeft, boxTop, boxSize, boxSize);
+  /// Computes the top rectangular focus box for the physical mFresh signboard.
+  static Rect getSignboardRect(Size size) {
+    final width = (size.width * 0.70).clamp(260.0, 310.0);
+    final height = (width * 0.35).clamp(84.0, 96.0);
+    final left = (size.width - width) / 2;
+    final top = (size.height * 0.12).clamp(92.0, 108.0);
+    return Rect.fromLTWH(left, top, width, height);
   }
 
-  /// Builds a unified, seamless person silhouette path (Head + Neck + Shoulders + Torso)
-  /// scaled to fit inside the square box.
-  static Path getPersonSilhouettePath(Rect boxRect, {bool closeAtBottom = false}) {
-    final boxWidth = boxRect.width;
-    final centerX = boxRect.center.dx;
+  /// Builds an anatomical human head, ear contours, neck & broad shoulders silhouette matching reference mockup.
+  static _SilhouetteData computeSilhouette(Size size, Rect signboardRect) {
+    final centerX = size.width / 2;
 
-    // Head circle positioned in upper half of square box
-    final headCenterY = boxRect.top + boxWidth * 0.32;
-    final headRadius = boxWidth * 0.20;
+    // 1. Vertical coordinates calibrated to left reference mockup
+    final headTopY = signboardRect.bottom + 32.h;
+    final earTopY = headTopY + 76.h;
+    final earBottomY = headTopY + 124.h;
+    final neckBaseY = headTopY + 176.h;
+    final shoulderY = headTopY + 220.h;
+    final shoulderBottomY = headTopY + 268.h;
 
-    // Neck dimensions connecting seamlessly into head circle
-    final neckHalfWidth = (headRadius * 0.44).clamp(24.w, 36.w);
-    final deltaY = math.sqrt(headRadius * headRadius - neckHalfWidth * neckHalfWidth);
-    final neckJoinY = headCenterY + deltaY;
+    final labelY = shoulderBottomY - 14.h;
+    final instructionY = shoulderBottomY + 22.h;
 
-    final thetaRight = math.atan2(deltaY, neckHalfWidth);
-    final thetaLeft = math.atan2(deltaY, -neckHalfWidth);
+    // 2. Horizontal half-widths matching left reference mockup
+    final templeHalfWidth = (size.width * 0.22).clamp(80.0, 94.0);
+    final earHalfWidth = (size.width * 0.255).clamp(95.0, 108.0);
+    final jawHalfWidth = (size.width * 0.215).clamp(80.0, 94.0);
+    final neckHalfWidth = (size.width * 0.175).clamp(65.0, 78.0);
+    final shoulderHalfWidth = (size.width * 0.38).clamp(140.0, 168.0);
+    final armHalfWidth = (size.width * 0.42).clamp(155.0, 185.0);
 
-    // Torso, uniform, and shoulder dimensions filling lower half of box
-    final shoulderHalfWidth = boxWidth * 0.38;
-    final armHalfWidth = boxWidth * 0.46;
-    final shoulderY = neckJoinY + boxWidth * 0.12;
-    final bottomY = boxRect.bottom - 4.h;
+    final leftArmX = centerX - armHalfWidth;
+    final rightArmX = centerX + armHalfWidth;
 
-    final path = Path();
+    final openPath = Path();
 
     // 1. Start at bottom of left arm
-    path.moveTo(centerX - armHalfWidth, bottomY);
+    openPath.moveTo(leftArmX, shoulderBottomY);
 
     // 2. Up left arm to left shoulder crest
-    path.cubicTo(
-      centerX - armHalfWidth,
-      shoulderY + boxWidth * 0.20,
-      centerX - shoulderHalfWidth - 10.w,
-      shoulderY + boxWidth * 0.08,
+    openPath.cubicTo(
+      leftArmX,
+      shoulderY + 18.h,
+      centerX - shoulderHalfWidth - 8.w,
+      shoulderY + 4.h,
       centerX - shoulderHalfWidth,
       shoulderY,
     );
 
-    // 3. Left shoulder crest inward & upward along left neck to head attach
-    path.cubicTo(
-      centerX - shoulderHalfWidth + boxWidth * 0.08,
-      shoulderY - boxWidth * 0.03,
-      centerX - neckHalfWidth - 3.w,
-      neckJoinY + boxWidth * 0.05,
+    // 3. Across trapezius slope from left shoulder crest to neck base
+    openPath.cubicTo(
+      centerX - shoulderHalfWidth + 28.w,
+      shoulderY - 6.h,
+      centerX - neckHalfWidth - 22.w,
+      neckBaseY + 16.h,
       centerX - neckHalfWidth,
-      neckJoinY,
+      neckBaseY,
     );
 
-    // 4. Head Arc - Sweep clockwise around top crown of head from left neck to right neck
-    final sweepAngle = 2 * math.pi - (thetaLeft - thetaRight);
-    path.arcTo(
-      Rect.fromCircle(
-        center: Offset(centerX, headCenterY),
-        radius: headRadius,
-      ),
-      thetaLeft,
-      sweepAngle,
-      false,
+    // 4. Up left neck and jaw to under-ear
+    openPath.cubicTo(
+      centerX - neckHalfWidth - 2.w,
+      neckBaseY - 20.h,
+      centerX - jawHalfWidth,
+      earBottomY + 22.h,
+      centerX - jawHalfWidth,
+      earBottomY,
     );
 
-    // 5. Down right neck attach along neck and outward across right shoulder
-    path.cubicTo(
-      centerX + neckHalfWidth + 3.w,
-      neckJoinY + boxWidth * 0.05,
-      centerX + shoulderHalfWidth - boxWidth * 0.08,
-      shoulderY - boxWidth * 0.03,
+    // 5. Around left ear (subtle, organic curve)
+    openPath.cubicTo(
+      centerX - earHalfWidth - 3.w,
+      earBottomY - 8.h,
+      centerX - earHalfWidth - 3.w,
+      earTopY + 8.h,
+      centerX - templeHalfWidth,
+      earTopY,
+    );
+
+    // 6. Up left temple and cranial dome to crown apex (continuous smooth dome)
+    openPath.cubicTo(
+      centerX - templeHalfWidth,
+      headTopY + 30.h,
+      centerX - 46.w,
+      headTopY,
+      centerX,
+      headTopY,
+    );
+
+    // 7. Down from crown apex through right temple to right ear top (continuous smooth dome)
+    openPath.cubicTo(
+      centerX + 46.w,
+      headTopY,
+      centerX + templeHalfWidth,
+      headTopY + 30.h,
+      centerX + templeHalfWidth,
+      earTopY,
+    );
+
+    // 8. Around right ear
+    openPath.cubicTo(
+      centerX + earHalfWidth + 3.w,
+      earTopY + 8.h,
+      centerX + earHalfWidth + 3.w,
+      earBottomY - 8.h,
+      centerX + jawHalfWidth,
+      earBottomY,
+    );
+
+    // 9. Down right jaw and neck to neck base
+    openPath.cubicTo(
+      centerX + jawHalfWidth,
+      earBottomY + 22.h,
+      centerX + neckHalfWidth + 2.w,
+      neckBaseY - 20.h,
+      centerX + neckHalfWidth,
+      neckBaseY,
+    );
+
+    // 10. Down right trapezius slope to right shoulder crest
+    openPath.cubicTo(
+      centerX + neckHalfWidth + 22.w,
+      neckBaseY + 16.h,
+      centerX + shoulderHalfWidth - 28.w,
+      shoulderY - 6.h,
       centerX + shoulderHalfWidth,
       shoulderY,
     );
 
-    // 6. Down right shoulder crest to bottom of right arm
-    path.cubicTo(
-      centerX + shoulderHalfWidth + 10.w,
-      shoulderY + boxWidth * 0.08,
-      centerX + armHalfWidth,
-      shoulderY + boxWidth * 0.20,
-      centerX + armHalfWidth,
-      bottomY,
+    // 11. Down right outer arm to shoulder bottom
+    openPath.cubicTo(
+      centerX + shoulderHalfWidth + 8.w,
+      shoulderY + 4.h,
+      rightArmX,
+      shoulderY + 18.h,
+      rightArmX,
+      shoulderBottomY,
     );
 
-    if (closeAtBottom) {
-      path.lineTo(centerX - armHalfWidth, bottomY);
-      path.close();
-    }
-
-    return path;
+    return _SilhouetteData(
+      openPath: openPath,
+      shoulderY: shoulderY,
+      shoulderBottomY: shoulderBottomY,
+      labelY: labelY,
+      instructionY: instructionY,
+      leftArmX: leftArmX,
+      rightArmX: rightArmX,
+    );
   }
 }
 // endregion
 
-// region Viewfinder Scrim & Focus Corners Painter
-class _ViewfinderScrimPainter extends CustomPainter {
-  final Rect boxRect;
+// region Viewfinder Focus Corners Painter
+class _SelfieViewfinderPainter extends CustomPainter {
+  final Rect signboardRect;
+  final _SilhouetteData silhouetteData;
 
-  _ViewfinderScrimPainter({required this.boxRect});
+  _SelfieViewfinderPainter({
+    required this.signboardRect,
+    required this.silhouetteData,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final radius = Radius.circular(16.r);
-    final boxRRect = RRect.fromRectAndRadius(boxRect, radius);
+    const neonGreen = Color(0xFF22C55E);
 
-    // 1. Semi-transparent dark mask outside the square focus area
-    final maskPath = Path()
-      ..fillType = PathFillType.evenOdd
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..addRRect(boxRRect);
+    // 1. Signboard Box: White Dashed Border between corners
+    final boardRRect = RRect.fromRectAndRadius(
+      signboardRect,
+      Radius.circular(10.r),
+    );
 
-    final scrimPaint = Paint()
-      ..color = AppColors.black.withValues(alpha: 0.45)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(maskPath, scrimPaint);
+    final whiteDashedPaint = Paint()
+      ..color = AppColors.white
+      ..strokeWidth = 1.8.r
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-    // 2. Camera Focus Four-Corner Brackets ┌ ┐ └ ┘
-    final cornerLen = 32.w;
-    final cornerRadius = 12.r;
+    final dashPath = Path()..addRRect(boardRRect);
+    _drawDashedPath(
+      canvas,
+      dashPath,
+      whiteDashedPaint,
+      dashWidth: 6.w,
+      dashSpace: 4.w,
+    );
 
-    // Subtle dark glow shadow behind corner brackets for high visibility
+    // 2. Top Rectangular Focus Box: 4 Neon Green Focus Corner Brackets ┌ ┐ └ ┘
+    final cornerLen = 20.w;
+    final cornerRadius = 8.r;
+
     final shadowPaint = Paint()
-      ..color = Colors.black45
-      ..strokeWidth = 4.5.r
+      ..color = Colors.black54
+      ..strokeWidth = 4.2.r
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-    _drawFocusCorners(canvas, boxRect, cornerLen, cornerRadius, shadowPaint);
 
-    // Foreground white focus corner lines
-    final cornerPaint = Paint()
-      ..color = AppColors.white
+    _drawBoxCorners(
+      canvas,
+      signboardRect,
+      cornerLen,
+      cornerRadius,
+      shadowPaint,
+    );
+
+    final greenCornerPaint = Paint()
+      ..color = neonGreen
       ..strokeWidth = 3.2.r
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    _drawFocusCorners(canvas, boxRect, cornerLen, cornerRadius, cornerPaint);
+
+    _drawBoxCorners(
+      canvas,
+      signboardRect,
+      cornerLen,
+      cornerRadius,
+      greenCornerPaint,
+    );
+
+    // 3. Two Neon Green Shoulder Focus Corner Brackets └ and ┘
+    final shoulderCornerPath = Path();
+    final sCornerLen = 18.w;
+    final sRadius = 8.r;
+    final leftX = silhouetteData.leftArmX;
+    final rightX = silhouetteData.rightArmX;
+    final bottomY = silhouetteData.shoulderBottomY;
+
+    // Left shoulder corner └
+    shoulderCornerPath.moveTo(leftX, bottomY - sCornerLen);
+    shoulderCornerPath.lineTo(leftX, bottomY - sRadius);
+    shoulderCornerPath.arcToPoint(
+      Offset(leftX + sRadius, bottomY),
+      radius: Radius.circular(sRadius),
+      clockwise: false,
+    );
+    shoulderCornerPath.lineTo(leftX + sCornerLen, bottomY);
+
+    // Right shoulder corner ┘
+    shoulderCornerPath.moveTo(rightX, bottomY - sCornerLen);
+    shoulderCornerPath.lineTo(rightX, bottomY - sRadius);
+    shoulderCornerPath.arcToPoint(
+      Offset(rightX - sRadius, bottomY),
+      radius: Radius.circular(sRadius),
+      clockwise: true,
+    );
+    shoulderCornerPath.lineTo(rightX - sCornerLen, bottomY);
+
+    canvas.drawPath(shoulderCornerPath, shadowPaint);
+    canvas.drawPath(shoulderCornerPath, greenCornerPaint);
   }
 
-  void _drawFocusCorners(
+  void _drawBoxCorners(
     Canvas canvas,
     Rect rect,
     double cornerLen,
@@ -345,37 +523,67 @@ class _ViewfinderScrimPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
+  void _drawDashedPath(
+    Canvas canvas,
+    Path path,
+    Paint paint, {
+    required double dashWidth,
+    required double dashSpace,
+  }) {
+    for (final PathMetric metric in path.computeMetrics()) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        final double end = (distance + dashWidth).clamp(0.0, metric.length);
+        final Path extract = metric.extractPath(distance, end);
+        canvas.drawPath(extract, paint);
+        distance += dashWidth + dashSpace;
+      }
+    }
+  }
+
   @override
-  bool shouldRepaint(covariant _ViewfinderScrimPainter oldDelegate) {
-    return oldDelegate.boxRect != boxRect;
+  bool shouldRepaint(covariant _SelfieViewfinderPainter oldDelegate) {
+    return oldDelegate.signboardRect != signboardRect ||
+        oldDelegate.silhouetteData.shoulderY != silhouetteData.shoulderY ||
+        oldDelegate.silhouetteData.shoulderBottomY != silhouetteData.shoulderBottomY;
   }
 }
 // endregion
 
 // region Silhouette Painter (Dashed Lines)
 class _SelfieSilhouettePainter extends CustomPainter {
-  final Rect boxRect;
+  final Path silhouettePath;
 
-  _SelfieSilhouettePainter({required this.boxRect});
+  _SelfieSilhouettePainter({required this.silhouettePath});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final shadowPaint = Paint()
+      ..color = Colors.black54
+      ..strokeWidth = 4.r
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
     final strokePaint = Paint()
       ..color = AppColors.white
-      ..strokeWidth = 2.5.r
+      ..strokeWidth = 2.4.r
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final personPath = _SelfieGeometry.getPersonSilhouettePath(
-      boxRect,
-      closeAtBottom: false,
+    _drawDashedPath(
+      canvas,
+      silhouettePath,
+      shadowPaint,
+      dashWidth: 7.w,
+      dashSpace: 5.w,
     );
 
     _drawDashedPath(
       canvas,
-      personPath,
+      silhouettePath,
       strokePaint,
-      dashWidth: 8.w,
+      dashWidth: 7.w,
       dashSpace: 5.w,
     );
   }
@@ -400,7 +608,7 @@ class _SelfieSilhouettePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SelfieSilhouettePainter oldDelegate) {
-    return oldDelegate.boxRect != boxRect;
+    return oldDelegate.silhouettePath != silhouettePath;
   }
 }
 // endregion

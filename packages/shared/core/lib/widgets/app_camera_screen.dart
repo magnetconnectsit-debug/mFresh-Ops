@@ -100,16 +100,14 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.black,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              _buildCameraBody(),
-              if (_capturedImagePath != null)
-                Positioned.fill(
-                  child: _buildPreviewView(),
-                ),
-            ],
-          ),
+        body: Stack(
+          children: [
+            _buildCameraBody(),
+            if (_capturedImagePath != null)
+              Positioned.fill(
+                child: _buildPreviewView(),
+              ),
+          ],
         ),
       ),
     );
@@ -123,8 +121,10 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
         : SensorPosition.back;
 
     return CameraAwesomeBuilder.awesome(
+      previewFit: CameraPreviewFit.cover,
       sensorConfig: SensorConfig.single(
         flashMode: FlashMode.auto,
+        aspectRatio: CameraAspectRatios.ratio_16_9,
         sensor: Sensor.position(initialSensor),
       ),
       saveConfig: SaveConfig.photo(mirrorFrontCamera: false),
@@ -134,28 +134,37 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
           child: AppSelfieCameraOverlay(),
         );
       },
-      topActionsBuilder: (state) => AwesomeTopActions(
-        state: state,
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.black.withValues(alpha: 0.45),
-              shape: BoxShape.circle,
+      middleContentBuilder: widget.isSelfieMode
+          ? (state) => const SizedBox.shrink()
+          : null,
+      topActionsBuilder: (state) => SafeArea(
+        bottom: false,
+        child: AwesomeTopActions(
+          state: state,
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.black.withValues(alpha: 0.45),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(Icons.close_rounded, color: AppColors.white, size: 24.r),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ),
-            child: IconButton(
-              icon: Icon(Icons.close_rounded, color: AppColors.white, size: 24.r),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          AwesomeFlashButton(state: state),
-          if (state is PhotoCameraState && !widget.isSelfieMode)
-            AwesomeAspectRatioButton(state: state),
-        ],
+            AwesomeFlashButton(state: state),
+            if (state is PhotoCameraState && !widget.isSelfieMode)
+              AwesomeAspectRatioButton(state: state),
+          ],
+        ),
       ),
-      bottomActionsBuilder: (state) => AwesomeBottomActions(
-        state: state,
-        left: widget.frontCameraOnly ? const SizedBox(width: 48) : null,
+      bottomActionsBuilder: (state) => SafeArea(
+        top: false,
+        child: AwesomeBottomActions(
+          state: state,
+          left: widget.frontCameraOnly ? const SizedBox(width: 48) : null,
+        ),
       ),
       onMediaCaptureEvent: (event) async {
         switch ((event.status, event.isPicture, event.isVideo)) {
@@ -225,50 +234,43 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
             ),
           ),
 
-          // In selfie mode: show wood frame & person outline overlay on preview
-          if (widget.isSelfieMode)
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: AppSelfieCameraOverlay(
-                  showInstructionText: false,
-                ),
-              ),
-            ),
-
           // Top Header Bar
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.black.withValues(alpha: 0.7),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+            child: SafeArea(
+              bottom: false,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.black.withValues(alpha: 0.7),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.close_rounded,
-                      color: AppColors.white,
-                      size: 26.r,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: AppColors.white,
+                        size: 26.r,
+                      ),
+                      onPressed: _retakePhoto,
                     ),
-                    onPressed: _retakePhoto,
-                  ),
-                  Text(
-                    'Photo Preview',
-                    style: AppTextStyle.style_16_700(color: AppColors.white),
-                  ),
-                  SizedBox(width: 48.w),
-                ],
+                    Text(
+                      'Photo Preview',
+                      style: AppTextStyle.style_16_700(color: AppColors.white),
+                    ),
+                    SizedBox(width: 48.w),
+                  ],
+                ),
               ),
             ),
           ),
@@ -278,24 +280,26 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: EdgeInsets.only(
-                left: 20.w,
-                right: 20.w,
-                bottom: 24.h,
-                top: 24.h,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    AppColors.black.withValues(alpha: 0.75),
-                    AppColors.black.withValues(alpha: 0.95),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: EdgeInsets.only(
+                  left: 20.w,
+                  right: 20.w,
+                  bottom: 24.h,
+                  top: 24.h,
                 ),
-              ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      AppColors.black.withValues(alpha: 0.75),
+                      AppColors.black.withValues(alpha: 0.95),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
               child: Row(
                 children: [
                   // Retake Button
@@ -367,7 +371,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
               ),
             ),
           ),
-        ],
+      )],
       ),
     );
   }
