@@ -38,6 +38,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   final TextEditingController _endDateController = TextEditingController();
   final TextEditingController _startTimeController = TextEditingController();
   final TextEditingController _endTimeController = TextEditingController();
+  TaskItem? _task;
   // endregion
 
   // region Lifecycle & Disposal
@@ -45,8 +46,11 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   void initState() {
     super.initState();
     final controller = Get.find<TasksController>();
-    final TaskItem? task = Get.arguments;
+    if (Get.arguments is TaskItem) {
+      _task = Get.arguments as TaskItem;
+    }
 
+    final task = _task;
     if (task != null) {
       final isEntireSeries = controller.updateLevel.value == "1";
       controller.initializeFormForEdit(task, thisOccurrenceOnly: !isEntireSeries);
@@ -177,15 +181,18 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       context: context,
       initialTime: initial,
       helpText: 'Select Start Time',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFFF15A24),
-            onPrimary: Colors.white,
-            onSurface: Colors.black,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFF15A24),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
           ),
+          child: child!,
         ),
-        child: child!,
       ),
     );
     if (time != null) {
@@ -203,15 +210,18 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       context: context,
       initialTime: initial,
       helpText: 'Select End Time',
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFFF15A24),
-            onPrimary: Colors.white,
-            onSurface: Colors.black,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFF15A24),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
           ),
+          child: child!,
         ),
-        child: child!,
       ),
     );
     if (time != null) {
@@ -370,7 +380,10 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TasksController>();
-    final TaskItem? task = Get.arguments;
+    if (_task == null && Get.arguments is TaskItem) {
+      _task = Get.arguments as TaskItem;
+    }
+    final task = _task;
 
     if (task == null) {
       return Scaffold(

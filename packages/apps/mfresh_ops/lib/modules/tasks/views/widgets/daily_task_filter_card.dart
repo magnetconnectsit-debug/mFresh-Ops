@@ -40,84 +40,98 @@ class DailyTaskFilterCard extends StatelessWidget {
     bool isOverdue = false;
     bool isActive = false;
 
-    if (!isCompletedOrApproved && !isReviewOrUnderReview && !isRejected) {
-      if (dayStatusLower.isNotEmpty) {
-        isUpcoming = dayStatusLower == 'upcoming';
-        isOverdue = dayStatusLower == 'overdue';
-        isActive = dayStatusLower == 'active';
-      } else {
-        final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
-        isUpcoming =
-            scheduleDateTime != null &&
-            DateTime.now().isBefore(scheduleDateTime);
-        if (!isUpcoming) {
-          if (statusLower == 'overdue' || statusLower == 'due') {
-            isOverdue = true;
-          } else {
-            final endDt = _parseEndDateTime(task);
-            if (endDt != null) {
-              isOverdue = DateTime.now().isAfter(endDt);
-            } else if (scheduleDateTime != null) {
-              isOverdue = DateTime.now().isAfter(scheduleDateTime);
-            }
-          }
-        }
-      }
-    }
-
     Color statusBg = AppColors.black2;
     Color statusTextColor = AppColors.white;
-    String statusText = task.status;
+    String statusText = '';
 
-    if (statusLower == 'review' || statusLower == 'under_review' || dayStatusLower == 'review') {
-      statusBg = AppColors.orange900;
-      final user = Get.find<StorageService>().getUser();
-      if (task.approverId == user?.id?.toString()) {
-        statusText = 'Review';
-      } else {
-        statusText = 'Under Review';
-      }
-    } else if (isRejected) {
+    String formatStatus(String str) {
+      if (str.isEmpty) return '';
+      return str
+          .replaceAll('_', ' ')
+          .split(' ')
+          .where((w) => w.isNotEmpty)
+          .map((w) => '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+          .join(' ')
+          .trim();
+    }
+
+    // Use task_status from server as authoritative display text
+    final hasServerTaskStatus =
+        task.taskStatus != null && task.taskStatus!.isNotEmpty;
+
+    if (hasServerTaskStatus) {
+      statusText = task.taskStatus!;
+    } else if (task.status.isNotEmpty) {
+      statusText = formatStatus(task.status);
+    } else {
+      statusText = 'Active';
+    }
+
+    final lowerText = statusText.toLowerCase();
+
+    if (lowerText.contains('cancel') || statusLower == 'cancel_review') {
+      statusBg = const Color(0xFFFFA000);
+      statusTextColor = AppColors.white;
+    } else if (lowerText == 'cancelled' ||
+        statusLower == 'cancelled' ||
+        isRejected) {
       statusBg = const Color(0xFF8B0000);
-      statusText = task.status;
-    } else if (isUpcoming) {
+      statusTextColor = AppColors.white;
+    } else if (lowerText.contains('review') ||
+        isReviewOrUnderReview ||
+        dayStatusLower == 'review') {
+      statusBg = AppColors.orange900;
+      statusTextColor = AppColors.white;
+    } else if (lowerText == 'completed' ||
+        lowerText == 'approved' ||
+        isCompletedOrApproved) {
+      statusBg = AppColors.green;
+      statusTextColor = AppColors.white;
+    } else if (lowerText == 'overdue' ||
+        statusLower == 'overdue' ||
+        dayStatusLower == 'overdue') {
+      isOverdue = true;
+      statusBg = const Color(0xFFE25C5C);
+      statusTextColor = AppColors.white;
+    } else if (lowerText == 'upcoming' ||
+        statusLower == 'upcoming' ||
+        dayStatusLower == 'upcoming') {
+      isUpcoming = true;
       statusBg = const Color(0xFFFFB822);
       statusTextColor = const Color(0xFF212529);
-      statusText = task.status.isNotEmpty ? task.status : 'Upcoming';
-    } else if (isOverdue) {
-      statusBg = const Color(0xFFE25C5C);
-      statusText = task.status.isNotEmpty ? task.status : 'Overdue';
-    } else if (isActive) {
-      statusBg = const Color(0xFF28A745);
-      statusText = task.status.isNotEmpty ? task.status : 'Active';
-    } else {
-      statusText = task.status;
-      switch (statusLower) {
-        case 'overdue':
-          statusBg = const Color(0xFFE25C5C);
-          break;
-        case 'pending':
-        case 'due':
-          statusBg = AppColors.red;
-          break;
-        case 'upcoming':
-          statusBg = const Color(0xFFFFB822);
-          statusTextColor = const Color(0xFF212529);
-          break;
-        case 'review':
-        case 'under_review':
-          statusBg = AppColors.orange900;
-          break;
-        case 'completed':
-        case 'approved':
-          statusBg = AppColors.green;
-          break;
-        case 'rejected':
-          statusBg = const Color(0xFF8B0000);
-          break;
-        default:
-          statusBg = AppColors.black2;
+    } else if (!hasServerTaskStatus &&
+        (statusLower == 'pending' || statusLower == 'due')) {
+      final scheduleDateTime = _parseDateTime(task.scheduleDateTime);
+      final isUpcomingTime = scheduleDateTime != null &&
+          DateTime.now().isBefore(scheduleDateTime);
+      final endDt = _parseEndDateTime(task);
+      final isOverdueTime = (endDt != null && DateTime.now().isAfter(endDt)) ||
+          (scheduleDateTime != null &&
+              DateTime.now().isAfter(scheduleDateTime));
+      if (isUpcomingTime) {
+        isUpcoming = true;
+        statusBg = const Color(0xFFFFB822);
+        statusTextColor = const Color(0xFF212529);
+        statusText = 'Upcoming';
+      } else if (isOverdueTime) {
+        isOverdue = true;
+        statusBg = const Color(0xFFE25C5C);
+        statusTextColor = AppColors.white;
+        statusText = 'Overdue';
+      } else {
+        statusBg = AppColors.red;
+        statusTextColor = AppColors.white;
+        statusText = 'Due';
       }
+    } else if (lowerText == 'active' ||
+        statusLower == 'active' ||
+        dayStatusLower == 'active') {
+      isActive = true;
+      statusBg = const Color(0xFF28A745);
+      statusTextColor = AppColors.white;
+    } else {
+      statusBg = const Color(0xFFFFA000);
+      statusTextColor = AppColors.white;
     }
 
     if (task.badgeText != null && task.badgeText!.isNotEmpty) {
@@ -130,6 +144,10 @@ class DailyTaskFilterCard extends StatelessWidget {
         .where((w) => w.isNotEmpty)
         .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
         .join(' ');
+
+    if (statusText.toLowerCase() == 'cancel review') {
+      statusText = 'Cancel\nReview';
+    }
 
     final isRecurring =
         task.frequency.toLowerCase() != 'none' && task.frequency.isNotEmpty;
@@ -228,6 +246,7 @@ class DailyTaskFilterCard extends StatelessWidget {
                   isRejected: isRejected,
                   isOverdue: isOverdue,
                   isUpcoming: isUpcoming,
+                  isActive: isActive,
                   showTimer: false,
                 ),
               ],
@@ -272,30 +291,12 @@ class DailyTaskFilterCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RichText(
+                    Text(
+                      task.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: task.title,
-                            style:
-                                AppTextStyle.style_12_700(color: AppColors.black),
-                          ),
-                          if (projectName.isNotEmpty) ...[
-                            TextSpan(
-                              text: ' • ',
-                              style: AppTextStyle.style_11_400(
-                                  color: AppColors.grey600),
-                            ),
-                            TextSpan(
-                              text: projectName,
-                              style: AppTextStyle.style_11_400(
-                                  color: AppColors.grey600),
-                            ),
-                          ],
-                        ],
-                      ),
+                      style:
+                          AppTextStyle.style_12_700(color: AppColors.black),
                     ),
                     SizedBox(height: 4.h),
                     // Row 1: Time & Date strictly together
@@ -340,54 +341,82 @@ class DailyTaskFilterCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 4.h),
-                    // Row 2: Assignee & Action Icons
+                    // Row 2: Assignee, Project & Action Icons (closer together)
                     Row(
                       children: [
-                        Icon(
-                          (task.assigneeName != null &&
-                                  task.assigneeName!.isNotEmpty)
-                              ? Icons.person_outline
-                              : Icons.people_outline,
-                          size: 11.r,
-                          color: const Color(0xFF6C757D),
-                        ),
-                        SizedBox(width: 3.w),
                         Flexible(
-                          child: Text(
-                            assigneeOrGroupText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 9.5.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF495057),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 4.w),
-                        GestureDetector(
-                          onTap: () {
-                            Get.find<TasksController>().editTaskDetails(
-                              task,
-                            );
-                          },
-                          child: Icon(
-                            Icons.edit_note,
-                            size: 14.r,
-                            color: const Color(0xFF0D6EFD),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                (task.assigneeName != null &&
+                                        task.assigneeName!.isNotEmpty)
+                                    ? Icons.person_outline
+                                    : Icons.people_outline,
+                                size: 11.r,
+                                color: const Color(0xFF6C757D),
+                              ),
+                              SizedBox(width: 3.w),
+                              Flexible(
+                                child: Text(
+                                  assigneeOrGroupText,
+                                  style: TextStyle(
+                                    fontSize: 9.5.sp,
+                                    fontWeight: FontWeight.w400,
+                                    color: const Color(0xFF495057),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (projectName.isNotEmpty) ...[
+                                Text(
+                                  ' • ',
+                                  style: AppTextStyle.style_10_400(
+                                    color: AppColors.grey600,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    projectName,
+                                    style: AppTextStyle.style_10_500(
+                                      color: const Color(0xFF6C757D),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         SizedBox(width: 6.w),
-                        GestureDetector(
-                          onTap: () {
-                            Get.dialog(DeleteTaskDialog(task: task));
-                          },
-                          child: Icon(
-                            Icons.delete_outline,
-                            size: 13.r,
-                            color: const Color(0xFFDC3545),
+                        if (Get.find<AuthRepository>().rxUserPermissions
+                            .contains('Task_Edit')) ...[
+                          GestureDetector(
+                            onTap: () {
+                              Get.find<TasksController>().editTaskDetails(
+                                task,
+                              );
+                            },
+                            child: Icon(
+                              Icons.edit_note,
+                              size: 14.r,
+                              color: const Color(0xFF0D6EFD),
+                            ),
                           ),
-                        ),
+                          SizedBox(width: 6.w),
+                        ],
+                        if (Get.find<AuthRepository>().rxUserPermissions
+                            .contains('Task_Delete'))
+                          GestureDetector(
+                            onTap: () {
+                              Get.dialog(DeleteTaskDialog(task: task));
+                            },
+                            child: Icon(
+                              Icons.delete_outline,
+                              size: 13.r,
+                              color: const Color(0xFFDC3545),
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -407,6 +436,7 @@ class DailyTaskFilterCard extends StatelessWidget {
                   isRejected: isRejected,
                   isOverdue: isOverdue,
                   isUpcoming: isUpcoming,
+                  isActive: isActive,
                   showTimer: true,
                 ),
               ),
@@ -430,6 +460,7 @@ class DailyTaskFilterCard extends StatelessWidget {
     required bool isRejected,
     required bool isOverdue,
     required bool isUpcoming,
+    required bool isActive,
     bool showTimer = true,
   }) {
     return GestureDetector(
@@ -442,13 +473,29 @@ class DailyTaskFilterCard extends StatelessWidget {
           );
           return;
         }
-        final status = task.status.toLowerCase();
+        final status = task.status.toLowerCase().trim();
+        final taskStatus = (task.taskStatus ?? '').toLowerCase().trim();
+        final isCancelReview = status == 'cancel_review' ||
+            status == 'cancel review' ||
+            taskStatus == 'cancel review';
         final controller = Get.find<TasksController>();
+        if (isCancelReview) {
+          if (task.canCancelReview == true) {
+            controller.fetchTaskSubmissionDetails(
+              task,
+              isReview: true,
+              readOnly: false,
+            );
+          }
+          return;
+        }
         if (status == 'review' || status == 'under_review') {
+          final user = Get.find<StorageService>().getUser();
+          final isApprover = task.approverId == user?.id?.toString();
           controller.fetchTaskSubmissionDetails(
             task,
             isReview: true,
-            readOnly: false,
+            readOnly: !isApprover,
           );
         } else if (status == 'due' ||
             status == 'overdue' ||
@@ -465,12 +512,11 @@ class DailyTaskFilterCard extends StatelessWidget {
             isReview: true,
             readOnly: true,
           );
-        } else {
-          if (Get.find<AuthRepository>().rxUserPermissions.contains(
-            'Task_Edit',
-          )) {
-            controller.editTaskDetails(task);
-          }
+        } else if (status == 'cancelled' ||
+            taskStatus == 'task cancelled' ||
+            taskStatus == 'cancelled') {
+          // Cancelled task: status button should never open edit task page
+          return;
         }
       },
       child: Column(
@@ -569,6 +615,36 @@ class DailyTaskFilterCard extends StatelessWidget {
                 );
               }),
             ],
+            if (isActive && !isRejected && !isReviewOrUnderReview) ...[
+              Obx(() {
+                if (Get.isRegistered<TasksController>()) {
+                  final _ = Get.find<TasksController>().currentTime.value;
+                }
+                final remainingDuration = _getEndsInDuration(task);
+                if (remainingDuration == '0s') {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(height: 3.h),
+                    Text(
+                      'Ends in',
+                      style: AppTextStyle.style_8_400(
+                        color: const Color(0xFF6C757D),
+                      ),
+                    ),
+                    Text(
+                      remainingDuration,
+                      style: AppTextStyle.style_10_700(
+                        color: AppColors.black,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
           ],
         ],
       ),
@@ -639,11 +715,20 @@ class DailyTaskFilterCard extends StatelessWidget {
   }
 
   DateTime? _parseEndDateTime(TaskItem task) {
+    if (task.instanceEndDate != null && task.instanceEndDate!.isNotEmpty) {
+      final parsedInstanceEnd = _parseDateTime(task.instanceEndDate);
+      if (parsedInstanceEnd != null) return parsedInstanceEnd;
+    }
+
     final date = _parseDateTime(task.scheduleDateTime);
     if (date == null) return null;
 
-    if (task.endTime.isNotEmpty) {
-      final time = _parseTimeOfDay(task.endTime);
+    final effectiveEndTime = (task.instEndTime != null && task.instEndTime!.isNotEmpty)
+        ? task.instEndTime!
+        : task.endTime;
+
+    if (effectiveEndTime.isNotEmpty) {
+      final time = _parseTimeOfDay(effectiveEndTime);
       if (time != null) {
         return DateTime(
           date.year,
@@ -655,7 +740,7 @@ class DailyTaskFilterCard extends StatelessWidget {
       }
     }
 
-    return DateTime(date.year, date.month, date.day, 0, 0, 0).toLocal();
+    return DateTime(date.year, date.month, date.day, 23, 59, 59).toLocal();
   }
 
   TimeOfDay? _parseTimeOfDay(String timeStr) {
@@ -747,6 +832,19 @@ class DailyTaskFilterCard extends StatelessWidget {
       final scheduleDateTime = _parseDateTime(scheduleStr);
       if (scheduleDateTime == null) return "0s";
       final difference = scheduleDateTime.difference(DateTime.now());
+      if (difference.isNegative) return "0s";
+
+      return _formatDuration(difference);
+    } catch (_) {
+      return "0s";
+    }
+  }
+
+  String _getEndsInDuration(TaskItem task) {
+    try {
+      final endDateTime = _parseEndDateTime(task);
+      if (endDateTime == null) return "0s";
+      final difference = endDateTime.difference(DateTime.now());
       if (difference.isNegative) return "0s";
 
       return _formatDuration(difference);

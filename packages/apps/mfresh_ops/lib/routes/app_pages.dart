@@ -114,10 +114,9 @@ class AppPages {
       name: AppRoutes.login,
       page: () => const LoginScreen(),
       binding: BindingsBuilder(() {
-        if (Get.isRegistered<LoginController>()) {
-          Get.delete<LoginController>(force: true);
+        if (!Get.isRegistered<LoginController>()) {
+          Get.put<LoginController>(LoginController(), permanent: true);
         }
-        Get.put<LoginController>(LoginController());
       }),
     ),
     GetPage(

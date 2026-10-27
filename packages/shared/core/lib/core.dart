@@ -50,6 +50,7 @@ export 'widgets/app_refresh_indicator.dart';
 export 'widgets/app_table_pagination.dart';
 export 'widgets/custom_app_loader.dart';
 export 'widgets/month_year_picker_field.dart';
+export 'widgets/app_multi_month_year_picker_field.dart';
 export 'widgets/responsive_wrapper.dart';
 export 'widgets/server_maintenance_widget.dart';
 // endregion

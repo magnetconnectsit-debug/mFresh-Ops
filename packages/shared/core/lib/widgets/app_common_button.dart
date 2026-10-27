@@ -195,7 +195,9 @@ class AppCommonButton extends StatelessWidget {
     if (width == null) {
       return Row(
         mainAxisSize: MainAxisSize.min,
-        children: [primaryWidget],
+        children: [
+          Flexible(child: primaryWidget),
+        ],
       );
     }
 

@@ -39,6 +39,7 @@ class TasksController extends GetxController {
   final isFormSubmitting = false.obs;
   final isRefreshing =
       false.obs; // Silent background refresh (no full-screen loader)
+  final isFetchingDetails = false.obs;
 
   // region Data Lists
   final tasks = <TaskItem>[].obs;
@@ -65,6 +66,7 @@ class TasksController extends GetxController {
   final selectedYear = Rxn<int>();
   final selectedFromMonth = Rxn<int>();
   final selectedToMonth = Rxn<int>();
+  final selectedMonths = <int>[].obs;
   final filterMonths = <Map<String, dynamic>>[].obs;
 
   void clearFilters() {
@@ -75,6 +77,7 @@ class TasksController extends GetxController {
     selectedYear.value = null;
     selectedFromMonth.value = null;
     selectedToMonth.value = null;
+    selectedMonths.clear();
   }
   // endregion
 
@@ -84,6 +87,91 @@ class TasksController extends GetxController {
   final perPage = 20.obs;
   final totalRecords = 0.obs;
   final totalPages = 1.obs;
+  // endregion
+
+  // region Bulk Selection
+  final selectedTaskInstanceIds = <int>{}.obs;
+
+  void toggleTaskSelection(int instanceId) {
+    if (selectedTaskInstanceIds.contains(instanceId)) {
+      selectedTaskInstanceIds.remove(instanceId);
+    } else {
+      selectedTaskInstanceIds.add(instanceId);
+    }
+  }
+
+  void selectAllTasks(bool selected) {
+    if (selected) {
+      selectedTaskInstanceIds.assignAll(
+        sortedTasks.map((t) => t.taskInstanceId),
+      );
+    } else {
+      selectedTaskInstanceIds.clear();
+    }
+  }
+
+  void clearTaskSelection() {
+    selectedTaskInstanceIds.clear();
+  }
+
+  Future<void> bulkDeleteSelectedTasks() async {
+    if (selectedTaskInstanceIds.isEmpty) return;
+
+    if (!Get.find<AuthRepository>()
+        .rxUserPermissions
+        .contains('task_bulk_delete')) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final context = Get.context;
+    if (context == null) return;
+
+    final confirmed = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Bulk Delete Tasks',
+      message:
+          'Are you sure you want to delete ${selectedTaskInstanceIds.length} selected task(s)? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDanger: true,
+      icon: Icons.delete_outline,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      isLoading.value = true;
+      final response = await _taskRepository.bulkDeleteTasks(
+        instanceIds: selectedTaskInstanceIds.toList(),
+      );
+      if (response != null &&
+          (response['status'] == true || response['status'] == 'success')) {
+        AppCommonToastMessage.show(
+          message: '${selectedTaskInstanceIds.length} task(s) deleted successfully.',
+          type: ToastType.success,
+        );
+        selectedTaskInstanceIds.clear();
+        await fetchTasks();
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message'] ?? 'Failed to delete tasks.',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error bulk deleting tasks: $e');
+      AppCommonToastMessage.show(
+        message: 'Failed to delete tasks. Please try again.',
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
   // endregion
 
   // region Sorting
@@ -237,6 +325,7 @@ class TasksController extends GetxController {
       selectedUnits.isNotEmpty ||
       selectedAssignees.isNotEmpty ||
       selectedYear.value != null ||
+      selectedMonths.isNotEmpty ||
       selectedFromMonth.value != null ||
       selectedToMonth.value != null;
 
@@ -250,12 +339,12 @@ class TasksController extends GetxController {
   }
 
   Future<void> applyFilters() async {
-    Get.dialog(const CustomAppLoader(), barrierDismissible: false);
     try {
+      isLoading.value = true;
       await fetchAssignees();
       await fetchInitialList();
     } finally {
-      Get.back();
+      isLoading.value = false;
     }
   }
 
@@ -264,6 +353,10 @@ class TasksController extends GetxController {
     selectedGroups.clear();
     selectedUnits.clear();
     selectedAssignees.clear();
+    selectedYear.value = null;
+    selectedMonths.clear();
+    selectedFromMonth.value = null;
+    selectedToMonth.value = null;
     await applyFilters();
   }
 
@@ -272,6 +365,10 @@ class TasksController extends GetxController {
     selectedGroups.clear();
     selectedUnits.clear();
     selectedAssignees.clear();
+    selectedYear.value = null;
+    selectedMonths.clear();
+    selectedFromMonth.value = null;
+    selectedToMonth.value = null;
     tasks.clear();
     dailyTasks.clear();
     allDailyTasks.clear();
@@ -594,7 +691,9 @@ class TasksController extends GetxController {
     final isCompletedOrApproved =
         statusLower == 'completed' || statusLower == 'approved';
     final isReviewOrUnderReview =
-        statusLower == 'review' || statusLower == 'under_review';
+        statusLower == 'review' ||
+        statusLower == 'under_review' ||
+        statusLower == 'cancel_review';
 
     bool isUpcoming = false;
     bool isOverdue = false;
@@ -639,6 +738,7 @@ class TasksController extends GetxController {
   Future<void> fetchTasks() async {
     try {
       isLoading.value = true;
+      selectedTaskInstanceIds.clear();
       final response = await _taskRepository.getTasks(
         page: 1,
         perPage: 10000, // Fetch the entire dataset to sort globally
@@ -646,6 +746,8 @@ class TasksController extends GetxController {
         assignees: selectedAssignees.map((e) => e.id).toList(),
         groups: selectedGroups.map((e) => e.id).toList(),
         units: selectedUnits.map((e) => e.unitId).toList(),
+        filterYear: selectedYear.value,
+        months: selectedMonths.toList(),
       );
 
       if (response != null) {
@@ -1007,6 +1109,150 @@ class TasksController extends GetxController {
     }
   }
 
+  Future<void> cancelTaskRequest(TaskItem task) async {
+    final comment = commentController.text.trim();
+    if (comment.isEmpty) {
+      AppCommonToastMessage.show(
+        message: 'Please enter a comment before requesting cancellation.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final context = Get.context;
+    if (context == null) return;
+
+    final confirmed = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Cancel Task',
+      message: 'Send this task cancellation request for approval?',
+      confirmText: 'Yes',
+      cancelText: 'No',
+      confirmButtonColor: const Color(0xFFFFA000),
+      icon: Icons.help_outline_rounded,
+      iconColor: const Color(0xFFFFA000),
+    );
+
+    if (!confirmed) return;
+
+    try {
+      isLoading.value = true;
+      final response = await _taskRepository.cancelTaskRequest(
+        taskInstanceId: task.taskInstanceId,
+        comment: comment,
+      );
+
+      if (response != null && response['status'] == true) {
+        isLoading.value = false;
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+
+        final returnedTaskStatus =
+            response['task_status']?.toString() ?? 'cancel_review';
+        final returnedDisplayStatus = response['display_status']?.toString() ??
+            (returnedTaskStatus == 'cancel_review'
+                ? 'Cancel Review'
+                : returnedTaskStatus);
+
+        final index =
+            tasks.indexWhere((t) => t.taskInstanceId == task.taskInstanceId);
+        if (index != -1) {
+          tasks[index] = tasks[index].copyWith(
+            status: returnedTaskStatus,
+            taskStatus: returnedDisplayStatus,
+            canCancelRequest: false,
+          );
+        }
+        final allIndex = allDailyTasks
+            .indexWhere((t) => t.taskInstanceId == task.taskInstanceId);
+        if (allIndex != -1) {
+          allDailyTasks[allIndex] = allDailyTasks[allIndex].copyWith(
+            status: returnedTaskStatus,
+            taskStatus: returnedDisplayStatus,
+            canCancelRequest: false,
+          );
+        }
+
+        AppCommonToastMessage.show(
+          message: response['message'] ??
+              'Task cancellation request sent for approval.',
+          type: ToastType.success,
+        );
+        _refreshDailyTasksSilently();
+      } else {
+        AppCommonToastMessage.show(
+          message: response?['message'] ??
+              'Failed to send task cancellation request.',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Failed to send task cancellation request: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> reviewTaskCancellation({
+    required int taskInstanceId,
+    required String action, // "approve" or "reject"
+  }) async {
+    String comment = approverCommentController.text.trim();
+    if (comment.isEmpty && action == 'reject') {
+      AppCommonToastMessage.show(
+        message: 'Please enter a comment before rejecting.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    if (comment.isEmpty) {
+      comment = action == 'approve'
+          ? 'Cancellation approved.'
+          : 'Cancellation rejected.';
+    }
+
+    try {
+      isLoading.value = true;
+      final response = await _taskRepository.cancelReviewTask(
+        taskInstanceId: taskInstanceId,
+        action: action,
+        comment: comment,
+      );
+
+      if (response != null && response['status'] == true) {
+        isLoading.value = false;
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+        AppCommonToastMessage.show(
+          message: response['message'] ??
+              (action == 'approve'
+                  ? 'Task cancellation approved successfully'
+                  : 'Task cancellation rejected successfully'),
+          type: ToastType.success,
+        );
+        _refreshDailyTasksSilently();
+      } else {
+        AppCommonToastMessage.show(
+          message:
+              response?['message'] ?? 'Failed to review cancellation request.',
+          type: ToastType.error,
+        );
+      }
+    } catch (e) {
+      AppCommonToastMessage.show(
+        message: 'Failed to review cancellation request: $e',
+        type: ToastType.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> approveTask(int instanceId) async {
     if (approverCommentController.text.trim().isEmpty) {
       AppCommonToastMessage.show(
@@ -1243,29 +1489,26 @@ class TasksController extends GetxController {
     isReadOnly.value = readOnly;
     isFormSubmitting.value = false;
     try {
-      isLoading.value = true;
-      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
-      // Allow dialog to push before making fast network requests
-      await Future.delayed(const Duration(milliseconds: 50));
+      isFetchingDetails.value = true;
 
       final response = await _taskRepository.getTaskEditDetails(
         task.id.toString(),
         task.taskInstanceId.toString(),
       );
 
-      Get.back(); // Dismiss loading dialog
+      // Pre-fetch meta dropdown lists if empty so dropdowns bind properly
+      if (response != null && response.data != null) {
+        if (projects.isEmpty) await fetchProjects();
+        if (groups.isEmpty) await fetchGroups();
+        if (units.isEmpty) await fetchUnits();
+        if (allAssignees.isEmpty) await fetchAssignees();
+      }
 
       if (response != null && response.data != null) {
         formInitialized.value = false;
         final data = response.data!.taskInstanceId == 0
             ? response.data!.copyWith(taskInstanceId: task.taskInstanceId)
             : response.data!;
-
-        // Pre-fetch meta dropdown lists if empty so dropdowns bind properly
-        if (projects.isEmpty) await fetchProjects();
-        if (groups.isEmpty) await fetchGroups();
-        if (units.isEmpty) await fetchUnits();
-        if (allAssignees.isEmpty) await fetchAssignees();
 
         // If recurring_task is "0" (or non-recurring), show EditTaskScreen; otherwise show choice dialog
         if (data.recurringTask == '0' || !data.isRecurring) {
@@ -1281,13 +1524,12 @@ class TasksController extends GetxController {
         );
       }
     } catch (e) {
-      Get.back(); // Dismiss loading dialog
       AppCommonToastMessage.show(
         message: 'Error fetching task details: $e',
         type: ToastType.error,
       );
     } finally {
-      isLoading.value = false;
+      isFetchingDetails.value = false;
     }
   }
 
@@ -1313,41 +1555,61 @@ class TasksController extends GetxController {
     required bool isReview,
     bool readOnly = false,
   }) async {
+    final statusLower = task.status.toLowerCase().trim();
+    final taskStatusLower = (task.taskStatus ?? '').toLowerCase().trim();
+    final isCancelReview = statusLower == 'cancel_review' ||
+        statusLower == 'cancel review' ||
+        taskStatusLower == 'cancel review';
+
+    // If "can_cancel_review": true then only show this dialog box else don't show
+    if (isCancelReview && task.canCancelReview != true) {
+      return;
+    }
+
     try {
-      isLoading.value = true;
-      Get.dialog(const CustomAppLoader(), barrierDismissible: false);
-      // Allow dialog to push before making fast network requests
-      await Future.delayed(const Duration(milliseconds: 50));
+      isFetchingDetails.value = true;
 
       final response = await _taskRepository.getTaskEditDetails(
         task.id.toString(),
         task.taskInstanceId.toString(),
       );
 
-      Get.back(); // Dismiss loading dialog
-
       // Clear existing inputs
       commentController.clear();
       approverCommentController.clear();
       attachments.clear();
 
+      TaskItem? taskData;
       if (response != null && response.data != null) {
-        final data = response.data!.taskInstanceId == 0
+        taskData = response.data!.taskInstanceId == 0
             ? response.data!.copyWith(taskInstanceId: task.taskInstanceId)
             : response.data!;
-        commentController.text = data.ucomment ?? '';
-        approverCommentController.text = data.approverComment == "NA"
-            ? ""
-            : (data.approverComment ?? '');
+
+        // Preserve permissions & status from caller task if absent in edit details
+        taskData = taskData.copyWith(
+          canCancelReview: taskData.canCancelReview ?? task.canCancelReview,
+          canCancelRequest: taskData.canCancelRequest ?? task.canCancelRequest,
+          taskStatus: taskData.taskStatus ?? task.taskStatus,
+          status: (taskData.status.isEmpty || taskData.status == 'pending') &&
+                  task.status.isNotEmpty
+              ? task.status
+              : taskData.status,
+        );
+
+        commentController.text = taskData.ucomment ?? '';
+        approverCommentController.text = (taskData.approverComment == null ||
+                taskData.approverComment!.trim().toUpperCase() == 'NA')
+            ? ''
+            : taskData.approverComment!;
 
         // Parse and add existing pictures
-        if (data.picture != null) {
+        if (taskData.picture != null) {
           try {
             List<dynamic> parsedPics = [];
-            if (data.picture is List) {
-              parsedPics = data.picture as List;
-            } else if (data.picture is String) {
-              final picStr = data.picture as String;
+            if (taskData.picture is List) {
+              parsedPics = taskData.picture as List;
+            } else if (taskData.picture is String) {
+              final picStr = taskData.picture as String;
               if (picStr.isNotEmpty && picStr != "[]" && picStr != "NA") {
                 parsedPics = jsonDecode(picStr);
               }
@@ -1370,10 +1632,26 @@ class TasksController extends GetxController {
             debugPrint("Error parsing pictures: $e");
           }
         }
+      }
+
+      if (taskData != null) {
+        final dataStatusLower = taskData.status.toLowerCase().trim();
+        final dataTaskStatusLower =
+            (taskData.taskStatus ?? '').toLowerCase().trim();
+        final isDataCancelReview = isCancelReview ||
+            dataStatusLower == 'cancel_review' ||
+            dataStatusLower == 'cancel review' ||
+            dataTaskStatusLower == 'cancel review';
+
+        if (isDataCancelReview &&
+            taskData.canCancelReview != true &&
+            task.canCancelReview != true) {
+          return;
+        }
 
         Get.dialog(
           TaskSubmissionDialog(
-            task: data,
+            task: taskData,
             isReview: isReview,
             isReadOnly: readOnly,
           ),
@@ -1385,13 +1663,12 @@ class TasksController extends GetxController {
         );
       }
     } catch (e) {
-      Get.back(); // Dismiss loading dialog
       AppCommonToastMessage.show(
         message: 'Error fetching task details: $e',
         type: ToastType.error,
       );
     } finally {
-      isLoading.value = false;
+      isFetchingDetails.value = false;
     }
   }
 
@@ -1422,7 +1699,8 @@ class TasksController extends GetxController {
     if (timeStr == null || timeStr.isEmpty) return null;
     try {
       final clean = timeStr.trim().toUpperCase();
-      final isPm = clean.endsWith('PM');
+      final hasAm = clean.endsWith('AM');
+      final hasPm = clean.endsWith('PM');
       final parts = clean
           .replaceAll('AM', '')
           .replaceAll('PM', '')
@@ -1430,8 +1708,8 @@ class TasksController extends GetxController {
           .split(':');
       int hour = int.parse(parts[0]);
       int minute = int.parse(parts[1]);
-      if (isPm && hour < 12) hour += 12;
-      if (!isPm && hour == 12) hour = 0;
+      if (hasPm && hour < 12) hour += 12;
+      if (hasAm && hour == 12) hour = 0;
       return TimeOfDay(hour: hour, minute: minute);
     } catch (_) {
       return null;

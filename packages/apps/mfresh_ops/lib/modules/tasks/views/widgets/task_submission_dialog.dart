@@ -120,7 +120,15 @@ class TaskSubmissionDialog extends StatelessWidget {
                     border: Border.all(color: AppColors.grey200),
                   ),
                   child: Text(
-                    task.status,
+                    (task.taskStatus != null && task.taskStatus!.isNotEmpty)
+                        ? task.taskStatus!
+                        : task.status
+                            .replaceAll('_', ' ')
+                            .split(' ')
+                            .where((w) => w.isNotEmpty)
+                            .map((w) =>
+                                '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+                            .join(' '),
                     style: AppTextStyle.style_10_400(
                       color: const Color(0xFF495057),
                     ),
@@ -346,53 +354,112 @@ class TaskSubmissionDialog extends StatelessWidget {
 
   Widget _buildSubmissionActions(TasksController controller) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        AppCommonButton(
-          text: 'Update',
-          height: 26.h,
-          width: 84.w,
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
-          useGradient: false,
-          buttonColor: const Color(0xFFDC3545),
-          onPressed: () => controller.submitTask(task, isUpdate: true),
+        Expanded(
+          child: AppCommonButton(
+            text: 'Update',
+            width: double.infinity,
+            height: 32.h,
+            padding: EdgeInsets.symmetric(horizontal: 2.w),
+            useGradient: false,
+            buttonColor: const Color(0xFFDC3545),
+            borderRadius: 6.r,
+            textSize: 11.sp,
+            onPressed: () => controller.submitTask(task, isUpdate: true),
+          ),
         ),
-        SizedBox(width: 12.w),
-        AppCommonButton(
-          text: 'Submit',
-          height: 26.h,
-          width: 84.w,
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
-          useGradient: false,
-          buttonColor: const Color(0xFF198754),
-          onPressed: () => controller.submitTask(task),
+        if (task.canCancelRequest == true ||
+            (task.canCancelRequest == null &&
+                task.status.toLowerCase() != 'cancel_review' &&
+                task.status.toLowerCase() != 'completed' &&
+                task.status.toLowerCase() != 'approved')) ...[
+          SizedBox(width: 6.w),
+          Expanded(
+            child: AppCommonButton(
+              text: 'Cancel Task',
+              width: double.infinity,
+              height: 32.h,
+              padding: EdgeInsets.symmetric(horizontal: 2.w),
+              useGradient: false,
+              buttonColor: const Color(0xFFFFA000),
+              borderRadius: 6.r,
+              textSize: 11.sp,
+              onPressed: () => controller.cancelTaskRequest(task),
+            ),
+          ),
+        ],
+        SizedBox(width: 6.w),
+        Expanded(
+          child: AppCommonButton(
+            text: 'Complete',
+            width: double.infinity,
+            height: 32.h,
+            padding: EdgeInsets.symmetric(horizontal: 2.w),
+            useGradient: false,
+            buttonColor: const Color(0xFF198754),
+            borderRadius: 6.r,
+            textSize: 11.sp,
+            onPressed: () => controller.submitTask(task),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildReviewActions(TasksController controller) {
+    final statusLower = task.status.toLowerCase().trim();
+    final taskStatusLower = (task.taskStatus ?? '').toLowerCase().trim();
+    final isCancelReview = statusLower == 'cancel_review' ||
+        statusLower == 'cancel review' ||
+        taskStatusLower == 'cancel review';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        AppCommonButton(
-          text: 'Reject',
-          height: 26.h,
-          width: 84.w,
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
-          useGradient: false,
-          buttonColor: const Color(0xFFDC3545),
-          onPressed: () => controller.rejectTask(task.taskInstanceId),
+        Expanded(
+          child: AppCommonButton(
+            text: isCancelReview ? 'Reject Cancel' : 'Reject',
+            height: 32.h,
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            useGradient: false,
+            buttonColor: const Color(0xFFDC3545),
+            borderRadius: 6.r,
+            textSize: 12.sp,
+            onPressed: () {
+              if (isCancelReview) {
+                controller.reviewTaskCancellation(
+                  taskInstanceId: task.taskInstanceId,
+                  action: 'reject',
+                );
+              } else {
+                controller.rejectTask(task.taskInstanceId);
+              }
+            },
+          ),
         ),
         SizedBox(width: 12.w),
-        AppCommonButton(
-          text: 'Approve',
-          height: 26.h,
-          width: 84.w,
-          padding: EdgeInsets.symmetric(horizontal: 8.w),
-          useGradient: false,
-          buttonColor: const Color(0xFF198754),
-          onPressed: () => controller.approveTask(task.taskInstanceId),
+        Expanded(
+          child: AppCommonButton(
+            text: isCancelReview ? 'Approve Cancel' : 'Approve',
+            height: 32.h,
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            useGradient: false,
+            buttonColor: const Color(0xFF198754),
+            borderRadius: 6.r,
+            textSize: 12.sp,
+            onPressed: () {
+              if (isCancelReview) {
+                controller.reviewTaskCancellation(
+                  taskInstanceId: task.taskInstanceId,
+                  action: 'approve',
+                );
+              } else {
+                controller.approveTask(task.taskInstanceId);
+              }
+            },
+          ),
         ),
       ],
     );

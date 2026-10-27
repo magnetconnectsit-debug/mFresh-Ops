@@ -83,7 +83,59 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
       final itemsToRender = controller.sortedTasks;
       final bool isLoading = controller.isLoading.value;
 
+      final canBulkDelete = Get.find<AuthRepository>()
+          .rxUserPermissions
+          .contains('task_bulk_delete');
+
       final columns = [
+        if (canBulkDelete)
+        AppTableColumn<TaskItem>(
+          key: 'Select',
+          title: '',
+          width: 30.w,
+          sortable: false,
+          alignment: Alignment.center,
+          headerWidget: Obx(
+            () {
+              final allSelected = itemsToRender.isNotEmpty &&
+                  itemsToRender.every((t) =>
+                      controller.selectedTaskInstanceIds.contains(t.taskInstanceId));
+              return SizedBox(
+                width: 16.r,
+                height: 16.r,
+                child: Checkbox(
+                  value: allSelected && itemsToRender.isNotEmpty,
+                  onChanged: (val) {
+                    controller.selectAllTasks(val ?? false);
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  activeColor: AppColors.blue500,
+                  side: BorderSide(color: AppColors.grey600, width: 1.5),
+                ),
+              );
+            },
+          ),
+          cellBuilder: (context, task, index, isExpanded) {
+            return Obx(
+              () => SizedBox(
+                width: 16.r,
+                height: 16.r,
+                child: Checkbox(
+                  value: controller.selectedTaskInstanceIds
+                      .contains(task.taskInstanceId),
+                  onChanged: (val) {
+                    controller.toggleTaskSelection(task.taskInstanceId);
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  activeColor: AppColors.blue500,
+                  side: BorderSide(color: AppColors.grey400, width: 1.5),
+                ),
+              ),
+            );
+          },
+        ),
         AppTableColumn<TaskItem>(
           key: 'Task ID',
           title: 'Task ID',
@@ -96,7 +148,20 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
               text: "${task.taskCode}_${task.taskInstanceId}",
               isExpanded: isRowExpanded,
               onTap: () {
-                final status = task.status.toLowerCase();
+                final status = task.status.toLowerCase().trim();
+                final taskStatus = (task.taskStatus ?? '').toLowerCase().trim();
+                final isCancelReview = status == 'cancel_review' ||
+                    status == 'cancel review' ||
+                    taskStatus == 'cancel review';
+                if (isCancelReview) {
+                  if (task.canCancelReview == true) {
+                    controller.fetchTaskSubmissionDetails(
+                      task,
+                      isReview: true,
+                    );
+                  }
+                  return;
+                }
                 if (status == 'completed' || status == 'approved') {
                   controller.fetchTaskSubmissionDetails(
                     task,
@@ -254,7 +319,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: _AllTasksStatusBadge(
-                  status: task.status,
+                  status: (task.taskStatus != null &&
+                          task.taskStatus!.isNotEmpty)
+                      ? task.taskStatus!
+                      : task.status,
                   isExpanded: isRowExpanded,
                 ),
               ),
@@ -378,7 +446,8 @@ class _AllTasksStatusBadge extends StatelessWidget {
   }
 
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    final lower = status.toLowerCase().replaceAll(' ', '_');
+    switch (lower) {
       case 'pending':
         return AppColors.warning;
       case 'in_progress':
@@ -387,10 +456,21 @@ class _AllTasksStatusBadge extends StatelessWidget {
       case 'approved':
         return AppColors.success;
       case 'rejected':
+      case 'cancelled':
         return AppColors.red;
+      case 'cancel_review':
+        return const Color(0xFFFFA000);
       case 'review':
       case 'under_review':
         return Colors.purple;
+      case 'active':
+        return const Color(0xFF28A745);
+      case 'overdue':
+        return const Color(0xFFE25C5C);
+      case 'upcoming':
+        return const Color(0xFFFFB822);
+      case 'due':
+        return AppColors.red;
       default:
         return AppColors.grey300;
     }

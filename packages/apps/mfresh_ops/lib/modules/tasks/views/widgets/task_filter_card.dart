@@ -1,3 +1,4 @@
+// region Imports
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,12 +6,24 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+// endregion
 
+// region TaskFilterCard Widget
 class TaskFilterCard extends StatelessWidget {
+  // region Properties
   final TasksController controller;
+  final bool showMonthYearFilter;
+  // endregion
 
-  const TaskFilterCard({super.key, required this.controller});
+  // region Constructor
+  const TaskFilterCard({
+    super.key,
+    required this.controller,
+    this.showMonthYearFilter = false,
+  });
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final userPermissions = Get.find<AuthRepository>().rxUserPermissions;
@@ -102,6 +115,26 @@ class TaskFilterCard extends StatelessWidget {
               }));
             }
 
+            if (showMonthYearFilter &&
+                controller.selectedYear.value != null &&
+                controller.selectedMonths.isNotEmpty) {
+              const monthNames = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+              ];
+              final sorted = List<int>.from(controller.selectedMonths)..sort();
+              final names = sorted
+                  .where((m) => m >= 1 && m <= 12)
+                  .map((m) => monthNames[m - 1])
+                  .toList();
+              final label = '${names.join(', ')} ${controller.selectedYear.value}';
+              chips.add(buildChip(label, () {
+                controller.selectedYear.value = null;
+                controller.selectedMonths.clear();
+                controller.applyFilters();
+              }));
+            }
+
             if (chips.isEmpty) return const SizedBox.shrink();
 
             return Padding(
@@ -115,126 +148,176 @@ class TaskFilterCard extends StatelessWidget {
               ),
             );
           }),
-          if (canFilterProject || canFilterUnit)
-            Row(
-              children: [
-                if (canFilterProject)
-                  Expanded(
-                    child: Obx(
-                      () => MultiSelectDropdownWidget<TaskProject>(
-                        label: 'Project',
-                        selectedValues: controller.selectedProjects.toSet(),
-                        items: controller.projects
-                            .map<DropdownMenuItem<TaskProject>>(
-                              (e) => DropdownMenuItem<TaskProject>(
-                                value: e,
-                                child: Text(
-                                  e.projectName,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey900,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (values) {
-                          controller.selectedProjects.assignAll(values);
-                          controller.applyFilters();
-                        },
-                      ),
+          Builder(
+            builder: (context) {
+              final List<Widget> fields = [];
+
+              if (showMonthYearFilter) {
+                fields.add(
+                  Obx(
+                    () => AppMultiMonthYearPickerField(
+                      label: 'Month / Year',
+                      selectedYear: controller.selectedYear.value,
+                      selectedMonths: controller.selectedMonths,
+                      onChanged: (result) {
+                        if (result == null) {
+                          controller.selectedYear.value = null;
+                          controller.selectedMonths.clear();
+                        } else {
+                          controller.selectedYear.value = result.year;
+                          controller.selectedMonths.assignAll(result.months);
+                        }
+                        controller.applyFilters();
+                      },
                     ),
                   ),
-                if (canFilterProject && canFilterUnit) SizedBox(width: 8.w),
-                if (canFilterUnit)
-                  Expanded(
-                    child: Obx(
-                      () => MultiSelectDropdownWidget<SupportUnit>(
-                        label: 'Unit',
-                        selectedValues: controller.selectedUnits.toSet(),
-                        items: controller.units
-                            .map<DropdownMenuItem<SupportUnit>>(
-                              (e) => DropdownMenuItem<SupportUnit>(
-                                value: e,
-                                child: Text(
-                                  e.unitName,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey900,
-                                  ),
+                );
+              }
+
+              if (canFilterProject) {
+                fields.add(
+                  Obx(
+                    () => MultiSelectDropdownWidget<TaskProject>(
+                      label: 'Project',
+                      selectedValues: controller.selectedProjects.toSet(),
+                      items: controller.projects
+                          .map<DropdownMenuItem<TaskProject>>(
+                            (e) => DropdownMenuItem<TaskProject>(
+                              value: e,
+                              child: Text(
+                                e.projectName,
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
                                 ),
                               ),
-                            )
-                            .toList(),
-                        onChanged: (values) {
-                          controller.selectedUnits.assignAll(values);
-                          controller.applyFilters();
-                        },
-                      ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedProjects.assignAll(values);
+                        controller.applyFilters();
+                      },
                     ),
                   ),
-              ],
-            ),
-          if ((canFilterProject || canFilterUnit) && (canFilterGroup || canFilterAssignee))
-            SizedBox(height: 4.h),
-          if (canFilterGroup || canFilterAssignee)
-            Row(
-              children: [
-                if (canFilterGroup)
-                  Expanded(
-                    child: Obx(
-                      () => MultiSelectDropdownWidget<TaskGroup>(
-                        label: 'Group',
-                        selectedValues: controller.selectedGroups.toSet(),
-                        items: controller.groups
-                            .map<DropdownMenuItem<TaskGroup>>(
-                              (e) => DropdownMenuItem<TaskGroup>(
-                                value: e,
-                                child: Text(
-                                  e.roleName,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey900,
-                                  ),
+                );
+              }
+
+              if (canFilterUnit) {
+                fields.add(
+                  Obx(
+                    () => MultiSelectDropdownWidget<SupportUnit>(
+                      label: 'Unit',
+                      selectedValues: controller.selectedUnits.toSet(),
+                      items: controller.units
+                          .map<DropdownMenuItem<SupportUnit>>(
+                            (e) => DropdownMenuItem<SupportUnit>(
+                              value: e,
+                              child: Text(
+                                e.unitName,
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
                                 ),
                               ),
-                            )
-                            .toList(),
-                        onChanged: (values) {
-                          controller.selectedGroups.assignAll(values);
-                          controller.applyFilters();
-                        },
-                      ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedUnits.assignAll(values);
+                        controller.applyFilters();
+                      },
                     ),
                   ),
-                if (canFilterGroup && canFilterAssignee) SizedBox(width: 8.w),
-                if (canFilterAssignee)
-                  Expanded(
-                    child: Obx(
-                      () => MultiSelectDropdownWidget<AssigneeModel>(
-                        label: 'Assignee',
-                        selectedValues: controller.selectedAssignees.toSet(),
-                        items: controller.assignees
-                            .map<DropdownMenuItem<AssigneeModel>>(
-                              (e) => DropdownMenuItem<AssigneeModel>(
-                                value: e,
-                                child: Text(
-                                  e.name,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey900,
-                                  ),
+                );
+              }
+
+              if (canFilterGroup) {
+                fields.add(
+                  Obx(
+                    () => MultiSelectDropdownWidget<TaskGroup>(
+                      label: 'Group',
+                      selectedValues: controller.selectedGroups.toSet(),
+                      items: controller.groups
+                          .map<DropdownMenuItem<TaskGroup>>(
+                            (e) => DropdownMenuItem<TaskGroup>(
+                              value: e,
+                              child: Text(
+                                e.roleName,
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
                                 ),
                               ),
-                            )
-                            .toList(),
-                        onChanged: (values) {
-                          controller.selectedAssignees.assignAll(values);
-                          controller.applyFilters();
-                        },
-                      ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedGroups.assignAll(values);
+                        controller.applyFilters();
+                      },
                     ),
                   ),
-              ],
-            ),
+                );
+              }
+
+              if (canFilterAssignee) {
+                fields.add(
+                  Obx(
+                    () => MultiSelectDropdownWidget<AssigneeModel>(
+                      label: 'Assignee',
+                      selectedValues: controller.selectedAssignees.toSet(),
+                      items: controller.assignees
+                          .map<DropdownMenuItem<AssigneeModel>>(
+                            (e) => DropdownMenuItem<AssigneeModel>(
+                              value: e,
+                              child: Text(
+                                e.name,
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        controller.selectedAssignees.assignAll(values);
+                        controller.applyFilters();
+                      },
+                    ),
+                  ),
+                );
+              }
+
+              if (fields.isEmpty) return const SizedBox.shrink();
+
+              final List<Widget> rows = [];
+              for (int i = 0; i < fields.length; i += 2) {
+                if (i > 0) {
+                  rows.add(SizedBox(height: 4.h));
+                }
+                final first = fields[i];
+                final hasSecond = i + 1 < fields.length;
+                final second = hasSecond ? fields[i + 1] : const SizedBox.shrink();
+
+                rows.add(
+                  Row(
+                    children: [
+                      Expanded(child: first),
+                      SizedBox(width: 8.w),
+                      Expanded(child: second),
+                    ],
+                  ),
+                );
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: rows,
+              );
+            },
+          ),
         ],
       ),
     );
   }
+  // endregion
 }
+// endregion

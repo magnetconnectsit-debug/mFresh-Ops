@@ -94,6 +94,7 @@ class TaskItem {
   final String updatedAt;
   final int taskInstanceId;
   final String? instanceCode;
+  final String? instanceEndDate;
   final String scheduleDateTime;
   final String status;
   final String? assigneeName;
@@ -112,6 +113,9 @@ class TaskItem {
   final String? ucomment;
   final String? approverComment;
   final String? taskDayStatus;
+  final String? taskStatus;
+  final bool? canCancelRequest;
+  final bool? canCancelReview;
   final String? badgeText;
   final String? masterStartDate;
   final String? masterEndDate;
@@ -168,6 +172,7 @@ class TaskItem {
     required this.updatedAt,
     required this.taskInstanceId,
     this.instanceCode,
+    this.instanceEndDate,
     required this.scheduleDateTime,
     required this.status,
     this.assigneeName,
@@ -202,6 +207,9 @@ class TaskItem {
     this.yearlyWeek,
     this.yearlyDayName,
     this.yearlyMonth2,
+    this.taskStatus,
+    this.canCancelRequest,
+    this.canCancelReview,
   });
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
@@ -335,6 +343,7 @@ class TaskItem {
       updatedAt: json['updated_at'] ?? '',
       taskInstanceId: parsedInstanceId,
       instanceCode: json['instance_code'],
+      instanceEndDate: json['instance_end_date']?.toString(),
       scheduleDateTime:
           json['shedule_date_time'] ??
           json['schedule_date_time'] ??
@@ -363,6 +372,24 @@ class TaskItem {
           json['backend_day_status'] ??
           json['ui_state'] ??
           json['task_day_status'],
+      taskStatus:
+          json['task_status']?.toString() ?? json['taskStatus']?.toString(),
+      canCancelRequest: json.containsKey('can_cancel_request') &&
+              json['can_cancel_request'] != null
+          ? (json['can_cancel_request'] is bool
+              ? json['can_cancel_request'] as bool
+              : (json['can_cancel_request'] == 1 ||
+                  json['can_cancel_request'] == '1' ||
+                  json['can_cancel_request'] == 'true'))
+          : null,
+      canCancelReview: json.containsKey('can_cancel_review') &&
+              json['can_cancel_review'] != null
+          ? (json['can_cancel_review'] is bool
+              ? json['can_cancel_review'] as bool
+              : (json['can_cancel_review'] == 1 ||
+                  json['can_cancel_review'] == '1' ||
+                  json['can_cancel_review'] == 'true'))
+          : null,
       badgeText:
           json['badge_text']?.toString() ?? json['badgeText']?.toString(),
       masterStartDate:
@@ -448,6 +475,7 @@ class TaskItem {
     String? updatedAt,
     int? taskInstanceId,
     String? instanceCode,
+    String? instanceEndDate,
     String? scheduleDateTime,
     String? status,
     String? assigneeName,
@@ -464,6 +492,9 @@ class TaskItem {
     String? ucomment,
     String? approverComment,
     String? taskDayStatus,
+    String? taskStatus,
+    bool? canCancelRequest,
+    bool? canCancelReview,
     String? badgeText,
     String? masterStartDate,
     String? masterEndDate,
@@ -514,6 +545,7 @@ class TaskItem {
       updatedAt: updatedAt ?? this.updatedAt,
       taskInstanceId: taskInstanceId ?? this.taskInstanceId,
       instanceCode: instanceCode ?? this.instanceCode,
+      instanceEndDate: instanceEndDate ?? this.instanceEndDate,
       scheduleDateTime: scheduleDateTime ?? this.scheduleDateTime,
       status: status ?? this.status,
       assigneeName: assigneeName ?? this.assigneeName,
@@ -530,6 +562,9 @@ class TaskItem {
       ucomment: ucomment ?? this.ucomment,
       approverComment: approverComment ?? this.approverComment,
       taskDayStatus: taskDayStatus ?? this.taskDayStatus,
+      taskStatus: taskStatus ?? this.taskStatus,
+      canCancelRequest: canCancelRequest ?? this.canCancelRequest,
+      canCancelReview: canCancelReview ?? this.canCancelReview,
       badgeText: badgeText ?? this.badgeText,
       masterStartDate: masterStartDate ?? this.masterStartDate,
       masterEndDate: masterEndDate ?? this.masterEndDate,

@@ -665,6 +665,8 @@ curl -X POST "https://dev-api.mfresh.in/api/task-index" \
 | `units` | `List<int>` | Yes | Array of Unit IDs. Empty `[]` for all. |
 | `assignees` | `List<int>` | Yes | Array of Assignee IDs. Empty `[]` for all. |
 | `groups` | `List<int>` | Yes | Array of Security Group IDs. Empty `[]` for all. |
+| `filter_year` | `int` | No | Target calendar year (e.g., `2026`). Sent when month/year filter is applied. |
+| `months` | `List<int>` | No | Array of 1-indexed month integers (e.g., `[10, 11, 12]` for Oct, Nov, Dec). |
 
 * **Example Success Response (200 OK):**
 ```json
@@ -1610,6 +1612,39 @@ curl -X POST "https://dev-api.mfresh.in/api/reject-task" \
 
 ---
 
+#### E. Task Cancellation Request (`POST /public/api/task/cancel-request`)
+Field staff requests cancellation of an assigned task instance with a required justification comment. Requires supervisor review and approval before cancellation takes effect (`task_status: "cancel_review"`).
+
+* **cURL:**
+```bash
+curl --location 'https://opsapi.magnetconnects.com/public/api/task/cancel-request' \
+  -H "Authorization: Bearer <AUTH_TOKEN>" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "task_instance_id": 1618,
+    "comment": "Cancel this task sir as im on holiday"
+}'
+```
+
+* **JSON Body Parameters:**
+  * `task_instance_id`: Target instance ID (integer, required).
+  * `comment`: Detailed cancellation reason (string, required).
+
+* **Example Success Response (200 OK):**
+```json
+{
+  "status": true,
+  "task_status": "cancel_review",
+  "message": "Task cancellation request sent for approval.",
+  "data": {
+    "task_instance_id": 1618,
+    "review_user_id": 1
+  }
+}
+```
+
+---
+
 ### 6.6 Client-Side Export Specifications (Excel & PDF)
 
 The All Tasks screen supports exporting currently loaded or filtered data. Export generation occurs **entirely client-side** without dedicated export backend endpoints:
@@ -1702,4 +1737,19 @@ Returned when the logged-in user lacks necessary operational permission (e.g. at
 3. **`task_review_screen.dart`**: Orphaned view with dummy callbacks. The app currently uses `TaskSubmissionDialog` popup everywhere.
 4. **Pagination in `AllTasksScreen`**: Currently calls `getTasks(perPage: 10000)` and sorts/slices on client. Server-side pagination should be evaluated as datasets scale.
 5. **Periodic Timer Overhead**: 1-second global timer updates every card simultaneously. Can be optimized with localized ticker widgets.
+
+---
+
+## 8. Revision History & Change Log
+
+| Date | Author | Description |
+|---|---|---|
+| 2026-10-27 | Antigravity AI | Integrated Month/Year multi-select filter (`AppMultiMonthYearPickerField`) into `AllTasksScreen` filter bar. Updated `TaskRepository.getTasks` and `TasksController` to pass `filter_year: int` and `months: List<int>` (e.g. `[10, 11, 12]`) to `POST /api/task-index`. |
+| 2026-10-26 | Antigravity AI | Integrated `task/cancel-review` API (`action: 'approve' | 'reject'`) for `Reject Cancel` and `Approve Cancel` buttons in `TaskSubmissionDialog`. Strictly restricted review dialog display so it only opens when `can_cancel_review: true`. |
+| 2026-10-26 | Antigravity AI | Parsed `task_status`, `can_cancel_request`, and `can_cancel_review` from API response in `TaskItem`. Directly display `task_status` from server (e.g. `Cancel Review`) on cards and submission dialogs, and conditionally render 'Cancel Task' button strictly based on `can_cancel_request`. |
+| 2026-10-26 | Antigravity AI | Fixed stuck loader by replacing modal route `Get.dialog(CustomAppLoader)` in `editTaskDetails` and `fetchTaskSubmissionDetails` with in-place reactive overlay (`isFetchingDetails`). |
+| 2026-10-26 | Antigravity AI | Integrated task cancellation request (`task/cancel-request`) with confirmation dialog and updated `TaskSubmissionDialog` action row (`Update`, `Cancel Task`, `Complete`). Enforced 12-hour format strictly in `EditTaskScreen` time pickers. |
+| 2026-10-24 | Antigravity AI | Connected Tab Bar integration and standardized month filter chips. |
+| 2026-10-15 | Banamali Nayak | Initial documentation and architecture mapping for Task Scheduler. |
+
 

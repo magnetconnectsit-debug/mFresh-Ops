@@ -105,6 +105,9 @@ class AppConstants {
   static const String deleteTask = 'delete-Task';
   static const String userTaskFilter = 'User_task_filter';
   static const String dailyTaskFilterApi = 'DailyTaskFilterApi';
+  static const String taskCancelRequest = 'task/cancel-request';
+  static const String taskCancelReview = 'task/cancel-review';
+  static const String bulkDeleteTask = 'bulk-delete-task';
 
   // Payment Reminder
   static const String paymentIndex = 'payment-index';

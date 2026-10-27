@@ -55,6 +55,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   int _currentStep =
       0; // 0: Step 1 (Title, Description, Dates/Recurrence), 1: Step 2 (Group, Assignee, Unit, Project, Rules)
+  TaskItem? _task;
   // endregion
 
   // region Lifecycle Methods
@@ -372,7 +373,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TasksController>();
-    final TaskItem? task = Get.arguments;
+    if (_task == null && Get.arguments is TaskItem) {
+      _task = Get.arguments as TaskItem;
+    }
+    final task = _task;
     final isEdit = task != null;
 
     if (!controller.formInitialized.value) {

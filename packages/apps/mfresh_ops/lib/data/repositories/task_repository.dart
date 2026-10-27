@@ -54,18 +54,27 @@ class TaskRepository extends GetxService {
     List<int> units = const [],
     List<int> assignees = const [],
     List<int> groups = const [],
+    int? filterYear,
+    List<int> months = const [],
   }) async {
     try {
+      final Map<String, dynamic> payload = {
+        "page": page,
+        "per_page": perPage,
+        "projects": projects,
+        "units": units,
+        "assignees": assignees,
+        "groups": groups,
+      };
+      if (filterYear != null) {
+        payload["filter_year"] = filterYear;
+      }
+      if (months.isNotEmpty) {
+        payload["months"] = months;
+      }
       final response = await _apiService.post(
         AppConstants.taskIndex,
-        data: {
-          "page": page,
-          "per_page": perPage,
-          "projects": projects,
-          "units": units,
-          "assignees": assignees,
-          "groups": groups,
-        },
+        data: payload,
       );
       if (response != null && response['status'] == true) {
         return TaskListResponse.fromJson(response);
@@ -237,4 +246,60 @@ class TaskRepository extends GetxService {
       rethrow;
     }
   }
+
+  Future<dynamic> cancelTaskRequest({
+    required int taskInstanceId,
+    required String comment,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.taskCancelRequest,
+        data: {
+          'task_instance_id': taskInstanceId,
+          'comment': comment,
+        },
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<dynamic> cancelReviewTask({
+    required int taskInstanceId,
+    required String action, // "approve" or "reject"
+    required String comment,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.taskCancelReview,
+        data: {
+          'task_instance_id': taskInstanceId,
+          'action': action,
+          'comment': comment,
+        },
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // region Bulk Delete
+  Future<dynamic> bulkDeleteTasks({
+    required List<int> instanceIds,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bulkDeleteTask,
+        data: {
+          'instance_ids': instanceIds,
+        },
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+  // endregion
 }

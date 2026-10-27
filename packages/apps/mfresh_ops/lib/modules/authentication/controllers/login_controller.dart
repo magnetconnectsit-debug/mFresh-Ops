@@ -53,12 +53,6 @@ class LoginController extends GetxController {
   @override
   void onClose() {
     FocusManager.instance.primaryFocus?.unfocus();
-    usernameController.dispose();
-    passwordController.dispose();
-    otpController.dispose();
-    mobileFocusNode.dispose();
-    passwordFocusNode.dispose();
-    otpFocusNode.dispose();
     super.onClose();
   }
   // endregion

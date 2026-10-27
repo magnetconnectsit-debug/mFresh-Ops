@@ -20,7 +20,7 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.isRegistered<LoginController>()
         ? Get.find<LoginController>()
-        : Get.put(LoginController());
+        : Get.put(LoginController(), permanent: true);
 
     return Scaffold(
       backgroundColor: AppColors.white,
