@@ -244,42 +244,48 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildMobileField(LoginController controller) {
-    return Obx(
-      () => AppCommonTextField(
-        key: const ValueKey('login_mobile_field'),
+    return Obx(() {
+      final isOtp = controller.isOtpLogin.value;
+      // In password mode (Booking or Operation), user can enter User ID, Mobile, or Email.
+      final isFreeTextLoginId = !isOtp;
+
+      return AppCommonTextField(
+        key: ValueKey('login_input_${isFreeTextLoginId ? "id" : "mobile"}'),
         controller: controller.usernameController,
         focusNode: controller.mobileFocusNode,
-        titleText: 'Mobile Number',
-        hintText: 'Enter Mobile Number',
+        titleText: isFreeTextLoginId ? 'User ID / Mobile / Email' : 'Mobile Number',
+        hintText: isFreeTextLoginId ? 'Enter User ID, Mobile or Email' : 'Enter Mobile Number',
         useFloatingLabel: true,
-        keyboardType: TextInputType.phone,
-        maxLength: 10,
+        keyboardType: isFreeTextLoginId ? TextInputType.text : TextInputType.phone,
+        maxLength: isFreeTextLoginId ? 50 : 10,
         borderRadius: 8.r,
         fillColor: AppColors.white,
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         prefixIconConstraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
         prefixIcon: Icon(
-          Icons.phone_android_rounded,
+          isFreeTextLoginId ? Icons.account_circle_outlined : Icons.phone_android_rounded,
           size: 18.sp,
           color: AppColors.iconPrimary,
         ),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(10),
-        ],
-        validator: controller.validateMobileNumber,
-        textInputAction: controller.isOtpLogin.value
-            ? TextInputAction.done
-            : TextInputAction.next,
+        inputFormatters: isFreeTextLoginId
+            ? null
+            : [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ],
+        validator: isFreeTextLoginId
+            ? (val) => (val == null || val.trim().isEmpty) ? 'Please enter Login ID' : null
+            : controller.validateMobileNumber,
+        textInputAction: isOtp ? TextInputAction.done : TextInputAction.next,
         onFieldSubmitted: (_) {
-          if (controller.isOtpLogin.value) {
+          if (isOtp) {
             controller.handleLoginAction();
           } else {
             controller.passwordFocusNode.requestFocus();
           }
         },
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildPasswordField(LoginController controller) {

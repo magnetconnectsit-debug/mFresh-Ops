@@ -23,6 +23,16 @@ class AppConstants {
   static const String sendOtp = 'adminsend-otp';
   static const String verifyOtp = 'adminverify-otp';
 
+  // Booking & Guest Authentication
+  static const String bookingSendOtp = 'booking/send-otp';
+  static const String bookingVerifyOtp = 'booking/verify-otp';
+  static const String bookingGuestCheckMobile = 'booking-guest/check-mobile';
+  static const String bookingGuestRegister = 'booking-guest/register';
+  static const String bookingGuestSendOtp = 'booking-guest/send-otp';
+  static const String bookingGuestVerifyOtp = 'booking-guest/verify-otp';
+  static const String adminBookingUnits = 'admin-booking/units';
+  static const String bookingSession = 'booking/session';
+
   // Attendance
   static const String attendanceCheckIn = 'attendance/check-in';
   static const String attendanceCheckOut = 'attendance/check-out';

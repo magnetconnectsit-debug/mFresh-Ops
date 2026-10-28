@@ -45,21 +45,32 @@ class UnitModel {
       }
     }
 
-    final rawId = json['Id'] ?? json['id'] ?? json['unitid'] ?? json['unit_id'] ?? 0;
+    final Map<String, dynamic> source = json['unit'] is Map
+        ? Map<String, dynamic>.from(json['unit'])
+        : json;
+
+    final rawId = source['Id'] ??
+        source['id'] ??
+        source['unitid'] ??
+        source['unit_id'] ??
+        json['id'] ??
+        0;
     final int id = rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
-    final String unitId = (json['Unit_Id'] ??
-            json['unit_id'] ??
-            json['unitId'] ??
-            json['unit_name'] ??
-            json['unitname'] ??
+    final String unitId = (source['Unit_Id'] ??
+            source['unit_id'] ??
+            source['unitId'] ??
+            source['unit_name'] ??
+            source['unitname'] ??
+            json['qrcode_id'] ??
+            json['qrcodeId'] ??
+            id.toString())
+        .toString();
+    final String unitLocation = (source['Unit_location'] ??
+            source['unit_location'] ??
+            source['location'] ??
             '')
         .toString();
-    final String unitLocation = (json['Unit_location'] ??
-            json['unit_location'] ??
-            json['location'] ??
-            '')
-        .toString();
-    final String timing = (json['timing'] ?? json['Timing'] ?? '').toString();
+    final String timing = (source['timing'] ?? source['Timing'] ?? '').toString();
 
     return UnitModel(
       id: id,

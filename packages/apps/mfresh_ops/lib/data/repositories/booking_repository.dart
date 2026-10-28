@@ -89,6 +89,33 @@ class BookingRepository extends GetxService {
 
   Future<List<UnitModel>> getAllUnits() async {
     try {
+      // First attempt to call the dedicated /admin-booking/units endpoint
+      final adminResponse = await _apiService.get(
+        AppConstants.adminBookingUnits,
+      );
+
+      if (adminResponse != null && adminResponse is Map && adminResponse['status'] == true) {
+        final data = adminResponse['data'];
+        final List rawUnits = data is Map && data['units'] is List
+            ? data['units']
+            : (data is List ? data : []);
+
+        if (rawUnits.isNotEmpty) {
+          return rawUnits.map((e) {
+            if (e is Map<String, dynamic>) {
+              return UnitModel.fromJson(e);
+            } else if (e is Map) {
+              return UnitModel.fromJson(Map<String, dynamic>.from(e));
+            }
+            return UnitModel.fromJson({});
+          }).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint("admin-booking/units fallback to customer/All-Units: $e");
+    }
+
+    try {
       final response = await _apiService.post(
         AppConstants.allUnits,
         data: {},
@@ -108,6 +135,10 @@ class BookingRepository extends GetxService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<List<UnitModel>> getAdminBookingUnits() async {
+    return getAllUnits();
   }
 
   Future<Map<String, dynamic>?> initiateBooking({

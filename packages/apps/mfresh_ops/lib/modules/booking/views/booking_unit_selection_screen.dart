@@ -9,6 +9,7 @@ import 'package:mfresh_ops/modules/booking/views/widgets/unit_card.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -71,14 +72,21 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                 title: const Text('Booking'),
                 actions: [
                   IconButton(
+                    tooltip: 'Booking History',
                     icon: const Icon(Icons.history),
                     onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
                   ),
                   IconButton(
+                    tooltip: 'Profile',
                     icon: const Icon(Icons.account_circle),
                     onPressed: () {
                       Get.toNamed(AppRoutes.profile);
                     },
+                  ),
+                  IconButton(
+                    tooltip: 'Logout',
+                    icon: const Icon(Icons.logout, color: AppColors.error),
+                    onPressed: () => _handleLogout(context),
                   ),
                 ],
               ),
@@ -139,10 +147,11 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                           ),
                           Obx(() {
                             final user = profileController.user.value;
+                            if (user == null) return const SizedBox.shrink();
                             final bool canScan =
-                                user?.appPermissions?.scannerAccess ?? false;
+                                user.appPermissions?.scannerAccess ?? false;
 
-                            if (user != null && canScan) {
+                            if (canScan) {
                               return Align(
                                 alignment: Alignment.centerRight,
                                 child: InkWell(
@@ -500,6 +509,42 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
       } finally {
         _isProcessingScan = false;
       }
+    }
+  }
+
+  void _handleLogout(BuildContext context) async {
+    final bool confirm = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Logout',
+      message: 'Are you sure you want to logout from Booking mode?',
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      isDanger: true,
+    );
+
+    if (!confirm) return;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: Center(child: CustomAppLoader()),
+      ),
+    );
+
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().logout();
+      }
+    } catch (e) {
+      debugPrint('Logout error: $e');
+    } finally {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      Get.offAllNamed(AppRoutes.login);
     }
   }
 }

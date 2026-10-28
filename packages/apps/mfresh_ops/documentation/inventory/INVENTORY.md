@@ -3,6 +3,7 @@
 > **Package:** `packages/apps/mfresh_ops`  
 > **Module:** Inventory (`lib/modules/inventory/`)  
 > **Last Updated:** 2026-10-23  
+> **Maintainer:** Banamali Nayak
 
 ---
 

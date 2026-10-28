@@ -1744,6 +1744,7 @@ Returned when the logged-in user lacks necessary operational permission (e.g. at
 
 | Date | Author | Description |
 |---|---|---|
+| 2026-10-28 | Antigravity AI | Fixed All Tasks table row expansion height constraint by syncing `expandedRowIndices` with `AppCommonTable`, removing cell-level desync and allowing dynamic `IntrinsicHeight` multiline expansion. |
 | 2026-10-27 | Antigravity AI | Integrated Month/Year multi-select filter (`AppMultiMonthYearPickerField`) into `AllTasksScreen` filter bar. Updated `TaskRepository.getTasks` and `TasksController` to pass `filter_year: int` and `months: List<int>` (e.g. `[10, 11, 12]`) to `POST /api/task-index`. |
 | 2026-10-26 | Antigravity AI | Integrated `task/cancel-review` API (`action: 'approve' | 'reject'`) for `Reject Cancel` and `Approve Cancel` buttons in `TaskSubmissionDialog`. Strictly restricted review dialog display so it only opens when `can_cancel_review: true`. |
 | 2026-10-26 | Antigravity AI | Parsed `task_status`, `can_cancel_request`, and `can_cancel_review` from API response in `TaskItem`. Directly display `task_status` from server (e.g. `Cancel Review`) on cards and submission dialogs, and conditionally render 'Cancel Task' button strictly based on `can_cancel_request`. |

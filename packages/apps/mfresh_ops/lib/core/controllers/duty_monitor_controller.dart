@@ -4,6 +4,7 @@ import 'package:core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
 
 class DutyMonitorController extends GetxController with WidgetsBindingObserver {
@@ -65,9 +66,26 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
     });
   }
 
+  bool _isBookingRoute() {
+    final currentRoute = Get.currentRoute;
+    if (currentRoute == AppRoutes.bookingUnitSelection ||
+        currentRoute == AppRoutes.serviceDetails ||
+        currentRoute == AppRoutes.bookingHistory ||
+        currentRoute == AppRoutes.bookingConfirmed ||
+        currentRoute == AppRoutes.printReceipt ||
+        currentRoute.contains('booking') ||
+        currentRoute.contains('service-details')) {
+      return true;
+    }
+    return false;
+  }
+
   void _checkDutyState() {
     if (_isDialogShowing) return;
     if (_isInGracePeriod) return;
+
+    // Do not show off-duty dialog in booking mode or when on booking screens
+    if (_isBookingRoute()) return;
 
     final user = Get.find<StorageService>().getUser();
     if (user == null) return; // Not logged in

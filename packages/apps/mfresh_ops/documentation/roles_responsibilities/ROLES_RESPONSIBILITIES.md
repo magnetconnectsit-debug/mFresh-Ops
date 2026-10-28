@@ -4,6 +4,7 @@
 > **Package:** `mfresh_ops` (`packages/apps/mfresh_ops`)  
 > **Status:** Active / Production Compliant  
 > **Last Updated:** 2026-10-23  
+> **Maintainer:** Banamali Nayak
 
 ---
 
