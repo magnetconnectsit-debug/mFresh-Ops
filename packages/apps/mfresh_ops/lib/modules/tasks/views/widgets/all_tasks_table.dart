@@ -21,15 +21,19 @@ class AllTasksTableWidget extends StatefulWidget {
   State<AllTasksTableWidget> createState() => _AllTasksTableWidgetState();
 }
 
+// region State
 class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
-  final Set<String> _expandedRows = {};
+  // region Observables & State Variables
+  final Set<int> _expandedRowIndices = {};
+  // endregion
 
-  void _toggleRow(String key) {
+  // region Business Logic & Helpers
+  void _toggleRow(int index) {
     setState(() {
-      if (_expandedRows.contains(key)) {
-        _expandedRows.remove(key);
+      if (_expandedRowIndices.contains(index)) {
+        _expandedRowIndices.remove(index);
       } else {
-        _expandedRows.add(key);
+        _expandedRowIndices.add(index);
       }
     });
   }
@@ -74,7 +78,9 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
       return dateStr;
     }
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
@@ -89,64 +95,62 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
 
       final columns = [
         if (canBulkDelete)
-        AppTableColumn<TaskItem>(
-          key: 'Select',
-          title: '',
-          width: 30.w,
-          sortable: false,
-          alignment: Alignment.center,
-          headerWidget: Obx(
-            () {
-              final allSelected = itemsToRender.isNotEmpty &&
-                  itemsToRender.every((t) =>
-                      controller.selectedTaskInstanceIds.contains(t.taskInstanceId));
-              return SizedBox(
-                width: 16.r,
-                height: 16.r,
-                child: Checkbox(
-                  value: allSelected && itemsToRender.isNotEmpty,
-                  onChanged: (val) {
-                    controller.selectAllTasks(val ?? false);
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  activeColor: AppColors.blue500,
-                  side: BorderSide(color: AppColors.grey600, width: 1.5),
+          AppTableColumn<TaskItem>(
+            key: 'Select',
+            title: '',
+            width: 30.w,
+            sortable: false,
+            alignment: Alignment.center,
+            headerWidget: Obx(
+              () {
+                final allSelected = itemsToRender.isNotEmpty &&
+                    itemsToRender.every((t) =>
+                        controller.selectedTaskInstanceIds.contains(t.taskInstanceId));
+                return SizedBox(
+                  width: 16.r,
+                  height: 16.r,
+                  child: Checkbox(
+                    value: allSelected && itemsToRender.isNotEmpty,
+                    onChanged: (val) {
+                      controller.selectAllTasks(val ?? false);
+                    },
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    activeColor: AppColors.blue500,
+                    side: BorderSide(color: AppColors.grey600, width: 1.5),
+                  ),
+                );
+              },
+            ),
+            cellBuilder: (context, task, index, isExpanded) {
+              return Obx(
+                () => SizedBox(
+                  width: 16.r,
+                  height: 16.r,
+                  child: Checkbox(
+                    value: controller.selectedTaskInstanceIds
+                        .contains(task.taskInstanceId),
+                    onChanged: (val) {
+                      controller.toggleTaskSelection(task.taskInstanceId);
+                    },
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    activeColor: AppColors.blue500,
+                    side: BorderSide(color: AppColors.grey400, width: 1.5),
+                  ),
                 ),
               );
             },
           ),
-          cellBuilder: (context, task, index, isExpanded) {
-            return Obx(
-              () => SizedBox(
-                width: 16.r,
-                height: 16.r,
-                child: Checkbox(
-                  value: controller.selectedTaskInstanceIds
-                      .contains(task.taskInstanceId),
-                  onChanged: (val) {
-                    controller.toggleTaskSelection(task.taskInstanceId);
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  activeColor: AppColors.blue500,
-                  side: BorderSide(color: AppColors.grey400, width: 1.5),
-                ),
-              ),
-            );
-          },
-        ),
         AppTableColumn<TaskItem>(
           key: 'Task ID',
           title: 'Task ID',
           width: 100.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: "${task.taskCode}_${task.taskInstanceId}",
-              isExpanded: isRowExpanded,
+              isExpanded: isExpanded,
               onTap: () {
                 final status = task.status.toLowerCase().trim();
                 final taskStatus = (task.taskStatus ?? '').toLowerCase().trim();
@@ -187,12 +191,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 80.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _sanitize(task.project ?? 'mFresh'),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -202,12 +204,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 200.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: task.title,
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -217,12 +217,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 140.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _formatDateTime(task.createdAt),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -232,14 +230,12 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 120.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _sanitize(
                 task.createdByName ?? task.approverName ?? 'NA',
               ),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -249,12 +245,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 85.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _sanitize(task.taskType.capitalizeFirst ?? 'NA'),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -264,14 +258,12 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 120.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _sanitize(
                 (task.assigneeName ?? '').replaceAll('_', ' '),
               ),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -281,12 +273,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 140.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _formatDateTime(task.scheduleDateTime),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -296,12 +286,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 120.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _sanitize(task.completedByName ?? ''),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -311,10 +299,8 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 90.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return GestureDetector(
-              onTap: () => _toggleRow(rowKey),
+              onTap: () => _toggleRow(index),
               behavior: HitTestBehavior.opaque,
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -323,7 +309,7 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
                           task.taskStatus!.isNotEmpty)
                       ? task.taskStatus!
                       : task.status,
-                  isExpanded: isRowExpanded,
+                  isExpanded: isExpanded,
                 ),
               ),
             );
@@ -335,12 +321,10 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           width: 120.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, task, index, isExpanded) {
-            final rowKey = "${task.taskCode}_${task.taskInstanceId}";
-            final isRowExpanded = _expandedRows.contains(rowKey);
             return _AllTasksDataCell(
               text: _sanitize(task.approverName ?? ''),
-              isExpanded: isRowExpanded,
-              onTap: () => _toggleRow(rowKey),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
             );
           },
         ),
@@ -361,6 +345,16 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
           AppCommonTable<TaskItem>(
             items: itemsToRender,
             columns: columns,
+            expandedRowIndices: _expandedRowIndices,
+            onRowExpandToggle: (index, isExpanded) {
+              setState(() {
+                if (isExpanded) {
+                  _expandedRowIndices.add(index);
+                } else {
+                  _expandedRowIndices.remove(index);
+                }
+              });
+            },
             currentSortColumn: currentSortCol,
             currentSortOrder: currentSortAsc
                 ? AppTableSortOrder.ascending
@@ -394,8 +388,11 @@ class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
       );
     });
   }
+  // endregion
 }
+// endregion
 
+// region Helper Widgets
 class _AllTasksDataCell extends StatelessWidget {
   final String text;
   final bool isExpanded;
@@ -480,7 +477,7 @@ class _AllTasksStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _getStatusColor(status);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: isExpanded ? 3.h : 1.5.h),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4.r),
@@ -495,3 +492,5 @@ class _AllTasksStatusBadge extends StatelessWidget {
     );
   }
 }
+// endregion
+
