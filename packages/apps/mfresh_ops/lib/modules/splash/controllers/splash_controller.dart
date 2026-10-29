@@ -1,6 +1,7 @@
 // region Imports
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -14,6 +15,7 @@ class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
   final AppUpdateService _updateService = Get.find<AppUpdateService>();
   final TrackingService _trackingService = Get.find<TrackingService>();
+  final BiometricAuthService _biometricService = Get.find<BiometricAuthService>();
   // endregion
 
   // region Lifecycle Methods
@@ -66,6 +68,11 @@ class SplashController extends GetxController {
         final cachedUser = _storageService.getUser();
         final bool isOnDuty = cachedUser?.isOnDuty == 1;
         await _trackingService.syncDutyStatus(isOnDuty);
+      }
+
+      // Check if Biometric App Lock should lock on cold start
+      if (AppConfig.enableBiometricAuth) {
+        _biometricService.lockApp();
       }
 
       final roleId = user?.role ?? _storageService.getUser()?.role;

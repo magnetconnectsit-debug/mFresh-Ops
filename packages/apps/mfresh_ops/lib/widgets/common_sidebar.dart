@@ -3,9 +3,11 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:core/utils/app_image_compressor.dart';
 import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:mfresh_ops/modules/home/views/unit_selection_screen.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:services/storage_service.dart';
@@ -22,6 +24,44 @@ class CommonSidebar extends StatelessWidget {
       Get.find<AuthRepository>().rxUserPermissions,
       key,
     );
+  }
+
+  static Future<void> handleCheckInOut([BuildContext? context]) async {
+    final effectiveContext = context ?? Get.context;
+    if (effectiveContext == null) return;
+
+    final authRepo = Get.find<AuthRepository>();
+    final isCheckedIn = authRepo.rxIsCheckedIn.value;
+
+    String? selectedUnitId;
+    if (!isCheckedIn) {
+      final selectedUnit = await UnitSelectionScreen.show(effectiveContext);
+      if (selectedUnit == null) {
+        // User dismissed the unit selection
+        return;
+      }
+      selectedUnitId = selectedUnit.id;
+    }
+
+    final capturedPath = await Get.toNamed(AppRoutes.camera);
+    if (capturedPath != null &&
+        capturedPath is String &&
+        capturedPath.isNotEmpty) {
+      final compressedPath = await AppImageCompressor.compressPath(
+            capturedPath,
+            quality: 50,
+          ) ??
+          capturedPath;
+
+      if (isCheckedIn) {
+        await authRepo.attendanceCheckOut(imagePath: compressedPath);
+      } else {
+        await authRepo.attendanceCheckIn(
+          imagePath: compressedPath,
+          unitId: selectedUnitId,
+        );
+      }
+    }
   }
   // endregion
 
@@ -188,6 +228,7 @@ class CommonSidebar extends StatelessWidget {
                                   'Attendance',
                                 if (hasPerm(AppPermissions.attendanceLog))
                                   'Report',
+                                'Selfie Check-In / Check-Out',
                                 if (hasPerm(AppPermissions.selfieAttendance))
                                   'Selfie Attendance',
                               ],
@@ -381,6 +422,11 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.staffTracking);
                   } else if (item == 'Log' || item == 'Report') {
                     Get.toNamed(AppRoutes.attendanceLog);
+                  } else if (item == 'Selfie Check-In / Check-Out' ||
+                      item == 'Selfie Check-In' ||
+                      item == 'Selfie Check-Out') {
+                    Get.back(); // close drawer
+                    CommonSidebar.handleCheckInOut();
                   } else if (item == 'Selfie Attendance' ||
                       item == 'Selfie Attendance Report') {
                     if (!_hasPerm(AppPermissions.selfieAttendance)) {
@@ -529,7 +575,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get maxExtent => topPadding + 116.h;
+  double get maxExtent => topPadding + 118.h;
 
   @override
   double get minExtent => topPadding + 56.h;
@@ -817,107 +863,188 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
                 ),
               ),
 
-            // ── Expanded Duty Card (Bottom of expanded header) ──
+            // ── Expanded Duty Card & Selfie Check-In/Out Row (Bottom of expanded header) ──
             if (dutyCardOpacity > 0.01)
               Positioned(
-                left: 14.w,
-                right: 14.w,
+                left: 12.w,
+                right: 12.w,
                 top: topPadding + 62.h + dutyCardOffset,
                 child: Opacity(
                   opacity: dutyCardOpacity,
                   child: IgnorePointer(
                     ignoring: progress > 0.5,
-                    child: GestureDetector(
-                      onTap: () async {
-                        await TrackingService.to.toggleTracking();
-                      },
-                      child: Container(
-                        height: 38.h,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(10.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.black.withValues(alpha: 0.08),
-                              blurRadius: 4.r,
-                              offset: Offset(0, 1.5.h),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8.r,
-                              height: 8.r,
+                    child: Row(
+                      children: [
+                        // ── Left Card: ON/OFF Duty Toggle ──
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              await TrackingService.to.toggleTracking();
+                            },
+                            child: Container(
+                              height: 38.h,
+                              padding: EdgeInsets.symmetric(horizontal: 10.w),
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isTracking
-                                    ? const Color(0xFF10B981)
-                                    : AppColors.red,
-                                boxShadow: isTracking
-                                    ? [
-                                        BoxShadow(
-                                          color: const Color(
-                                            0xFF10B981,
-                                          ).withValues(alpha: 0.5),
-                                          blurRadius: 4.r,
-                                        ),
-                                      ]
-                                    : null,
+                                color: AppColors.white,
+                                borderRadius: BorderRadius.circular(10.r),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.black.withValues(alpha: 0.12),
+                                    blurRadius: 6.r,
+                                    offset: Offset(0, 2.h),
+                                  ),
+                                ],
                               ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              child: Row(
                                 children: [
-                                  Text(
-                                    isTracking ? 'ON DUTY' : 'OFF DUTY',
-                                    style: AppTextStyle.style_11_700(
+                                  Container(
+                                    width: 8.r,
+                                    height: 8.r,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
                                       color: isTracking
                                           ? const Color(0xFF10B981)
                                           : AppColors.red,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (isTracking
+                                                  ? const Color(0xFF10B981)
+                                                  : AppColors.red)
+                                              .withValues(alpha: 0.45),
+                                          blurRadius: 4.r,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    isTracking
-                                        ? 'Duty active'
-                                        : 'Offline. Tap switch to start.',
-                                    style: AppTextStyle.style_9_400(
-                                      color: AppColors.grey500,
+                                  SizedBox(width: 6.w),
+                                  Expanded(
+                                    child: Text(
+                                      isTracking ? 'DUTY ON' : 'DUTY OFF',
+                                      style: AppTextStyle.style_11_700(
+                                        color: isTracking
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFFDC2626),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: 30.w,
+                                    height: 18.h,
+                                    padding: EdgeInsets.all(2.r),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      color: isTracking
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFE2E8F0),
+                                    ),
+                                    alignment: isTracking
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: Container(
+                                      width: 14.r,
+                                      height: 14.r,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 34.w,
-                              height: 20.h,
-                              padding: EdgeInsets.all(2.r),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.r),
-                                color: isTracking
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFE2E8F0),
-                              ),
-                              alignment: isTracking
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                width: 16.r,
-                                height: 16.r,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+
+                        // ── Right Card: Selfie Check-In / Check-Out ──
+                        Expanded(
+                          child: Obx(() {
+                            final authRepo = Get.find<AuthRepository>();
+                            final isCheckedIn = authRepo.rxIsCheckedIn.value;
+                            final isSubmitting = authRepo.isSubmittingAttendance.value;
+
+                            final actionColor = isCheckedIn
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF059669);
+
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: isSubmitting
+                                    ? null
+                                    : () async {
+                                        Get.back(); // close sidebar first
+                                        await CommonSidebar.handleCheckInOut(context);
+                                      },
+                                borderRadius: BorderRadius.circular(10.r),
+                                child: Ink(
+                                  height: 38.h,
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    borderRadius: BorderRadius.circular(10.r),
+                                    border: Border.all(
+                                      color: actionColor.withValues(alpha: 0.35),
+                                      width: 1.2.r,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.black.withValues(alpha: 0.12),
+                                        blurRadius: 6.r,
+                                        offset: Offset(0, 2.h),
+                                      ),
+                                    ],
+                                  ),
+                                  child: isSubmitting
+                                      ? Center(
+                                          child: SizedBox(
+                                            width: 16.r,
+                                            height: 16.r,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                actionColor,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(4.r),
+                                              decoration: BoxDecoration(
+                                                color: actionColor.withValues(alpha: 0.12),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                Icons.camera_alt_rounded,
+                                                size: 13.sp,
+                                                color: actionColor,
+                                              ),
+                                            ),
+                                            SizedBox(width: 6.w),
+                                            Flexible(
+                                              child: Text(
+                                                isCheckedIn ? 'CHECK-OUT' : 'CHECK-IN',
+                                                style: AppTextStyle.style_11_700(
+                                                  color: actionColor,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                 ),
                               ),
-                            ),
-                          ],
+                            );
+                          }),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),

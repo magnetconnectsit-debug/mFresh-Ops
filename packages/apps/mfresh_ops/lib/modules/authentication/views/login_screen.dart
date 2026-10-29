@@ -103,6 +103,7 @@ class LoginScreen extends StatelessWidget {
               _buildPasswordSection(controller),
               SizedBox(height: 18.h),
               _buildActionButton(controller),
+              _buildBiometricSection(controller),
               SizedBox(height: 14.h),
               _buildModeSwitcher(controller),
             ],
@@ -370,6 +371,34 @@ class LoginScreen extends StatelessWidget {
         onPressed: controller.handleLoginAction,
       ),
     );
+  }
+
+  Widget _buildBiometricSection(LoginController controller) {
+    return Obx(() {
+      if (!controller.isBiometricAvailable.value) {
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: AppCommonButton(
+          width: double.infinity,
+          height: 36.h,
+          textSize: 13.sp,
+          borderRadius: 8.r,
+          useGradient: false,
+          variant: ButtonVariant.outline,
+          borderColor: AppColors.primary,
+          textColor: AppColors.primary,
+          icon: Icons.fingerprint_rounded,
+          iconSize: 20.sp,
+          iconColor: AppColors.primary,
+          text: 'Login with Biometrics',
+          isLoading: controller.isLoading.value,
+          onPressed: controller.loginWithBiometrics,
+        ),
+      );
+    });
   }
 
   Widget _buildModeSwitcher(LoginController controller) {

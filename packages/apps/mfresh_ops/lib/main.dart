@@ -40,6 +40,7 @@ import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:mfresh_ops/modules/authentication/views/widgets/app_biometric_lock_overlay.dart';
 import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/phonepe_service.dart';
@@ -736,6 +737,7 @@ Future<void> initServices() async {
   await Get.putAsync(() => DioClient().init(publicPaths: [AppConstants.login]));
   Get.put(ApiService());
   Get.put(AppUpdateService());
+  Get.put(BiometricAuthService());
 
   Get.put(AuthRepository());
   Get.put(UserRepository());
@@ -757,9 +759,44 @@ Future<void> initServices() async {
 // endregion
 
 // region Material Application Root
-class OpsApp extends StatelessWidget {
+class OpsApp extends StatefulWidget {
   const OpsApp({super.key});
 
+  @override
+  State<OpsApp> createState() => _OpsAppState();
+}
+
+class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
+  // region Dependencies
+  final BiometricAuthService _biometricService = Get.find<BiometricAuthService>();
+  final StorageService _storageService = Get.find<StorageService>();
+  // endregion
+
+  // region Lifecycle Methods
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (!AppConfig.enableBiometricAuth) return;
+
+    final token = _storageService.getToken();
+    final isUserLoggedIn = token != null && token.isNotEmpty;
+    _biometricService.handleAppLifecycle(state, isUserLoggedIn: isUserLoggedIn);
+  }
+  // endregion
+
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -793,7 +830,20 @@ class OpsApp extends StatelessWidget {
             title: 'mFresh Ops',
             theme: ThemeData(primaryColor: AppColors.primary),
             builder: (context, child) {
-              return Stack(children: [child!, const FloatingLoggerButton()]);
+              return Stack(
+                children: [
+                  child!,
+                  const FloatingLoggerButton(),
+                  // Biometric App Lock Security Overlay
+                  Obx(() {
+                    final isLocked = _biometricService.isAppLocked.value;
+                    if (AppConfig.enableBiometricAuth && isLocked) {
+                      return const AppBiometricLockOverlay();
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                ],
+              );
             },
             initialRoute: AppRoutes.splash,
             getPages: AppPages.pages,
@@ -802,6 +852,6 @@ class OpsApp extends StatelessWidget {
       },
     );
   }
+  // endregion
 }
-
 // endregion

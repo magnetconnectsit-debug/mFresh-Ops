@@ -180,10 +180,54 @@ The `/admin-booking/units` endpoint adapts the unit list depending on user conte
 
 ---
 
-## 8. Revision History & Change Log
+## 8. Biometric Authentication Architecture
+
+### 8.1 Configuration Toggle
+Biometric authentication can be globally turned on or off via `AppConfig.enableBiometricAuth` located in [app_config.dart](file:///d:/Flutter%20Projects/magnet_connects/packages/apps/mfresh_ops/lib/core/config/app_config.dart):
+```dart
+class AppConfig {
+  /// Global feature switch for Biometric Authentication (Fingerprint / Face ID).
+  /// Set to false to completely turn off biometric authentication across the app.
+  static bool enableBiometricAuth = true;
+}
+```
+When `enableBiometricAuth = false`, biometric availability checks return `false`, hiding the biometric login button and skipping post-login opt-in prompts.
+
+### 8.2 Component Hierarchy & Security
+1. **`BiometricAuthService` (`packages/shared/services/lib/biometric_auth_service.dart`)**:
+   - Uses `local_auth: ^2.3.0` for hardware capability and biometric authentication prompting.
+   - Uses `flutter_secure_storage: ^9.2.4` (backed by Android EncryptedSharedPreferences and iOS Keychain) for storing credentials securely offline.
+   - Methods: `authenticate()`, `saveBiometricCredentials()`, `getSavedCredentials()`, `disableBiometrics()`, `markBiometricPrompted()`.
+2. **Native Platform Configuration**:
+   - **Android**: `MainActivity.kt` extends `FlutterFragmentActivity` (mandatory for `BiometricPrompt`). Manifest includes `<uses-permission android:name="android.permission.USE_BIOMETRIC" />`.
+   - **iOS**: `Info.plist` includes `<key>NSFaceIDUsageDescription</key>`.
+3. **Login Integration (`LoginController` & `LoginScreen`)**:
+   - On login screen init, evaluates hardware capabilities, user enrollment, and encrypted storage.
+   - If biometrics are available and credentials exist, displays **'Login with Biometrics'** (`AppCommonButton` outline with `Icons.fingerprint_rounded`).
+   - On first successful manual password login, if biometrics are supported on the device, prompts user via `AppCommonDialogBox.showConfirm` to enable biometrics for faster future access.
+
+### 8.3 Biometric App Lock Security & Lifecycle
+In addition to login authentication, the application supports continuous **Biometric App Lock**:
+1. **Cold App Launch**:
+   - When an authenticated user opens the app, [SplashController](file:///d:/Flutter%20Projects/magnet_connects/packages/apps/mfresh_ops/lib/modules/splash/controllers/splash_controller.dart) triggers `BiometricAuthService.lockApp()`.
+   - The app interface displays the security lock overlay [AppBiometricLockOverlay](file:///d:/Flutter%20Projects/magnet_connects/packages/apps/mfresh_ops/lib/modules/authentication/views/widgets/app_biometric_lock_overlay.dart).
+2. **Background Grace Period (30 Seconds)**:
+   - When the user switches to another app or the device goes to sleep, `AppLifecycleState.paused` records the timestamp.
+   - If the user returns (`AppLifecycleState.resumed`) after more than **30 seconds** of inactivity, `isAppLocked.value` becomes `true`.
+   - Returning within the 30-second grace window lets the user continue seamlessly without prompting.
+3. **Security Overlay (`AppBiometricLockOverlay`)**:
+   - Built using `AppCommonLiquidGlass` glassmorphism card, `AppCommonButton`, and `PopScope(canPop: false)`.
+   - Automatically prompts for biometric unlock on mount and features a manual "Unlock with Biometrics" button.
+   - Offers a fallback **"Switch Account / Log Out"** action with `AppCommonDialogBox.showConfirm`.
+
+---
+
+## 9. Revision History & Change Log
 
 | Date | Author | Description |
 |---|---|---|
+| 2026-10-29 | Antigravity AI | Implemented continuous Biometric App Lock: Added `AppBiometricLockOverlay` with glassmorphic styling, background lifecycle monitoring with 30s grace timeout, cold start lock in `SplashController`, and global app stack integration in `OpsApp`. |
+| 2026-10-29 | Antigravity AI | Implemented Biometric Authentication (Fingerprint & Face ID). Added `BiometricAuthService` with encrypted credential storage, native Android `FlutterFragmentActivity` & permissions, iOS `NSFaceIDUsageDescription`, and `AppConfig.enableBiometricAuth` global on/off toggle. Integrated biometric login and opt-in prompt into `LoginController` & `LoginScreen`. |
 | 2026-10-28 | Antigravity AI | Updated `GuestFlowBottomSheet` mobile step: Separated `check-mobile` from `send-otp`. Shows 'Check Mobile Number' first, renders guest name field and 'Send OTP' button upon successful check, and proceeds to OTP entry only upon tapping 'Send OTP'. |
 | 2026-10-28 | Antigravity AI | Added Logout action button in `BookingUnitSelectionScreen` AppBar with confirmation dialog (`AppCommonDialogBox`) and bypassed the "You are off duty" dialog check in `DutyMonitorController` when on booking screens. |
 | 2026-10-28 | Antigravity AI | Unified password login identifier input: Enabled User ID / Mobile / Email for Operation mode password login matching Booking mode (removing restrictive 10-digit mobile enforcement in password login). |

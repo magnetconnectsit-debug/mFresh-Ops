@@ -1,5 +1,6 @@
 export 'api_services.dart';
 export 'app_update_service.dart';
+export 'biometric_auth_service.dart';
 export 'connectivity_service.dart';
 export 'dio_client.dart';
 export 'error_handler.dart';
