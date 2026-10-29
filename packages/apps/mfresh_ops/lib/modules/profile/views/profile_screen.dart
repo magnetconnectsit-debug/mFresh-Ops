@@ -589,19 +589,9 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 14.w),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'App Version',
-                          style: AppTextStyle.style_13_600(color: AppColors.black),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          'mFresh Operations Suite',
-                          style: AppTextStyle.style_11_400(color: AppColors.grey500),
-                        ),
-                      ],
+                    Text(
+                      'App Version',
+                      style: AppTextStyle.style_13_600(color: AppColors.black),
                     ),
                   ],
                 ),
