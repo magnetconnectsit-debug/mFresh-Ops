@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/booking/controllers/booking_history_controller.dart';
-import 'package:mfresh_ops/data/models/booking_history_model.dart';
+import 'package:mfresh_ops/data/models/booking/booking_models.dart';
 import 'package:intl/intl.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 
@@ -171,9 +171,20 @@ class _BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        final bookingModel = BookingDetailsModel(
+          bookingId: booking.bookingId,
+          encryptBookingId: booking.encryptBookingId,
+          unitNo: booking.unitNo,
+          bookingTimeDate: booking.createdAt,
+          totalAmount: booking.totalAmount,
+          paymentMode: booking.paymentMode,
+          paymentStatus: 'PAYMENT_SUCCESS',
+        );
+
         Get.toNamed(
           AppRoutes.bookingConfirmed,
           arguments: {
+            'bookingModel': bookingModel,
             'bookingId': booking.bookingId,
             'encryptBookingId': booking.encryptBookingId,
           },

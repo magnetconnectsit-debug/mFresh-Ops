@@ -16,6 +16,7 @@ class StorageService extends GetxService {
 
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _loginModeKey = 'login_mode';
   static const String _userKey = 'current_user';
   static const String _baseUrlKey = 'base_url';
   static const String _showLoggerKey = 'show_logger';
@@ -119,6 +120,20 @@ class StorageService extends GetxService {
   Future<void> clearRefreshToken() async {
     debugPrint('StorageService: Clearing refresh token.');
     await _authBox.delete(_refreshTokenKey);
+  }
+
+  Future<void> saveLoginMode(String mode) async {
+    debugPrint('StorageService: Saving login mode: $mode');
+    await _authBox.put(_loginModeKey, mode);
+  }
+
+  String? getLoginMode() {
+    return _authBox.get(_loginModeKey) as String?;
+  }
+
+  Future<void> clearLoginMode() async {
+    debugPrint('StorageService: Clearing login mode.');
+    await _authBox.delete(_loginModeKey);
   }
 
   // endregion
@@ -329,6 +344,8 @@ class StorageService extends GetxService {
   Future<void> clearAllStorage() async {
     debugPrint('StorageService: Clearing all storage (logout).');
     await clearToken();
+    await clearRefreshToken();
+    await clearLoginMode();
     await clearUser();
     await clearNotifications();
   }

@@ -26,12 +26,12 @@ class ServiceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           AppImageView(
-            imageUrl: service.image!,
+            imageUrl: service.image,
             height: 50.w,
             width: 50.w,
             borderRadius: 10.r,
             fit: BoxFit.fill,
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.aliceBlue,
           ),
           SizedBox(width: 4.w),
           Expanded(

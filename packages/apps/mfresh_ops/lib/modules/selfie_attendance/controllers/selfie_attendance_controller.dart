@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/data/models/assignee_model.dart';
 import 'package:mfresh_ops/data/models/selfie_attendance/selfie_attendance_report_model.dart';
-import 'package:mfresh_ops/data/models/unit_model.dart';
+import 'package:mfresh_ops/data/models/booking/unit_model.dart';
 import 'package:mfresh_ops/data/repositories/booking_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/selfie_attendance_repository.dart';

@@ -11,7 +11,6 @@ import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:services/plutus_service.dart';
 
@@ -64,34 +63,30 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
           return Scaffold(
             backgroundColor: AppColors.background,
             drawer: const CommonSidebar(),
-            appBar: PreferredSize(
-              preferredSize: const AppCommonAppBar(
-                topHeader: CommonShortcutHeader(),
-              ).preferredSize,
-              child: AppCommonAppBar(
-                title: const Text('Booking'),
-                actions: [
-                  IconButton(
-                    tooltip: 'Booking History',
-                    icon: const Icon(Icons.history),
-                    onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
-                  ),
-                  IconButton(
-                    tooltip: 'Profile',
-                    icon: const Icon(Icons.account_circle),
-                    onPressed: () {
-                      Get.toNamed(AppRoutes.profile);
-                    },
-                  ),
-                  IconButton(
-                    tooltip: 'Logout',
-                    icon: const Icon(Icons.logout, color: AppColors.error),
-                    onPressed: () => _handleLogout(context),
-                  ),
-                ],
-              ),
+            appBar: AppCommonAppBar(
+              hasBackButton: false,
+              title: const Text('Booking'),
+              actions: [
+                IconButton(
+                  tooltip: 'Booking History',
+                  icon: const Icon(Icons.history),
+                  onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
+                ),
+                IconButton(
+                  tooltip: 'Profile',
+                  icon: const Icon(Icons.account_circle),
+                  onPressed: () {
+                    Get.toNamed(AppRoutes.profile);
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Logout',
+                  icon: const Icon(Icons.logout, color: AppColors.error),
+                  onPressed: () => _handleLogout(context),
+                ),
+              ],
             ),
-            body: RefreshIndicator(
+            body: AppRefreshIndicator(
               onRefresh: () async {
                 await controller.fetchUnits();
                 await profileController.fetchProfile();
@@ -145,58 +140,46 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                               ],
                             ),
                           ),
-                          Obx(() {
-                            final user = profileController.user.value;
-                            if (user == null) return const SizedBox.shrink();
-                            final bool canScan =
-                                user.appPermissions?.scannerAccess ?? false;
-
-                            if (canScan) {
-                              return Align(
-                                alignment: Alignment.centerRight,
-                                child: InkWell(
-                                  onTap: () => _openScanner(),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                          blurRadius: 5,
-                                          spreadRadius: 1,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: () => _openScanner(),
+                              child: Container(
+                                padding: EdgeInsets.all(6.r),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.grey500.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      blurRadius: 5.r,
+                                      spreadRadius: 1.r,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Image.asset(
-                                          AppImages.scanIcon,
-                                          width: 20,
-                                          height: 20,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          'Scan',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.orange,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  ],
                                 ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          }),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      AppImages.scanIcon,
+                                      width: 20.w,
+                                      height: 20.h,
+                                    ),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Scan',
+                                      style: AppTextStyle.style_14_700(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -242,16 +225,7 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                               image: unit.unitImage,
                               date: unit.timing,
                               onTap: () {
-                                Get.toNamed(
-                                  AppRoutes.serviceDetails,
-                                  arguments: {
-                                    'unitNo': unit.unitId,
-                                    'location': unit.unitLocation,
-                                    'unitImage': unit.unitImage,
-                                    'printingType': unit.printingType,
-                                    'paperRollSize': unit.paperRollSize,
-                                  },
-                                );
+                                controller.selectAndEnterUnit(unit);
                               },
                             );
                           },

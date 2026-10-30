@@ -32,6 +32,12 @@ class AppImageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String trimmed = (imageUrl ?? '').trim();
+    final bool isEmpty =
+        trimmed.isEmpty || trimmed == "NA" || trimmed == "null";
+    final bool isAsset = trimmed.startsWith('assets/') ||
+        (!trimmed.startsWith('http://') && !trimmed.startsWith('https://'));
+
     return Container(
       width: width,
       height: height,
@@ -41,19 +47,29 @@ class AppImageView extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: (imageUrl == null || imageUrl!.isEmpty || imageUrl == "NA")
+        child: isEmpty
             ? _buildErrorWidget()
-            : CachedNetworkImage(
-                imageUrl: imageUrl!,
-                width: width,
-                height: height,
-                fit: fit,
-                memCacheWidth: memCacheWidth,
-                memCacheHeight: memCacheHeight,
-                placeholder: (context, url) => placeholder ?? _buildPlaceholder(),
-                errorWidget: (context, url, error) =>
-                    errorWidget ?? _buildErrorWidget(),
-              ),
+            : isAsset
+                ? Image.asset(
+                    trimmed,
+                    width: width,
+                    height: height,
+                    fit: fit,
+                    errorBuilder: (context, error, stackTrace) =>
+                        errorWidget ?? _buildErrorWidget(),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: trimmed,
+                    width: width,
+                    height: height,
+                    fit: fit,
+                    memCacheWidth: memCacheWidth,
+                    memCacheHeight: memCacheHeight,
+                    placeholder: (context, url) =>
+                        placeholder ?? _buildPlaceholder(),
+                    errorWidget: (context, url, error) =>
+                        errorWidget ?? _buildErrorWidget(),
+                  ),
       ),
     );
   }

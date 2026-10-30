@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:mfresh_ops/data/models/booking_details_model.dart';
+import 'package:mfresh_ops/data/models/booking/booking_models.dart';
 import 'package:mfresh_ops/core/utils/print_util.dart';
 import 'package:core/constants/app_images.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -30,7 +30,7 @@ class PrintReceiptScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildReceiptCard(ServiceItem service) {
+  Widget _buildReceiptCard(BookingServiceDetailItem service) {
     return Center(
       child: Container(
         width: 300.w,

@@ -1,3 +1,4 @@
+// region Imports
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,11 +6,19 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:core/core.dart';
+// endregion
 
+// region LocationPermissionController Class
 class LocationPermissionController extends GetxController with WidgetsBindingObserver {
+  // region Dependencies & Repositories
   final StorageService _storageService = Get.find<StorageService>();
-  final isChecking = false.obs;
+  // endregion
 
+  // region Observables & State Variables
+  final isChecking = false.obs;
+  // endregion
+
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -29,7 +38,9 @@ class LocationPermissionController extends GetxController with WidgetsBindingObs
       checkPermissionStatus();
     }
   }
+  // endregion
 
+  // region Business Logic & Helpers
   Future<void> checkPermissionStatus() async {
     isChecking.value = true;
     try {
@@ -77,22 +88,25 @@ class LocationPermissionController extends GetxController with WidgetsBindingObs
           type: ToastType.error,
         );
         
-        // On iOS, if the prompt doesn't show or is denied, we must direct the user to settings
-        final shouldShowSettings = currentFg.isPermanentlyDenied || currentBg.isPermanentlyDenied || (Platform.isIOS && (currentFg.isDenied || currentBg.isDenied));
+        final shouldShowSettings = currentFg.isPermanentlyDenied ||
+            currentBg.isPermanentlyDenied ||
+            (Platform.isIOS && (currentFg.isDenied || currentBg.isDenied));
         
         if (shouldShowSettings) {
-          Get.defaultDialog(
-            title: 'Permission Required',
-            middleText: 'Location permissions are required. Please enable them in app settings to continue.',
-            textConfirm: 'Open Settings',
-            textCancel: 'Cancel',
-            confirmTextColor: Colors.white,
-            buttonColor: AppColors.primary,
-            onConfirm: () async {
-              Get.back();
+          final ctx = Get.context;
+          if (ctx != null && ctx.mounted) {
+            final confirmed = await AppCommonDialogBox.showConfirm(
+              ctx,
+              title: 'Permission Required',
+              message: 'Location permissions are required. Please enable them in app settings to continue.',
+              confirmText: 'Open Settings',
+              cancelText: 'Cancel',
+              confirmButtonColor: AppColors.primary,
+            );
+            if (confirmed) {
               await openAppSettings();
-            },
-          );
+            }
+          }
         }
       }
     } catch (e) {
@@ -105,9 +119,23 @@ class LocationPermissionController extends GetxController with WidgetsBindingObs
   void _navigateToNext() {
     final token = _storageService.getToken();
     if (token != null && token.isNotEmpty) {
-      Get.offAllNamed(AppRoutes.home);
+      final loginMode = _storageService.getLoginMode();
+      if (loginMode == 'booking') {
+        Get.offAllNamed(AppRoutes.bookingUnitSelection);
+        return;
+      }
+
+      final user = _storageService.getUser();
+      final roleId = user?.role;
+      if (roleId == '1' || roleId == 1) {
+        Get.offAllNamed(AppRoutes.home);
+      } else {
+        Get.offAllNamed(AppRoutes.dailyTasks);
+      }
     } else {
       Get.offAllNamed(AppRoutes.login);
     }
   }
+  // endregion
 }
+// endregion

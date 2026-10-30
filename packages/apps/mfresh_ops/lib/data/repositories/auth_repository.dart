@@ -11,7 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
-import 'package:mfresh_ops/data/models/booking_guest_auth_models.dart';
+import 'package:mfresh_ops/data/models/booking/booking_guest_auth_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -171,6 +171,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(response);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode(loginMode);
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -362,6 +363,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(response);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode(loginMode);
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -415,6 +417,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(data);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode('booking');
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -466,6 +469,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(data);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode('booking');
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -586,6 +590,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(data);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode('booking');
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -602,18 +607,28 @@ class AuthRepository extends GetxService {
     }
   }
 
-  Future<BookingSessionModel?> getBookingSession() async {
+  Future<bool> refreshToken() async {
     try {
-      final response = await _apiService.get(AppConstants.bookingSession);
+      final response = await _apiService.post(
+        AppConstants.refreshToken,
+      );
+
       if (response != null && response is Map) {
-        return BookingSessionModel.fromJson(
-          Map<String, dynamic>.from(response),
-        );
+        final String? newToken =
+            response['access_token']?.toString() ?? response['token']?.toString();
+        if (newToken != null && newToken.isNotEmpty) {
+          await _storageService.saveToken(newToken);
+          final String? newRefreshToken = response['refresh_token']?.toString();
+          if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+            await _storageService.saveRefreshToken(newRefreshToken);
+          }
+          return true;
+        }
       }
-      return null;
+      return false;
     } catch (e) {
-      debugPrint("AuthRepository.getBookingSession error: $e");
-      return null;
+      debugPrint("AuthRepository.refreshToken error: $e");
+      return false;
     }
   }
   // endregion

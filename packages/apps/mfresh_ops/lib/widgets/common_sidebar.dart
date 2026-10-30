@@ -123,7 +123,7 @@ class CommonSidebar extends StatelessWidget {
                 if (hasPerm(AppPermissions.inventoryItem)) 'M_Items',
                 if (hasPerm(AppPermissions.storeRoom)) 'M_Store',
                 if (hasPerm(AppPermissions.unitAuditReport)) 'Audit Report',
-                if (hasPerm(AppPermissions.auditItemRank)) 'Audit Item Rank',
+                if (hasPerm(AppPermissions.auditItemRank)) 'M_Audit_Items_List',
               ];
 
               final infoDirectorySubItems = [

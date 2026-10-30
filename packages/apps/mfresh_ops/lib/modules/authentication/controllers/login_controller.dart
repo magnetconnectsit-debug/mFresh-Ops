@@ -356,6 +356,7 @@ class LoginController extends GetxController {
     String mobile,
     String password,
   ) async {
+    await _storageService.saveLoginMode(loginMode);
     await _storageService.saveRememberMe(rememberMe.value);
     if (rememberMe.value) {
       await _storageService.saveCredentials(mobile: mobile, password: password);

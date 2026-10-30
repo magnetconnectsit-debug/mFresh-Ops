@@ -144,6 +144,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       final token = _storageService.getToken();
       if (token == null || token.isEmpty) return;
 
+      final loginMode = _storageService.getLoginMode();
+      if (loginMode == 'booking') return;
+
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
@@ -285,9 +288,12 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   // region Core Operations
   Future<void> _restoreTrackingOnResume() async {
     final token = _storageService.getToken();
-    if (token == null || token.isEmpty) return;
+      if (token == null || token.isEmpty) return;
 
-    debugPrint('Restoring tracking state on app resume...');
+      final loginMode = _storageService.getLoginMode();
+      if (loginMode == 'booking') return;
+
+      debugPrint('Restoring tracking state on app resume...');
     final bool isBgOwner =
         await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
     final bool isRunning = await FlutterForegroundTask.isRunningService;

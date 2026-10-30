@@ -17,6 +17,28 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- WiFi Permissions for Printer Scanning -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" 
+                     android:usesPermissionFlags="neverForLocation" 
+                     tools:targetApi="33" />
+
+    <!-- Bluetooth Permissions for Thermal Printers -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" 
+                     android:usesPermissionFlags="neverForLocation" 
+                     tools:node="replace" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:node="replace" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" tools:node="replace" />
+    <uses-permission android:name="android.permission.BLUETOOTH" tools:node="replace" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" tools:node="replace" />
+
+    <!-- Optional Hardware Features -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
     
     <application
         android:label="mFresh Ops"
@@ -82,6 +104,25 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- UPI Apps for PhonePe SDK -->
+        <package android:name="com.phonepe.app" />
+        <package android:name="com.phonepe.app.preprod" />
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="com.whatsapp" />
+        <package android:name="in.org.npci.upiapp" />
+        <package android:name="in.amazon.mShop.android.shopping" />
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

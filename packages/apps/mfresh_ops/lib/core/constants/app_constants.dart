@@ -31,7 +31,11 @@ class AppConstants {
   static const String bookingGuestSendOtp = 'booking-guest/send-otp';
   static const String bookingGuestVerifyOtp = 'booking-guest/verify-otp';
   static const String adminBookingUnits = 'admin-booking/units';
-  static const String bookingSession = 'booking/session';
+  static const String adminBookingUnitEnter = 'admin-booking/unit/enter';
+  static const String adminBookingUnitServices = 'admin-booking/unit/services';
+  static const String adminBookingInitiate = 'admin-booking/booking/initiate';
+  static const String adminBookingPaymentSuccess = 'admin-booking/booking/payment-success';
+  static const String refreshToken = 'refresh';
 
   // Attendance
   static const String attendanceCheckIn = 'attendance/check-in';
@@ -44,14 +48,10 @@ class AppConstants {
   static const String comparisonDashboardData = 'comparison-dashboard-data';
 
   // Booking Module
-  static const String customerBookingDetails =
-      'customer/customerbookingdetails';
   static const String resendBookingSms = 'customer/resend-booking-sms';
   static const String allUnitServices = 'customer/Api-get-Unit-services';
   static const String bookingHistory = 'customer/bookinghistory';
   static const String allUnits = 'customer/All-Units';
-  static const String initiateBooking = 'customer/Api-initiateBooking';
-  static const String successBooking = 'customer/Api-SuccessBooking';
   static const String validateMemPhone = 'customer/validate-mem-phone';
   static const String sendOtpMember = 'customer/send-otp-member';
   static const String verifyOtpMember = 'customer/verify-otp-member';

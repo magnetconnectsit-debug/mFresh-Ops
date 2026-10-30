@@ -744,7 +744,7 @@ Future<void> initServices() async {
   Get.put(CommonRepository());
   Get.put(BookingRepository());
   Get.put(PlutusService());
-  PhonePeService.init(isProduction: true);
+  PhonePeService.init(isProduction: AppConfig.isPhonePeProduction);
   Get.put(PhonePeService());
   Get.put(SupportRepository());
   Get.put(TaskRepository());
