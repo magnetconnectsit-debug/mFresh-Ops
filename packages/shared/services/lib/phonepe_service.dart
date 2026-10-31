@@ -39,10 +39,11 @@ class PhonePeService extends GetxService {
 
   // Sandbox (UAT) Credentials
   // Standard PhonePe UAT test simulator credentials:
-  // MID: PGTESTPAYUAT (default test MID) or PGTESTPAYUAT86
-  static const String _uatSaltKey = '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
+  // MID: PGTESTPAYUAT or PGTESTPAYUAT86
+  // Salt: 96434309-7796-489d-8924-ab56988a6076 or 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399
+  static const String _uatSaltKey = '96434309-7796-489d-8924-ab56988a6076';
   static const String _uatSaltIndex = '1';
-  static const String _uatMerchantId = 'PGTESTPAYUAT';
+  static const String _uatMerchantId = 'PGTESTPAYUAT86';
   static const String _uatApiBaseUrl =
       'https://api-preprod.phonepe.com/apis/pg-sandbox';
   static const String _uatCallbackUrl =
@@ -114,7 +115,7 @@ class PhonePeService extends GetxService {
         "merchantUserId": bookingId,
         "amount": (amount * 100).toInt(),
         "redirectUrl": "https://magnetconnects.com/booking-success/",
-        "redirectMode": "REDIRECT",
+        "redirectMode": "POST",
         "callbackUrl": _callbackUrl,
         "mobileNumber": phone,
         "paymentInstrument": {"type": "PAY_PAGE"},
