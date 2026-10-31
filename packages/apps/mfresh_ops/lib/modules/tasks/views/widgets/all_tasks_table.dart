@@ -1,0 +1,496 @@
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_table.dart';
+import 'package:core/widgets/app_table_pagination.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/data/models/models.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
+
+class AllTasksTableWidget extends StatefulWidget {
+  final TasksController controller;
+
+  const AllTasksTableWidget({
+    super.key,
+    required this.controller,
+  });
+
+  @override
+  State<AllTasksTableWidget> createState() => _AllTasksTableWidgetState();
+}
+
+// region State
+class _AllTasksTableWidgetState extends State<AllTasksTableWidget> {
+  // region Observables & State Variables
+  final Set<int> _expandedRowIndices = {};
+  // endregion
+
+  // region Business Logic & Helpers
+  void _toggleRow(int index) {
+    setState(() {
+      if (_expandedRowIndices.contains(index)) {
+        _expandedRowIndices.remove(index);
+      } else {
+        _expandedRowIndices.add(index);
+      }
+    });
+  }
+
+  String _sanitize(String text) {
+    return text.replaceAll('_', ' ');
+  }
+
+  String _formatDateTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty || dateStr == 'NA') return 'NA';
+    try {
+      DateTime dt = DateTime.parse(dateStr).toLocal();
+      List<String> months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      String day = dt.day.toString().padLeft(2, '0');
+      String month = months[dt.month - 1];
+      String year = dt.year.toString();
+
+      int hour = dt.hour;
+      String ampm = 'AM';
+      if (hour >= 12) {
+        ampm = 'PM';
+        if (hour > 12) hour -= 12;
+      }
+      if (hour == 0) hour = 12;
+
+      String minute = dt.minute.toString().padLeft(2, '0');
+      return "$day $month $year, ${hour.toString().padLeft(2, '0')}:$minute $ampm";
+    } catch (e) {
+      return dateStr;
+    }
+  }
+  // endregion
+
+  // region Main Build
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+
+    return Obx(() {
+      final itemsToRender = controller.sortedTasks;
+      final bool isLoading = controller.isLoading.value;
+
+      final canBulkDelete = Get.find<AuthRepository>()
+          .rxUserPermissions
+          .contains('task_bulk_delete');
+
+      final columns = [
+        if (canBulkDelete)
+          AppTableColumn<TaskItem>(
+            key: 'Select',
+            title: '',
+            width: 30.w,
+            sortable: false,
+            alignment: Alignment.center,
+            headerWidget: Obx(
+              () {
+                final allSelected = itemsToRender.isNotEmpty &&
+                    itemsToRender.every((t) =>
+                        controller.selectedTaskInstanceIds.contains(t.taskInstanceId));
+                return SizedBox(
+                  width: 16.r,
+                  height: 16.r,
+                  child: Checkbox(
+                    value: allSelected && itemsToRender.isNotEmpty,
+                    onChanged: (val) {
+                      controller.selectAllTasks(val ?? false);
+                    },
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    activeColor: AppColors.blue500,
+                    side: BorderSide(color: AppColors.grey600, width: 1.5),
+                  ),
+                );
+              },
+            ),
+            cellBuilder: (context, task, index, isExpanded) {
+              return Obx(
+                () => SizedBox(
+                  width: 16.r,
+                  height: 16.r,
+                  child: Checkbox(
+                    value: controller.selectedTaskInstanceIds
+                        .contains(task.taskInstanceId),
+                    onChanged: (val) {
+                      controller.toggleTaskSelection(task.taskInstanceId);
+                    },
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    activeColor: AppColors.blue500,
+                    side: BorderSide(color: AppColors.grey400, width: 1.5),
+                  ),
+                ),
+              );
+            },
+          ),
+        AppTableColumn<TaskItem>(
+          key: 'Task ID',
+          title: 'Task ID',
+          width: 100.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: "${task.taskCode}_${task.taskInstanceId}",
+              isExpanded: isExpanded,
+              onTap: () {
+                final status = task.status.toLowerCase().trim();
+                final taskStatus = (task.taskStatus ?? '').toLowerCase().trim();
+                final isCancelReview = status == 'cancel_review' ||
+                    status == 'cancel review' ||
+                    taskStatus == 'cancel review';
+                if (isCancelReview) {
+                  if (task.canCancelReview == true) {
+                    controller.fetchTaskSubmissionDetails(
+                      task,
+                      isReview: true,
+                    );
+                  }
+                  return;
+                }
+                if (status == 'completed' || status == 'approved') {
+                  controller.fetchTaskSubmissionDetails(
+                    task,
+                    isReview: true,
+                    readOnly: true,
+                  );
+                } else {
+                  if (Get.find<AuthRepository>()
+                      .rxUserPermissions
+                      .contains('Task_Edit')) {
+                    controller.editTaskDetails(task);
+                  }
+                }
+              },
+              textColor: AppColors.blue500,
+              fontWeight: FontWeight.bold,
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Project',
+          title: 'Project',
+          width: 80.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _sanitize(task.project ?? 'mFresh'),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Task',
+          title: 'Task',
+          width: 200.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: task.title,
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Created On',
+          title: 'Created On',
+          width: 140.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _formatDateTime(task.createdAt),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Created By',
+          title: 'Created By',
+          width: 120.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _sanitize(
+                task.createdByName ?? task.approverName ?? 'NA',
+              ),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Task Type',
+          title: 'Task Type',
+          width: 85.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _sanitize(task.taskType.capitalizeFirst ?? 'NA'),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Assignee',
+          title: 'Assignee',
+          width: 120.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _sanitize(
+                (task.assigneeName ?? '').replaceAll('_', ' '),
+              ),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Started From',
+          title: 'Started From',
+          width: 140.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _formatDateTime(task.scheduleDateTime),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Completed By',
+          title: 'Completed By',
+          width: 120.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _sanitize(task.completedByName ?? ''),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Status',
+          title: 'Status',
+          width: 90.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return GestureDetector(
+              onTap: () => _toggleRow(index),
+              behavior: HitTestBehavior.opaque,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _AllTasksStatusBadge(
+                  status: (task.taskStatus != null &&
+                          task.taskStatus!.isNotEmpty)
+                      ? task.taskStatus!
+                      : task.status,
+                  isExpanded: isExpanded,
+                ),
+              ),
+            );
+          },
+        ),
+        AppTableColumn<TaskItem>(
+          key: 'Approver Name',
+          title: 'Approver Name',
+          width: 120.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, task, index, isExpanded) {
+            return _AllTasksDataCell(
+              text: _sanitize(task.approverName ?? ''),
+              isExpanded: isExpanded,
+              onTap: () => _toggleRow(index),
+            );
+          },
+        ),
+      ];
+
+      final currentSortCol = controller.sortColumn.value;
+      final currentSortAsc = controller.sortAscending.value;
+
+      final startItem = controller.totalRecords.value == 0
+          ? 0
+          : (controller.currentPage.value - 1) * controller.perPage.value + 1;
+      final endItem = (controller.currentPage.value * controller.perPage.value)
+          .clamp(0, controller.totalRecords.value);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCommonTable<TaskItem>(
+            items: itemsToRender,
+            columns: columns,
+            expandedRowIndices: _expandedRowIndices,
+            onRowExpandToggle: (index, isExpanded) {
+              setState(() {
+                if (isExpanded) {
+                  _expandedRowIndices.add(index);
+                } else {
+                  _expandedRowIndices.remove(index);
+                }
+              });
+            },
+            currentSortColumn: currentSortCol,
+            currentSortOrder: currentSortAsc
+                ? AppTableSortOrder.ascending
+                : AppTableSortOrder.descending,
+            onSort: (columnKey, sortOrder) {
+              controller.toggleSort(columnKey);
+            },
+            headingRowColor: const Color(0xFFC5D5F0),
+            headingBorderColor: Colors.grey.shade300,
+            headingTextStyle: AppTextStyle.style_12_700(
+              color: AppColors.grey900,
+            ),
+            borderColor: Colors.grey.shade300,
+            isLoading: isLoading,
+            emptyText: 'No tasks found',
+          ),
+          if (!isLoading && controller.totalRecords.value > 0) ...[
+            SizedBox(height: 12.h),
+            AppTablePagination(
+              startItem: startItem,
+              endItem: endItem,
+              totalItems: controller.totalRecords.value,
+              currentPage: controller.currentPage.value,
+              totalPages: controller.totalPages.value,
+              onPageChanged: (page) => controller.goToPage(page),
+              onPreviousPage: controller.previousPage,
+              onNextPage: controller.nextPage,
+            ),
+          ],
+        ],
+      );
+    });
+  }
+  // endregion
+}
+// endregion
+
+// region Helper Widgets
+class _AllTasksDataCell extends StatelessWidget {
+  final String text;
+  final bool isExpanded;
+  final VoidCallback onTap;
+  final Color? textColor;
+  final FontWeight? fontWeight;
+
+  const _AllTasksDataCell({
+    required this.text,
+    required this.isExpanded,
+    required this.onTap,
+    this.textColor,
+    this.fontWeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          textAlign: TextAlign.left,
+          style: AppTextStyle.style_12_400(color: textColor ?? AppColors.black).copyWith(
+            fontWeight: fontWeight,
+          ),
+          maxLines: isExpanded ? null : 1,
+          overflow: isExpanded ? null : TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+}
+
+class _AllTasksStatusBadge extends StatelessWidget {
+  final String status;
+  final bool isExpanded;
+
+  const _AllTasksStatusBadge({
+    required this.status,
+    required this.isExpanded,
+  });
+
+  String _sanitize(String text) {
+    return text.replaceAll('_', ' ');
+  }
+
+  Color _getStatusColor(String status) {
+    final lower = status.toLowerCase().replaceAll(' ', '_');
+    switch (lower) {
+      case 'pending':
+        return AppColors.warning;
+      case 'in_progress':
+        return AppColors.info;
+      case 'completed':
+      case 'approved':
+        return AppColors.success;
+      case 'rejected':
+      case 'cancelled':
+        return AppColors.red;
+      case 'cancel_review':
+        return const Color(0xFFFFA000);
+      case 'review':
+      case 'under_review':
+        return Colors.purple;
+      case 'active':
+        return const Color(0xFF28A745);
+      case 'overdue':
+        return const Color(0xFFE25C5C);
+      case 'upcoming':
+        return const Color(0xFFFFB822);
+      case 'due':
+        return AppColors.red;
+      default:
+        return AppColors.grey300;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _getStatusColor(status);
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: isExpanded ? 3.h : 1.5.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: Text(
+        _sanitize(status.toUpperCase()),
+        style: AppTextStyle.style_10_700(color: color),
+        textAlign: TextAlign.left,
+        maxLines: isExpanded ? null : 1,
+        overflow: isExpanded ? null : TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+// endregion
+

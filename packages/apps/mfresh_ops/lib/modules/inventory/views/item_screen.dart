@@ -1,15 +1,16 @@
-import 'package:core/widgets/app_common_drop_down.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
-import 'package:core/widgets/app_common_export_button.dart';
+import 'package:core/widgets/app_common_table.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
 import '../controllers/item_controller.dart';
+import 'package:mfresh_ops/data/models/inventory/item_model.dart';
 import '../../../widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'widgets/inventory_item_dialog.dart';
 
 class ItemScreen extends StatelessWidget {
   const ItemScreen({super.key});
@@ -24,40 +25,195 @@ class ItemScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
-        title: Text(
-          'Items',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
+        topHeader: const CommonShortcutHeader(),
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Items',
+              style: AppTextStyle.style_18_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              onChanged: (v) => controller.applyFilters(),
+              hintText: 'Search',
+            ),
+          ],
         ),
-        actions: [
-          AppCommonExportButton(
-            onExportExcel: () => controller.exportToExcel(),
-            onExportPdf: () => controller.exportToPdf(),
-            height: 32.h,
-          ),
-          SizedBox(width: 8.w),
-          AppCommonButton(
-            text: 'Add Item',
-            onPressed: () => _showAddDialog(context, controller),
-            height: 32.h,
-            width: 90.w,
-            textSize: 12.sp,
-          ),
-          SizedBox(width: 16.w),
-        ],
       ),
       drawer: const CommonSidebar(),
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            child: Row(
+              children: [
+                AppCommonButton(
+                  text: 'Add Items',
+                  buttonColor: AppColors.primaryGreen,
+                  height: 24.h,
+                  width: 110.w,
+                  textSize: 11.sp,
+                  onPressed: () => showItemFormDialog(context, controller),
+                ),
+                SizedBox(width: 12.w),
+                AppCommonExportButton(
+                  onExportExcel: () => controller.exportToExcel(),
+                ),
+              ],
+            ),
+          ),
           Expanded(
-            child: Obx(
-              () => ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                itemCount: controller.filteredItems.length,
-                itemBuilder: (context, index) {
-                  final item = controller.filteredItems[index];
-                  return _buildItemCard(context, controller, item);
-                },
+            child: AppRefreshIndicator(
+              onRefresh: () => controller.onRefresh(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Obx(() {
+                  final isLoading = controller.isLoading.value;
+                  final items = isLoading
+                      ? List.generate(
+                          10,
+                          (index) => ItemModel(
+                            id: 0,
+                            itemName: 'Loading Item Name',
+                            itemId: 'Loading ID',
+                            measurementUnitId: '1',
+                            categoryInv: '1',
+                            lowQnty: '',
+                            lowQntyUnit: '',
+                          ),
+                        )
+                      : controller.paginatedItems;
+
+                  final sortColumn = controller.sortColumn.value;
+                  final isAsc = controller.sortAscending.value;
+                  final currentSortOrder = sortColumn.isEmpty
+                      ? AppTableSortOrder.none
+                      : (isAsc
+                          ? AppTableSortOrder.ascending
+                          : AppTableSortOrder.descending);
+
+                  final startItem = controller.totalEntries == 0
+                      ? 0
+                      : ((controller.currentPage.value - 1) *
+                              controller.perPage.value) +
+                          1;
+                  final endItem =
+                      (controller.currentPage.value * controller.perPage.value)
+                          .clamp(0, controller.totalEntries);
+
+                  final columns = [
+                    AppTableColumn<ItemModel>(
+                      key: 'Sl No',
+                      title: 'Sl No',
+                      width: 65.w,
+                      sortable: false,
+                      cellBuilder: (context, item, index, isExpanded) {
+                        return Text(
+                          '${startItem + index}',
+                          style: AppTextStyle.style_11_500(
+                            color: AppColors.black,
+                          ),
+                        );
+                      },
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Item Name',
+                      title: 'Item Name',
+                      width: 150.w,
+                      valueGetter: (item) => item.itemName,
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Item ID',
+                      title: 'Item ID',
+                      width: 100.w,
+                      valueGetter: (item) => item.itemId,
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Measurement',
+                      title: 'Measurement',
+                      width: 120.w,
+                      valueGetter: (item) => controller.getMeasurementName(
+                        item.measurementUnitId,
+                      ),
+                    ),
+                    AppTableColumn<ItemModel>(
+                      key: 'Action',
+                      title: 'Action',
+                      width: 70.w,
+                      sortable: false,
+                      cellBuilder: (context, item, index, isExpanded) {
+                        if (isLoading) return const SizedBox.shrink();
+                        return Center(
+                          child: InkWell(
+                            onTap: () => showItemFormDialog(
+                              context,
+                              controller,
+                              item: item,
+                            ),
+                            child: Icon(
+                              Icons.edit_square,
+                              color: AppColors.primary,
+                              size: 16.r,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ];
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        margin: EdgeInsets.symmetric(horizontal: 16.w),
+                        child: AppCommonTable<ItemModel>(
+                          items: items,
+                          columns: columns,
+                          currentSortColumn: sortColumn,
+                          currentSortOrder: currentSortOrder,
+                          onSort: (columnKey, sortOrder) =>
+                              controller.sortBy(columnKey),
+                          isLoading: isLoading,
+                          headingRowColor: AppColors.blue50,
+                          headingTextStyle: AppTextStyle.style_11_700(
+                            color: AppColors.black,
+                          ),
+                          dataTextStyle: AppTextStyle.style_11_500(
+                            color: AppColors.black,
+                          ),
+                          borderColor: AppColors.borderColor,
+                          headingRowHeight: 20.h,
+                          cellVerticalPadding: 1.h,
+                          cellHorizontalPadding: 4.w,
+                          emptyText: 'No items found',
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      if (!isLoading && controller.totalEntries > 0)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 4.h,
+                          ),
+                          child: AppTablePagination(
+                            startItem: startItem,
+                            endItem: endItem,
+                            totalItems: controller.totalEntries,
+                            currentPage: controller.currentPage.value,
+                            totalPages: controller.totalPages,
+                            onPageChanged: (page) => controller.goToPage(page),
+                            onPreviousPage: controller.previousPage,
+                            onNextPage: controller.nextPage,
+                          ),
+                        ),
+                      SizedBox(height: 32.h),
+                    ],
+                  );
+                }),
               ),
             ),
           ),
@@ -65,451 +221,5 @@ class ItemScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildItemCard(
-    BuildContext context,
-    ItemController controller,
-    ItemModel item,
-  ) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.r),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  item.siNo.toString(),
-                  style: AppTextStyle.style_12_700(color: AppColors.primary),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.itemName,
-                      style: AppTextStyle.style_14_700(color: AppColors.black),
-                    ),
-                    SizedBox(height: 4.h),
-                    Row(
-                      children: [
-                        _buildInfoChip(Icons.tag, 'ID: ${item.itemId}'),
-                        SizedBox(width: 8.w),
-                        _buildInfoChip(Icons.straighten, item.measurement),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              _buildEditButton(context, controller, item),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-      decoration: BoxDecoration(
-        color: AppColors.grey50,
-        borderRadius: BorderRadius.circular(4.r),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 10.r, color: AppColors.grey300),
-          SizedBox(width: 4.w),
-          Text(
-            label,
-            style: AppTextStyle.style_10_500(color: AppColors.black1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEditButton(
-    BuildContext context,
-    ItemController controller,
-    ItemModel item,
-  ) {
-    return AppCommonButton(
-      text: 'Edit',
-      onPressed: () => _showEditDialog(context, controller, item),
-      height: 28.h,
-      width: 60.w,
-      textSize: 10.sp,
-      buttonColor: AppColors.primary,
-    );
-  }
-
-  void _showAddDialog(BuildContext context, ItemController controller) {
-    controller.clearControllers();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(20.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Create Item',
-                    style: AppTextStyle.style_18_700(color: AppColors.black),
-                  ),
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              SizedBox(height: 12.h),
-              Text(
-                'Inventory Form',
-                style: AppTextStyle.style_12_600(color: AppColors.grey300),
-              ),
-              SizedBox(height: 16.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.itemNameController,
-                      titleText: 'Item Name',
-                      hintText: 'Enter item name',
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.itemIdController,
-                      titleText: 'Item Id',
-                      hintText: 'Enter item id',
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: Obx(
-                      () => AppCommonDropdown<String>(
-                        title: 'Measurement',
-                        hintText: 'Select',
-                        value: controller.selectedMeasurement.value,
-                        items: controller.measurementOptions
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(
-                                  e,
-                                  style: AppTextStyle.style_14_400(),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            controller.selectedMeasurement.value = v,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Obx(
-                      () => AppCommonDropdown<String>(
-                        title: 'Category',
-                        hintText: 'Select',
-                        value: controller.selectedCategory.value,
-                        items: controller.categoryOptions
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(
-                                  e,
-                                  style: AppTextStyle.style_14_400(),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) => controller.selectedCategory.value = v,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Low quantity(Store Room)',
-                      style:
-                          AppTextStyle.style_12_500(color: AppColors.black300),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Text(
-                      'Low quantity(Unit)',
-                      style:
-                          AppTextStyle.style_12_500(color: AppColors.black300),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.lowQuantityStoreController,
-                      hintText: 'Enter qty',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.lowQuantityUnitController,
-                      hintText: 'Enter qty',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24.h),
-              AppCommonButton(
-                text: 'Submit',
-                width: double.infinity,
-                height: 44.h,
-                buttonColor: AppColors.primary,
-                onPressed: () => controller.addItem(),
-              ),
-              SizedBox(height: 12.h),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEditDialog(
-    BuildContext context,
-    ItemController controller,
-    ItemModel item,
-  ) {
-    controller.itemNameController.text = item.itemName;
-    controller.itemIdController.text = item.itemId;
-    controller.selectedMeasurement.value = item.measurement;
-    controller.selectedCategory.value = item.category;
-    controller.lowQuantityStoreController.text = item.lowQuantityStore;
-    controller.lowQuantityUnitController.text = item.lowQuantityUnit;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(20.r),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Edit Item',
-                    style: AppTextStyle.style_18_700(color: AppColors.black),
-                  ),
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.itemNameController,
-                      titleText: 'Item Name',
-                      hintText: 'Enter item name',
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.itemIdController,
-                      titleText: 'Item Id',
-                      hintText: 'Enter item id',
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: Obx(
-                      () => AppCommonDropdown<String>(
-                        title: 'Measurement',
-                        hintText: 'Select',
-                        value: controller.selectedMeasurement.value,
-                        items: controller.measurementOptions
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(
-                                  e,
-                                  style: AppTextStyle.style_14_400(),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            controller.selectedMeasurement.value = v,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Obx(
-                      () => AppCommonDropdown<String>(
-                        title: 'Category',
-                        hintText: 'Select',
-                        value: controller.selectedCategory.value,
-                        items: controller.categoryOptions
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(
-                                  e,
-                                  style: AppTextStyle.style_14_400(),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) => controller.selectedCategory.value = v,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Low quantity(Store Room)',
-                      style:
-                          AppTextStyle.style_12_500(color: AppColors.black300),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Text(
-                      'Low quantity(Unit)',
-                      style:
-                          AppTextStyle.style_12_500(color: AppColors.black300),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.lowQuantityStoreController,
-                      hintText: 'Enter qty',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: AppCommonTextField(
-                      controller: controller.lowQuantityUnitController,
-                      hintText: 'Enter qty',
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24.h),
-              AppCommonButton(
-                text: 'Update',
-                width: double.infinity,
-                height: 44.h,
-                buttonColor: AppColors.primary,
-                onPressed: () {
-                  final updated = ItemModel(
-                    siNo: item.siNo,
-                    itemName: controller.itemNameController.text,
-                    itemId: controller.itemIdController.text,
-                    measurement: controller.selectedMeasurement.value ??
-                        item.measurement,
-                    category:
-                        controller.selectedCategory.value ?? item.category,
-                    lowQuantityStore:
-                        controller.lowQuantityStoreController.text,
-                    lowQuantityUnit: controller.lowQuantityUnitController.text,
-                  );
-                  final index = controller.allItems.indexOf(item);
-                  controller.editItem(index, updated);
-                },
-              ),
-              SizedBox(height: 12.h),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
+

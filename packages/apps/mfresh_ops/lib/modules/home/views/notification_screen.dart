@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
-import 'package:models/notification/app_notification.dart';
 import 'package:services/services.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -17,20 +17,26 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppCommonAppBar(
+        topHeader: const CommonShortcutHeader(),
         title: const Text('Notifications'),
         showAppDrawer: false,
         hasBackButton: true,
       ),
       body: notifications.isEmpty
           ? _buildEmptyState()
-          : ListView.separated(
-              padding: EdgeInsets.all(20.r),
-              itemCount: notifications.length,
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return _buildNotificationCard(notification);
-              },
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: ListView.separated(
+                  padding: EdgeInsets.all(20.r),
+                  itemCount: notifications.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    return _buildNotificationCard(notification);
+                  },
+                ),
+              ),
             ),
     );
   }
@@ -41,7 +47,10 @@ class NotificationScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1.r),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.05),
+          width: 1.r,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -59,7 +68,11 @@ class NotificationScreen extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(Icons.notifications_active_outlined, color: AppColors.primary, size: 20.r),
+            child: Icon(
+              Icons.notifications_active_outlined,
+              color: AppColors.primary,
+              size: 20.r,
+            ),
           ),
           SizedBox(width: 16.w),
           Expanded(
@@ -93,7 +106,11 @@ class NotificationScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none_rounded, size: 64.r, color: AppColors.grey200),
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 64.r,
+            color: AppColors.grey200,
+          ),
           SizedBox(height: 16.h),
           Text(
             'No Notifications',

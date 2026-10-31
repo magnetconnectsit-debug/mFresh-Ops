@@ -12,6 +12,9 @@ class AppImageView extends StatelessWidget {
   final double borderRadius;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final Color backgroundColor;
+  final int? memCacheWidth;
+  final int? memCacheHeight;
 
   const AppImageView({
     super.key,
@@ -22,23 +25,36 @@ class AppImageView extends StatelessWidget {
     this.borderRadius = 0,
     this.placeholder,
     this.errorWidget,
+    this.backgroundColor = AppColors.white,
+    this.memCacheWidth,
+    this.memCacheHeight,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: (imageUrl == null || imageUrl!.isEmpty || imageUrl == "NA")
-          ? _buildErrorWidget()
-          : CachedNetworkImage(
-              imageUrl: imageUrl!,
-              width: width,
-              height: height,
-              fit: fit,
-              placeholder: (context, url) => placeholder ?? _buildPlaceholder(),
-              errorWidget: (context, url, error) =>
-                  errorWidget ?? _buildErrorWidget(),
-            ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: (imageUrl == null || imageUrl!.isEmpty || imageUrl == "NA")
+            ? _buildErrorWidget()
+            : CachedNetworkImage(
+                imageUrl: imageUrl!,
+                width: width,
+                height: height,
+                fit: fit,
+                memCacheWidth: memCacheWidth,
+                memCacheHeight: memCacheHeight,
+                placeholder: (context, url) => placeholder ?? _buildPlaceholder(),
+                errorWidget: (context, url, error) =>
+                    errorWidget ?? _buildErrorWidget(),
+              ),
+      ),
     );
   }
 

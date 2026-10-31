@@ -1,12 +1,18 @@
+// region Imports
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+// endregion
 
+// region Enums
 enum ButtonVariant { primary, secondary, outline, text }
+// endregion
 
+// region AppCommonButton Widget
 class AppCommonButton extends StatelessWidget {
+  // region Properties
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -14,6 +20,7 @@ class AppCommonButton extends StatelessWidget {
   final double? height;
   final double? width;
   final Color? buttonColor;
+  final List<Color>? gradientColors;
   final Color? borderColor;
   final Color? textColor;
   final double? textSize;
@@ -21,8 +28,18 @@ class AppCommonButton extends StatelessWidget {
   final double? elevation;
   final Widget? prefixWidget;
   final IconData? icon;
+  final IconData? prefixIcon;
+  final IconData? suffixIcon;
+  final Widget? suffixWidget;
+  final double? iconSize;
+  final Color? iconColor;
   final ButtonVariant variant;
+  final EdgeInsetsGeometry? padding;
+  final bool useGradient;
+  final double? loaderSize;
+  // endregion
 
+  // region Constructor
   const AppCommonButton({
     super.key,
     required this.text,
@@ -32,6 +49,7 @@ class AppCommonButton extends StatelessWidget {
     this.height,
     this.width,
     this.buttonColor,
+    this.gradientColors,
     this.borderColor,
     this.textColor,
     this.textSize,
@@ -39,93 +57,208 @@ class AppCommonButton extends StatelessWidget {
     this.elevation,
     this.prefixWidget,
     this.icon,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.suffixWidget,
+    this.iconSize,
+    this.iconColor,
     this.variant = ButtonVariant.primary,
+    this.padding,
+    this.useGradient = true,
+    this.loaderSize,
   });
+  // endregion
 
+  // region Build Method
   @override
   Widget build(BuildContext context) {
-    Color effectiveButtonColor;
-    Color effectiveTextColor;
-    Color? effectiveBorderColor = borderColor;
-    double effectiveElevation = elevation ?? 0;
+    final bool isDisabled = onPressed == null || isLoading;
+    final effectiveBorderRadius = BorderRadius.circular(borderRadius ?? 6.r);
+    final double effHeight = height ?? (isSmall ? 21.h : 25.h);
+    final EdgeInsetsGeometry effPadding = padding ??
+        EdgeInsets.symmetric(
+          horizontal: (isSmall || (width != null && width! <= 100.w)) ? 8.w : 16.w,
+        );
+    final double effLoaderSize = loaderSize ?? (isSmall ? 14.r : 20.r);
 
-    switch (variant) {
-      case ButtonVariant.secondary:
-        effectiveButtonColor = buttonColor ?? AppColors.background;
-        effectiveTextColor = textColor ?? AppColors.primary;
-        break;
-      case ButtonVariant.outline:
-        effectiveButtonColor = buttonColor ?? Colors.transparent;
-        effectiveTextColor = textColor ?? AppColors.grey700;
-        effectiveBorderColor ??= AppColors.grey200;
-        break;
-      case ButtonVariant.text:
-        effectiveButtonColor = Colors.transparent;
-        effectiveTextColor = textColor ?? AppColors.primary;
-        effectiveElevation = 0;
-        break;
-      case ButtonVariant.primary:
-        effectiveButtonColor = buttonColor ?? AppColors.primary;
-        effectiveTextColor = textColor ?? AppColors.white;
-        break;
+    if (variant == ButtonVariant.outline || variant == ButtonVariant.text) {
+      final Color effTextColor = textColor ??
+          (variant == ButtonVariant.outline
+              ? AppColors.grey700
+              : AppColors.primary);
+      final Color effBorderColor = borderColor ?? AppColors.grey200;
+      final Color effLoaderColor = borderColor ?? buttonColor ?? AppColors.primary;
+
+      final Widget outlineWidget = Material(
+        color: Colors.transparent,
+        borderRadius: effectiveBorderRadius,
+        child: InkWell(
+          onTap: isDisabled ? null : onPressed,
+          borderRadius: effectiveBorderRadius,
+          child: Container(
+            width: width,
+            height: effHeight,
+            alignment: width != null ? Alignment.center : null,
+            padding: effPadding,
+            decoration: BoxDecoration(
+              color: isLoading ? AppColors.white : (buttonColor ?? Colors.transparent),
+              borderRadius: effectiveBorderRadius,
+              border: variant == ButtonVariant.outline || isLoading
+                  ? Border.all(color: effBorderColor)
+                  : null,
+            ),
+            child: isLoading
+                ? CustomAppLoader(
+                    size: effLoaderSize,
+                    strokeWidth: 2.5,
+                    color: effLoaderColor,
+                  )
+                : _buildContent(effTextColor, isDisabled),
+          ),
+        ),
+      );
+
+      if (width == null) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [outlineWidget],
+        );
+      }
+      return outlineWidget;
     }
 
-    final style =
-        ElevatedButton.styleFrom(
-          elevation: effectiveElevation,
-          backgroundColor: effectiveButtonColor,
-          foregroundColor: effectiveTextColor,
-          minimumSize: Size(
-            width ?? (isSmall ? 60.w : double.infinity),
-            height ?? (isSmall ? 32.h : 40.h),
-          ),
-          padding: EdgeInsets.symmetric(horizontal: isSmall ? 12.w : 16.w),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(borderRadius ?? 8.r),
-            side: effectiveBorderColor != null
-                ? BorderSide(color: effectiveBorderColor)
-                : BorderSide.none,
-          ),
-        ).copyWith(
-          overlayColor: variant == ButtonVariant.text
-              ? WidgetStateProperty.all(
-                  effectiveTextColor.withValues(alpha: 0.1),
-                )
-              : null,
-        );
+    // Primary & Secondary Buttons with Gradient / Solid styling matching Create Ticket button
+    final List<Color> effGradient = gradientColors ??
+        (buttonColor != null
+            ? [buttonColor!, buttonColor!]
+            : (variant == ButtonVariant.secondary
+                ? [AppColors.grey100, AppColors.grey200]
+                : const [AppColors.secondaryBlue, AppColors.primaryBlue]));
 
-    if (isLoading) {
-      return ElevatedButton(
-        style: style,
-        onPressed: null,
-        child: CustomAppLoader(
-          size: isSmall ? 16.r : 24.r,
-          strokeWidth: 2,
-          color: effectiveTextColor,
+    final Color effTextColor = textColor ??
+        (variant == ButtonVariant.secondary
+            ? AppColors.black
+            : AppColors.white);
+
+    final Color effLoaderColor = buttonColor ?? AppColors.primary;
+
+    final Widget primaryWidget = Material(
+      color: Colors.transparent,
+      borderRadius: effectiveBorderRadius,
+      child: InkWell(
+        onTap: isDisabled ? null : onPressed,
+        borderRadius: effectiveBorderRadius,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: (useGradient && !isLoading)
+                ? LinearGradient(
+                    colors: (onPressed == null)
+                        ? effGradient.map((c) => c.withValues(alpha: 0.4)).toList()
+                        : effGradient,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  )
+                : null,
+            color: isLoading
+                ? AppColors.white
+                : (!useGradient ? (buttonColor ?? AppColors.primary) : null),
+            borderRadius: effectiveBorderRadius,
+            border: isLoading
+                ? Border.all(color: effLoaderColor, width: 1.0)
+                : (borderColor != null ? Border.all(color: borderColor!) : null),
+            boxShadow: [
+              if (!isDisabled && (elevation == null || elevation! > 0) && !isLoading)
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.12),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+            ],
+          ),
+          child: Container(
+            width: width,
+            height: effHeight,
+            alignment: width != null ? Alignment.center : null,
+            padding: effPadding,
+            child: isLoading
+                ? CustomAppLoader(
+                    size: effLoaderSize,
+                    strokeWidth: 2.5,
+                    color: effLoaderColor,
+                  )
+                : _buildContent(effTextColor, isDisabled),
+          ),
         ),
+      ),
+    );
+
+    if (width == null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: primaryWidget),
+        ],
       );
     }
 
-    Widget content = Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (prefixWidget != null) ...[
-          prefixWidget!,
-          SizedBox(width: 12.w),
-        ] else if (icon != null) ...[
-          Icon(icon, size: isSmall ? 16.sp : 20.sp),
-          SizedBox(width: 8.w),
-        ],
-        Text(
-          text,
-          style: AppTextStyle.style_16_600(
-            color: effectiveTextColor,
-          ).copyWith(fontSize: textSize ?? (isSmall ? 12.sp : 16.sp)),
-        ),
-      ],
+    return primaryWidget;
+  }
+  // endregion
+
+  // region Content Builder
+  Widget _buildContent(Color textCol, bool isDisabled) {
+    final double effIconSize = iconSize ?? 14.r;
+    final Color effIconColor = iconColor ?? textCol;
+    final IconData? effPrefixIcon = prefixIcon ?? icon;
+    final Widget textWidget = Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppTextStyle.style_11_600(color: textCol).copyWith(
+        fontSize: textSize ?? 11.sp,
+        color: isDisabled ? textCol.withValues(alpha: 0.6) : textCol,
+      ),
     );
 
-    return ElevatedButton(style: style, onPressed: onPressed, child: content);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isBounded = constraints.hasBoundedWidth &&
+            constraints.maxWidth != double.infinity;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (prefixWidget != null) ...[
+              prefixWidget!,
+              SizedBox(width: 4.w),
+            ] else if (effPrefixIcon != null) ...[
+              Icon(
+                effPrefixIcon,
+                size: effIconSize,
+                color: isDisabled ? effIconColor.withValues(alpha: 0.6) : effIconColor,
+              ),
+              SizedBox(width: 3.w),
+            ],
+            if (isBounded)
+              Flexible(child: textWidget)
+            else
+              textWidget,
+            if (suffixWidget != null) ...[
+              SizedBox(width: 4.w),
+              suffixWidget!,
+            ] else if (suffixIcon != null) ...[
+              SizedBox(width: 4.w),
+              Icon(
+                suffixIcon,
+                size: effIconSize,
+                color: isDisabled ? effIconColor.withValues(alpha: 0.6) : effIconColor,
+              ),
+            ],
+          ],
+        );
+      },
+    );
   }
+  // endregion
 }
+// endregion

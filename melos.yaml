@@ -3,6 +3,9 @@ name: magnet_connects
 packages:
   - packages/apps/**
   - packages/shared/**
+ignore:
+  - "**/build/**"
+  - "**/.dart_tool/**"
 
 command:
   bootstrap:
