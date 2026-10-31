@@ -647,7 +647,7 @@ class StoreInventoryDialogs {
     }
 
     Future<void> updateDestinations(String? type) async {
-      debugPrint('🔍 [dialog] updateDestinations called with type: $type');
+      debugPrint('🔍 [dialog] updateDestinations called with type: $type, state: ${selectedState.value}, district: ${selectedDistrict.value}');
       allocateDestination.value = null;
       destinationOptions.clear();
       if (type == null) return;
@@ -686,11 +686,10 @@ class StoreInventoryDialogs {
         }
       } else if (type == 'storeroom') {
         try {
-          debugPrint('🔍 [dialog] Fetching inv-stores...');
-          final response = await apiService.post(
-            'inv-stores',
-            data: {'state': '', 'district': ''},
-          );
+          final stateId = selectedState.value ?? '';
+          final districtId = selectedDistrict.value ?? '';
+          debugPrint('🔍 [dialog] Fetching inv-stores with state: $stateId, district: $districtId');
+          final response = await repository.getStores(stateId, districtId);
           debugPrint('🔍 [dialog] inv-stores response: $response');
           if (response != null &&
               (response['status'] == 'success' || response['status'] == true)) {
@@ -752,9 +751,13 @@ class StoreInventoryDialogs {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Transfer to Unit',
-                      style: AppTextStyle.style_18_700(color: AppColors.black),
+                    Obx(
+                      () => Text(
+                        allocateDestinationType.value == 'storeroom'
+                            ? 'Transfer to Store'
+                            : 'Transfer to Unit',
+                        style: AppTextStyle.style_18_700(color: AppColors.black),
+                      ),
                     ),
                     IconButton(
                       onPressed: () => Get.back(),
@@ -802,7 +805,7 @@ class StoreInventoryDialogs {
                   ],
                 ),
 
-                SizedBox(height: 16.h),
+                SizedBox(height: 14.h),
                 Text(
                   'To',
                   style: AppTextStyle.style_12_700(color: AppColors.red),
@@ -839,6 +842,9 @@ class StoreInventoryDialogs {
                             if (v != null) {
                               loadDistricts(v);
                             }
+                            if (allocateDestinationType.value != null) {
+                              updateDestinations(allocateDestinationType.value);
+                            }
                           },
                         ),
                       ),
@@ -870,6 +876,9 @@ class StoreInventoryDialogs {
                           onChanged: (values) {
                             final v = values.isNotEmpty ? values.first : null;
                             selectedDistrict.value = v;
+                            if (allocateDestinationType.value != null) {
+                              updateDestinations(allocateDestinationType.value);
+                            }
                           },
                         ),
                       ),
