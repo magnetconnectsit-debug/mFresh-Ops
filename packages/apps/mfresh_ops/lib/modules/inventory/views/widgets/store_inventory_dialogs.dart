@@ -102,481 +102,482 @@ class StoreInventoryDialogs {
           constraints: const BoxConstraints(maxWidth: 520),
           child: Container(
             padding: EdgeInsets.all(20.r),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Add ',
-                            style: AppTextStyle.style_18_700(
-                              color: AppColors.black,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Add ',
+                              style: AppTextStyle.style_18_700(
+                                color: AppColors.black,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: 'Stock Inventory',
-                            style: AppTextStyle.style_18_700(
-                              color: AppColors.red,
+                            TextSpan(
+                              text: 'Stock Inventory',
+                              style: AppTextStyle.style_18_700(
+                                color: AppColors.red,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Get.back(),
-                      icon: const Icon(Icons.close),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'State',
-                          isSingleSelect: true,
-                          selectedValues: selectedState.value != null
-                              ? {selectedState.value!}
-                              : {},
-                          items: controller.stateOptions
-                              .map<DropdownMenuItem<String>>(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e.value,
-                                  child: Text(
-                                    e.label,
-                                    style: AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (values) {
-                            final v = values.isNotEmpty ? values.first : null;
-                            selectedState.value = v;
-                            selectedDistrict.value = null;
-                            selectedStore.value = null;
-                            if (v != null) {
-                              controller.fetchDistricts(v);
-                            }
-                          },
+                          ],
                         ),
                       ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'District',
-                          isSingleSelect: true,
-                          selectedValues: selectedDistrict.value != null
-                              ? {selectedDistrict.value!}
-                              : {},
-                          items: selectedState.value == null
-                              ? []
-                              : controller.districtOptions
-                                    .map<DropdownMenuItem<String>>(
-                                      (e) => DropdownMenuItem<String>(
-                                        value: e.value,
-                                        child: Text(
-                                          e.label,
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
+                      IconButton(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'State',
+                            isSingleSelect: true,
+                            selectedValues: selectedState.value != null
+                                ? {selectedState.value!}
+                                : {},
+                            items: controller.stateOptions
+                                .map<DropdownMenuItem<String>>(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e.value,
+                                    child: Text(
+                                      e.label,
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.grey900,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (values) {
+                              final v = values.isNotEmpty ? values.first : null;
+                              selectedState.value = v;
+                              selectedDistrict.value = null;
+                              selectedStore.value = null;
+                              if (v != null) {
+                                controller.fetchDistricts(v);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'District',
+                            isSingleSelect: true,
+                            selectedValues: selectedDistrict.value != null
+                                ? {selectedDistrict.value!}
+                                : {},
+                            items: selectedState.value == null
+                                ? []
+                                : controller.districtOptions
+                                      .map<DropdownMenuItem<String>>(
+                                        (e) => DropdownMenuItem<String>(
+                                          value: e.value,
+                                          child: Text(
+                                            e.label,
+                                            style: AppTextStyle.style_12_400(
+                                              color: AppColors.grey900,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                    .toList(),
-                          onChanged: (values) {
-                            final v = values.isNotEmpty ? values.first : null;
-                            selectedDistrict.value = v;
-                            selectedStore.value = null;
-                            if (v != null && selectedState.value != null) {
-                              controller.fetchStores(selectedState.value!, v);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'Store Name',
-                          isSingleSelect: true,
-                          selectedValues: selectedStore.value != null
-                              ? {selectedStore.value!}
-                              : {},
-                          items: controller.storeOptions
-                              .map<DropdownMenuItem<String>>(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e.value,
-                                  child: Text(
-                                    e.label,
-                                    style: AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (values) {
-                            final v = values.isNotEmpty ? values.first : null;
-                            selectedStore.value = v;
-                          },
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'Category',
-                          isSingleSelect: true,
-                          selectedValues: selectedCategory.value != null
-                              ? {selectedCategory.value!}
-                              : {},
-                          items: controller.categoryOptions
-                              .map<DropdownMenuItem<String>>(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e.value,
-                                  child: Text(
-                                    e.label,
-                                    style: AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (values) {
-                            final v = values.isNotEmpty ? values.first : null;
-                            selectedCategory.value = v;
-                            controller.onCategorySelected(v);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Obx(
-                  () => MultiSelectDropdownWidget<String>(
-                    label: 'Item',
-                    isSingleSelect: true,
-                    selectedValues: controller.selectedAddItemName.value != null
-                        ? {controller.selectedAddItemName.value!}
-                        : {},
-                    items: controller.itemOptions
-                        .map<DropdownMenuItem<String>>(
-                          (e) => DropdownMenuItem<String>(
-                            value: e.value,
-                            child: Text(
-                              e.label,
-                              style: AppTextStyle.style_12_400(
-                                color: AppColors.grey900,
-                              ),
-                            ),
+                                      )
+                                      .toList(),
+                            onChanged: (values) {
+                              final v = values.isNotEmpty ? values.first : null;
+                              selectedDistrict.value = v;
+                              selectedStore.value = null;
+                              if (v != null && selectedState.value != null) {
+                                controller.fetchStores(selectedState.value!, v);
+                              }
+                            },
                           ),
-                        )
-                        .toList(),
-                    onChanged: (values) {
-                      final v = values.isNotEmpty ? values.first : null;
-                      controller.selectedAddItemName.value = v;
-                    },
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Obx(() {
-                  final selectedId = controller.selectedAddItemName.value;
-                  if (selectedId == null) {
-                    return const SizedBox();
-                  }
-                  final unit = (controller.itemUnits[selectedId] ?? '')
-                      .toLowerCase();
-
-                  if (unit == 'litre') {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Consumption Quantity (ml)',
-                                'Enter in ml',
-                                controller: consumptionController,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            const Expanded(child: SizedBox()),
-                          ],
+                  SizedBox(height: 10.h),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'Store Name',
+                            isSingleSelect: true,
+                            selectedValues: selectedStore.value != null
+                                ? {selectedStore.value!}
+                                : {},
+                            items: controller.storeOptions
+                                .map<DropdownMenuItem<String>>(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e.value,
+                                    child: Text(
+                                      e.label,
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.grey900,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (values) {
+                              final v = values.isNotEmpty ? values.first : null;
+                              selectedStore.value = v;
+                            },
+                          ),
                         ),
-                      ],
-                    );
-                  } else if (unit == 'piece' || unit == 'pcs') {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Consumption Quantity',
-                                'Enter Pieces',
-                                controller: consumptionController,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            const Expanded(child: SizedBox()),
-                          ],
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'Category',
+                            isSingleSelect: true,
+                            selectedValues: selectedCategory.value != null
+                                ? {selectedCategory.value!}
+                                : {},
+                            items: controller.categoryOptions
+                                .map<DropdownMenuItem<String>>(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e.value,
+                                    child: Text(
+                                      e.label,
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.grey900,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (values) {
+                              final v = values.isNotEmpty ? values.first : null;
+                              selectedCategory.value = v;
+                              controller.onCategorySelected(v);
+                            },
+                          ),
                         ),
-                      ],
-                    );
-                  } else if (unit == 'packet' || unit == 'box') {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Packets',
-                                'Enter Packets',
-                                controller: packetController,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Obx(
+                    () => MultiSelectDropdownWidget<String>(
+                      label: 'Item',
+                      isSingleSelect: true,
+                      selectedValues:
+                          controller.selectedAddItemName.value != null
+                          ? {controller.selectedAddItemName.value!}
+                          : {},
+                      items: controller.itemOptions
+                          .map<DropdownMenuItem<String>>(
+                            (e) => DropdownMenuItem<String>(
+                              value: e.value,
+                              child: Text(
+                                e.label,
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey900,
+                                ),
                               ),
                             ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Piece (per Pkt)',
-                                'Enter pieces per packet',
-                                controller: pieceController,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Consumption Qty',
-                                'Auto Calc (Pkt x Pcs)',
-                                controller: consumptionController,
-                                readOnly: true,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            const Expanded(child: SizedBox()),
-                          ],
-                        ),
-                      ],
-                    );
-                  } else if (unit == 'pair') {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Consumption Quantity (Pair)',
-                                'Enter Pairs',
-                                controller: consumptionController,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            const Expanded(child: SizedBox()),
-                          ],
-                        ),
-                      ],
-                    );
-                  } else if (unit == 'kg') {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Consumption Quantity (g)',
-                                'Enter in grams',
-                                controller: consumptionController,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            const Expanded(child: SizedBox()),
-                          ],
-                        ),
-                      ],
-                    );
-                  } else {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWhiteInput(
-                                'Consumption Qty.',
-                                'Enter Qty.',
-                                controller: consumptionController,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            const Expanded(child: SizedBox()),
-                          ],
-                        ),
-                      ],
-                    );
-                  }
-                }),
-                SizedBox(height: 24.h),
-                Row(
-                  children: [
-                    const Spacer(),
-                    AppCommonButton(
-                      text: 'Cancel',
-                      width: 100.w,
-                      height: 28.h,
-                      variant: ButtonVariant.outline,
-                      onPressed: () => Get.back(),
-                    ),
-                    SizedBox(width: 12.w),
-                    AppCommonButton(
-                      text: 'Submit',
-                      width: 100.w,
-                      height: 28.h,
-                      buttonColor: AppColors.info,
-                      onPressed: () async {
-                        if (selectedState.value == null) {
-                          AppCommonToastMessage.show(
-                            message: 'Please select state',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (selectedDistrict.value == null) {
-                          AppCommonToastMessage.show(
-                            message: 'Please select district',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (selectedStore.value == null) {
-                          AppCommonToastMessage.show(
-                            message: 'Please select store',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (selectedCategory.value == null) {
-                          AppCommonToastMessage.show(
-                            message: 'Please select category',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (controller.selectedAddItemName.value == null) {
-                          AppCommonToastMessage.show(
-                            message: 'Please select item',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-
-                        final itemId = controller.selectedAddItemName.value!;
-                        final unit = (controller.itemUnits[itemId] ?? '')
-                            .toLowerCase();
-
-                        String packetQty = "";
-                        String pieceQty = "";
-                        String literQty = "";
-
-                        if (unit == 'litre') {
-                          literQty = consumptionController.text;
-                          if (literQty.isEmpty) {
-                            AppCommonToastMessage.show(
-                              message: 'Please enter consumption quantity',
-                              type: ToastType.error,
-                            );
-                            return;
-                          }
-                        } else if (unit == 'packet' || unit == 'box') {
-                          packetQty = packetController.text;
-                          pieceQty = pieceController.text;
-                          if (packetQty.isEmpty) {
-                            AppCommonToastMessage.show(
-                              message: 'Please enter packets quantity',
-                              type: ToastType.error,
-                            );
-                            return;
-                          }
-                          if (pieceQty.isEmpty) {
-                            AppCommonToastMessage.show(
-                              message:
-                                  'Please enter pieces per packet quantity',
-                              type: ToastType.error,
-                            );
-                            return;
-                          }
-                        } else {
-                          // pcs / pieces, kg, pair, gram, etc.
-                          pieceQty = consumptionController.text;
-                          if (pieceQty.isEmpty) {
-                            AppCommonToastMessage.show(
-                              message: 'Please enter quantity',
-                              type: ToastType.error,
-                            );
-                            return;
-                          }
-                        }
-
-                        Get.back();
-                        await controller.addStoreStock(
-                          stateId: selectedState.value!,
-                          districtId: selectedDistrict.value!,
-                          storeId: selectedStore.value!,
-                          categoryId: selectedCategory.value!,
-                          itemId: itemId,
-                          packetQty: packetQty,
-                          pieceQty: pieceQty,
-                          literQty: literQty,
-                        );
+                          )
+                          .toList(),
+                      onChanged: (values) {
+                        final v = values.isNotEmpty ? values.first : null;
+                        controller.selectedAddItemName.value = v;
                       },
                     ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-              ],
+                  ),
+                  Obx(() {
+                    final selectedId = controller.selectedAddItemName.value;
+                    if (selectedId == null) {
+                      return const SizedBox();
+                    }
+                    final unit = (controller.itemUnits[selectedId] ?? '')
+                        .toLowerCase();
+
+                    if (unit == 'litre') {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Consumption Quantity (ml)',
+                                  'Enter in ml',
+                                  controller: consumptionController,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              const Expanded(child: SizedBox()),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else if (unit == 'piece' || unit == 'pcs') {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Consumption Quantity',
+                                  'Enter Pieces',
+                                  controller: consumptionController,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              const Expanded(child: SizedBox()),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else if (unit == 'packet' || unit == 'box') {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10.h),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Packets',
+                                  'Enter Packets',
+                                  controller: packetController,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Piece (per Pkt)',
+                                  'Enter pieces per packet',
+                                  controller: pieceController,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Consumption Qty',
+                                  'Auto Calc (Pkt x Pcs)',
+                                  controller: consumptionController,
+                                  readOnly: true,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              const Expanded(child: SizedBox()),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else if (unit == 'pair') {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Consumption Quantity (Pair)',
+                                  'Enter Pairs',
+                                  controller: consumptionController,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              const Expanded(child: SizedBox()),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else if (unit == 'kg') {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Consumption Quantity (g)',
+                                  'Enter in grams',
+                                  controller: consumptionController,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              const Expanded(child: SizedBox()),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWhiteInput(
+                                  'Consumption Qty.',
+                                  'Enter Qty.',
+                                  controller: consumptionController,
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              const Expanded(child: SizedBox()),
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+                  }),
+                  SizedBox(height: 24.h),
+                  Row(
+                    children: [
+                      const Spacer(),
+                      AppCommonButton(
+                        text: 'Cancel',
+                        width: 100.w,
+                        height: 28.h,
+                        variant: ButtonVariant.outline,
+                        onPressed: () => Get.back(),
+                      ),
+                      SizedBox(width: 12.w),
+                      AppCommonButton(
+                        text: 'Submit',
+                        width: 100.w,
+                        height: 28.h,
+                        buttonColor: AppColors.info,
+                        onPressed: () async {
+                          if (selectedState.value == null) {
+                            AppCommonToastMessage.show(
+                              message: 'Please select state',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (selectedDistrict.value == null) {
+                            AppCommonToastMessage.show(
+                              message: 'Please select district',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (selectedStore.value == null) {
+                            AppCommonToastMessage.show(
+                              message: 'Please select store',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (selectedCategory.value == null) {
+                            AppCommonToastMessage.show(
+                              message: 'Please select category',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (controller.selectedAddItemName.value == null) {
+                            AppCommonToastMessage.show(
+                              message: 'Please select item',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+
+                          final itemId = controller.selectedAddItemName.value!;
+                          final unit = (controller.itemUnits[itemId] ?? '')
+                              .toLowerCase();
+
+                          String packetQty = "";
+                          String pieceQty = "";
+                          String literQty = "";
+
+                          if (unit == 'litre') {
+                            literQty = consumptionController.text;
+                            if (literQty.isEmpty) {
+                              AppCommonToastMessage.show(
+                                message: 'Please enter consumption quantity',
+                                type: ToastType.error,
+                              );
+                              return;
+                            }
+                          } else if (unit == 'packet' || unit == 'box') {
+                            packetQty = packetController.text;
+                            pieceQty = pieceController.text;
+                            if (packetQty.isEmpty) {
+                              AppCommonToastMessage.show(
+                                message: 'Please enter packets quantity',
+                                type: ToastType.error,
+                              );
+                              return;
+                            }
+                            if (pieceQty.isEmpty) {
+                              AppCommonToastMessage.show(
+                                message:
+                                    'Please enter pieces per packet quantity',
+                                type: ToastType.error,
+                              );
+                              return;
+                            }
+                          } else {
+                            // pcs / pieces, kg, pair, gram, etc.
+                            pieceQty = consumptionController.text;
+                            if (pieceQty.isEmpty) {
+                              AppCommonToastMessage.show(
+                                message: 'Please enter quantity',
+                                type: ToastType.error,
+                              );
+                              return;
+                            }
+                          }
+
+                          Get.back();
+                          await controller.addStoreStock(
+                            stateId: selectedState.value!,
+                            districtId: selectedDistrict.value!,
+                            storeId: selectedStore.value!,
+                            categoryId: selectedCategory.value!,
+                            itemId: itemId,
+                            packetQty: packetQty,
+                            pieceQty: pieceQty,
+                            literQty: literQty,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   static void showAllocateSheet(BuildContext context, dynamic item) {
@@ -647,7 +648,9 @@ class StoreInventoryDialogs {
     }
 
     Future<void> updateDestinations(String? type) async {
-      debugPrint('🔍 [dialog] updateDestinations called with type: $type, state: ${selectedState.value}, district: ${selectedDistrict.value}');
+      debugPrint(
+        '🔍 [dialog] updateDestinations called with type: $type, state: ${selectedState.value}, district: ${selectedDistrict.value}',
+      );
       allocateDestination.value = null;
       destinationOptions.clear();
       if (type == null) return;
@@ -688,7 +691,9 @@ class StoreInventoryDialogs {
         try {
           final stateId = selectedState.value ?? '';
           final districtId = selectedDistrict.value ?? '';
-          debugPrint('🔍 [dialog] Fetching inv-stores with state: $stateId, district: $districtId');
+          debugPrint(
+            '🔍 [dialog] Fetching inv-stores with state: $stateId, district: $districtId',
+          );
           final response = await repository.getStores(stateId, districtId);
           debugPrint('🔍 [dialog] inv-stores response: $response');
           if (response != null &&
@@ -743,351 +748,350 @@ class StoreInventoryDialogs {
           constraints: const BoxConstraints(maxWidth: 520),
           child: Container(
             padding: EdgeInsets.all(20.r),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Obx(
-                      () => Text(
-                        allocateDestinationType.value == 'storeroom'
-                            ? 'Transfer to Store'
-                            : 'Transfer to Unit',
-                        style: AppTextStyle.style_18_700(color: AppColors.black),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Get.back(),
-                      icon: const Icon(Icons.close),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-
-                Text(
-                  'From',
-                  style: AppTextStyle.style_12_700(color: AppColors.red),
-                ),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildGreyField(
-                        'Store Name',
-                        item is InventoryItemModel ? item.store : item.unitName,
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: _buildGreyField(
-                        'Item Name',
-                        item is InventoryItemModel ? item.item : item.itemName,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildGreyField(
-                        'Available Qty.',
-                        '${item.quantity}',
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    const Expanded(child: SizedBox()),
-                  ],
-                ),
-
-                SizedBox(height: 14.h),
-                Text(
-                  'To',
-                  style: AppTextStyle.style_12_700(color: AppColors.red),
-                ),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'Select State',
-                          isSingleSelect: true,
-                          selectedValues: selectedState.value != null
-                              ? {selectedState.value!}
-                              : {},
-                          items: stateOptions
-                              .map<DropdownMenuItem<String>>(
-                                (e) => DropdownMenuItem<String>(
-                                  value: e.value,
-                                  child: Text(
-                                    e.label,
-                                    style: AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (values) {
-                            final v = values.isNotEmpty ? values.first : null;
-                            selectedState.value = v;
-                            selectedDistrict.value = null;
-                            districtOptions.clear();
-                            if (v != null) {
-                              loadDistricts(v);
-                            }
-                            if (allocateDestinationType.value != null) {
-                              updateDestinations(allocateDestinationType.value);
-                            }
-                          },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Obx(
+                        () => Text(
+                          allocateDestinationType.value == 'storeroom'
+                              ? 'Transfer to Store'
+                              : 'Transfer to Unit',
+                          style: AppTextStyle.style_18_700(
+                            color: AppColors.black,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'Select District',
-                          isSingleSelect: true,
-                          selectedValues: selectedDistrict.value != null
-                              ? {selectedDistrict.value!}
-                              : {},
-                          items: selectedState.value == null
-                              ? []
-                              : districtOptions
-                                    .map<DropdownMenuItem<String>>(
-                                      (e) => DropdownMenuItem<String>(
-                                        value: e.value,
-                                        child: Text(
-                                          e.label,
-                                          style: AppTextStyle.style_12_400(
-                                            color: AppColors.grey900,
+                      IconButton(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+
+                  Text(
+                    'From',
+                    style: AppTextStyle.style_12_700(color: AppColors.red),
+                  ),
+                  SizedBox(height: 8.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildGreyField(
+                          'Store Name',
+                          item is InventoryItemModel
+                              ? item.store
+                              : item.unitName,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: _buildGreyField(
+                          'Item Name',
+                          item is InventoryItemModel
+                              ? item.item
+                              : item.itemName,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildGreyField(
+                          'Available Qty.',
+                          '${item.quantity}',
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      const Expanded(child: SizedBox()),
+                    ],
+                  ),
+
+                  SizedBox(height: 14.h),
+                  Text(
+                    'To',
+                    style: AppTextStyle.style_12_700(color: AppColors.red),
+                  ),
+                  SizedBox(height: 8.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'Select State',
+                            isSingleSelect: true,
+                            selectedValues: selectedState.value != null
+                                ? {selectedState.value!}
+                                : {},
+                            items: stateOptions
+                                .map<DropdownMenuItem<String>>(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e.value,
+                                    child: Text(
+                                      e.label,
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.grey900,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (values) {
+                              final v = values.isNotEmpty ? values.first : null;
+                              selectedState.value = v;
+                              selectedDistrict.value = null;
+                              districtOptions.clear();
+                              if (v != null) {
+                                loadDistricts(v);
+                              }
+                              if (allocateDestinationType.value != null) {
+                                updateDestinations(
+                                  allocateDestinationType.value,
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'Select District',
+                            isSingleSelect: true,
+                            selectedValues: selectedDistrict.value != null
+                                ? {selectedDistrict.value!}
+                                : {},
+                            items: selectedState.value == null
+                                ? []
+                                : districtOptions
+                                      .map<DropdownMenuItem<String>>(
+                                        (e) => DropdownMenuItem<String>(
+                                          value: e.value,
+                                          child: Text(
+                                            e.label,
+                                            style: AppTextStyle.style_12_400(
+                                              color: AppColors.grey900,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                    .toList(),
-                          onChanged: (values) {
-                            final v = values.isNotEmpty ? values.first : null;
-                            selectedDistrict.value = v;
-                            if (allocateDestinationType.value != null) {
-                              updateDestinations(allocateDestinationType.value);
-                            }
-                          },
+                                      )
+                                      .toList(),
+                            onChanged: (values) {
+                              final v = values.isNotEmpty ? values.first : null;
+                              selectedDistrict.value = v;
+                              if (allocateDestinationType.value != null) {
+                                updateDestinations(
+                                  allocateDestinationType.value,
+                                );
+                              }
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'Select Destination Type',
-                          isSingleSelect: true,
-                          selectedValues: allocateDestinationType.value != null
-                              ? {allocateDestinationType.value!}
-                              : {},
-                          items: [
-                            DropdownMenuItem<String>(
-                              value: 'unit',
-                              child: Text(
-                                'Unit',
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.grey900,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem<String>(
-                              value: 'storeroom',
-                              child: Text(
-                                'Store',
-                                style: AppTextStyle.style_12_400(
-                                  color: AppColors.grey900,
-                                ),
-                              ),
-                            ),
-                          ],
-                          onChanged: (values) {
-                            final type = values.isNotEmpty
-                                ? values.first
-                                : null;
-                            allocateDestinationType.value = type;
-                            updateDestinations(type);
-                          },
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Obx(
-                        () => MultiSelectDropdownWidget<String>(
-                          label: 'Select Destination',
-                          isSingleSelect: true,
-                          selectedValues: allocateDestination.value != null
-                              ? {allocateDestination.value!}
-                              : {},
-                          items: destinationOptions
-                              .map(
-                                (opt) => DropdownMenuItem<String>(
-                                  value: opt.value,
-                                  child: Text(
-                                    opt.label,
-                                    style: AppTextStyle.style_12_400(
-                                      color: AppColors.grey900,
-                                    ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'Select Destination Type',
+                            isSingleSelect: true,
+                            selectedValues:
+                                allocateDestinationType.value != null
+                                ? {allocateDestinationType.value!}
+                                : {},
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: 'unit',
+                                child: Text(
+                                  'Unit',
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.grey900,
                                   ),
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (values) => allocateDestination.value =
-                              values.isNotEmpty ? values.first : null,
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'storeroom',
+                                child: Text(
+                                  'Store',
+                                  style: AppTextStyle.style_12_400(
+                                    color: AppColors.grey900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            onChanged: (values) {
+                              final type = values.isNotEmpty
+                                  ? values.first
+                                  : null;
+                              allocateDestinationType.value = type;
+                              updateDestinations(type);
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: (() {
-                        final unit =
-                            (item is InventoryItemModel
-                                    ? item.unit
-                                    : (item as UnitInventoryModel).mUnit)
-                                .toLowerCase();
-                        if (unit == 'litre') {
-                          return _buildWhiteInput(
-                            'Transfer Quantity (ml)',
-                            'Enter in ml',
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'piece' || unit == 'pcs') {
-                          return _buildWhiteInput(
-                            'Transfer Quantity',
-                            'Enter Pieces',
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'pair') {
-                          return _buildWhiteInput(
-                            'Transfer Quantity (Pair)',
-                            'Enter Pairs',
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'kg') {
-                          return _buildWhiteInput(
-                            'Transfer Quantity (g)',
-                            'Enter in grams',
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'packet' || unit == 'box') {
-                          return _buildWhiteInput(
-                            'Transfer Quantity (Packet)',
-                            'Enter Packets',
-                            controller: qtyController,
-                          );
-                        } else {
-                          return _buildWhiteInput(
-                            'Transfer Quantity',
-                            'Enter Qty.',
-                            controller: qtyController,
-                          );
-                        }
-                      })(),
-                    ),
-                    SizedBox(width: 12.w),
-                    const Expanded(child: SizedBox()),
-                  ],
-                ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Obx(
+                          () => MultiSelectDropdownWidget<String>(
+                            label: 'Select Destination',
+                            isSingleSelect: true,
+                            selectedValues: allocateDestination.value != null
+                                ? {allocateDestination.value!}
+                                : {},
+                            items: destinationOptions
+                                .map(
+                                  (opt) => DropdownMenuItem<String>(
+                                    value: opt.value,
+                                    child: Text(
+                                      opt.label,
+                                      style: AppTextStyle.style_12_400(
+                                        color: AppColors.grey900,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (values) => allocateDestination.value =
+                                values.isNotEmpty ? values.first : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: (() {
+                          final unit =
+                              (item is InventoryItemModel
+                                      ? item.unit
+                                      : (item as UnitInventoryModel).mUnit)
+                                  .toLowerCase();
+                          if (unit == 'litre') {
+                            return _buildWhiteInput(
+                              'Transfer Quantity (ml)',
+                              'Enter in ml',
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'piece' || unit == 'pcs') {
+                            return _buildWhiteInput(
+                              'Transfer Quantity',
+                              'Enter Pieces',
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'pair') {
+                            return _buildWhiteInput(
+                              'Transfer Quantity (Pair)',
+                              'Enter Pairs',
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'kg') {
+                            return _buildWhiteInput(
+                              'Transfer Quantity (g)',
+                              'Enter in grams',
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'packet' || unit == 'box') {
+                            return _buildWhiteInput(
+                              'Transfer Quantity (Packet)',
+                              'Enter Packets',
+                              controller: qtyController,
+                            );
+                          } else {
+                            return _buildWhiteInput(
+                              'Transfer Quantity',
+                              'Enter Qty.',
+                              controller: qtyController,
+                            );
+                          }
+                        })(),
+                      ),
+                      SizedBox(width: 12.w),
+                      const Expanded(child: SizedBox()),
+                    ],
+                  ),
 
-                SizedBox(height: 16.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    AppCommonButton(
-                      text: 'Cancel',
-                      width: 100.w,
-                      height: 28.h,
-                      variant: ButtonVariant.outline,
-                      onPressed: () => Get.back(),
-                    ),
-                    SizedBox(width: 12.w),
-                    AppCommonButton(
-                      text: 'Submit',
-                      width: 100.w,
-                      height: 28.h,
-                      buttonColor: AppColors.info,
-                      onPressed: () async {
-                        final qty = qtyController.text;
-                        if (qty.isEmpty) {
-                          AppCommonToastMessage.show(
-                            message: 'Please enter quantity',
-                            type: ToastType.error,
+                  SizedBox(height: 16.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      AppCommonButton(
+                        text: 'Cancel',
+                        width: 100.w,
+                        height: 28.h,
+                        variant: ButtonVariant.outline,
+                        onPressed: () => Get.back(),
+                      ),
+                      SizedBox(width: 12.w),
+                      AppCommonButton(
+                        text: 'Submit',
+                        width: 100.w,
+                        height: 28.h,
+                        buttonColor: AppColors.info,
+                        onPressed: () async {
+                          final qty = qtyController.text;
+                          if (qty.isEmpty) {
+                            AppCommonToastMessage.show(
+                              message: 'Please enter quantity',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          final cleanEntered = qty.replaceAll(
+                            RegExp(r'[^0-9.-]'),
+                            '',
                           );
-                          return;
-                        }
-                        final cleanEntered = qty.replaceAll(
-                          RegExp(r'[^0-9.-]'),
-                          '',
-                        );
-                        final enteredQty = double.tryParse(cleanEntered) ?? 0;
+                          final enteredQty = double.tryParse(cleanEntered) ?? 0;
 
-                        final rawAvail = item.quantity?.toString() ?? '0';
-                        final cleanAvail = rawAvail.replaceAll(
-                          RegExp(r'[^0-9.-]'),
-                          '',
-                        );
-                        final availableQty = double.tryParse(cleanAvail) ?? 0;
+                          final rawAvail = item.quantity?.toString() ?? '0';
+                          final cleanAvail = rawAvail.replaceAll(
+                            RegExp(r'[^0-9.-]'),
+                            '',
+                          );
+                          final availableQty = double.tryParse(cleanAvail) ?? 0;
 
-                        if (enteredQty <= 0) {
-                          AppCommonToastMessage.show(
-                            message:
-                                'Please enter a valid quantity greater than 0',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (availableQty > 0 && enteredQty > availableQty) {
-                          AppCommonToastMessage.show(
-                            message:
-                                'Not enough quantity available. Maximum: $availableQty',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (allocateDestinationType.value == null ||
-                            allocateDestination.value == null) {
-                          AppCommonToastMessage.show(
-                            message: 'Please select destination',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        Get.back();
-                        if (item is InventoryItemModel) {
-                          final controller = Get.find<InventoryController>();
-                          await controller.allocateStock(
-                            item,
-                            qty,
-                            allocateDestinationType.value!,
-                            allocateDestination.value!,
-                            destStateId: selectedState.value,
-                            destDistrictId: selectedDistrict.value,
-                          );
-                        } else {
-                          try {
-                            final controller =
-                                Get.find<UnitInventoryController>();
+                          if (enteredQty <= 0) {
+                            AppCommonToastMessage.show(
+                              message:
+                                  'Please enter a valid quantity greater than 0',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (availableQty > 0 && enteredQty > availableQty) {
+                            AppCommonToastMessage.show(
+                              message:
+                                  'Not enough quantity available. Maximum: $availableQty',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (allocateDestinationType.value == null ||
+                              allocateDestination.value == null) {
+                            AppCommonToastMessage.show(
+                              message: 'Please select destination',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          Get.back();
+                          if (item is InventoryItemModel) {
+                            final controller = Get.find<InventoryController>();
                             await controller.allocateStock(
                               item,
                               qty,
@@ -1096,25 +1100,37 @@ class StoreInventoryDialogs {
                               destStateId: selectedState.value,
                               destDistrictId: selectedDistrict.value,
                             );
-                          } catch (e) {
-                            AppCommonToastMessage.show(
-                              message: 'Controller not found',
-                              type: ToastType.error,
-                            );
+                          } else {
+                            try {
+                              final controller =
+                                  Get.find<UnitInventoryController>();
+                              await controller.allocateStock(
+                                item,
+                                qty,
+                                allocateDestinationType.value!,
+                                allocateDestination.value!,
+                                destStateId: selectedState.value,
+                                destDistrictId: selectedDistrict.value,
+                              );
+                            } catch (e) {
+                              AppCommonToastMessage.show(
+                                message: 'Controller not found',
+                                type: ToastType.error,
+                              );
+                            }
                           }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-              ],
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   static void showConsumptionSheet(BuildContext context, dynamic item) {
@@ -1131,193 +1147,199 @@ class StoreInventoryDialogs {
           constraints: const BoxConstraints(maxWidth: 520),
           child: Container(
             padding: EdgeInsets.all(20.r),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Usage',
-                      style: AppTextStyle.style_18_700(color: AppColors.black),
-                    ),
-                    IconButton(
-                      onPressed: () => Get.back(),
-                      icon: const Icon(Icons.close),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSmallVerticalWhiteField(
-                        'Store',
-                        item is InventoryItemModel ? item.store : item.unitName,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Usage',
+                        style: AppTextStyle.style_18_700(
+                          color: AppColors.black,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: _buildSmallVerticalWhiteField(
-                        'Item Name',
-                        item is InventoryItemModel ? item.item : item.itemName,
+                      IconButton(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10.h),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: _buildSmallVerticalWhiteField(
-                        'Available Qty.',
-                        '${item.quantity}',
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSmallVerticalWhiteField(
+                          'Store',
+                          item is InventoryItemModel
+                              ? item.store
+                              : item.unitName,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: (() {
-                        final unit =
-                            (item is InventoryItemModel
-                                    ? item.unit
-                                    : (item as UnitInventoryModel).mUnit)
-                                .toLowerCase();
-                        if (unit == 'litre') {
-                          return _buildSmallVerticalWhiteField(
-                            'Usage Quantity (ml)',
-                            'Enter in ml',
-                            isInput: true,
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'piece' || unit == 'pcs') {
-                          return _buildSmallVerticalWhiteField(
-                            'Usage Quantity',
-                            'Enter Pieces',
-                            isInput: true,
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'pair') {
-                          return _buildSmallVerticalWhiteField(
-                            'Usage Quantity (Pair)',
-                            'Enter Pairs',
-                            isInput: true,
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'kg') {
-                          return _buildSmallVerticalWhiteField(
-                            'Usage Quantity (g)',
-                            'Enter in grams',
-                            isInput: true,
-                            controller: qtyController,
-                          );
-                        } else if (unit == 'packet' || unit == 'box') {
-                          return _buildSmallVerticalWhiteField(
-                            'Usage Quantity (Packet)',
-                            'Enter Packets',
-                            isInput: true,
-                            controller: qtyController,
-                          );
-                        } else {
-                          return _buildSmallVerticalWhiteField(
-                            'Usage Quantity',
-                            'Enter Qty.',
-                            isInput: true,
-                            controller: qtyController,
-                          );
-                        }
-                      })(),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 16.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    AppCommonButton(
-                      text: 'Cancel',
-                      width: 100.w,
-                      height: 28.h,
-                      variant: ButtonVariant.outline,
-                      onPressed: () => Get.back(),
-                    ),
-                    SizedBox(width: 12.w),
-                    AppCommonButton(
-                      text: 'Submit',
-                      width: 100.w,
-                      height: 28.h,
-                      buttonColor: AppColors.info,
-                      onPressed: () async {
-                        final qty = qtyController.text;
-                        if (qty.isEmpty) {
-                          AppCommonToastMessage.show(
-                            message: 'Please enter quantity',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        final cleanEntered = qty.replaceAll(
-                          RegExp(r'[^0-9.-]'),
-                          '',
-                        );
-                        final enteredQty = double.tryParse(cleanEntered) ?? 0;
-
-                        final rawAvail = item.quantity?.toString() ?? '0';
-                        final cleanAvail = rawAvail.replaceAll(
-                          RegExp(r'[^0-9.-]'),
-                          '',
-                        );
-                        final availableQty = double.tryParse(cleanAvail) ?? 0;
-
-                        if (enteredQty <= 0) {
-                          AppCommonToastMessage.show(
-                            message:
-                                'Please enter a valid quantity greater than 0',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        if (availableQty > 0 && enteredQty > availableQty) {
-                          AppCommonToastMessage.show(
-                            message:
-                                'Not enough quantity available. Maximum: $availableQty',
-                            type: ToastType.error,
-                          );
-                          return;
-                        }
-                        Get.back(); // Close dialog first to avoid Get.back() hitting the snackbar overlay
-                        if (item is InventoryItemModel) {
-                          final controller = Get.find<InventoryController>();
-                          await controller.consumeStock(item, qty);
-                        } else {
-                          try {
-                            final controller =
-                                Get.find<UnitInventoryController>();
-                            await controller.consumeStock(item, qty);
-                          } catch (e) {
-                            AppCommonToastMessage.show(
-                              message: 'Controller not found',
-                              type: ToastType.error,
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: _buildSmallVerticalWhiteField(
+                          'Item Name',
+                          item is InventoryItemModel
+                              ? item.item
+                              : item.itemName,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: _buildSmallVerticalWhiteField(
+                          'Available Qty.',
+                          '${item.quantity}',
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: (() {
+                          final unit =
+                              (item is InventoryItemModel
+                                      ? item.unit
+                                      : (item as UnitInventoryModel).mUnit)
+                                  .toLowerCase();
+                          if (unit == 'litre') {
+                            return _buildSmallVerticalWhiteField(
+                              'Usage Quantity (ml)',
+                              'Enter in ml',
+                              isInput: true,
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'piece' || unit == 'pcs') {
+                            return _buildSmallVerticalWhiteField(
+                              'Usage Quantity',
+                              'Enter Pieces',
+                              isInput: true,
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'pair') {
+                            return _buildSmallVerticalWhiteField(
+                              'Usage Quantity (Pair)',
+                              'Enter Pairs',
+                              isInput: true,
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'kg') {
+                            return _buildSmallVerticalWhiteField(
+                              'Usage Quantity (g)',
+                              'Enter in grams',
+                              isInput: true,
+                              controller: qtyController,
+                            );
+                          } else if (unit == 'packet' || unit == 'box') {
+                            return _buildSmallVerticalWhiteField(
+                              'Usage Quantity (Packet)',
+                              'Enter Packets',
+                              isInput: true,
+                              controller: qtyController,
+                            );
+                          } else {
+                            return _buildSmallVerticalWhiteField(
+                              'Usage Quantity',
+                              'Enter Qty.',
+                              isInput: true,
+                              controller: qtyController,
                             );
                           }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-              ],
+                        })(),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      AppCommonButton(
+                        text: 'Cancel',
+                        width: 100.w,
+                        height: 28.h,
+                        variant: ButtonVariant.outline,
+                        onPressed: () => Get.back(),
+                      ),
+                      SizedBox(width: 12.w),
+                      AppCommonButton(
+                        text: 'Submit',
+                        width: 100.w,
+                        height: 28.h,
+                        buttonColor: AppColors.info,
+                        onPressed: () async {
+                          final qty = qtyController.text;
+                          if (qty.isEmpty) {
+                            AppCommonToastMessage.show(
+                              message: 'Please enter quantity',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          final cleanEntered = qty.replaceAll(
+                            RegExp(r'[^0-9.-]'),
+                            '',
+                          );
+                          final enteredQty = double.tryParse(cleanEntered) ?? 0;
+
+                          final rawAvail = item.quantity?.toString() ?? '0';
+                          final cleanAvail = rawAvail.replaceAll(
+                            RegExp(r'[^0-9.-]'),
+                            '',
+                          );
+                          final availableQty = double.tryParse(cleanAvail) ?? 0;
+
+                          if (enteredQty <= 0) {
+                            AppCommonToastMessage.show(
+                              message:
+                                  'Please enter a valid quantity greater than 0',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          if (availableQty > 0 && enteredQty > availableQty) {
+                            AppCommonToastMessage.show(
+                              message:
+                                  'Not enough quantity available. Maximum: $availableQty',
+                              type: ToastType.error,
+                            );
+                            return;
+                          }
+                          Get.back(); // Close dialog first to avoid Get.back() hitting the snackbar overlay
+                          if (item is InventoryItemModel) {
+                            final controller = Get.find<InventoryController>();
+                            await controller.consumeStock(item, qty);
+                          } else {
+                            try {
+                              final controller =
+                                  Get.find<UnitInventoryController>();
+                              await controller.consumeStock(item, qty);
+                            } catch (e) {
+                              AppCommonToastMessage.show(
+                                message: 'Controller not found',
+                                type: ToastType.error,
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
