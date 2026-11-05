@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/service_details/controllers/service_details_controller.dart';
 import 'package:mfresh_ops/modules/service_details/views/widgets/service_card.dart';
+import 'package:mfresh_ops/modules/service_details/views/widgets/handover_dialog_helper.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 // endregion
 
@@ -49,7 +50,10 @@ class ServiceDetailsScreen extends StatelessWidget {
   // endregion
 
   // region Section Builders
-  Widget _buildTopBanner(BuildContext context, ServiceDetailsController controller) {
+  Widget _buildTopBanner(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
     return Builder(
       builder: (context) {
         final bool isDesktop = MediaQuery.of(context).size.width > 1000;
@@ -80,9 +84,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                     : const SizedBox.shrink(),
               ),
               // Dark overlay
-              Container(
-                color: AppColors.black.withValues(alpha: 0.5),
-              ),
+              Container(color: AppColors.black.withValues(alpha: 0.5)),
               // Unit info
               Center(
                 child: Column(
@@ -126,13 +128,22 @@ class ServiceDetailsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // History button
+              // History button (Top Right)
               Positioned(
                 right: 8.w,
                 top: 0,
                 bottom: 0,
                 child: GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.bookingHistory),
+                  onTap: () => Get.toNamed(
+                    AppRoutes.bookingHistory,
+                    arguments: {
+                      'unitId': controller.unitNo.value,
+                      'cashierSessionId': controller.cashierSessionId.value,
+                      'location': controller.location.value,
+                      'paperRollSize': controller.paperRollSize.value,
+                      'printingType': controller.printingType.value,
+                    },
+                  ),
                   child: Container(
                     padding: EdgeInsets.all(8.w),
                     color: Colors.transparent,
@@ -144,6 +155,26 @@ class ServiceDetailsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              // Handover Button (Bottom Right Corner of Banner)
+              Positioned(
+                right: 8.w,
+                bottom: 6.h,
+                child: AppCommonButton(
+                  text: 'Handover',
+                  isSmall: true,
+                  buttonColor: AppColors.primary,
+                  prefixIcon: Icons.payments_outlined,
+                  iconColor: AppColors.white,
+                  onPressed: () {
+                    HandoverDialogHelper.showHandoverDialog(
+                      context: context,
+                      unitNo: controller.unitNo.value,
+                      cashierSessionId: controller.cashierSessionId.value,
+                      onSuccess: () {},
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         );
@@ -153,113 +184,106 @@ class ServiceDetailsScreen extends StatelessWidget {
 
   Widget _buildTogglesBar(ServiceDetailsController controller) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 16.w,
-        vertical: 3.h,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
       child: Row(
         children: [
-          const Spacer(),
-          // Customer / Membership radio toggle
+          // Customer / Membership Tab Switch
           Obx(() {
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () => controller.toggleCustomerType(true),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        controller.isCustomer.value
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
-                        size: 16.sp,
-                        color: AppColors.primaryVariant,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        'Customer',
-                        style: AppTextStyle.style_12_600(
-                          color: AppColors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 20.w),
-                GestureDetector(
-                  onTap: () => controller.toggleCustomerType(false),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        !controller.isCustomer.value
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
-                        size: 16.sp,
-                        color: AppColors.primaryVariant,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        'Membership',
-                        style: AppTextStyle.style_12_600(
-                          color: AppColors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 20.w),
-              ],
+            return SizedBox(
+              width: 195.w,
+              child: AppCommonConnectedTabBar(
+                tabs: const ['Customer', 'Membership'],
+                selectedIndex: controller.isCustomer.value ? 0 : 1,
+                height: 30.h,
+                isPillStyle: true,
+                borderColor: const Color(0xFFE2E8F0),
+                backgroundColor: const Color(0xFFEEF2F6),
+                activeTabColor: AppColors.white,
+                activeTextColor: AppColors.primary,
+                inactiveTextColor: const Color(0xFF64748B),
+                activeTextStyle:
+                    AppTextStyle.style_12_600(color: AppColors.primary),
+                inactiveTextStyle:
+                    AppTextStyle.style_12_500(color: const Color(0xFF64748B)),
+                borderRadius: BorderRadius.circular(8.r),
+                onTabChanged: (index) {
+                  controller.toggleCustomerType(index == 0);
+                },
+              ),
             );
           }),
           const Spacer(),
-          // Online toggle
+          // Online / Offline Animated Switch
           Obx(() {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  controller.isOnline.value ? 'Online' : 'Offline',
-                  style: AppTextStyle.style_14_600(
-                    color: controller.isOnline.value
-                        ? AppColors.green
-                        : AppColors.red,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                GestureDetector(
-                  onTap: () => controller.toggleOnline(),
-                  child: Container(
-                    width: 50.w,
-                    height: 25.h,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.5.r),
-                      color: controller.isOnline.value
-                          ? AppColors.green
-                          : AppColors.red,
+            final isOnline = controller.isOnline.value;
+            final activeColor = isOnline ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+            final labelText = isOnline ? 'Online' : 'Offline';
+
+            return GestureDetector(
+              onTap: () => controller.toggleOnline(),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                width: 86.w,
+                height: 30.h,
+                padding: EdgeInsets.symmetric(horizontal: 3.5.w),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15.r),
+                  color: activeColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                    child: AnimatedAlign(
-                      duration: const Duration(milliseconds: 200),
-                      alignment: controller.isOnline.value
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        width: 20.w,
-                        height: 20.h,
-                        margin: EdgeInsets.symmetric(
-                          horizontal: 2.w,
-                        ),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.white,
+                  ],
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Animated text fade and slide transition
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      left: isOnline ? 8.w : 30.w,
+                      right: isOnline ? 30.w : 8.w,
+                      child: Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Text(
+                            labelText,
+                            key: ValueKey<String>(labelText),
+                            style: AppTextStyle.style_11_700(
+                              color: AppColors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    // Animated sliding thumb
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      alignment: isOnline ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        width: 23.h,
+                        height: 23.h,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 3,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           }),
         ],
@@ -267,7 +291,10 @@ class ServiceDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildServicesSection(BuildContext context, ServiceDetailsController controller) {
+  Widget _buildServicesSection(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
     return Obx(() {
       if (controller.isLoading.value) {
         return Padding(
@@ -290,9 +317,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                 SizedBox(height: 12.h),
                 Text(
                   'No services available for this unit',
-                  style: AppTextStyle.style_14_600(
-                    color: AppColors.grey300,
-                  ),
+                  style: AppTextStyle.style_14_600(color: AppColors.grey300),
                 ),
               ],
             ),
@@ -306,28 +331,23 @@ class ServiceDetailsScreen extends StatelessWidget {
           children: [
             Builder(
               builder: (context) {
-                final bool isDesktop =
-                    MediaQuery.of(context).size.width > 1000;
+                final bool isDesktop = MediaQuery.of(context).size.width > 1000;
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: controller.services.length,
-                  gridDelegate:
-                      SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isDesktop
-                            ? 4
-                            : (MediaQuery.of(context).size.shortestSide >= 600
-                                ? 3
-                                : 2),
-                        crossAxisSpacing: 10.w,
-                        mainAxisSpacing: 10.h,
-                        childAspectRatio: isDesktop ? 2.4 : 1.7,
-                      ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isDesktop
+                        ? 4
+                        : (MediaQuery.of(context).size.shortestSide >= 600
+                              ? 3
+                              : 2),
+                    crossAxisSpacing: 10.w,
+                    mainAxisSpacing: 10.h,
+                    childAspectRatio: isDesktop ? 2.4 : 1.7,
+                  ),
                   itemBuilder: (context, index) {
-                    return ServiceCard(
-                      controller: controller,
-                      index: index,
-                    );
+                    return ServiceCard(controller: controller, index: index);
                   },
                 );
               },
@@ -339,7 +359,10 @@ class ServiceDetailsScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildBottomSummaryBar(BuildContext context, ServiceDetailsController controller) {
+  Widget _buildBottomSummaryBar(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
     return Obx(
       () => controller.total > 0
           ? Padding(
@@ -462,7 +485,8 @@ class ServiceDetailsScreen extends StatelessWidget {
                           Obx(
                             () => !controller.isCustomer.value
                                 ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       SizedBox(height: 8.h),
                                       Text(
@@ -479,16 +503,18 @@ class ServiceDetailsScreen extends StatelessWidget {
                                               controller: controller
                                                   .memberMobileController,
                                               labelText: 'Member Mobile Number',
-                                              hintText: 'Enter Member Mobile Number',
+                                              hintText:
+                                                  'Enter Member Mobile Number',
                                               useFloatingLabel: true,
                                               keyboardType: TextInputType.phone,
                                               maxLength: 10,
                                               borderRadius: 8.r,
                                               fillColor: AppColors.white,
-                                              contentPadding: EdgeInsets.symmetric(
-                                                horizontal: 12.w,
-                                                vertical: 6.h,
-                                              ),
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                    horizontal: 12.w,
+                                                    vertical: 6.h,
+                                                  ),
                                             ),
                                           ),
                                         ],
@@ -558,32 +584,25 @@ class ServiceDetailsScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.green.withValues(
-                        alpha: 0.3,
-                      ),
+                      color: Colors.green.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () => controller.initiateBooking(isExternalQr: false),
+                  onPressed: () =>
+                      controller.initiateBooking(isExternalQr: false),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.green,
-                    padding: EdgeInsets.symmetric(
-                      vertical: 8.h,
-                    ),
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        10.r,
-                      ),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                   ),
                   child: Text(
                     'PAY CASH',
-                    style: AppTextStyle.style_14_700(
-                      color: AppColors.white,
-                    ),
+                    style: AppTextStyle.style_14_700(color: AppColors.white),
                   ),
                 ),
               ),
@@ -595,23 +614,18 @@ class ServiceDetailsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withValues(
-                            alpha: 0.3,
-                          ),
+                          color: Colors.blue.withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () => controller.initiateBooking(
-                        isExternalQr: false,
-                      ),
+                      onPressed: () =>
+                          controller.initiateBooking(isExternalQr: false),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.blue,
-                        padding: EdgeInsets.symmetric(
-                          vertical: 12.h,
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10.r),
                         ),
@@ -638,9 +652,8 @@ class ServiceDetailsScreen extends StatelessWidget {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () => controller.initiateBooking(
-                        isExternalQr: true,
-                      ),
+                      onPressed: () =>
+                          controller.initiateBooking(isExternalQr: true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.grey400,
                         padding: EdgeInsets.symmetric(
@@ -668,5 +681,6 @@ class ServiceDetailsScreen extends StatelessWidget {
             ),
     );
   }
+
   // endregion
 }

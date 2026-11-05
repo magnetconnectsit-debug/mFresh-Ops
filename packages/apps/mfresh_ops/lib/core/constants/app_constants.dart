@@ -33,9 +33,24 @@ class AppConstants {
   static const String adminBookingUnits = 'admin-booking/units';
   static const String adminBookingUnitEnter = 'admin-booking/unit/enter';
   static const String adminBookingUnitServices = 'admin-booking/unit/services';
+  static const String adminBookingRecentBookings =
+      'admin-booking/unit/recent-bookings';
   static const String adminBookingInitiate = 'admin-booking/booking/initiate';
-  static const String adminBookingPaymentSuccess = 'admin-booking/booking/payment-success';
+  static const String adminBookingPaymentSuccess =
+      'admin-booking/booking/payment-success';
   static const String refreshToken = 'refresh';
+
+  // Cash Management & Handover
+  static const String adminHandoverOverview = 'admin-booking/handover/overview';
+  static const String adminHandoverCtodDates =
+      'admin-booking/handover/ctod-dates';
+  static const String adminHandoverCreate = 'admin-booking/handover/create';
+  static const String adminHandoverResendOtp =
+      'admin-booking/handover/resend-otp';
+  static const String adminHandoverVerifyOtp =
+      'admin-booking/handover/verify-otp';
+  static const String adminHandoverExitCheck =
+      'admin-booking/handover/exit-check';
 
   // Attendance
   static const String attendanceCheckIn = 'attendance/check-in';
@@ -52,9 +67,9 @@ class AppConstants {
   static const String allUnitServices = 'customer/Api-get-Unit-services';
   static const String bookingHistory = 'customer/bookinghistory';
   static const String allUnits = 'customer/All-Units';
-  static const String validateMemPhone = 'customer/validate-mem-phone';
-  static const String sendOtpMember = 'customer/send-otp-member';
-  static const String verifyOtpMember = 'customer/verify-otp-member';
+  static const String validateMemPhone = 'validate-mem-phone';
+  static const String sendOtpMember = 'send-otp-member';
+  static const String verifyOtpMember = 'verify-otp-member';
   static const String kioskScan = 'customer/kiosk-scan';
 
   // Support Tickets

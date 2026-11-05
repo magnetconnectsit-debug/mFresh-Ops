@@ -340,4 +340,320 @@ class BookingPaymentSuccessResult {
   }
   // endregion
 }
+
+class RecentBookingItemModel {
+  final String bookingId;
+  final String? encryptBookingId;
+  final String? bookingTimeDate;
+  final String? customerName;
+  final String? customerPhone;
+  final double totalAmount;
+  final int paymentMode;
+  final String paymentStatus;
+  final String? receiptUrl;
+  final List<BookingServiceDetailItem> services;
+
+  RecentBookingItemModel({
+    required this.bookingId,
+    this.encryptBookingId,
+    this.bookingTimeDate,
+    this.customerName,
+    this.customerPhone,
+    required this.totalAmount,
+    required this.paymentMode,
+    required this.paymentStatus,
+    this.receiptUrl,
+    this.services = const [],
+  });
+
+  // region Factory & Serialization
+  factory RecentBookingItemModel.fromJson(Map<String, dynamic> json) {
+    final rawTotal = json['total_amount'] ?? json['Total_price'] ?? json['amount'] ?? 0;
+    final double total = rawTotal is num
+        ? rawTotal.toDouble()
+        : double.tryParse(rawTotal.toString()) ?? 0.0;
+
+    final rawMode = json['payment_mode'];
+    final int mode = rawMode is int
+        ? rawMode
+        : int.tryParse(rawMode?.toString() ?? '1') ?? 1;
+
+    List<BookingServiceDetailItem> parsedServices = [];
+    if (json['services'] is List) {
+      parsedServices = (json['services'] as List)
+          .map((e) => e is Map<String, dynamic>
+              ? BookingServiceDetailItem.fromJson(e)
+              : BookingServiceDetailItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else if (json['cart'] is List) {
+      parsedServices = (json['cart'] as List)
+          .map((e) => e is Map<String, dynamic>
+              ? BookingServiceDetailItem.fromJson(e)
+              : BookingServiceDetailItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    }
+
+    return RecentBookingItemModel(
+      bookingId: (json['booking_id'] ?? json['BookingID'] ?? json['id'] ?? '').toString(),
+      encryptBookingId: json['encrypt_booking_id']?.toString(),
+      bookingTimeDate: json['booking_time_date']?.toString() ??
+          json['created_at']?.toString() ??
+          json['BookingTimeDate']?.toString(),
+      customerName: json['User_name']?.toString() ?? json['customer_name']?.toString() ?? json['name']?.toString(),
+      customerPhone: json['phone_no']?.toString() ?? json['customer_phone']?.toString() ?? json['mob']?.toString(),
+      totalAmount: total,
+      paymentMode: mode,
+      paymentStatus: (json['Payment_status'] ?? json['payment_status'] ?? 'PAYMENT_SUCCESS').toString(),
+      receiptUrl: json['receipt_url']?.toString(),
+      services: parsedServices,
+    );
+  }
+
+  BookingDetailsModel toBookingDetailsModel({String? unitNo, String? location}) {
+    return BookingDetailsModel(
+      bookingId: bookingId,
+      unitNo: unitNo ?? '',
+      bookingTimeDate: bookingTimeDate ?? DateTime.now().toString(),
+      unitLocation: location ?? '',
+      totalAmount: totalAmount.toStringAsFixed(0),
+      serviceIcon: '',
+      fullAddress: location ?? '',
+      services: services,
+      paymentMode: paymentMode,
+      paymentStatus: paymentStatus,
+      encryptBookingId: encryptBookingId,
+    );
+  }
+  // endregion
+}
+
+class HandoverOverviewResult {
+  final bool status;
+  final String message;
+  final double cashDue;
+  final double cashBalance;
+  final double totalShortage;
+  final int? cashierSessionId;
+  final String? unitId;
+  final Map<String, dynamic>? rawJson;
+
+  HandoverOverviewResult({
+    required this.status,
+    required this.message,
+    this.cashDue = 0.0,
+    this.cashBalance = 0.0,
+    this.totalShortage = 0.0,
+    this.cashierSessionId,
+    this.unitId,
+    this.rawJson,
+  });
+
+  // region Factory & Serialization
+  factory HandoverOverviewResult.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] is Map ? json['data'] as Map : json;
+    final rawCashDue = data['cash_due'] ?? data['cashDue'] ?? 0;
+    final rawBalance = data['cash_balance'] ?? data['cashBalance'] ?? 0;
+    final rawShortage = data['total_shortage'] ?? data['shortages'] ?? 0;
+
+    return HandoverOverviewResult(
+      status: json['status'] == true || json['status'] == 'true',
+      message: (json['message'] ?? '').toString(),
+      cashDue: rawCashDue is num ? rawCashDue.toDouble() : double.tryParse(rawCashDue.toString()) ?? 0.0,
+      cashBalance: rawBalance is num ? rawBalance.toDouble() : double.tryParse(rawBalance.toString()) ?? 0.0,
+      totalShortage: rawShortage is num ? rawShortage.toDouble() : double.tryParse(rawShortage.toString()) ?? 0.0,
+      cashierSessionId: json['session_id'] ?? data['session_id'],
+      unitId: json['unit_id']?.toString() ?? data['unit_id']?.toString(),
+      rawJson: json,
+    );
+  }
+  // endregion
+}
+
+class CtodDateEntryModel {
+  final String date;
+  final double bookingCash;
+  final double completedCtod;
+  final double pendingCtod;
+  final double remainingAmount;
+  final double collectionActual;
+
+  CtodDateEntryModel({
+    required this.date,
+    required this.bookingCash,
+    required this.completedCtod,
+    required this.pendingCtod,
+    required this.remainingAmount,
+    required this.collectionActual,
+  });
+
+  // region Factory & Serialization
+  factory CtodDateEntryModel.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic val) {
+      if (val is num) return val.toDouble();
+      return double.tryParse(val?.toString() ?? '0') ?? 0.0;
+    }
+
+    return CtodDateEntryModel(
+      date: (json['date'] ?? '').toString(),
+      bookingCash: parseNum(json['booking_cash'] ?? json['bookingCash']),
+      completedCtod: parseNum(json['completed_ctod'] ?? json['completedCtod']),
+      pendingCtod: parseNum(json['pending_ctod'] ?? json['pendingCtod']),
+      remainingAmount: parseNum(json['remaining_amount'] ?? json['remainingAmount']),
+      collectionActual: parseNum(json['collection_actual'] ?? json['collectionActual']),
+    );
+  }
+  // endregion
+}
+
+class HandoverCreateResult {
+  final bool status;
+  final String message;
+  final int? handoverId;
+  final String? handoverAction;
+  final bool otpSent;
+
+  HandoverCreateResult({
+    required this.status,
+    required this.message,
+    this.handoverId,
+    this.handoverAction,
+    this.otpSent = false,
+  });
+
+  // region Factory & Serialization
+  factory HandoverCreateResult.fromJson(Map<String, dynamic> json) {
+    final rawId = json['handover_id'] ?? json['id'] ?? (json['data'] is Map ? json['data']['handover_id'] : null);
+    final int? hId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+
+    return HandoverCreateResult(
+      status: json['status'] == true || json['status'] == 'true',
+      message: (json['message'] ?? '').toString(),
+      handoverId: hId,
+      handoverAction: json['handover_action']?.toString(),
+      otpSent: json['otp_sent'] == true || json['otp_sent'] == 'true' || json['status'] == true,
+    );
+  }
+  // endregion
+}
+
+class HandoverVerifyOtpResult {
+  final bool status;
+  final String message;
+  final bool handoverCompleted;
+  final bool sessionClosed;
+  final double? shortfall;
+  final bool whatsappAlertTriggered;
+
+  HandoverVerifyOtpResult({
+    required this.status,
+    required this.message,
+    this.handoverCompleted = false,
+    this.sessionClosed = false,
+    this.shortfall,
+    this.whatsappAlertTriggered = false,
+  });
+
+  // region Factory & Serialization
+  factory HandoverVerifyOtpResult.fromJson(Map<String, dynamic> json) {
+    final rawShortfall = json['shortfall'];
+    final double? sf = rawShortfall != null
+        ? (rawShortfall is num ? rawShortfall.toDouble() : double.tryParse(rawShortfall.toString()))
+        : null;
+
+    return HandoverVerifyOtpResult(
+      status: json['status'] == true || json['status'] == 'true',
+      message: (json['message'] ?? '').toString(),
+      handoverCompleted: json['handover_completed'] == true || json['status'] == true,
+      sessionClosed: json['session_closed'] == true || json['session_status'] == 'CLOSED',
+      shortfall: sf,
+      whatsappAlertTriggered: json['whatsapp_alert_triggered'] == true || json['whatsapp_alerts'] != null,
+    );
+  }
+  // endregion
+}
+
+
+class MemberValidateResult {
+  final bool isValid;
+  final String status;
+  final String? type;
+  final String message;
+  final int? customerId;
+  final String? phone;
+  final int? membershipId;
+  final String? validTill;
+
+  MemberValidateResult({
+    required this.isValid,
+    required this.status,
+    this.type,
+    required this.message,
+    this.customerId,
+    this.phone,
+    this.membershipId,
+    this.validTill,
+  });
+
+  factory MemberValidateResult.fromJson(Map<String, dynamic> json) {
+    final statusStr = (json['status'] ?? '').toString();
+    final isValidStatus = statusStr == 'valid' || statusStr == 'success';
+    final rawCustId = json['customer_id'];
+    final rawMemId = json['membership_id'];
+
+    return MemberValidateResult(
+      isValid: isValidStatus,
+      status: statusStr,
+      type: json['type']?.toString(),
+      message: (json['message'] ?? (isValidStatus ? 'Member is valid.' : 'Membership invalid or not found.')).toString(),
+      customerId: rawCustId is int ? rawCustId : int.tryParse(rawCustId?.toString() ?? ''),
+      phone: json['phone']?.toString(),
+      membershipId: rawMemId is int ? rawMemId : int.tryParse(rawMemId?.toString() ?? ''),
+      validTill: json['valid_till']?.toString(),
+    );
+  }
+}
+
+class MemberOtpSendResult {
+  final bool isSuccess;
+  final String status;
+  final String message;
+
+  MemberOtpSendResult({
+    required this.isSuccess,
+    required this.status,
+    required this.message,
+  });
+
+  factory MemberOtpSendResult.fromJson(Map<String, dynamic> json) {
+    final statusStr = (json['status'] ?? '').toString();
+    return MemberOtpSendResult(
+      isSuccess: statusStr == 'success' || statusStr == 'true' || json['status'] == true,
+      status: statusStr,
+      message: (json['message'] ?? 'OTP sent successfully.').toString(),
+    );
+  }
+}
+
+class MemberOtpVerifyResult {
+  final bool isVerified;
+  final String status;
+  final String message;
+
+  MemberOtpVerifyResult({
+    required this.isVerified,
+    required this.status,
+    required this.message,
+  });
+
+  factory MemberOtpVerifyResult.fromJson(Map<String, dynamic> json) {
+    final statusStr = (json['status'] ?? '').toString();
+    final verified = json['verified'] == true || json['verified'] == 'true' || statusStr == 'success';
+    return MemberOtpVerifyResult(
+      isVerified: verified,
+      status: statusStr,
+      message: (json['message'] ?? (verified ? 'OTP verified successfully.' : 'Invalid OTP.')).toString(),
+    );
+  }
+}
+
 // endregion

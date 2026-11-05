@@ -303,42 +303,105 @@ class BookingRepository extends GetxService {
   // endregion
 
   // region Membership Validation Operations
-  Future<bool> validateMemberPhone({required String phone}) async {
+  Future<MemberValidateResult> validateMemberPhone({required String phone}) async {
     try {
       final response = await _apiService.post(
         AppConstants.validateMemPhone,
         data: {'phone': phone},
       );
 
-      return response != null && response['status'] == 'valid';
+      if (response != null && response is Map) {
+        return MemberValidateResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return MemberValidateResult(
+        isValid: false,
+        status: 'error',
+        message: 'Invalid response from server.',
+      );
     } catch (e) {
-      return false;
+      debugPrint('validateMemberPhone error: $e');
+      String errorMsg = 'Failed to validate member.';
+      if (e is Exception && e.toString().contains('response:')) {
+        // Extract Dio response data if available
+      }
+      // Check if it is a DioException with 403 or 404 response payload
+      try {
+        final dynamic dynErr = e;
+        if (dynErr?.response?.data != null && dynErr.response.data is Map) {
+          final resData = Map<String, dynamic>.from(dynErr.response.data);
+          return MemberValidateResult.fromJson(resData);
+        }
+      } catch (_) {}
+
+      return MemberValidateResult(
+        isValid: false,
+        status: 'error',
+        message: errorMsg,
+      );
     }
   }
 
-  Future<bool> sendMemberOtp({required String phone}) async {
+  Future<MemberOtpSendResult> sendMemberOtp({required String phone}) async {
     try {
       final response = await _apiService.post(
         AppConstants.sendOtpMember,
         data: {'phone': phone},
       );
 
-      return response != null && response['status'] == 'success';
+      if (response != null && response is Map) {
+        return MemberOtpSendResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return MemberOtpSendResult(
+        isSuccess: false,
+        status: 'error',
+        message: 'Failed to send OTP.',
+      );
     } catch (e) {
-      return false;
+      debugPrint('sendMemberOtp error: $e');
+      try {
+        final dynamic dynErr = e;
+        if (dynErr?.response?.data != null && dynErr.response.data is Map) {
+          final resData = Map<String, dynamic>.from(dynErr.response.data);
+          return MemberOtpSendResult.fromJson(resData);
+        }
+      } catch (_) {}
+      return MemberOtpSendResult(
+        isSuccess: false,
+        status: 'error',
+        message: 'Failed to send OTP: $e',
+      );
     }
   }
 
-  Future<bool> verifyMemberOtp({required String phone, required String otp}) async {
+  Future<MemberOtpVerifyResult> verifyMemberOtp({required String phone, required String otp}) async {
     try {
       final response = await _apiService.post(
         AppConstants.verifyOtpMember,
         data: {'phone': phone, 'otp': otp},
       );
 
-      return response != null && response['status'] == 'success';
+      if (response != null && response is Map) {
+        return MemberOtpVerifyResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return MemberOtpVerifyResult(
+        isVerified: false,
+        status: 'error',
+        message: 'Invalid OTP.',
+      );
     } catch (e) {
-      return false;
+      debugPrint('verifyMemberOtp error: $e');
+      try {
+        final dynamic dynErr = e;
+        if (dynErr?.response?.data != null && dynErr.response.data is Map) {
+          final resData = Map<String, dynamic>.from(dynErr.response.data);
+          return MemberOtpVerifyResult.fromJson(resData);
+        }
+      } catch (_) {}
+      return MemberOtpVerifyResult(
+        isVerified: false,
+        status: 'error',
+        message: 'OTP verification failed.',
+      );
     }
   }
   // endregion
@@ -365,6 +428,222 @@ class BookingRepository extends GetxService {
       return response;
     } catch (e) {
       rethrow;
+    }
+  }
+  // endregion
+
+  // region Recent Bookings Operations
+  Future<List<RecentBookingItemModel>> getRecentBookings({
+    required String unitId,
+    int? cashierSessionId,
+  }) async {
+    final int effectiveSessionId =
+        cashierSessionId ?? rxActiveCashierSessionId.value ?? 0;
+
+    try {
+      final response = await _apiService.post(
+        AppConstants.adminBookingRecentBookings,
+        data: {
+          'unit_id': unitId,
+          if (effectiveSessionId > 0) 'cashier_session_id': effectiveSessionId,
+        },
+      );
+      debugPrint('admin-booking/unit/recent-bookings response: $response');
+
+      if (response != null && response is Map && (response['status'] == true || response['status'] == 'success')) {
+        final dynamic rawList = response['bookings'] ??
+            (response['data'] is List
+                ? response['data']
+                : (response['data'] is Map ? response['data']['bookings'] : null));
+
+        if (rawList is List) {
+          return rawList.map((e) {
+            if (e is Map<String, dynamic>) {
+              return RecentBookingItemModel.fromJson(e);
+            } else if (e is Map) {
+              return RecentBookingItemModel.fromJson(Map<String, dynamic>.from(e));
+            }
+            return RecentBookingItemModel.fromJson({});
+          }).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('getRecentBookings error: $e');
+      return [];
+    }
+  }
+  // endregion
+
+  // region Cash Handover & C-to-D API Operations
+  Future<HandoverOverviewResult> getHandoverOverview({
+    required String unitId,
+    int? sessionId,
+  }) async {
+    final int effectiveSessionId =
+        sessionId ?? rxActiveCashierSessionId.value ?? 0;
+
+    try {
+      final response = await _apiService.post(
+        AppConstants.adminHandoverOverview,
+        data: {
+          'unit_id': unitId,
+          'session_id': effectiveSessionId,
+        },
+      );
+
+      if (response != null && response is Map) {
+        return HandoverOverviewResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return HandoverOverviewResult(
+        status: false,
+        message: 'Invalid response from handover overview',
+      );
+    } catch (e) {
+      debugPrint('getHandoverOverview error: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<CtodDateEntryModel>> getCtodDates({
+    required String unitId,
+    int? sessionId,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final int effectiveSessionId =
+        sessionId ?? rxActiveCashierSessionId.value ?? 0;
+
+    try {
+      final response = await _apiService.post(
+        AppConstants.adminHandoverCtodDates,
+        data: {
+          'unit_id': unitId,
+          'session_id': effectiveSessionId,
+          if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
+          if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
+        },
+      );
+
+      if (response != null && response is Map && (response['status'] == true || response['status'] == 'success')) {
+        final rawData = response['data'];
+        final List list = rawData is List
+            ? rawData
+            : (rawData is Map && rawData['dates'] is List ? rawData['dates'] : []);
+
+        return list.map((e) {
+          if (e is Map<String, dynamic>) {
+            return CtodDateEntryModel.fromJson(e);
+          } else if (e is Map) {
+            return CtodDateEntryModel.fromJson(Map<String, dynamic>.from(e));
+          }
+          return CtodDateEntryModel.fromJson({});
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('getCtodDates error: $e');
+      return [];
+    }
+  }
+
+  Future<HandoverCreateResult> createHandover({
+    required String currentUnit,
+    required int sessionId,
+    required dynamic nextCashier,
+    required String handoverAction,
+    double? amount,
+    List<Map<String, dynamic>>? collectionEntries,
+  }) async {
+    try {
+      final payload = {
+        'current_unit': currentUnit,
+        'session_id': sessionId,
+        'next_cashier': nextCashier,
+        'handover_action': handoverAction,
+        if (amount != null) 'amount': amount,
+        if (collectionEntries != null && collectionEntries.isNotEmpty)
+          'collection_entries': collectionEntries,
+      };
+
+      final response = await _apiService.post(
+        AppConstants.adminHandoverCreate,
+        data: payload,
+      );
+
+      if (response != null && response is Map) {
+        return HandoverCreateResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return HandoverCreateResult(
+        status: false,
+        message: 'Invalid response from handover create',
+      );
+    } catch (e) {
+      debugPrint('createHandover error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> resendHandoverOtp({required int handoverId}) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.adminHandoverResendOtp,
+        data: {'handover_id': handoverId},
+      );
+      return response != null && (response['status'] == true || response['status'] == 'success');
+    } catch (e) {
+      debugPrint('resendHandoverOtp error: $e');
+      return false;
+    }
+  }
+
+  Future<HandoverVerifyOtpResult> verifyHandoverOtp({
+    required int handoverId,
+    required String otp,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.adminHandoverVerifyOtp,
+        data: {
+          'handover_id': handoverId,
+          'otp': otp,
+        },
+      );
+
+      if (response != null && response is Map) {
+        final result = HandoverVerifyOtpResult.fromJson(Map<String, dynamic>.from(response));
+        if (result.sessionClosed) {
+          rxActiveCashierSessionId.value = null;
+          rxSelectedUnitId.value = '';
+        }
+        return result;
+      }
+      return HandoverVerifyOtpResult(
+        status: false,
+        message: 'Invalid response from handover verify OTP',
+      );
+    } catch (e) {
+      debugPrint('verifyHandoverOtp error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> exitCheck({required String unitId, int? sessionId}) async {
+    final int effectiveSessionId =
+        sessionId ?? rxActiveCashierSessionId.value ?? 0;
+
+    try {
+      final response = await _apiService.post(
+        AppConstants.adminHandoverExitCheck,
+        data: {
+          'unit_id': unitId,
+          'session_id': effectiveSessionId,
+        },
+      );
+      return response != null && (response['status'] == true || response['status'] == 'success');
+    } catch (e) {
+      debugPrint('exitCheck error: $e');
+      return false;
     }
   }
   // endregion

@@ -71,6 +71,10 @@ class ServiceDetailsController extends GetxController {
   // Services list
   final services = <ServiceItem>[].obs;
 
+  // Recent 6 Cashier Bookings
+  final recentBookings = <RecentBookingItemModel>[].obs;
+  final isLoadingRecentBookings = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -135,8 +139,9 @@ class ServiceDetailsController extends GetxController {
   }
 
   void resetAll() {
-    isOnline.value = true;
-    isCustomer.value = true;
+    final modeChanged = isOnline.value || !isCustomer.value;
+    isOnline.value = false; // Default is Offline
+    isCustomer.value = true; // Default is Customer
     isOtpSent.value = false;
     isOtpVerified.value = false;
 
@@ -163,6 +168,30 @@ class ServiceDetailsController extends GetxController {
       mobileController.clear();
       customerName.value = '';
       customerPhone.value = '';
+    }
+
+    // If online/customer modes changed, re-fetch default catalog
+    if (modeChanged) {
+      fetchServices();
+    }
+  }
+
+
+  Future<void> fetchRecentBookings() async {
+    if (unitNo.value.isEmpty) return;
+    try {
+      isLoadingRecentBookings.value = true;
+      final effectiveSessionId = cashierSessionId.value ??
+          _bookingRepository.rxActiveCashierSessionId.value;
+      final results = await _bookingRepository.getRecentBookings(
+        unitId: unitNo.value,
+        cashierSessionId: effectiveSessionId,
+      );
+      recentBookings.assignAll(results.take(6).toList());
+    } catch (e) {
+      debugPrint('Error fetching recent bookings: ');
+    } finally {
+      isLoadingRecentBookings.value = false;
     }
   }
 
@@ -212,19 +241,24 @@ class ServiceDetailsController extends GetxController {
 
     try {
       isVerifyingMember.value = true;
-      final isValid = await _bookingRepository.validateMemberPhone(phone: phone);
-      if (isValid) {
-        final sent = await _bookingRepository.sendMemberOtp(phone: phone);
-        isOtpSent.value = sent;
-        if (sent) {
+      final validateResult = await _bookingRepository.validateMemberPhone(phone: phone);
+      if (validateResult.isValid) {
+        final sendResult = await _bookingRepository.sendMemberOtp(phone: phone);
+        isOtpSent.value = sendResult.isSuccess;
+        if (sendResult.isSuccess) {
           AppCommonToastMessage.show(
-            message: "OTP sent successfully",
+            message: sendResult.message,
             type: ToastType.success,
+          );
+        } else {
+          AppCommonToastMessage.show(
+            message: sendResult.message,
+            type: ToastType.error,
           );
         }
       } else {
         AppCommonToastMessage.show(
-          message: "Member phone number not found",
+          message: validateResult.message,
           type: ToastType.error,
         );
       }
@@ -246,23 +280,23 @@ class ServiceDetailsController extends GetxController {
 
     try {
       if (showLoading) isLoading.value = true;
-      final verified = await _bookingRepository.verifyMemberOtp(
+      final verifyResult = await _bookingRepository.verifyMemberOtp(
         phone: phone ?? memberMobileController.text.trim(),
         otp: targetOtp,
       );
-      isOtpVerified.value = verified;
-      if (verified) {
+      isOtpVerified.value = verifyResult.isVerified;
+      if (verifyResult.isVerified) {
         AppCommonToastMessage.show(
-          message: "OTP verified successfully",
+          message: verifyResult.message,
           type: ToastType.success,
         );
       } else {
         AppCommonToastMessage.show(
-          message: "Invalid OTP",
+          message: verifyResult.message,
           type: ToastType.error,
         );
       }
-      return verified;
+      return verifyResult.isVerified;
     } finally {
       isLoading.value = false;
     }
@@ -328,27 +362,27 @@ class ServiceDetailsController extends GetxController {
       // Automatically send OTP and show bottomsheet
       try {
         isVerifyingMember.value = true;
-        final isValid = await _bookingRepository.validateMemberPhone(
+        final validateResult = await _bookingRepository.validateMemberPhone(
           phone: memberPhone,
         );
-        if (!isValid) {
+        if (!validateResult.isValid) {
           AppCommonToastMessage.show(
-            message: "Member phone number not found",
+            message: validateResult.message,
             type: ToastType.error,
           );
           return;
         }
 
-        final sent = await _bookingRepository.sendMemberOtp(phone: memberPhone);
-        isOtpSent.value = sent;
-        if (sent) {
+        final sendResult = await _bookingRepository.sendMemberOtp(phone: memberPhone);
+        isOtpSent.value = sendResult.isSuccess;
+        if (sendResult.isSuccess) {
           debugPrint("OTP Sent, showing bottomsheet...");
           final verified = await _showOtpBottomSheet(memberPhone);
           debugPrint("BottomSheet Result: $verified");
           if (!verified) return; // User cancelled or failed OTP
         } else {
           AppCommonToastMessage.show(
-            message: "Failed to send OTP",
+            message: sendResult.message,
             type: ToastType.error,
           );
           return;
@@ -456,6 +490,8 @@ class ServiceDetailsController extends GetxController {
             fallbackLocation: location.value,
           );
 
+          fetchRecentBookings();
+          resetAll();
           Get.toNamed(
             AppRoutes.bookingConfirmed,
             arguments: {
@@ -624,6 +660,8 @@ class ServiceDetailsController extends GetxController {
         encryptBookingId: encryptBookingId,
       );
 
+      fetchRecentBookings();
+      resetAll();
       Get.toNamed(
         AppRoutes.bookingConfirmed,
         arguments: {
@@ -766,6 +804,7 @@ class ServiceDetailsController extends GetxController {
   void toggleOnline() {
     isOnline.value = !isOnline.value;
     fetchServices();
+    fetchRecentBookings();
   }
 
   Future<bool> _showOtpBottomSheet(String phone) async {

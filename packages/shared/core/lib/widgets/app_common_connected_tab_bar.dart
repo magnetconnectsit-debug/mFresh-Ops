@@ -76,6 +76,10 @@ class _AppCommonConnectedTabBarState extends State<AppCommonConnectedTabBar> {
     required BorderRadius outerRadius,
   }) {
     if (widget.isPillStyle) {
+      if (widget.borderRadius != null) {
+        final double r = widget.borderRadius!.topLeft.x;
+        return BorderRadius.circular((r - 2.0).clamp(2.0, 100.0).r);
+      }
       return BorderRadius.circular(6.r);
     }
     // Connected mode: smooth rounding on outer boundary tabs
@@ -268,11 +272,11 @@ class _AppCommonConnectedTabBarState extends State<AppCommonConnectedTabBar> {
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 240),
                   curve: Curves.easeInOutCubic,
-                  left: safeSelectedIndex * tabWidth + (widget.isPillStyle ? 2.w : 0),
-                  top: widget.isPillStyle ? 2.h : 0,
-                  width: tabWidth - (widget.isPillStyle ? 4.w : 0),
+                  left: safeSelectedIndex * tabWidth + (widget.isPillStyle ? 2.5.w : 0),
+                  top: widget.isPillStyle ? 2.5.h : 0,
+                  width: tabWidth - (widget.isPillStyle ? 5.w : 0),
                   height: widget.isPillStyle
-                      ? (effectiveHeight - 4.h)
+                      ? (effectiveHeight - 5.h)
                       : (effectiveHeight + 1.2), // Overlays bottom line for seamless card connection
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
@@ -284,12 +288,6 @@ class _AppCommonConnectedTabBarState extends State<AppCommonConnectedTabBar> {
                         totalCount: tabCount,
                         outerRadius: effectiveBorderRadius,
                       ),
-                      border: widget.isPillStyle
-                          ? Border.all(
-                              color: widget.borderColor.withValues(alpha: 0.3),
-                              width: 0.5,
-                            )
-                          : null,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(

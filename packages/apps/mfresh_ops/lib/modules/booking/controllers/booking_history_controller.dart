@@ -14,8 +14,13 @@ class BookingHistoryController extends GetxController {
   // endregion
 
   // region Observables & State Variables
-  final bookings = <BookingHistoryModel>[].obs;
+  final bookings = <RecentBookingItemModel>[].obs;
   final isLoading = false.obs;
+  final unitId = ''.obs;
+  final cashierSessionId = Rxn<int>();
+  final unitLocation = ''.obs;
+  final paperRollSize = 80.obs;
+  final printingType = 'thermal'.obs;
 
   // Filters
   final selectedDateFilter = 'All'.obs; // All, Today, Yesterday
@@ -27,7 +32,7 @@ class BookingHistoryController extends GetxController {
       _profileController.user.value?.permissions?.contains('userProfileFilter') ??
       false;
 
-  List<BookingHistoryModel> get filteredBookings {
+  List<RecentBookingItemModel> get filteredBookings {
     return bookings.where((booking) {
       // Date filter
       bool dateMatch = true;
@@ -36,13 +41,16 @@ class BookingHistoryController extends GetxController {
       final yesterday = today.subtract(const Duration(days: 1));
 
       try {
-        final bDate = DateTime.parse(booking.createdAt).toLocal();
-        final bDay = DateTime(bDate.year, bDate.month, bDate.day);
+        final rawDate = booking.bookingTimeDate;
+        if (rawDate != null && rawDate.isNotEmpty) {
+          final bDate = DateTime.parse(rawDate).toLocal();
+          final bDay = DateTime(bDate.year, bDate.month, bDate.day);
 
-        if (selectedDateFilter.value == 'Today') {
-          dateMatch = bDay.isAtSameMomentAs(today);
-        } else if (selectedDateFilter.value == 'Yesterday') {
-          dateMatch = bDay.isAtSameMomentAs(yesterday);
+          if (selectedDateFilter.value == 'Today') {
+            dateMatch = bDay.isAtSameMomentAs(today);
+          } else if (selectedDateFilter.value == 'Yesterday') {
+            dateMatch = bDay.isAtSameMomentAs(yesterday);
+          }
         }
       } catch (_) {}
 
@@ -62,6 +70,24 @@ class BookingHistoryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      unitId.value = args['unitId']?.toString() ?? '';
+      if (args['cashierSessionId'] != null) {
+        cashierSessionId.value = int.tryParse(args['cashierSessionId'].toString());
+      }
+      unitLocation.value = args['location']?.toString() ?? '';
+      paperRollSize.value = int.tryParse(args['paperRollSize']?.toString() ?? '80') ?? 80;
+      printingType.value = args['printingType']?.toString() ?? 'thermal';
+    }
+
+    if (unitId.value.isEmpty) {
+      unitId.value = _bookingRepository.rxSelectedUnitId.value;
+    }
+    if (cashierSessionId.value == null) {
+      cashierSessionId.value = _bookingRepository.rxActiveCashierSessionId.value;
+    }
+
     fetchBookingHistory();
   }
   // endregion
@@ -70,7 +96,16 @@ class BookingHistoryController extends GetxController {
   Future<void> fetchBookingHistory() async {
     try {
       isLoading.value = true;
-      final result = await _bookingRepository.getBookingHistory();
+      final effectiveUnit = unitId.value.isNotEmpty
+          ? unitId.value
+          : _bookingRepository.rxSelectedUnitId.value;
+      final effectiveSessionId = cashierSessionId.value ??
+          _bookingRepository.rxActiveCashierSessionId.value;
+
+      final result = await _bookingRepository.getRecentBookings(
+        unitId: effectiveUnit,
+        cashierSessionId: effectiveSessionId,
+      );
       bookings.assignAll(result);
     } catch (e) {
       AppCommonToastMessage.show(

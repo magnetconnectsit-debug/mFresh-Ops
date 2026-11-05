@@ -68,21 +68,11 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
               title: const Text('Booking'),
               actions: [
                 IconButton(
-                  tooltip: 'Booking History',
-                  icon: const Icon(Icons.history),
-                  onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
-                ),
-                IconButton(
                   tooltip: 'Profile',
                   icon: const Icon(Icons.account_circle),
                   onPressed: () {
                     Get.toNamed(AppRoutes.profile);
                   },
-                ),
-                IconButton(
-                  tooltip: 'Logout',
-                  icon: const Icon(Icons.logout, color: AppColors.error),
-                  onPressed: () => _handleLogout(context),
                 ),
               ],
             ),

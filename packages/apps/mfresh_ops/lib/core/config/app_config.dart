@@ -13,12 +13,14 @@ enum AppEnvironment { dev, prod }
 class AppConfig {
   // region Private Constructor
   AppConfig._();
+
   // endregion
 
   // region Biometric Authentication Toggle
   /// Global feature switch for Biometric Authentication (Fingerprint / Face ID).
   /// Set to false to completely turn off biometric authentication across the app.
   static bool enableBiometricAuth = false;
+
   // endregion
 
   // region Environment & Settings
@@ -54,4 +56,5 @@ class AppConfig {
   static bool get isPhonePeProduction => _isProdEnv;
   // endregion
 }
+
 // endregion

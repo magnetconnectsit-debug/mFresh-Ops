@@ -768,8 +768,10 @@ class OpsApp extends StatefulWidget {
 
 class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
   // region Dependencies
-  final BiometricAuthService _biometricService = Get.find<BiometricAuthService>();
+  final BiometricAuthService _biometricService =
+      Get.find<BiometricAuthService>();
   final StorageService _storageService = Get.find<StorageService>();
+
   // endregion
 
   // region Lifecycle Methods
@@ -777,7 +779,7 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-  }
+  } 
 
   @override
   void dispose() {
@@ -794,6 +796,7 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
     final isUserLoggedIn = token != null && token.isNotEmpty;
     _biometricService.handleAppLifecycle(state, isUserLoggedIn: isUserLoggedIn);
   }
+
   // endregion
 
   // region Main Build
@@ -852,6 +855,8 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
       },
     );
   }
+
   // endregion
 }
+
 // endregion
