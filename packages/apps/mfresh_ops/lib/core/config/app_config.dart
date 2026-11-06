@@ -53,7 +53,7 @@ class AppConfig {
       : '71c39b94aad8435c96f81b1f5324c9c7'; // UAT
 
   // PhonePe Environment Toggle
-  static bool get isPhonePeProduction => _isProdEnv;
+  static bool get isPhonePeProduction => true;
   // endregion
 }
 

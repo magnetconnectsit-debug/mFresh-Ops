@@ -22,6 +22,8 @@ class LoginScreen extends StatelessWidget {
         ? Get.find<LoginController>()
         : Get.put(LoginController(), permanent: true);
 
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       resizeToAvoidBottomInset: true,
@@ -32,35 +34,63 @@ class LoginScreen extends StatelessWidget {
           child: Form(
             key: controller.formKey,
             autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: CustomScrollView(
-              physics: const ClampingScrollPhysics(),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: 360.w),
+            child: isTablet
+                ? Center(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        child: Column(
-                          children: [
-                            SizedBox(height: 28.h),
-                            _buildLogo(controller),
-                            SizedBox(height: 20.h),
-                            _buildCard(context, controller),
-                            const Spacer(),
-                            _buildFooter(),
-                            SizedBox(height: 16.h),
-                          ],
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 20.h,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 580.w),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildLogo(controller, isTablet: true),
+                              SizedBox(height: 28.h),
+                              _buildCard(context, controller),
+                              SizedBox(height: 32.h),
+                              _buildFooter(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
+                  )
+                : CustomScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    slivers: [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: 360.w),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w),
+                              child: Column(
+                                children: [
+                                  SizedBox(height: 28.h),
+                                  _buildLogo(controller),
+                                  SizedBox(height: 20.h),
+                                  _buildCard(context, controller),
+                                  const Spacer(),
+                                  _buildFooter(),
+                                  SizedBox(height: 16.h),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -69,13 +99,14 @@ class LoginScreen extends StatelessWidget {
   // endregion
 
   // region Header & Logo
-  Widget _buildLogo(LoginController controller) {
+  Widget _buildLogo(LoginController controller, {bool isTablet = false}) {
     return Center(
       child: GestureDetector(
         onTap: controller.handleLogoTap,
         child: Image.asset(
           AppImages.appLogo,
-          fit: BoxFit.fill,
+          width: isTablet ? 220.w : null,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -84,7 +115,8 @@ class LoginScreen extends StatelessWidget {
 
   // region Section Builders
   Widget _buildCard(BuildContext context, LoginController controller) {
-    final tabHeight = 88.h;
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    final tabHeight = isTablet ? 104.h : 88.h;
 
     final cardContent = Column(
       mainAxisSize: MainAxisSize.min,
@@ -95,7 +127,10 @@ class LoginScreen extends StatelessWidget {
 
         // ── Form Content ──
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.w : 18.w,
+            vertical: isTablet ? 26.h : 20.h,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -199,26 +234,29 @@ class LoginScreen extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => controller.selectTab(tabIndex),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: 12.h, bottom: 6.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LoginTabAnimationWidget(
-                  type: type,
-                  isSelected: isSelected,
-                  size: 46.r,
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: 8.h),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LoginTabAnimationWidget(
+                      type: type,
+                      isSelected: isSelected,
+                      size: 44.r,
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      title,
+                      style: isSelected
+                          ? AppTextStyle.style_14_700(color: AppColors.primary)
+                          : AppTextStyle.style_14_600(color: AppColors.iconPrimary),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 3.h),
-                Text(
-                  title,
-                  style: isSelected
-                      ? AppTextStyle.style_14_700(color: AppColors.primary)
-                      : AppTextStyle.style_14_600(color: AppColors.iconPrimary),
-                ),
-              ],
+              ),
             ),
           ),
           AnimatedContainer(

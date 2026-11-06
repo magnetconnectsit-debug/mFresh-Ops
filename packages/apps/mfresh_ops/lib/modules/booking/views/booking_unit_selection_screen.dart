@@ -12,6 +12,7 @@ import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:services/plutus_service.dart';
 
 class BookingUnitSelectionScreen extends StatefulWidget {
@@ -89,15 +90,17 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                     // Banner
                     Container(
                       width: double.infinity,
-                      height: isDesktop ? 270 : (isTablet ? 150 : 120),
+                      height: isDesktop ? 160.h : (isTablet ? 120.h : 110.h),
+                      margin: EdgeInsets.symmetric(horizontal: isTablet ? 16.w : 0),
                       decoration: BoxDecoration(
-                        image: DecorationImage(
+                        borderRadius: isTablet ? BorderRadius.circular(12.r) : BorderRadius.zero,
+                        image: const DecorationImage(
                           image: AssetImage(AppImages.dashboardBanner),
                           fit: BoxFit.contain,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 6.h),
                     // Heading & Scanner Button
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -300,9 +303,20 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
   Future<void> _openScanner() async {
     if (_isProcessingScan) return;
 
-    final int cameraCount = await plutusService.getCameraCount();
+    // Check camera permission first
+    PermissionStatus status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+    }
 
-    if (cameraCount > 0) {
+    int cameraCount = await plutusService.getCameraCount();
+
+    // If getCameraCount reported 0 or failed, fallback to camera permission status on mobile/tablet devices
+    if (cameraCount == 0 && status.isGranted) {
+      cameraCount = 1;
+    }
+
+    if (cameraCount > 0 && status.isGranted) {
       final MobileScannerController scannerController = MobileScannerController(
         facing: CameraFacing.back,
         torchEnabled: false,

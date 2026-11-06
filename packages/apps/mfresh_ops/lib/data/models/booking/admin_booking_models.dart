@@ -1,3 +1,4 @@
+import 'package:mfresh_ops/data/models/assignee_model.dart';
 import 'booking_details_model.dart';
 
 // region Models
@@ -504,6 +505,22 @@ class CtodDateEntryModel {
   }
   // endregion
 }
+
+// region Handover Models
+class HandoverUsersResult {
+  final bool status;
+  final String message;
+  final List<AssigneeModel> handoverUsers;
+  final List<AssigneeModel> ctodUsers;
+
+  HandoverUsersResult({
+    required this.status,
+    required this.message,
+    this.handoverUsers = const [],
+    this.ctodUsers = const [],
+  });
+}
+// endregion
 
 class HandoverCreateResult {
   final bool status;

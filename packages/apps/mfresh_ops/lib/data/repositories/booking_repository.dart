@@ -2,7 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
-import 'package:mfresh_ops/data/models/booking/booking_models.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:services/api_services.dart';
 // endregion
 
@@ -544,6 +544,52 @@ class BookingRepository extends GetxService {
     } catch (e) {
       debugPrint('getCtodDates error: $e');
       return [];
+    }
+  }
+
+  Future<HandoverUsersResult> getHandoverUsers() async {
+    try {
+      final response = await _apiService.get(AppConstants.adminHandoverUsers);
+
+      if (response != null && response is Map && (response['status'] == true || response['status'] == 'success')) {
+        final handoverRaw = response['handover_users'] ?? [];
+        final ctodRaw = response['ctod_users'] ?? [];
+
+        final handoverUsers = (handoverRaw as List).map((e) {
+          if (e is Map<String, dynamic>) {
+            return AssigneeModel.fromJson(e);
+          } else if (e is Map) {
+            return AssigneeModel.fromJson(Map<String, dynamic>.from(e));
+          }
+          return AssigneeModel(id: 0, name: '');
+        }).where((u) => u.id > 0).toList();
+
+        final ctodUsers = (ctodRaw as List).map((e) {
+          if (e is Map<String, dynamic>) {
+            return AssigneeModel.fromJson(e);
+          } else if (e is Map) {
+            return AssigneeModel.fromJson(Map<String, dynamic>.from(e));
+          }
+          return AssigneeModel(id: 0, name: '');
+        }).where((u) => u.id > 0).toList();
+
+        return HandoverUsersResult(
+          status: true,
+          message: response['message']?.toString() ?? 'Users fetched successfully.',
+          handoverUsers: handoverUsers,
+          ctodUsers: ctodUsers,
+        );
+      }
+      return HandoverUsersResult(
+        status: false,
+        message: 'Failed to fetch handover users',
+      );
+    } catch (e) {
+      debugPrint('getHandoverUsers error: $e');
+      return HandoverUsersResult(
+        status: false,
+        message: 'Error fetching handover users: $e',
+      );
     }
   }
 

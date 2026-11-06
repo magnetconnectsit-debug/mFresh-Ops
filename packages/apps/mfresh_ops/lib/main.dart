@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
@@ -695,19 +696,23 @@ class MyTaskHandler extends TaskHandler {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
   try {
     await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
   } catch (_) {}
 
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp();
+  if (!kIsWeb) {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await Hive.initFlutter();
   if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
@@ -725,7 +730,9 @@ void main() async {
 // region Services Dependency Injection
 Future<void> initServices() async {
   Get.put(LoggerService());
-  Get.put(PushNotificationService());
+  if (!kIsWeb) {
+    Get.put(PushNotificationService());
+  }
 
   final storageService = await Get.putAsync(() => StorageService().init());
   Get.put(SettingsService());
@@ -744,17 +751,23 @@ Future<void> initServices() async {
   Get.put(CommonRepository());
   Get.put(BookingRepository());
   Get.put(PlutusService());
-  PhonePeService.init(isProduction: AppConfig.isPhonePeProduction);
+  if (!kIsWeb) {
+    PhonePeService.init(isProduction: AppConfig.isPhonePeProduction);
+  }
   Get.put(PhonePeService());
   Get.put(SupportRepository());
   Get.put(TaskRepository());
   Get.put(InventoryRepository());
   Get.put(TrackingRepository());
-  Get.put(TrackingService());
+  if (!kIsWeb) {
+    Get.put(TrackingService());
+  }
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
   Get.put(ContactRepository());
-  Get.put(DutyMonitorController(), permanent: true);
+  if (!kIsWeb) {
+    Get.put(DutyMonitorController(), permanent: true);
+  }
 }
 // endregion
 
@@ -832,6 +845,33 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
             debugShowCheckedModeBanner: false,
             title: 'mFresh Ops',
             theme: ThemeData(primaryColor: AppColors.primary),
+            routingCallback: (routing) {
+              if (kIsWeb) return;
+              final routeName = routing?.current ?? '';
+              final isBookingMode = routeName == AppRoutes.bookingUnitSelection ||
+                  routeName == AppRoutes.serviceDetails ||
+                  routeName == AppRoutes.bookingHistory ||
+                  routeName == AppRoutes.bookingConfirmed ||
+                  routeName == AppRoutes.printReceipt ||
+                  routeName.contains('booking') ||
+                  routeName.contains('service-details');
+
+              if (isBookingMode) {
+                // Allow all orientations in booking mode
+                SystemChrome.setPreferredOrientations([
+                  DeviceOrientation.portraitUp,
+                  DeviceOrientation.portraitDown,
+                  DeviceOrientation.landscapeLeft,
+                  DeviceOrientation.landscapeRight,
+                ]);
+              } else {
+                // Lock to portrait in operations mode
+                SystemChrome.setPreferredOrientations([
+                  DeviceOrientation.portraitUp,
+                  DeviceOrientation.portraitDown,
+                ]);
+              }
+            },
             builder: (context, child) {
               return Stack(
                 children: [

@@ -36,7 +36,8 @@ class HandoverDialogHelper {
     final cashBalance = 0.0.obs;
 
     // User options
-    final userList = <AssigneeModel>[].obs;
+    final handoverUserList = <AssigneeModel>[].obs;
+    final ctodUserList = <AssigneeModel>[].obs;
     final selectedUser = Rxn<AssigneeModel>();
 
     // Handover Cash tab
@@ -136,20 +137,21 @@ class HandoverDialogHelper {
       ctodTotalGiven.value = calculateCtodTotal();
     }
 
-    // Load initial user list & C-to-D dates (Overview API call removed)
+    // Load initial user list & C-to-D dates
     Future<void> loadInitialData() async {
       try {
         isLoading.value = true;
         final results = await Future.wait([
-          commonRepo.getAllAssignees(),
+          bookingRepo.getHandoverUsers(),
           bookingRepo.getCtodDates(
             unitId: unitNo,
             sessionId: cashierSessionId,
           ),
         ]);
 
-        final assignees = results[0] as List<AssigneeModel>;
-        userList.assignAll(assignees);
+        final usersResult = results[0] as HandoverUsersResult;
+        handoverUserList.assignAll(usersResult.handoverUsers);
+        ctodUserList.assignAll(usersResult.ctodUsers);
 
         final ctodDates = results[1] as List<CtodDateEntryModel>;
         allCtodDateEntries.assignAll(ctodDates);
@@ -177,149 +179,181 @@ class HandoverDialogHelper {
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) {
+        final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+        final dialogWidth = isTablet ? 640.w : 480.w;
+
         return Dialog(
-          backgroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 32.w : 16.w,
+            vertical: 20.h,
           ),
-          insetPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: 480.w,
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxWidth: dialogWidth,
+              maxHeight: MediaQuery.of(context).size.height * 0.90,
             ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
-              child: Obx(() {
-                if (isLoading.value) {
-                  return SizedBox(
-                    height: 220.h,
-                    child: const Center(
-                      child: CustomAppLoader(size: 36),
-                    ),
-                  );
-                }
+            child: Obx(() {
+              final int selectedIndex = isCtodTab.value ? 1 : 0;
+              final double tabHeight = isTablet ? 54.h : 46.h;
 
-                return SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Handover Cash',
-                            style: AppTextStyle.style_18_700(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.of(dialogCtx).pop(),
-                            icon: Icon(
-                              Icons.close,
-                              size: 20.sp,
-                              color: AppColors.grey500,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 14.h),
+              if (isLoading.value) {
+                return Container(
+                  height: 220.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  child: const Center(
+                    child: CustomAppLoader(size: 36),
+                  ),
+                );
+              }
 
-                      // Tabs: Handover Cash | Cash C TO D
-                      Row(
+              return CustomPaint(
+                painter: _HandoverElevatedTabCardPainter(
+                  selectedIndex: selectedIndex,
+                  tabHeight: tabHeight,
+                  cornerRadius: 16.r,
+                  junctionRadius: 14.r,
+                  borderColor: AppColors.borderColor,
+                  inactiveTabColor: const Color(0xFFF1F5F9),
+                  cardColor: AppColors.white,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Unified Elevated Tabs Header
+                    SizedBox(
+                      height: tabHeight,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => isCtodTab.value = false,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(vertical: 8.h),
-                                decoration: BoxDecoration(
-                                  color: !isCtodTab.value
-                                      ? AppColors.white
-                                      : AppColors.grey50,
-                                  borderRadius: BorderRadius.circular(8.r),
-                                  border: Border.all(
-                                    color: !isCtodTab.value
-                                        ? AppColors.red
-                                        : AppColors.grey300,
-                                    width: 1.w,
-                                  ),
-                                ),
-                                alignment: Alignment.center,
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (isCtodTab.value) {
+                                  isCtodTab.value = false;
+                                  selectedUser.value = null;
+                                }
+                              },
+                              child: Center(
                                 child: Text(
                                   'Handover Cash',
-                                  style: AppTextStyle.style_12_600(
-                                    color: !isCtodTab.value
-                                        ? AppColors.red
-                                        : AppColors.grey700,
-                                  ),
+                                  style: isTablet
+                                      ? AppTextStyle.style_15_600(
+                                          color: !isCtodTab.value
+                                              ? AppColors.primary
+                                              : const Color(0xFF64748B),
+                                        )
+                                      : AppTextStyle.style_13_600(
+                                          color: !isCtodTab.value
+                                              ? AppColors.primary
+                                              : const Color(0xFF64748B),
+                                        ),
                                 ),
                               ),
                             ),
                           ),
-                          SizedBox(width: 10.w),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => isCtodTab.value = true,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(vertical: 8.h),
-                                decoration: BoxDecoration(
-                                  color: isCtodTab.value
-                                      ? AppColors.white
-                                      : AppColors.grey50,
-                                  borderRadius: BorderRadius.circular(8.r),
-                                  border: Border.all(
-                                    color: isCtodTab.value
-                                        ? AppColors.blue
-                                        : AppColors.grey300,
-                                    width: 1.w,
-                                  ),
-                                ),
-                                alignment: Alignment.center,
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (!isCtodTab.value) {
+                                  isCtodTab.value = true;
+                                  selectedUser.value = null;
+                                }
+                              },
+                              child: Center(
                                 child: Text(
                                   'Cash C TO D',
-                                  style: AppTextStyle.style_12_600(
-                                    color: isCtodTab.value
-                                        ? AppColors.blue
-                                        : AppColors.grey700,
-                                  ),
+                                  style: isTablet
+                                      ? AppTextStyle.style_15_600(
+                                          color: isCtodTab.value
+                                              ? AppColors.primary
+                                              : const Color(0xFF64748B),
+                                        )
+                                      : AppTextStyle.style_13_600(
+                                          color: isCtodTab.value
+                                              ? AppColors.primary
+                                              : const Color(0xFF64748B),
+                                        ),
                                 ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 14.h),
+                    ),
+
+                    // Card Content
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          isTablet ? 24.w : 16.w,
+                          isTablet ? 16.h : 12.h,
+                          isTablet ? 24.w : 16.w,
+                          isTablet ? 18.h : 14.h,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header Row with Title and Close Button
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  !isCtodTab.value ? 'Handover Cash' : 'Cash C TO D',
+                                  style: isTablet
+                                      ? AppTextStyle.style_18_700(color: AppColors.primary)
+                                      : AppTextStyle.style_15_700(color: AppColors.primary),
+                                ),
+                                IconButton(
+                                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                                  icon: Icon(
+                                    Icons.close,
+                                    size: isTablet ? 22.sp : 18.sp,
+                                    color: AppColors.grey500,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: isTablet ? 14.h : 10.h),
 
                       // Handover To (Choose User) Dropdown
-                      AppCommonMultiSelectDropdown<AssigneeModel>(
-                        label: 'Handover To',
-                        hint: 'Choose User',
-                        isSingleSelect: true,
-                        selectedValues: selectedUser.value != null
-                            ? {selectedUser.value!}
-                            : {},
-                        items: userList.map((u) {
-                          return DropdownMenuItem<AssigneeModel>(
-                            value: u,
-                            child: Text(
-                              u.name,
-                              style: AppTextStyle.style_12_400(
-                                color: AppColors.grey900,
+                      Obx(() {
+                        final currentUsers = isCtodTab.value ? ctodUserList : handoverUserList;
+                        return AppCommonMultiSelectDropdown<AssigneeModel>(
+                          label: 'Handover To',
+                          hint: 'Choose User',
+                          height: isTablet ? 42.h : 34.h,
+                          isSingleSelect: true,
+                          selectedValues: selectedUser.value != null
+                              ? {selectedUser.value!}
+                              : {},
+                          items: currentUsers.map((u) {
+                            return DropdownMenuItem<AssigneeModel>(
+                              value: u,
+                              child: Text(
+                                u.name,
+                                style: isTablet
+                                    ? AppTextStyle.style_14_400(color: AppColors.grey900)
+                                    : AppTextStyle.style_12_400(color: AppColors.grey900),
                               ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (values) {
-                          selectedUser.value =
-                              values.isNotEmpty ? values.first : null;
-                        },
-                      ),
-                      SizedBox(height: 12.h),
+                            );
+                          }).toList(),
+                          onChanged: (values) {
+                            selectedUser.value =
+                                values.isNotEmpty ? values.first : null;
+                          },
+                        );
+                      }),
+                      SizedBox(height: isTablet ? 16.h : 12.h),
 
                       // Tab Specific Content
                       if (!isCtodTab.value) ...[
@@ -344,14 +378,7 @@ class HandoverDialogHelper {
                           ),
                           fillColor: AppColors.white,
                           onChanged: (val) => handoverAmount.value = val,
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          'Enter any amount up to your current unit due. You can pay the rest later after another OTP verification.',
-                          style: AppTextStyle.style_10_400(
-                            color: AppColors.grey500,
-                          ),
-                        ),
+                        )
                       ] else ...[
                         // Cash C TO D Tab: Standalone Collection Dates field
                         GestureDetector(
@@ -410,7 +437,7 @@ class HandoverDialogHelper {
                             ),
                           ),
                         ),
-                        SizedBox(height: 10.h),
+                        SizedBox(height: 6.h),
 
                         // Date entries cards
                         if (ctodDateEntries.isNotEmpty) ...[
@@ -477,8 +504,8 @@ class HandoverDialogHelper {
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.symmetric(
-                          horizontal: 14.w,
-                          vertical: 10.h,
+                          horizontal: isTablet ? 18.w : 14.w,
+                          vertical: isTablet ? 14.h : 10.h,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.aliceBlue,
@@ -493,9 +520,9 @@ class HandoverDialogHelper {
                           children: [
                             Text(
                               'Total Physical Cash Given',
-                              style: AppTextStyle.style_12_500(
-                                color: AppColors.primary,
-                              ),
+                              style: isTablet
+                                  ? AppTextStyle.style_15_600(color: AppColors.primary)
+                                  : AppTextStyle.style_12_500(color: AppColors.primary),
                             ),
                             Obx(() {
                               final total = !isCtodTab.value
@@ -503,21 +530,23 @@ class HandoverDialogHelper {
                                   : ctodTotalGiven.value;
                               return Text(
                                 '₹${total.toStringAsFixed(2)}',
-                                style: AppTextStyle.style_14_700(
-                                  color: AppColors.primary,
-                                ),
+                                style: isTablet
+                                    ? AppTextStyle.style_18_700(color: AppColors.primary)
+                                    : AppTextStyle.style_14_700(color: AppColors.primary),
                               );
                             }),
                           ],
                         ),
                       ),
-                      SizedBox(height: 18.h),
+                      SizedBox(height: isTablet ? 22.h : 18.h),
 
                       // Action Buttons: Cancel | Continue Button
                       Row(
                         children: [
                           AppCommonButton(
                             text: 'Cancel',
+                            height: isTablet ? 42.h : null,
+                            textSize: isTablet ? 14.sp : null,
                             variant: ButtonVariant.outline,
                             onPressed: () => Navigator.of(dialogCtx).pop(),
                           ),
@@ -529,6 +558,8 @@ class HandoverDialogHelper {
                                   : (!isCtodTab.value
                                       ? 'Continue Handover'
                                       : 'Continue Cash C TO D'),
+                              height: isTablet ? 42.h : null,
+                              textSize: isTablet ? 14.sp : null,
                               width: double.infinity,
                               buttonColor: AppColors.green,
                               useGradient: false,
@@ -701,11 +732,14 @@ class HandoverDialogHelper {
                       ),
                     ],
                   ),
-                );
-              }),
-            ),
+                ),
+              ),
+            ],
           ),
         );
+      }),
+    ),
+  );
       },
     );
   }
@@ -928,6 +962,157 @@ class HandoverDialogHelper {
     }
   }
   // endregion
+}
+// endregion
+
+// region Handover Elevated Tab Card Painter
+class _HandoverElevatedTabCardPainter extends CustomPainter {
+  final int selectedIndex;
+  final double tabHeight;
+  final double cornerRadius;
+  final double junctionRadius;
+  final Color borderColor;
+  final Color inactiveTabColor;
+  final Color cardColor;
+
+  _HandoverElevatedTabCardPainter({
+    required this.selectedIndex,
+    required this.tabHeight,
+    this.cornerRadius = 16.0,
+    this.junctionRadius = 14.0,
+    this.borderColor = AppColors.borderColor,
+    this.inactiveTabColor = const Color(0xFFF1F5F9),
+    this.cardColor = AppColors.white,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final th = tabHeight;
+    final midX = w / 2;
+    final rOut = cornerRadius;
+    final rJ = junctionRadius;
+    final rTop = 16.r;
+
+    final paintBorder = Paint()
+      ..color = borderColor
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final elevatedPath = Path();
+
+    if (selectedIndex == 1) {
+      // ── Tab 1 (Cash C TO D) is Active; Tab 0 (Handover Cash) is Inactive ──
+
+      // 1. Inactive Tab in notch [0, midX] x [0, th]
+      final notchPath = Path();
+      notchPath.moveTo(0, rOut);
+      notchPath.quadraticBezierTo(0, 0, rOut, 0);
+      notchPath.lineTo(midX - rTop, 0);
+      notchPath.quadraticBezierTo(midX, 0, midX, rTop);
+      notchPath.lineTo(midX, th - rJ);
+      notchPath.quadraticBezierTo(midX, th, midX - rJ, th);
+      notchPath.lineTo(rOut, th);
+      notchPath.quadraticBezierTo(0, th, 0, th + rOut);
+      notchPath.lineTo(0, rOut);
+      notchPath.close();
+
+      canvas.drawPath(notchPath, Paint()..color = inactiveTabColor);
+
+      final notchBorder = Path();
+      notchBorder.moveTo(0, th + rOut);
+      notchBorder.lineTo(0, rOut);
+      notchBorder.quadraticBezierTo(0, 0, rOut, 0);
+      notchBorder.lineTo(midX - rTop, 0);
+      notchBorder.quadraticBezierTo(midX, 0, midX, rTop);
+      canvas.drawPath(notchBorder, paintBorder);
+
+      // 2. Elevated Active Shape (Active Tab + Card Body)
+      elevatedPath.moveTo(midX + rTop, 0);
+      elevatedPath.lineTo(w - rOut, 0);
+      elevatedPath.quadraticBezierTo(w, 0, w, rOut);
+      elevatedPath.lineTo(w, h - rOut);
+      elevatedPath.quadraticBezierTo(w, h, w - rOut, h);
+      elevatedPath.lineTo(rOut, h);
+      elevatedPath.quadraticBezierTo(0, h, 0, h - rOut);
+      elevatedPath.lineTo(0, th + rOut);
+      elevatedPath.quadraticBezierTo(0, th, rOut, th);
+      elevatedPath.lineTo(midX - rJ, th);
+      elevatedPath.quadraticBezierTo(midX, th, midX, th - rJ);
+      elevatedPath.lineTo(midX, rTop);
+      elevatedPath.quadraticBezierTo(midX, 0, midX + rTop, 0);
+      elevatedPath.close();
+    } else {
+      // ── Tab 0 (Handover Cash) is Active; Tab 1 (Cash C TO D) is Inactive ──
+
+      // 1. Inactive Tab in notch [midX, w] x [0, th]
+      final notchPath = Path();
+      notchPath.moveTo(midX, rTop);
+      notchPath.quadraticBezierTo(midX, 0, midX + rTop, 0);
+      notchPath.lineTo(w - rOut, 0);
+      notchPath.quadraticBezierTo(w, 0, w, rOut);
+      notchPath.lineTo(w, th + rOut);
+      notchPath.quadraticBezierTo(w, th, w - rOut, th);
+      notchPath.lineTo(midX + rJ, th);
+      notchPath.quadraticBezierTo(midX, th, midX, th - rJ);
+      notchPath.close();
+
+      canvas.drawPath(notchPath, Paint()..color = inactiveTabColor);
+
+      final notchBorder = Path();
+      notchBorder.moveTo(midX, rTop);
+      notchBorder.quadraticBezierTo(midX, 0, midX + rTop, 0);
+      notchBorder.lineTo(w - rOut, 0);
+      notchBorder.quadraticBezierTo(w, 0, w, rOut);
+      notchBorder.lineTo(w, th + rOut);
+      canvas.drawPath(notchBorder, paintBorder);
+
+      // 2. Elevated Active Shape (Active Tab + Card Body)
+      elevatedPath.moveTo(0, rOut);
+      elevatedPath.quadraticBezierTo(0, 0, rOut, 0);
+      elevatedPath.lineTo(midX - rTop, 0);
+      elevatedPath.quadraticBezierTo(midX, 0, midX, rTop);
+      elevatedPath.lineTo(midX, th - rJ);
+      elevatedPath.quadraticBezierTo(midX, th, midX + rJ, th);
+      elevatedPath.lineTo(w - rOut, th);
+      elevatedPath.quadraticBezierTo(w, th, w, th + rOut);
+      elevatedPath.lineTo(w, h - rOut);
+      elevatedPath.quadraticBezierTo(w, h, w - rOut, h);
+      elevatedPath.lineTo(rOut, h);
+      elevatedPath.quadraticBezierTo(0, h, 0, h - rOut);
+      elevatedPath.lineTo(0, rOut);
+      elevatedPath.close();
+    }
+
+    // 3. Ambient & Elevation Drop Shadows
+    final shadowAmbient = Paint()
+      ..color = AppColors.black.withValues(alpha: 0.06)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12.r);
+    canvas.drawPath(elevatedPath, shadowAmbient);
+
+    final shadowElevation = Paint()
+      ..color = AppColors.black.withValues(alpha: 0.08)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 20.r);
+    canvas.drawPath(elevatedPath.shift(Offset(0, 6.h)), shadowElevation);
+
+    // 4. Fill Elevated Active Shape Surface
+    canvas.drawPath(elevatedPath, Paint()..color = cardColor);
+
+    // 5. Draw Perimeter Border
+    canvas.drawPath(elevatedPath, paintBorder);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HandoverElevatedTabCardPainter oldDelegate) {
+    return oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.tabHeight != tabHeight ||
+        oldDelegate.cornerRadius != cornerRadius ||
+        oldDelegate.junctionRadius != junctionRadius ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.inactiveTabColor != inactiveTabColor ||
+        oldDelegate.cardColor != cardColor;
+  }
 }
 // endregion
 

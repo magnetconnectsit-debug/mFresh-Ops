@@ -41,6 +41,7 @@ class AppConstants {
   static const String refreshToken = 'refresh';
 
   // Cash Management & Handover
+  static const String adminHandoverUsers = 'admin-booking/handover/users';
   static const String adminHandoverOverview = 'admin-booking/handover/overview';
   static const String adminHandoverCtodDates =
       'admin-booking/handover/ctod-dates';
