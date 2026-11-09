@@ -56,6 +56,9 @@ class SelfieAttendanceController extends GetxController {
   final usersList = <AssigneeModel>[].obs;
   final unitsList = <UnitModel>[].obs;
 
+  // Unit Dashboard
+  final unitDashboard = Rxn<SelfieUnitDashboard>();
+
   // Table Sorting
   final sortColumn = ''.obs;
   final sortAscending = true.obs;
@@ -145,9 +148,11 @@ class SelfieAttendanceController extends GetxController {
         fromIndex.value = data.from ?? ((targetPage - 1) * data.perPage + 1);
         toIndex.value = data.to ?? (fromIndex.value + data.items.length - 1);
         items.assignAll(data.items);
+        unitDashboard.value = response.unitDashboard;
       } else {
         items.clear();
         totalRecords.value = 0;
+        unitDashboard.value = null;
       }
     } catch (e) {
       debugPrint('SelfieAttendanceController.fetchReport Error: $e');

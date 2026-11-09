@@ -77,6 +77,32 @@ The Selfie Attendance submodule is part of the Attendance & Tracking suite in `m
     "per_page": 25,
     "to": 6,
     "total": 6
+  },
+  "unit_dashboard": {
+    "columns": ["unit", "cashier", "housekeeping", "cleaner", "supervisor", "security", "other", "total"],
+    "rows": [
+      {
+        "unit_id": 1,
+        "unit_name": "m1",
+        "cashier": 0,
+        "housekeeping": 0,
+        "cleaner": 0,
+        "supervisor": 0,
+        "security": 0,
+        "other": 0,
+        "total": 0
+      }
+    ],
+    "totals": {
+      "cashier": 6,
+      "housekeeping": 4,
+      "cleaner": 0,
+      "supervisor": 0,
+      "security": 0,
+      "other": 7,
+      "total": 17
+    },
+    "count_type": "distinct_users_per_unit"
   }
 }
 ```

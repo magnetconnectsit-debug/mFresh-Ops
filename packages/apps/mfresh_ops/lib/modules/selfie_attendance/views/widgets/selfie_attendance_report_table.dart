@@ -111,16 +111,20 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       AppTableColumn<SelfieAttendanceItem>(
         key: 'employee',
         title: 'Employee',
-        width: 110.w,
+        width: 130.w,
         alignment: Alignment.centerLeft,
         sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
           final displayName = item.userNameWithRole ?? item.userName;
-          return Text(
-            displayName,
-            style: AppTextStyle.style_11_700(color: AppColors.black),
-            maxLines: isExpanded ? null : 1,
-            overflow: isExpanded ? null : TextOverflow.ellipsis,
+          return GestureDetector(
+            onTap: () => _navigateToDetail(controller, item),
+            child: Text(
+              displayName,
+              style: AppTextStyle.style_11_500(color: AppColors.blue500),
+              maxLines: isExpanded ? null : 1,
+              overflow:
+                  isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            ),
           );
         },
       ),
@@ -247,37 +251,6 @@ class SelfieAttendanceReportTable extends StatelessWidget {
             '${item.totalSessions}',
             style: AppTextStyle.style_11_400(color: AppColors.black87),
             textAlign: TextAlign.center,
-          );
-        },
-      ),
-      AppTableColumn<SelfieAttendanceItem>(
-        key: 'action',
-        title: 'Action',
-        width: 65.w,
-        alignment: Alignment.center,
-        sortable: false,
-        cellBuilder: (context, item, index, isExpanded) {
-          return InkWell(
-            onTap: () => _navigateToDetail(controller, item),
-            borderRadius: BorderRadius.circular(4.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.visibility_outlined,
-                    size: 13.sp,
-                    color: AppColors.primary,
-                  ),
-                  SizedBox(width: 3.w),
-                  Text(
-                    'Logs',
-                    style: AppTextStyle.style_11_600(color: AppColors.primary),
-                  ),
-                ],
-              ),
-            ),
           );
         },
       ),

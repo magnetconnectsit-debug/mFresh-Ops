@@ -3,11 +3,13 @@ class SelfieAttendanceReportResponse {
   final bool status;
   final String message;
   final SelfieAttendanceReportData? data;
+  final SelfieUnitDashboard? unitDashboard;
 
   SelfieAttendanceReportResponse({
     required this.status,
     required this.message,
     this.data,
+    this.unitDashboard,
   });
 
   // region Factory & Serialization
@@ -18,6 +20,10 @@ class SelfieAttendanceReportResponse {
       data: json['data'] != null && json['data'] is Map<String, dynamic>
           ? SelfieAttendanceReportData.fromJson(json['data'])
           : null,
+      unitDashboard: json['unit_dashboard'] != null &&
+              json['unit_dashboard'] is Map<String, dynamic>
+          ? SelfieUnitDashboard.fromJson(json['unit_dashboard'])
+          : null,
     );
   }
 
@@ -25,8 +31,148 @@ class SelfieAttendanceReportResponse {
         'status': status,
         'message': message,
         'data': data?.toJson(),
+        'unit_dashboard': unitDashboard?.toJson(),
       };
   // endregion
+}
+
+class SelfieUnitDashboard {
+  final List<String> columns;
+  final List<SelfieUnitDashboardRow> rows;
+  final SelfieUnitDashboardTotals? totals;
+  final String? countType;
+
+  SelfieUnitDashboard({
+    this.columns = const [],
+    this.rows = const [],
+    this.totals,
+    this.countType,
+  });
+
+  factory SelfieUnitDashboard.fromJson(Map<String, dynamic> json) {
+    final rawCols = json['columns'] as List? ?? [];
+    final rawRows = json['rows'] as List? ?? [];
+    return SelfieUnitDashboard(
+      columns: rawCols.map((c) => c.toString()).toList(),
+      rows: rawRows
+          .whereType<Map<String, dynamic>>()
+          .map((r) => SelfieUnitDashboardRow.fromJson(r))
+          .toList(),
+      totals: json['totals'] != null && json['totals'] is Map<String, dynamic>
+          ? SelfieUnitDashboardTotals.fromJson(json['totals'])
+          : null,
+      countType: json['count_type']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'columns': columns,
+        'rows': rows.map((r) => r.toJson()).toList(),
+        'totals': totals?.toJson(),
+        'count_type': countType,
+      };
+}
+
+class SelfieUnitDashboardRow {
+  final int unitId;
+  final String unitName;
+  final int cashier;
+  final int housekeeping;
+  final int cleaner;
+  final int supervisor;
+  final int security;
+  final int other;
+  final int total;
+
+  SelfieUnitDashboardRow({
+    required this.unitId,
+    required this.unitName,
+    this.cashier = 0,
+    this.housekeeping = 0,
+    this.cleaner = 0,
+    this.supervisor = 0,
+    this.security = 0,
+    this.other = 0,
+    this.total = 0,
+  });
+
+  factory SelfieUnitDashboardRow.fromJson(Map<String, dynamic> json) {
+    int _toInt(dynamic v) {
+      if (v is int) return v;
+      return int.tryParse(v?.toString() ?? '0') ?? 0;
+    }
+
+    return SelfieUnitDashboardRow(
+      unitId: _toInt(json['unit_id']),
+      unitName: json['unit_name']?.toString() ?? '—',
+      cashier: _toInt(json['cashier']),
+      housekeeping: _toInt(json['housekeeping']),
+      cleaner: _toInt(json['cleaner']),
+      supervisor: _toInt(json['supervisor']),
+      security: _toInt(json['security']),
+      other: _toInt(json['other']),
+      total: _toInt(json['total']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'unit_id': unitId,
+        'unit_name': unitName,
+        'cashier': cashier,
+        'housekeeping': housekeeping,
+        'cleaner': cleaner,
+        'supervisor': supervisor,
+        'security': security,
+        'other': other,
+        'total': total,
+      };
+}
+
+class SelfieUnitDashboardTotals {
+  final int cashier;
+  final int housekeeping;
+  final int cleaner;
+  final int supervisor;
+  final int security;
+  final int other;
+  final int total;
+
+  SelfieUnitDashboardTotals({
+    this.cashier = 0,
+    this.housekeeping = 0,
+    this.cleaner = 0,
+    this.supervisor = 0,
+    this.security = 0,
+    this.other = 0,
+    this.total = 0,
+  });
+
+  factory SelfieUnitDashboardTotals.fromJson(Map<String, dynamic> json) {
+    int _toInt(dynamic v) {
+      if (v is int) return v;
+      return int.tryParse(v?.toString() ?? '0') ?? 0;
+    }
+
+    return SelfieUnitDashboardTotals(
+      cashier: _toInt(json['cashier']),
+      housekeeping: _toInt(json['housekeeping']),
+      cleaner: _toInt(json['cleaner']),
+      supervisor: _toInt(json['supervisor']),
+      security: _toInt(json['security']),
+      other: _toInt(json['other']),
+      total: _toInt(json['total']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'cashier': cashier,
+        'housekeeping': housekeeping,
+        'cleaner': cleaner,
+        'supervisor': supervisor,
+        'security': security,
+        'other': other,
+        'total': total,
+      };
 }
 
 class SelfieAttendanceReportData {
