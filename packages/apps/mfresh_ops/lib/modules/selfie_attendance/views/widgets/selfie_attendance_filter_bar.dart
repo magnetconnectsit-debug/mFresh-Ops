@@ -80,7 +80,6 @@ class SelfieAttendanceFilterBar extends StatelessWidget {
   // region Section Builders
   Widget _buildHeaderRow(SelfieAttendanceController controller) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Padding(
           padding: EdgeInsets.only(left: 2.w),
@@ -89,6 +88,47 @@ class SelfieAttendanceFilterBar extends StatelessWidget {
             style: AppTextStyle.style_14_600(color: AppColors.black),
           ),
         ),
+        SizedBox(width: 10.w),
+        // Today quick filter
+        Obx(() {
+          final now = DateTime.now();
+          final formatted = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+          final isTodaySelected = controller.fromDate.value == formatted &&
+              controller.toDate.value == formatted;
+
+          return _buildQuickDatePill(
+            label: 'Today',
+            isSelected: isTodaySelected,
+            onTap: () {
+              if (isTodaySelected) {
+                controller.clearDateRange();
+              } else {
+                controller.filterToday();
+              }
+            },
+          );
+        }),
+        SizedBox(width: 6.w),
+        // Yesterday quick filter
+        Obx(() {
+          final yest = DateTime.now().subtract(const Duration(days: 1));
+          final formatted = '${yest.year.toString().padLeft(4, '0')}-${yest.month.toString().padLeft(2, '0')}-${yest.day.toString().padLeft(2, '0')}';
+          final isYesterdaySelected = controller.fromDate.value == formatted &&
+              controller.toDate.value == formatted;
+
+          return _buildQuickDatePill(
+            label: 'Yesterday',
+            isSelected: isYesterdaySelected,
+            onTap: () {
+              if (isYesterdaySelected) {
+                controller.clearDateRange();
+              } else {
+                controller.filterYesterday();
+              }
+            },
+          );
+        }),
+        const Spacer(),
         Obx(() {
           final hasFilter = controller.fromDate.value != null ||
               controller.selectedUserIds.isNotEmpty ||
@@ -106,6 +146,40 @@ class SelfieAttendanceFilterBar extends StatelessWidget {
           );
         }),
       ],
+    );
+  }
+
+  Widget _buildQuickDatePill({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final activeBg = AppColors.primary;
+    final inactiveBg = AppColors.aliceBlue;
+    final activeText = AppColors.white;
+    final inactiveText = AppColors.grey700;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : inactiveBg,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isSelected ? activeBg : AppColors.grey300,
+            width: 1.r,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyle.style_10_600(
+            color: isSelected ? activeText : inactiveText,
+          ),
+        ),
+      ),
     );
   }
 

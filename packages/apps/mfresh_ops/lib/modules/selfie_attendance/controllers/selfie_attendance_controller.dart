@@ -210,6 +210,28 @@ class SelfieAttendanceController extends GetxController {
     applyFilters();
   }
 
+  void filterToday() {
+    final now = DateTime.now();
+    final formatter = DateFormat('yyyy-MM-dd');
+    final displayFormatter = DateFormat('dd-MMM-yyyy');
+    final formatted = formatter.format(now);
+    fromDate.value = formatted;
+    toDate.value = formatted;
+    dateRangeText.value = displayFormatter.format(now);
+    applyFilters();
+  }
+
+  void filterYesterday() {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final formatter = DateFormat('yyyy-MM-dd');
+    final displayFormatter = DateFormat('dd-MMM-yyyy');
+    final formatted = formatter.format(yesterday);
+    fromDate.value = formatted;
+    toDate.value = formatted;
+    dateRangeText.value = displayFormatter.format(yesterday);
+    applyFilters();
+  }
+
   void applyFilters() {
     currentPage.value = 1;
     fetchReport(page: 1);

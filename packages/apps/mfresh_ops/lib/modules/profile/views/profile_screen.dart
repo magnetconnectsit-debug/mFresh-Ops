@@ -9,6 +9,7 @@ import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:services/storage_service.dart';
 // endregion
 
 // region ProfileScreen View
@@ -22,16 +23,22 @@ class ProfileScreen extends StatelessWidget {
         ? Get.find<ProfileController>()
         : Get.put(ProfileController());
 
+    final storageService = Get.isRegistered<StorageService>()
+        ? Get.find<StorageService>()
+        : null;
+    final bool isBookingMode = storageService?.getLoginMode() == 'booking';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppCommonAppBar(
-        topHeader: const CommonShortcutHeader(),
+        topHeader: isBookingMode ? null : const CommonShortcutHeader(),
         title: Text(
           'My Profile',
           style: AppTextStyle.style_16_700(color: AppColors.black),
         ),
-        showAppDrawer: true,
-        hasBackButton: false,
+        showAppDrawer: !isBookingMode,
+        hasBackButton: isBookingMode,
+        onBackButtonPressed: isBookingMode ? () => Get.back() : null,
         actions: [
           IconButton(
             icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 20.r),
@@ -40,7 +47,7 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      drawer: const CommonSidebar(),
+      drawer: isBookingMode ? null : const CommonSidebar(),
       body: RefreshIndicator(
         onRefresh: controller.fetchProfile,
         color: AppColors.primary,
@@ -54,7 +61,7 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildProfileHeroCard(context, controller),
+                  _buildProfileHeroCard(context, controller, isBookingMode: isBookingMode),
                   SizedBox(height: 16.h),
                   _buildAccountDetailsSection(context, controller),
                   SizedBox(height: 16.h),
@@ -77,7 +84,11 @@ class ProfileScreen extends StatelessWidget {
   // endregion
 
   // region Profile Hero Card
-  Widget _buildProfileHeroCard(BuildContext context, ProfileController controller) {
+  Widget _buildProfileHeroCard(
+    BuildContext context,
+    ProfileController controller, {
+    bool isBookingMode = false,
+  }) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
@@ -204,79 +215,80 @@ class ProfileScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 6.h),
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6.w,
-                    runSpacing: 4.h,
-                    children: [
-                      // Role Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.aliceBlue,
-                          borderRadius: BorderRadius.circular(14.r),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.25),
+                  if (!isBookingMode)
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6.w,
+                      runSpacing: 4.h,
+                      children: [
+                        // Role Badge
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.aliceBlue,
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.verified_user_rounded,
+                                size: 11.sp,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                role,
+                                style: AppTextStyle.style_11_600(color: AppColors.primary),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.verified_user_rounded,
-                              size: 11.sp,
-                              color: AppColors.primary,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              role,
-                              style: AppTextStyle.style_11_600(color: AppColors.primary),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                      // Duty Status Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                        decoration: BoxDecoration(
-                          color: isOnDuty
-                              ? const Color(0xFFECFDF5)
-                              : const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(14.r),
-                          border: Border.all(
+                        // Duty Status Badge
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                          decoration: BoxDecoration(
                             color: isOnDuty
-                                ? const Color(0xFFA7F3D0)
-                                : AppColors.borderColor,
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(
+                              color: isOnDuty
+                                  ? const Color(0xFFA7F3D0)
+                                  : AppColors.borderColor,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6.r,
+                                height: 6.r,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isOnDuty
+                                      ? const Color(0xFF059669)
+                                      : AppColors.grey500,
+                                ),
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                isOnDuty ? 'On Duty' : 'Off Duty',
+                                style: AppTextStyle.style_11_600(
+                                  color: isOnDuty
+                                      ? const Color(0xFF059669)
+                                      : AppColors.grey600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6.r,
-                              height: 6.r,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isOnDuty
-                                    ? const Color(0xFF059669)
-                                    : AppColors.grey500,
-                              ),
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              isOnDuty ? 'On Duty' : 'Off Duty',
-                              style: AppTextStyle.style_11_600(
-                                color: isOnDuty
-                                    ? const Color(0xFF059669)
-                                    : AppColors.grey600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ],
               );
             }),
@@ -612,7 +624,79 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           ),
+          Divider(height: 1.h, thickness: 1, color: AppColors.borderColor),
+          _buildWebLinkTile(
+            title: 'Contact Us',
+            icon: Icons.support_agent_rounded,
+            iconColor: const Color(0xFF0EA5E9),
+            url: 'https://magnetconnects.com/Contact-Us',
+          ),
+          Divider(height: 1.h, thickness: 1, color: AppColors.borderColor),
+          _buildWebLinkTile(
+            title: 'Privacy Policy',
+            icon: Icons.privacy_tip_outlined,
+            iconColor: const Color(0xFF10B981),
+            url: 'https://magnetconnects.com/privacy-Policy',
+          ),
+          Divider(height: 1.h, thickness: 1, color: AppColors.borderColor),
+          _buildWebLinkTile(
+            title: 'Terms & Conditions',
+            icon: Icons.description_outlined,
+            iconColor: const Color(0xFFF59E0B),
+            url: 'https://magnetconnects.com/Terms-Condition',
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWebLinkTile({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required String url,
+  }) {
+    return InkWell(
+      onTap: () {
+        Get.to(() => AppCommonWebView(
+              url: url,
+              title: title,
+            ));
+      },
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38.r,
+                  height: 38.r,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: 20.sp,
+                  ),
+                ),
+                SizedBox(width: 14.w),
+                Text(
+                  title,
+                  style: AppTextStyle.style_13_600(color: AppColors.black),
+                ),
+              ],
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14.sp,
+              color: AppColors.grey400,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -532,6 +532,18 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           newSessionId = emp['session_id'] != null
               ? int.tryParse(emp['session_id'].toString())
               : null;
+
+          // Sync is_checked_in for current user from employees list
+          final dynamic checkedInRaw = emp['is_checked_in'];
+          if (checkedInRaw != null) {
+            final bool isCheckedIn = checkedInRaw == true ||
+                checkedInRaw == 1 ||
+                checkedInRaw == '1' ||
+                checkedInRaw == 'true';
+            if (Get.isRegistered<AuthRepository>()) {
+              Get.find<AuthRepository>().rxIsCheckedIn.value = isCheckedIn;
+            }
+          }
         } else {
           // Check root or data level for current user's duty status
           final dynamic rootDutyRaw = statusResp['is_on_duty'] ??

@@ -48,6 +48,7 @@ abstract class AppRoutes {
   static const createDeposit = '/create-deposit';
   static const camera = '/camera';
   static const unitSelection = '/unit-selection';
+  static const employeeSelection = '/employee-selection';
   
   // Booking Module
   static const bookingConfirmed = '/booking-confirmed';

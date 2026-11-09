@@ -66,25 +66,11 @@ class SelfieAttendanceDetailTable extends StatelessWidget {
   ) {
     return [
       AppTableColumn<SelfieAttendanceLogItem>(
-        key: 'sl_no',
-        title: 'Sl No.',
-        width: 55.w,
-        alignment: Alignment.center,
-        sortable: false,
-        cellBuilder: (context, item, index, isExpanded) {
-          return Text(
-            '${index + 1}',
-            style: AppTextStyle.style_11_400(color: AppColors.black87),
-            textAlign: TextAlign.center,
-          );
-        },
-      ),
-      AppTableColumn<SelfieAttendanceLogItem>(
         key: 'unit',
         title: 'Unit',
-        width: 90.w,
-        alignment: Alignment.center,
-        sortable: false,
+        width: 55.w,
+        alignment: Alignment.centerLeft,
+        sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
           return Text(
             item.unitName,
@@ -278,8 +264,11 @@ class SelfieAttendanceDetailTable extends StatelessWidget {
               child: AppImageView(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                errorWidget:
-                    Icon(Icons.person, size: 12.r, color: AppColors.grey400),
+                errorWidget: Icon(
+                  Icons.person,
+                  size: 12.r,
+                  color: AppColors.grey400,
+                ),
               ),
             ),
             SizedBox(width: 4.w),
@@ -299,7 +288,8 @@ class SelfieAttendanceDetailTable extends StatelessWidget {
     required String? latitude,
     required String? longitude,
   }) {
-    final hasCoords = (mapUrl != null && mapUrl.isNotEmpty) ||
+    final hasCoords =
+        (mapUrl != null && mapUrl.isNotEmpty) ||
         (latitude != null &&
             latitude.isNotEmpty &&
             longitude != null &&
@@ -330,11 +320,7 @@ class SelfieAttendanceDetailTable extends StatelessWidget {
               style: AppTextStyle.style_11_600(color: AppColors.primary),
             ),
             SizedBox(width: 2.w),
-            Icon(
-              Icons.location_on,
-              size: 12.sp,
-              color: AppColors.primary,
-            ),
+            Icon(Icons.location_on, size: 12.sp, color: AppColors.primary),
           ],
         ),
       ),
@@ -357,7 +343,11 @@ class SelfieAttendanceDetailTable extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.summarize_outlined, size: 13.sp, color: AppColors.primary),
+              Icon(
+                Icons.summarize_outlined,
+                size: 13.sp,
+                color: AppColors.primary,
+              ),
               SizedBox(width: 6.w),
               Text(
                 'Daily Totals',
@@ -428,6 +418,8 @@ class SelfieAttendanceDetailTable extends StatelessWidget {
       longitude: longitude,
     );
   }
+
   // endregion
 }
+
 // endregion

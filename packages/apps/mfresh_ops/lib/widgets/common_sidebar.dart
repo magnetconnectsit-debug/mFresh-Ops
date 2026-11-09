@@ -8,6 +8,7 @@ import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/modules/home/views/unit_selection_screen.dart';
+import 'package:mfresh_ops/modules/home/views/employee_selection_screen.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:services/storage_service.dart';
@@ -31,8 +32,18 @@ class CommonSidebar extends StatelessWidget {
     if (effectiveContext == null) return;
 
     final authRepo = Get.find<AuthRepository>();
-    final isCheckedIn = authRepo.rxIsCheckedIn.value;
 
+    // 1. First, select the employee (supports taking attendance for oneself or others)
+    final selectedEmp = await EmployeeSelectionScreen.show(effectiveContext);
+    if (selectedEmp == null) {
+      // User dismissed employee selection
+      return;
+    }
+
+    final isCheckedIn = selectedEmp.isCheckedIn;
+    final targetUserId = selectedEmp.id.toString();
+
+    // 2. If checking in, select unit
     String? selectedUnitId;
     if (!isCheckedIn) {
       final selectedUnit = await UnitSelectionScreen.show(effectiveContext);
@@ -43,6 +54,7 @@ class CommonSidebar extends StatelessWidget {
       selectedUnitId = selectedUnit.id;
     }
 
+    // 3. Capture camera photo
     final capturedPath = await Get.toNamed(AppRoutes.camera);
     if (capturedPath != null &&
         capturedPath is String &&
@@ -54,11 +66,15 @@ class CommonSidebar extends StatelessWidget {
           capturedPath;
 
       if (isCheckedIn) {
-        await authRepo.attendanceCheckOut(imagePath: compressedPath);
+        await authRepo.attendanceCheckOut(
+          imagePath: compressedPath,
+          userId: targetUserId,
+        );
       } else {
         await authRepo.attendanceCheckIn(
           imagePath: compressedPath,
           unitId: selectedUnitId,
+          userId: targetUserId,
         );
       }
     }
@@ -1029,7 +1045,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
                                             SizedBox(width: 6.w),
                                             Flexible(
                                               child: Text(
-                                                isCheckedIn ? 'CHECK-OUT' : 'CHECK-IN',
+                                                'Selfie',
                                                 style: AppTextStyle.style_11_700(
                                                   color: actionColor,
                                                 ),

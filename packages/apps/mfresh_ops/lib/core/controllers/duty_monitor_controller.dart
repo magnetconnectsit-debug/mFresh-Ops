@@ -1,13 +1,18 @@
+// region Imports
 import 'dart:async';
 
 import 'package:core/constants/app_colors.dart';
+import 'package:dev/routes/dev_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/storage_service.dart';
+// endregion
 
+// region DutyMonitorController Class
 class DutyMonitorController extends GetxController with WidgetsBindingObserver {
+  // region Observables & State Variables
   Timer? _timer;
   Timer? _gracePeriodTimer;
   bool _isDialogShowing = false;
@@ -18,7 +23,9 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
   /// 2. 30 seconds after "Turn On Duty" is tapped (wait for API call to complete)
   /// 3. 30 seconds after the app resumes from background
   bool _isInGracePeriod = true;
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -56,7 +63,9 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
       _timer?.cancel();
     }
   }
+  // endregion
 
+  // region Business Logic & Helpers
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
@@ -66,15 +75,31 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
     });
   }
 
-  bool _isBookingRoute() {
+  bool _isBookingModeOrRoute() {
+    // 1. Primary check: persisted login mode
+    try {
+      if (Get.isRegistered<StorageService>()) {
+        final loginMode = Get.find<StorageService>().getLoginMode();
+        if (loginMode == 'booking') {
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Secondary check: route inspection
     final currentRoute = Get.currentRoute;
     if (currentRoute == AppRoutes.bookingUnitSelection ||
         currentRoute == AppRoutes.serviceDetails ||
         currentRoute == AppRoutes.bookingHistory ||
         currentRoute == AppRoutes.bookingConfirmed ||
         currentRoute == AppRoutes.printReceipt ||
+        currentRoute == AppRoutes.profile ||
+        currentRoute == DevRoutes.logViewer ||
+        currentRoute == DevRoutes.devSettings ||
+        currentRoute == DevRoutes.devPasscode ||
         currentRoute.contains('booking') ||
-        currentRoute.contains('service-details')) {
+        currentRoute.contains('service-details') ||
+        currentRoute.contains('log-viewer')) {
       return true;
     }
     return false;
@@ -84,8 +109,8 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
     if (_isDialogShowing) return;
     if (_isInGracePeriod) return;
 
-    // Do not show off-duty dialog in booking mode or when on booking screens
-    if (_isBookingRoute()) return;
+    // Do not show off-duty dialog in booking mode, on booking screens, or on profile/api log screens
+    if (_isBookingModeOrRoute()) return;
 
     final user = Get.find<StorageService>().getUser();
     if (user == null) return; // Not logged in
@@ -96,6 +121,7 @@ class DutyMonitorController extends GetxController with WidgetsBindingObserver {
       _showDutyDialog();
     }
   }
+  // endregion
 
   void _showDutyDialog() {
     _isDialogShowing = true;

@@ -4,7 +4,6 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:flutter/foundation.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:core/constants/app_colors.dart';
@@ -12,6 +11,7 @@ import 'package:dev/views/widgets/floating_logger_button.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -792,7 +792,7 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-  } 
+  }
 
   @override
   void dispose() {
@@ -848,7 +848,8 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
             routingCallback: (routing) {
               if (kIsWeb) return;
               final routeName = routing?.current ?? '';
-              final isBookingMode = routeName == AppRoutes.bookingUnitSelection ||
+              final isBookingMode =
+                  routeName == AppRoutes.bookingUnitSelection ||
                   routeName == AppRoutes.serviceDetails ||
                   routeName == AppRoutes.bookingHistory ||
                   routeName == AppRoutes.bookingConfirmed ||

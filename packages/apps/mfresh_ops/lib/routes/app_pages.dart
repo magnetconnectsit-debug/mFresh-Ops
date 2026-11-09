@@ -38,6 +38,7 @@ import 'package:mfresh_ops/modules/authentication/views/login_screen.dart';
 import 'package:mfresh_ops/modules/authentication/controllers/login_controller.dart';
 import 'package:mfresh_ops/modules/home/views/home_screen.dart';
 import 'package:mfresh_ops/modules/home/views/unit_selection_screen.dart';
+import 'package:mfresh_ops/modules/home/views/employee_selection_screen.dart';
 import 'package:mfresh_ops/modules/collections/views/admin_collections_screen.dart';
 import 'package:mfresh_ops/modules/collections/views/collections_screen.dart';
 import 'package:mfresh_ops/modules/deposits/views/deposits_screen.dart';
@@ -497,6 +498,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.unitSelection,
       page: () => const UnitSelectionScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.employeeSelection,
+      page: () => const EmployeeSelectionScreen(),
     ),
   ];
 }

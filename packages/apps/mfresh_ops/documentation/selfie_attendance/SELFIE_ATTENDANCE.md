@@ -58,7 +58,17 @@ The Selfie Attendance submodule is part of the Attendance & Tracking suite in `m
         "actual_duration_seconds": 0,
         "total_sessions": 1,
         "completed_sessions": 0,
-        "open_sessions": 1
+        "open_sessions": 1,
+        "role_name": "Admin Cashier",
+        "role_code": "CS",
+        "user_name_with_role": "Sradhanjali Patra (CS)",
+        "shift_hours": "9 hrs",
+        "shift_hours_numeric": 9,
+        "shift_duration": "09:00:00",
+        "shift_duration_seconds": 32400,
+        "workforce_duration_raw": "9 hrs",
+        "is_short_shift": true,
+        "row_border_color": "#ff0000"
       }
     ],
     "first_page_url": "...",
@@ -251,3 +261,7 @@ lib/
 | 2026-10-24 | Antigravity AI | Fixed top-right green focus corner bracket drawing bug in `_SelfieViewfinderPainter` (`_drawBoxCorners`) by correcting vertical right-edge endpoint from horizontal offset to `(rect.right, rect.top + cornerLen)`; removed default `1.0X` zoom slider in selfie mode via `middleContentBuilder: (state) => const SizedBox.shrink()`. |
 | 2026-10-25 | Antigravity AI | Removed two-shade scrim darkening (`scrimPaint` mask with cutouts) from `AppSelfieCameraOverlay` to keep lighting natural and uniform across both inside and outside the camera viewfinder area while preserving dashed borders, focus corners, and guide badges. |
 | 2026-10-26 | Antigravity AI | Removed `AppSelfieCameraOverlay` from `_buildPreviewView` in `AppCameraScreen` so captured photo preview is displayed clean without outline borders, focus brackets, or guide badges. |
+| 2026-11-09 | Antigravity AI | Removed the bottom 'Face & shoulders' pill and green shoulder corner brackets from `AppSelfieCameraOverlay` to declutter the lower silhouette. Lowered overall overlay placement (`signboardRect.top` to 17% height and added vertical spacing) so the signboard box, silhouette, and guidance pill sit comfortably lower in the camera preview. |
+| 2026-11-09 | Antigravity AI | Removed white dashed connecting lines from signboard focus box and updated top focus corner brackets from neon green to clean white (`AppColors.white`). |
+| 2026-11-09 | Antigravity AI | Trimmed lower arm extension from silhouette path to cut inside the red marked lower shoulder boundary, and slightly increased the overall human figure proportions (~10-12% broader head, neck, and shoulders). |
+| 2026-11-09 | Antigravity AI | Widened the shoulder profile (`shoulderHalfWidth: 44%`, `armHalfWidth: 47.5%`), raised the shoulder crest level higher (`shoulderY: headTopY + 224.h`), and contoured the trapezius slope to a more horizontal, broader posture matching user annotations. |

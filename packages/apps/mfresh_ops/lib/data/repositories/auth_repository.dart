@@ -261,6 +261,9 @@ class AuthRepository extends GetxService {
           }
           rxIsCheckedIn.value = userToSave.isCheckedIn ?? false;
 
+          // If is_checked_in wasn't present in profile, check employees endpoint
+          _syncCheckedInFromEmployees();
+
           final bool isOnDuty = userToSave.isOnDuty == 1;
           try {
             if (Get.isRegistered<TrackingService>()) {
@@ -281,6 +284,36 @@ class AuthRepository extends GetxService {
   /// Explicit refresh method for pull-to-refresh to reload permissions and user state
   Future<void> refreshPermissions() async {
     await fetchProfile();
+    await _syncCheckedInFromEmployees();
+  }
+
+  Future<void> _syncCheckedInFromEmployees() async {
+    try {
+      final user = _storageService.getUser();
+      if (user == null || user.id == 0) return;
+      final response = await _apiService.post(AppConstants.staffEmployees);
+      if (response != null && response is Map && response['status'] == true) {
+        final List emps = response['employees'] ?? [];
+        final emp = emps.firstWhereOrNull((e) {
+          if (e is! Map) return false;
+          final empId = (e['id'] ?? e['user_id'])?.toString();
+          return empId != null && empId == user.id.toString();
+        });
+        if (emp != null && emp['is_checked_in'] != null) {
+          final raw = emp['is_checked_in'];
+          final bool isCheckedIn = raw == true ||
+              raw == 1 ||
+              raw == '1' ||
+              raw == 'true';
+          rxIsCheckedIn.value = isCheckedIn;
+          if (user.isCheckedIn != isCheckedIn) {
+            await _storageService.saveUser(user.copyWith(isCheckedIn: isCheckedIn));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error syncing checked-in status from employees: $e');
+    }
   }
 
   Future<bool> logout() async {
@@ -637,6 +670,7 @@ class AuthRepository extends GetxService {
   Future<bool> attendanceCheckIn({
     required String imagePath,
     String? unitId,
+    String? userId,
     double? latitude,
     double? longitude,
   }) async {
@@ -677,6 +711,7 @@ class AuthRepository extends GetxService {
           filename: fileName,
         ),
         if (unitId != null && unitId.isNotEmpty) 'unit_id': unitId,
+        if (userId != null && userId.isNotEmpty) 'user_id': userId,
         if (lat != null) 'latitude': lat,
         if (lng != null) 'longitude': lng,
         if (lat != null) 'lat': lat,
@@ -693,12 +728,17 @@ class AuthRepository extends GetxService {
           (response['status'] == true ||
               response['status'] == 'success' ||
               response['success'] == true)) {
-        rxIsCheckedIn.value = true;
-
         final currentUser = _storageService.getUser() as User?;
-        if (currentUser != null) {
-          final updatedUser = currentUser.copyWith(isCheckedIn: true);
-          await _storageService.saveUser(updatedUser);
+        final isForCurrentUser = userId == null ||
+            userId.isEmpty ||
+            (currentUser != null && currentUser.id.toString() == userId);
+
+        if (isForCurrentUser) {
+          rxIsCheckedIn.value = true;
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(isCheckedIn: true);
+            await _storageService.saveUser(updatedUser);
+          }
         }
 
         final msg =
@@ -733,6 +773,7 @@ class AuthRepository extends GetxService {
 
   Future<bool> attendanceCheckOut({
     required String imagePath,
+    String? userId,
     double? latitude,
     double? longitude,
   }) async {
@@ -772,6 +813,7 @@ class AuthRepository extends GetxService {
           file.path,
           filename: fileName,
         ),
+        if (userId != null && userId.isNotEmpty) 'user_id': userId,
         if (lat != null) 'latitude': lat,
         if (lng != null) 'longitude': lng,
         if (lat != null) 'lat': lat,
@@ -788,12 +830,17 @@ class AuthRepository extends GetxService {
           (response['status'] == true ||
               response['status'] == 'success' ||
               response['success'] == true)) {
-        rxIsCheckedIn.value = false;
-
         final currentUser = _storageService.getUser() as User?;
-        if (currentUser != null) {
-          final updatedUser = currentUser.copyWith(isCheckedIn: false);
-          await _storageService.saveUser(updatedUser);
+        final isForCurrentUser = userId == null ||
+            userId.isEmpty ||
+            (currentUser != null && currentUser.id.toString() == userId);
+
+        if (isForCurrentUser) {
+          rxIsCheckedIn.value = false;
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(isCheckedIn: false);
+            await _storageService.saveUser(updatedUser);
+          }
         }
 
         final msg =
