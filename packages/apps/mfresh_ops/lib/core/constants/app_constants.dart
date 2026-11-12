@@ -279,6 +279,16 @@ class AppConstants {
   static const String responsibilitiesUpdate = 'responsibilities-update';
   static const String responsibilitiesDelete = 'responsibilities-delete';
   static const String responsibilitiesView = 'responsibilities-view';
+
+  // Master Module (Zones & States)
+  static const String zoneIndex = 'zone-index';
+  static const String zoneCreate = 'zone-create';
+  static const String zoneUpdate = 'zone-update';
+  static const String zoneDelete = 'zone-delete';
+  static const String stateIndex = 'state-index';
+  static const String stateCreate = 'state-create';
+  static const String stateUpdate = 'state-update';
+  static const String stateDelete = 'state-delete';
   // endregion
 
   // region Hive Keys

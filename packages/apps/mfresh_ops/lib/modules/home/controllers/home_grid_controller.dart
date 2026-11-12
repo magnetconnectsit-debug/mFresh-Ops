@@ -353,6 +353,51 @@ class HomeGridController extends GetxController {
         ),
       ],
     ),
+    GridItemData(
+      title: 'Zones',
+      headerTitle: 'Master',
+      subtitle: 'Zones, States & Services',
+      icon: Icons.map_outlined,
+      gradient: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+      route: AppRoutes.masterZone,
+      subActions: [
+        GridSubAction(
+          title: 'State',
+          icon: Icons.location_city_outlined,
+          route: AppRoutes.masterState,
+        ),
+        GridSubAction(
+          title: 'District',
+          icon: Icons.pin_drop_outlined,
+          route: AppRoutes.masterDistrict,
+        ),
+        GridSubAction(
+          title: 'Services',
+          icon: Icons.miscellaneous_services_outlined,
+          route: AppRoutes.masterServices,
+        ),
+        GridSubAction(
+          title: 'Amenities',
+          icon: Icons.pool_outlined,
+          route: AppRoutes.masterAmenities,
+        ),
+        GridSubAction(
+          title: 'Units',
+          icon: Icons.apartment_outlined,
+          route: AppRoutes.masterUnits,
+        ),
+        GridSubAction(
+          title: 'Assign Services',
+          icon: Icons.assignment_outlined,
+          route: AppRoutes.masterAssignServices,
+        ),
+        GridSubAction(
+          title: 'All Assign Services',
+          icon: Icons.assignment_turned_in_outlined,
+          route: AppRoutes.masterAllAssignServices,
+        ),
+      ],
+    ),
   ];
 
   @override

@@ -35,6 +35,7 @@ import 'package:mfresh_ops/data/repositories/booking_repository.dart';
 import 'package:mfresh_ops/data/repositories/collection_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/contact_repository.dart';
+import 'package:mfresh_ops/data/repositories/master_repository.dart';
 import 'package:mfresh_ops/data/repositories/deposit_repository.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
@@ -773,6 +774,7 @@ Future<void> initServices() async {
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
   Get.put(ContactRepository());
+  Get.put(MasterRepository());
   if (!kIsWeb) {
     Get.put(DutyMonitorController(), permanent: true);
   }

@@ -83,4 +83,14 @@ abstract class AppRoutes {
   static const responsibilitiesMaster = '/responsibilities-master';
   static const addResponsibility = '/add-responsibility';
   static const viewResponsibilities = '/view-responsibilities';
+
+  // Master Module
+  static const masterZone = '/master-zone';
+  static const masterState = '/master-state';
+  static const masterDistrict = '/master-district';
+  static const masterServices = '/master-services';
+  static const masterAmenities = '/master-amenities';
+  static const masterUnits = '/master-units';
+  static const masterAssignServices = '/master-assign-services';
+  static const masterAllAssignServices = '/master-all-assign-services';
 }

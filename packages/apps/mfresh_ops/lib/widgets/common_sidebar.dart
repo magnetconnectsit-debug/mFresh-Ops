@@ -296,6 +296,23 @@ class CommonSidebar extends StatelessWidget {
                               currentRoute: currentRoute,
                             ),
 
+                          // Master Module
+                          _buildExpandableMenuItem(
+                            icon: Icons.business_center_outlined,
+                            title: 'Master',
+                            subItems: const [
+                              'Zone',
+                              'State',
+                              'District',
+                              'Services',
+                              'Amenities',
+                              'Units',
+                              'Assign Services',
+                              'All Assign Services',
+                            ],
+                            currentRoute: currentRoute,
+                          ),
+
                           _buildMenuItem(
                             icon: Icons.person_outline,
                             activeIcon: Icons.person,
@@ -507,6 +524,22 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.responsibilitiesMaster);
                   } else if (item == 'View Responsibilities') {
                     Get.toNamed(AppRoutes.viewResponsibilities);
+                  } else if (item == 'Zone') {
+                    Get.toNamed(AppRoutes.masterZone);
+                  } else if (item == 'State') {
+                    Get.toNamed(AppRoutes.masterState);
+                  } else if (item == 'District') {
+                    Get.toNamed(AppRoutes.masterDistrict);
+                  } else if (item == 'Services' || item == 'Sevices') {
+                    Get.toNamed(AppRoutes.masterServices);
+                  } else if (item == 'Amenities') {
+                    Get.toNamed(AppRoutes.masterAmenities);
+                  } else if (item == 'Units') {
+                    Get.toNamed(AppRoutes.masterUnits);
+                  } else if (item == 'Assign Services') {
+                    Get.toNamed(AppRoutes.masterAssignServices);
+                  } else if (item == 'All Assign Services') {
+                    Get.toNamed(AppRoutes.masterAllAssignServices);
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',
