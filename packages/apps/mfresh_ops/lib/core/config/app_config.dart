@@ -16,10 +16,15 @@ class AppConfig {
 
   // endregion
 
-  // region Biometric Authentication Toggle
+  // region Feature Toggles & Testing Flags
   /// Global feature switch for Biometric Authentication (Fingerprint / Face ID).
   /// Set to false to completely turn off biometric authentication across the app.
   static bool enableBiometricAuth = false;
+
+  /// Global feature switch to test the Global No-Internet and Server Maintenance UI overlays.
+  /// When set to true, simulates a connection loss or server maintenance screen for testing.
+  static bool simulateNoInternet = false;
+  static bool simulateServerMaintenance = false;
 
   // endregion
 

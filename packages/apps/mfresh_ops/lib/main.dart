@@ -26,6 +26,8 @@ import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/core/controllers/duty_monitor_controller.dart';
+import 'package:mfresh_ops/core/widgets/global_connectivity_banner.dart';
+import 'package:mfresh_ops/core/widgets/global_server_error_overlay.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
@@ -71,7 +73,7 @@ class MyTaskHandler extends TaskHandler {
   final Battery _battery = Battery();
   final Connectivity _connectivity = Connectivity();
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin();
   final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 15),
@@ -134,16 +136,16 @@ class MyTaskHandler extends TaskHandler {
 
       // Initialize local notifications inside background isolate
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
       const InitializationSettings initializationSettings =
-          InitializationSettings(
-            android: initializationSettingsAndroid,
-            iOS: DarwinInitializationSettings(
-              requestSoundPermission: false,
-              requestBadgePermission: false,
-              requestAlertPermission: false,
-            ),
-          );
+      InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: DarwinInitializationSettings(
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestAlertPermission: false,
+        ),
+      );
       await _localNotificationsPlugin.initialize(
         settings: initializationSettings,
       );
@@ -151,19 +153,18 @@ class MyTaskHandler extends TaskHandler {
 
     _notificationUpdateTimer = Timer.periodic(
       const Duration(minutes: 5),
-      (_) => _updateNotificationSafely(),
+          (_) => _updateNotificationSafely(),
     );
 
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
-      results,
-    ) {
-      final isOnline = results.any(
-        (result) => result != ConnectivityResult.none,
-      );
-      if (isOnline) {
-        unawaited(_syncOfflineCache());
-      }
-    });
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((results,) {
+          final isOnline = results.any(
+                (result) => result != ConnectivityResult.none,
+          );
+          if (isOnline) {
+            unawaited(_syncOfflineCache());
+          }
+        });
 
     _startLocationStream();
   }
@@ -178,7 +179,7 @@ class MyTaskHandler extends TaskHandler {
             forceLocationManager: _useLocationManagerFallback,
           ),
         ).listen(
-          (Position position) async {
+              (Position position) async {
             _latestPosition = position;
             _latestPositionAt = position.timestamp;
 
@@ -380,14 +381,17 @@ class MyTaskHandler extends TaskHandler {
       final uri = '${AppConfig.baseUrl}${AppConstants.trackingBulkSync}';
 
       // Sort entries by time so oldest locations sync first
-      final entries = box.toMap().entries.toList()
+      final entries = box
+          .toMap()
+          .entries
+          .toList()
         ..sort((a, b) => a.value.locationTime.compareTo(b.value.locationTime));
 
       // Process in batches of bulkSyncBatchSize (matches foreground behaviour)
       for (
-        var i = 0;
-        i < entries.length;
-        i += TrackingConstants.bulkSyncBatchSize
+      var i = 0;
+      i < entries.length;
+      i += TrackingConstants.bulkSyncBatchSize
       ) {
         final end = (i + TrackingConstants.bulkSyncBatchSize > entries.length)
             ? entries.length
@@ -396,18 +400,19 @@ class MyTaskHandler extends TaskHandler {
 
         final locationsPayload = batchEntries
             .map(
-              (e) => {
-                'latitude': e.value.latitude,
-                'longitude': e.value.longitude,
-                'accuracy': e.value.accuracy,
-                'speed': e.value.speed,
-                'heading': e.value.heading,
-                'battery': e.value.battery,
-                'is_charging': e.value.isCharging,
-                'network_type': e.value.networkType,
-                'location_time': e.value.locationTime,
-              },
-            )
+              (e) =>
+          {
+            'latitude': e.value.latitude,
+            'longitude': e.value.longitude,
+            'accuracy': e.value.accuracy,
+            'speed': e.value.speed,
+            'heading': e.value.heading,
+            'battery': e.value.battery,
+            'is_charging': e.value.isCharging,
+            'network_type': e.value.networkType,
+            'location_time': e.value.locationTime,
+          },
+        )
             .toList();
 
         try {
@@ -454,7 +459,7 @@ class MyTaskHandler extends TaskHandler {
       final connectivityResults = await _connectivity.checkConnectivity();
       final isOffline =
           connectivityResults.isEmpty ||
-          connectivityResults.contains(ConnectivityResult.none);
+              connectivityResults.contains(ConnectivityResult.none);
       final locationDataToCache = await _createLocationData(pos);
 
       if (isOffline) {
@@ -474,7 +479,8 @@ class MyTaskHandler extends TaskHandler {
       );
 
       debugPrint(
-        'Upload details - session_id: $sessionId, hasToken: ${token != null}, deviceId: $deviceId',
+        'Upload details - session_id: $sessionId, hasToken: ${token !=
+            null}, deviceId: $deviceId',
       );
 
       if (sessionId == null ||
@@ -626,9 +632,9 @@ class MyTaskHandler extends TaskHandler {
 
     final isFresh =
         latestPosition != null &&
-        latestAt != null &&
-        DateTime.now().difference(latestAt) <=
-            TrackingConstants.stalePositionThreshold;
+            latestAt != null &&
+            DateTime.now().difference(latestAt) <=
+                TrackingConstants.stalePositionThreshold;
 
     if (isFresh &&
         latestPosition.accuracy <=
@@ -670,7 +676,7 @@ class MyTaskHandler extends TaskHandler {
           ).difference(DateTime.parse(last.locationTime));
 
           double accuracyDiff =
-              ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
+          ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
           if (dist < 5.0 &&
               timeDiff < TrackingConstants.stationaryHeartbeatMaxInterval &&
               accuracyDiff < 15.0) {
@@ -688,7 +694,7 @@ class MyTaskHandler extends TaskHandler {
     } catch (_) {}
   }
 
-  // endregion
+// endregion
 }
 // endregion
 
@@ -729,6 +735,8 @@ void main() async {
 
 // region Services Dependency Injection
 Future<void> initServices() async {
+  Get.put(ConnectivityService());
+  Get.put(ServerErrorService());
   Get.put(LoggerService());
   if (!kIsWeb) {
     Get.put(PushNotificationService());
@@ -782,7 +790,7 @@ class OpsApp extends StatefulWidget {
 class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
   // region Dependencies
   final BiometricAuthService _biometricService =
-      Get.find<BiometricAuthService>();
+  Get.find<BiometricAuthService>();
   final StorageService _storageService = Get.find<StorageService>();
 
   // endregion
@@ -822,11 +830,11 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
             ? view.devicePixelRatio
             : 1.0;
         final double width =
-            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+        constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : view.physicalSize.width / pixelRatio;
         final double height =
-            constraints.maxHeight.isFinite && constraints.maxHeight > 0
+        constraints.maxHeight.isFinite && constraints.maxHeight > 0
             ? constraints.maxHeight
             : view.physicalSize.height / pixelRatio;
         final shortestSide = width < height ? width : height;
@@ -841,63 +849,68 @@ class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
           designSize: designSize,
           minTextAdapt: true,
           splitScreenMode: true,
-          builder: (context, child) => GetMaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'mFresh Ops',
-            theme: ThemeData(primaryColor: AppColors.primary),
-            routingCallback: (routing) {
-              if (kIsWeb) return;
-              final routeName = routing?.current ?? '';
-              final isBookingMode =
-                  routeName == AppRoutes.bookingUnitSelection ||
-                  routeName == AppRoutes.serviceDetails ||
-                  routeName == AppRoutes.bookingHistory ||
-                  routeName == AppRoutes.bookingConfirmed ||
-                  routeName == AppRoutes.printReceipt ||
-                  routeName.contains('booking') ||
-                  routeName.contains('service-details');
+          builder: (context, child) =>
+              GetMaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'mFresh Ops',
+                theme: ThemeData(primaryColor: AppColors.primary),
+                routingCallback: (routing) {
+                  if (kIsWeb) return;
+                  final routeName = routing?.current ?? '';
+                  final isBookingMode =
+                      routeName == AppRoutes.bookingUnitSelection ||
+                          routeName == AppRoutes.serviceDetails ||
+                          routeName == AppRoutes.bookingHistory ||
+                          routeName == AppRoutes.bookingConfirmed ||
+                          routeName == AppRoutes.printReceipt ||
+                          routeName.contains('booking') ||
+                          routeName.contains('service-details');
 
-              if (isBookingMode) {
-                // Allow all orientations in booking mode
-                SystemChrome.setPreferredOrientations([
-                  DeviceOrientation.portraitUp,
-                  DeviceOrientation.portraitDown,
-                  DeviceOrientation.landscapeLeft,
-                  DeviceOrientation.landscapeRight,
-                ]);
-              } else {
-                // Lock to portrait in operations mode
-                SystemChrome.setPreferredOrientations([
-                  DeviceOrientation.portraitUp,
-                  DeviceOrientation.portraitDown,
-                ]);
-              }
-            },
-            builder: (context, child) {
-              return Stack(
-                children: [
-                  child!,
-                  const FloatingLoggerButton(),
-                  // Biometric App Lock Security Overlay
-                  Obx(() {
-                    final isLocked = _biometricService.isAppLocked.value;
-                    if (AppConfig.enableBiometricAuth && isLocked) {
-                      return const AppBiometricLockOverlay();
-                    }
-                    return const SizedBox.shrink();
-                  }),
-                ],
-              );
-            },
-            initialRoute: AppRoutes.splash,
-            getPages: AppPages.pages,
-          ),
+                  if (isBookingMode) {
+                    // Allow all orientations in booking mode
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                      DeviceOrientation.portraitDown,
+                      DeviceOrientation.landscapeLeft,
+                      DeviceOrientation.landscapeRight,
+                    ]);
+                  } else {
+                    // Lock to portrait in operations mode
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                      DeviceOrientation.portraitDown,
+                    ]);
+                  }
+                },
+                builder: (context, child) {
+                  return Stack(
+                    children: [
+                      child!,
+                      const FloatingLoggerButton(),
+                      // Global No-Internet Status Banner
+                      const GlobalConnectivityBanner(),
+                      // Global Server Error Maintenance Overlay
+                      const GlobalServerErrorOverlay(),
+                      // Biometric App Lock Security Overlay
+                      Obx(() {
+                        final isLocked = _biometricService.isAppLocked.value;
+                        if (AppConfig.enableBiometricAuth && isLocked) {
+                          return const AppBiometricLockOverlay();
+                        }
+                        return const SizedBox.shrink();
+                      }),
+                    ],
+                  );
+                },
+                initialRoute: AppRoutes.splash,
+                getPages: AppPages.pages,
+              ),
         );
       },
     );
   }
 
-  // endregion
+// endregion
 }
 
 // endregion

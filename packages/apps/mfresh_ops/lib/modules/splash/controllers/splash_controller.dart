@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -84,8 +85,18 @@ class SplashController extends GetxController {
         return;
       }
 
-      // Proactively fetch latest profile and permissions on startup
-      final user = await Get.find<AuthRepository>().fetchProfile();
+      // Proactively fetch latest profile and permissions on startup with a reasonable timeout
+      // so a slow connection does not freeze the user on the splash screen
+      User? user;
+      try {
+        user = await Get.find<AuthRepository>()
+            .fetchProfile()
+            .timeout(const Duration(seconds: 4));
+      } catch (e) {
+        debugPrint("Splash fetchProfile timed out or failed: $e, falling back to cached user");
+        user = cachedUser;
+      }
+
       if (user == null) {
         final bool isOnDuty = cachedUser?.isOnDuty == 1;
         await _trackingService.syncDutyStatus(isOnDuty);

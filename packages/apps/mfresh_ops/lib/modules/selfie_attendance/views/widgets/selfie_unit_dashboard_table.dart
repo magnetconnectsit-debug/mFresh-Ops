@@ -94,14 +94,14 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
               width: 20.r,
               height: 20.r,
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: AppColors.yellow50,
                 borderRadius: BorderRadius.circular(6.r),
               ),
               child: Center(
                 child: Icon(
                   Icons.apartment_rounded,
                   size: 13.sp,
-                  color: const Color(0xFFD97706),
+                  color: AppColors.yellow700,
                 ),
               ),
             ),
@@ -116,21 +116,21 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: AppColors.blue50,
                 borderRadius: BorderRadius.circular(6.r),
                 border: Border.all(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                  color: AppColors.blue500.withValues(alpha: 0.3),
                   width: 1.r,
                 ),
               ),
               child: RichText(
                 text: TextSpan(
                   text: 'Total ',
-                  style: AppTextStyle.style_11_500(color: const Color(0xFF1E40AF)),
+                  style: AppTextStyle.style_11_500(color: AppColors.blue800),
                   children: [
                     TextSpan(
                       text: '$totalCount',
-                      style: AppTextStyle.style_12_700(color: const Color(0xFF1E40AF)),
+                      style: AppTextStyle.style_12_700(color: AppColors.blue800),
                     ),
                   ],
                 ),
@@ -210,12 +210,12 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: AppColors.blue50,
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                       child: Text(
                         rows[i].unitName.toUpperCase(),
-                        style: AppTextStyle.style_11_700(color: const Color(0xFF1E40AF)),
+                        style: AppTextStyle.style_11_700(color: AppColors.blue800),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -225,11 +225,11 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
                   _buildCell(
                     width: fixedUnitColWidth,
                     height: rowHeight,
-                    color: const Color(0xFFF8FAFC),
+                    color: AppColors.boxColor2,
                     borderTop: BorderSide(color: AppColors.borderColor, width: 1.2.r),
                     child: Text(
                       'Total',
-                      style: AppTextStyle.style_11_700(color: const Color(0xFF1E40AF)),
+                      style: AppTextStyle.style_11_700(color: AppColors.blue800),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -282,7 +282,7 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
                             _buildCell(
                               width: colWidth,
                               height: rowHeight,
-                              color: const Color(0xFFF8FAFC),
+                              color: AppColors.boxColor2,
                               borderTop: BorderSide(color: AppColors.borderColor, width: 1.2.r),
                               child: Text(
                                 '${role['total']}',
@@ -333,11 +333,11 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
                   _buildCell(
                     width: fixedTotalColWidth,
                     height: rowHeight,
-                    color: const Color(0xFFF8FAFC),
+                    color: AppColors.boxColor2,
                     borderTop: BorderSide(color: AppColors.borderColor, width: 1.2.r),
                     child: Text(
                       '${totals.total}',
-                      style: AppTextStyle.style_11_700(color: const Color(0xFF1E40AF)),
+                      style: AppTextStyle.style_11_700(color: AppColors.blue800),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -376,7 +376,7 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
     return Text(
       '$count',
       style: isZero
-          ? AppTextStyle.style_11_400(color: const Color(0xFF94A3B8))
+          ? AppTextStyle.style_11_400(color: AppColors.grey200)
           : AppTextStyle.style_11_700(color: AppColors.black),
       textAlign: TextAlign.center,
     );
@@ -387,13 +387,13 @@ class _SelfieUnitDashboardTableState extends State<SelfieUnitDashboardTable> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
       decoration: BoxDecoration(
-        color: isZero ? const Color(0xFFF1F5F9) : const Color(0xFFDCFCE7),
+        color: isZero ? AppColors.boxColor2 : AppColors.primaryGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(4.r),
       ),
       child: Text(
         '$total',
         style: AppTextStyle.style_11_700(
-          color: isZero ? const Color(0xFF94A3B8) : const Color(0xFF15803D),
+          color: isZero ? AppColors.grey200 : AppColors.primaryGreen,
         ),
         textAlign: TextAlign.center,
       ),
