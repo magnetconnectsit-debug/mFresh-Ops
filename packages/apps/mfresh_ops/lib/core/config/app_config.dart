@@ -39,11 +39,11 @@ class AppConfig {
   // Base URL: Test URL in Debug Mode, Production URL in Release Mode
   static String get baseUrl => kDebugMode
       /// [Test URL]
-      ? 'https://opsapitest.magnetconnects.com/public/api/'
-      : 'https://opsapi.magnetconnects.com/public/api/';
-      /// [Prod URL]
-      // ? 'https://opsapi.magnetconnects.com/public/api/'
+      // ? 'https://opsapitest.magnetconnects.com/public/api/'
       // : 'https://opsapi.magnetconnects.com/public/api/';
+      /// [Prod URL]
+      ? 'https://opsapi.magnetconnects.com/public/api/'
+      : 'https://opsapi.magnetconnects.com/public/api/';
 
   // Environment identifier: PROD only in Release Mode AND when toggle is 'prod'
   static bool get _isProdEnv => kReleaseMode && !isDevToggle;

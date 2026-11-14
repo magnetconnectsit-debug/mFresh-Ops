@@ -360,41 +360,49 @@ class HomeGridController extends GetxController {
       icon: Icons.map_outlined,
       gradient: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
       route: AppRoutes.masterZone,
+      permissionKey: AppPermissions.masterPanel,
       subActions: [
         GridSubAction(
           title: 'State',
           icon: Icons.location_city_outlined,
           route: AppRoutes.masterState,
+          permissionKey: AppPermissions.masterPanel,
         ),
         GridSubAction(
           title: 'District',
           icon: Icons.pin_drop_outlined,
           route: AppRoutes.masterDistrict,
+          permissionKey: AppPermissions.masterPanel,
         ),
         GridSubAction(
           title: 'Services',
           icon: Icons.miscellaneous_services_outlined,
           route: AppRoutes.masterServices,
+          permissionKey: AppPermissions.masterPanel,
         ),
         GridSubAction(
           title: 'Amenities',
           icon: Icons.pool_outlined,
           route: AppRoutes.masterAmenities,
+          permissionKey: AppPermissions.masterPanel,
         ),
         GridSubAction(
           title: 'Units',
           icon: Icons.apartment_outlined,
           route: AppRoutes.masterUnits,
+          permissionKey: AppPermissions.masterPanel,
         ),
         GridSubAction(
           title: 'Assign Services',
           icon: Icons.assignment_outlined,
           route: AppRoutes.masterAssignServices,
+          permissionKey: AppPermissions.masterPanel,
         ),
         GridSubAction(
           title: 'All Assign Services',
           icon: Icons.assignment_turned_in_outlined,
           route: AppRoutes.masterAllAssignServices,
+          permissionKey: AppPermissions.masterPanel,
         ),
       ],
     ),
@@ -628,6 +636,17 @@ class HomeGridController extends GetxController {
               .toList();
           availableItems.add(item.copyWith(subActions: sub));
         }
+      } else if (item.title == 'Zones' || item.headerTitle == 'Master') {
+        if (hasPerm(AppPermissions.masterPanel)) {
+          final sub = item.subActions
+              .where(
+                (s) =>
+                    s.permissionKey == null ||
+                    hasPerm(s.permissionKey!),
+              )
+              .toList();
+          availableItems.add(item.copyWith(subActions: sub));
+        }
       } else {
         // Fallback for any unknown items
         if (item.permissionKey == null || hasPerm(item.permissionKey!)) {
@@ -774,15 +793,15 @@ class HomeGridController extends GetxController {
         .where(
           (s) =>
               s.permissionKey == null ||
-              userPermissions.contains(s.permissionKey) ||
+              AppPermissions.has(userPermissions, s.permissionKey!) ||
               (s.permissionKey == 'audit_item_rank' &&
-                  userPermissions.contains('audit_item_ranks')),
+                  AppPermissions.has(userPermissions, 'audit_item_ranks')),
         )
         .toList();
 
     return [
       if (mainAction.permissionKey == null ||
-          userPermissions.contains(mainAction.permissionKey))
+          AppPermissions.has(userPermissions, mainAction.permissionKey!))
         mainAction,
       ...subs,
     ];

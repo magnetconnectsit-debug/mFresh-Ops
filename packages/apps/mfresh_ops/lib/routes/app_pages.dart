@@ -28,6 +28,9 @@ import 'package:mfresh_ops/modules/roles_responsibilities/views/view_responsibil
 import 'package:mfresh_ops/data/repositories/master_repository.dart';
 import 'package:mfresh_ops/modules/master/views/zone_screen.dart';
 import 'package:mfresh_ops/modules/master/views/state_screen.dart';
+import 'package:mfresh_ops/modules/master/views/district_screen.dart';
+import 'package:mfresh_ops/modules/master/views/service_screen.dart';
+import 'package:mfresh_ops/modules/master/views/amenity_screen.dart';
 import 'package:mfresh_ops/modules/master/views/master_placeholder_screen.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
@@ -528,15 +531,30 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.masterDistrict,
-      page: () => const MasterPlaceholderScreen(title: 'District Master'),
+      page: () => const DistrictScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+      }),
     ),
     GetPage(
       name: AppRoutes.masterServices,
-      page: () => const MasterPlaceholderScreen(title: 'Services Master'),
+      page: () => const ServiceScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+      }),
     ),
     GetPage(
       name: AppRoutes.masterAmenities,
-      page: () => const MasterPlaceholderScreen(title: 'Amenities Master'),
+      page: () => const AmenityScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+      }),
     ),
     GetPage(
       name: AppRoutes.masterUnits,

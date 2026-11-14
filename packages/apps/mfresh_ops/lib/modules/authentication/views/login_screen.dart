@@ -12,8 +12,15 @@ enum LoginTabType { booking, operation }
 // endregion
 
 // region LoginScreen View
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // region Main Build
   @override
@@ -32,7 +39,7 @@ class LoginScreen extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: Form(
-            key: controller.formKey,
+            key: _formKey,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             child: isTablet
                 ? Center(

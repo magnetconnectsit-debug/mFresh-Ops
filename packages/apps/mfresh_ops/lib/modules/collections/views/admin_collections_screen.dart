@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/core.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:mfresh_ops/modules/collections/controllers/admin_collections_controller.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'widgets/admin_collections_filters.dart';
@@ -44,7 +43,10 @@ class AdminCollectionsScreen extends StatelessWidget {
               const AdminCollectionsFilters(),
               if (permissions.contains('export_collection'))
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [

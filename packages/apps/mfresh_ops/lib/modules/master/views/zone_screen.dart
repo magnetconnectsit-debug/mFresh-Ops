@@ -6,7 +6,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/models/master/zone_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/master/controllers/zone_controller.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
@@ -15,6 +17,14 @@ import 'package:mfresh_ops/widgets/common_sidebar.dart';
 // region View
 class ZoneScreen extends StatelessWidget {
   const ZoneScreen({super.key});
+
+  // region RBAC Permissions Helper
+  bool _hasPermission(String key) {
+    if (!Get.isRegistered<AuthRepository>()) return false;
+    final permissions = Get.find<AuthRepository>().rxUserPermissions;
+    return AppPermissions.has(permissions, key);
+  }
+  // endregion
 
   // region Main Build
   @override
@@ -108,19 +118,16 @@ class ZoneScreen extends StatelessWidget {
 
   // region Section Builders
   Widget _buildActionBar(BuildContext context, ZoneController controller) {
+    final canManage = _hasPermission(AppPermissions.masterPanel);
+
     return Row(
       children: [
-        AppCommonButton(
-          text: '+ Zone',
-          variant: ButtonVariant.primary,
-          buttonColor: AppColors.primaryBlue,
-          height: 26.h,
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
-          borderRadius: 6.r,
-          textSize: 11.sp,
-          onPressed: () => _showAddEditZoneDialog(context, controller),
-        ),
-        SizedBox(width: 10.w),
+        if (canManage)
+          AppCommonButton(
+            text: '+ Zone',
+            onPressed: () => _showAddEditZoneDialog(context, controller),
+          ),
+        if (canManage) SizedBox(width: 10.w),
         Obx(
           () => AppCommonExportButton(
             onExportExcel: () => controller.exportToExcel(),
@@ -147,6 +154,8 @@ class ZoneScreen extends StatelessWidget {
   }
 
   Widget _buildTableSection(BuildContext context, ZoneController controller) {
+    final canManage = _hasPermission(AppPermissions.masterPanel);
+
     return Obx(() {
       final items = controller.paginatedZones;
 
@@ -219,8 +228,9 @@ class ZoneScreen extends StatelessWidget {
             );
           },
         ),
-        AppTableColumn<ZoneItem>(
-          key: 'action',
+        if (canManage)
+          AppTableColumn<ZoneItem>(
+            key: 'action',
           title: 'Action',
           width: 75.w,
           sortable: false,
@@ -264,27 +274,13 @@ class ZoneScreen extends StatelessWidget {
         ),
       ];
 
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.borderColor),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8.r),
-          child: AppCommonTable<ZoneItem>(
-            columns: columns,
-            items: items,
-            isLoading: controller.isLoading.value || controller.isSubmitting.value,
-            onSort: (colKey, order) => controller.onSort(colKey, order),
-            currentSortColumn: controller.sortColumn.value,
-            currentSortOrder: controller.sortOrder.value,
-            headingRowHeight: 24.h,
-            headingRowColor: AppColors.blue50,
-            headingTextStyle: AppTextStyle.style_11_700(color: AppColors.black),
-            dataTextStyle: AppTextStyle.style_11_400(color: AppColors.black87),
-          ),
-        ),
+      return AppCommonTable<ZoneItem>(
+        columns: columns,
+        items: items,
+        isLoading: controller.isLoading.value || controller.isSubmitting.value,
+        onSort: (colKey, order) => controller.onSort(colKey, order),
+        currentSortColumn: controller.sortColumn.value,
+        currentSortOrder: controller.sortOrder.value,
       );
     });
   }
@@ -318,6 +314,14 @@ class ZoneScreen extends StatelessWidget {
     ZoneController controller,
     ZoneItem item,
   ) async {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     if (item.isActive) {
       // Deactivating: ask for confirmation first
       final confirmed = await AppCommonDialogBox.showConfirm(
@@ -341,6 +345,14 @@ class ZoneScreen extends StatelessWidget {
     ZoneController controller,
     ZoneItem item,
   ) async {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     final confirmed = await AppCommonDialogBox.showConfirm(
       context,
       title: 'Delete Zone',
@@ -360,6 +372,14 @@ class ZoneScreen extends StatelessWidget {
     ZoneController controller, {
     ZoneItem? zoneItem,
   }) {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     final isEdit = zoneItem != null;
     controller.zoneNameCtrl.text = zoneItem?.zone ?? '';
     controller.zoneStatusValue.value = zoneItem?.status ?? 1;
@@ -410,7 +430,6 @@ class ZoneScreen extends StatelessWidget {
                       labelText: 'Zone Name',
                       isRequired: true,
                       hintText: 'Enter zone name',
-                      height: 32.h,
                     ),
                     SizedBox(height: 12.h),
                     Obx(() {
@@ -456,23 +475,13 @@ class ZoneScreen extends StatelessWidget {
                         AppCommonButton(
                           text: 'Cancel',
                           variant: ButtonVariant.outline,
-                          height: 32.h,
-                          width: 80.w,
-                          borderRadius: 4.r,
-                          textSize: 12.sp,
                           onPressed: () => Navigator.pop(ctx),
                         ),
                         SizedBox(width: 8.w),
                         Obx(
                           () => AppCommonButton(
                             text: isEdit ? 'Update' : 'Save',
-                            variant: ButtonVariant.primary,
-                            buttonColor: AppColors.primary,
-                            height: 32.h,
-                            width: 85.w,
                             isLoading: controller.isSubmitting.value,
-                            borderRadius: 4.r,
-                            textSize: 12.sp,
                             onPressed: () async {
                               final name = controller.zoneNameCtrl.text.trim();
                               if (name.isEmpty) {

@@ -280,7 +280,7 @@ class AppConstants {
   static const String responsibilitiesDelete = 'responsibilities-delete';
   static const String responsibilitiesView = 'responsibilities-view';
 
-  // Master Module (Zones & States)
+  // Master Module (Zones, States, Districts & Services)
   static const String zoneIndex = 'zone-index';
   static const String zoneCreate = 'zone-create';
   static const String zoneUpdate = 'zone-update';
@@ -289,6 +289,18 @@ class AppConstants {
   static const String stateCreate = 'state-create';
   static const String stateUpdate = 'state-update';
   static const String stateDelete = 'state-delete';
+  static const String districtIndex = 'district-index';
+  static const String districtCreate = 'district-create';
+  static const String districtUpdate = 'district-update';
+  static const String districtDelete = 'district-delete';
+  static const String serviceIndex = 'service-index';
+  static const String serviceCreate = 'service-create';
+  static const String serviceUpdate = 'service-update';
+  static const String serviceDelete = 'service-delete';
+  static const String amenityIndex = 'amenity-index';
+  static const String amenityCreate = 'amenity-create';
+  static const String amenityUpdate = 'amenity-update';
+  static const String amenityDelete = 'amenity-delete';
   // endregion
 
   // region Hive Keys

@@ -172,6 +172,19 @@ class CommonSidebar extends StatelessWidget {
                   'View Responsibilities',
               ];
 
+              final masterSubItems = [
+                if (hasPerm(AppPermissions.masterPanel)) ...[
+                  'Zone',
+                  'State',
+                  'District',
+                  'Services',
+                  'Amenities',
+                  'Units',
+                  'Assign Services',
+                  'All Assign Services',
+                ],
+              ];
+
               return CustomScrollView(
                 slivers: [
                   SliverPersistentHeader(
@@ -297,21 +310,14 @@ class CommonSidebar extends StatelessWidget {
                             ),
 
                           // Master Module
-                          _buildExpandableMenuItem(
-                            icon: Icons.business_center_outlined,
-                            title: 'Master',
-                            subItems: const [
-                              'Zone',
-                              'State',
-                              'District',
-                              'Services',
-                              'Amenities',
-                              'Units',
-                              'Assign Services',
-                              'All Assign Services',
-                            ],
-                            currentRoute: currentRoute,
-                          ),
+                          if (hasPerm(AppPermissions.masterPanel) &&
+                              masterSubItems.isNotEmpty)
+                            _buildExpandableMenuItem(
+                              icon: Icons.business_center_outlined,
+                              title: 'Master',
+                              subItems: masterSubItems,
+                              currentRoute: currentRoute,
+                            ),
 
                           _buildMenuItem(
                             icon: Icons.person_outline,
@@ -524,22 +530,39 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.responsibilitiesMaster);
                   } else if (item == 'View Responsibilities') {
                     Get.toNamed(AppRoutes.viewResponsibilities);
-                  } else if (item == 'Zone') {
-                    Get.toNamed(AppRoutes.masterZone);
-                  } else if (item == 'State') {
-                    Get.toNamed(AppRoutes.masterState);
-                  } else if (item == 'District') {
-                    Get.toNamed(AppRoutes.masterDistrict);
-                  } else if (item == 'Services' || item == 'Sevices') {
-                    Get.toNamed(AppRoutes.masterServices);
-                  } else if (item == 'Amenities') {
-                    Get.toNamed(AppRoutes.masterAmenities);
-                  } else if (item == 'Units') {
-                    Get.toNamed(AppRoutes.masterUnits);
-                  } else if (item == 'Assign Services') {
-                    Get.toNamed(AppRoutes.masterAssignServices);
-                  } else if (item == 'All Assign Services') {
-                    Get.toNamed(AppRoutes.masterAllAssignServices);
+                  } else if (item == 'Zone' ||
+                      item == 'State' ||
+                      item == 'District' ||
+                      item == 'Services' ||
+                      item == 'Sevices' ||
+                      item == 'Amenities' ||
+                      item == 'Units' ||
+                      item == 'Assign Services' ||
+                      item == 'All Assign Services') {
+                    if (!_hasPerm(AppPermissions.masterPanel)) {
+                      AppCommonToastMessage.show(
+                        message: 'You do not have permission to access Master.',
+                        type: ToastType.warning,
+                      );
+                      return;
+                    }
+                    if (item == 'Zone') {
+                      Get.toNamed(AppRoutes.masterZone);
+                    } else if (item == 'State') {
+                      Get.toNamed(AppRoutes.masterState);
+                    } else if (item == 'District') {
+                      Get.toNamed(AppRoutes.masterDistrict);
+                    } else if (item == 'Services' || item == 'Sevices') {
+                      Get.toNamed(AppRoutes.masterServices);
+                    } else if (item == 'Amenities') {
+                      Get.toNamed(AppRoutes.masterAmenities);
+                    } else if (item == 'Units') {
+                      Get.toNamed(AppRoutes.masterUnits);
+                    } else if (item == 'Assign Services') {
+                      Get.toNamed(AppRoutes.masterAssignServices);
+                    } else if (item == 'All Assign Services') {
+                      Get.toNamed(AppRoutes.masterAllAssignServices);
+                    }
                   } else {
                     AppCommonToastMessage.show(
                       message: '$item screen coming soon',

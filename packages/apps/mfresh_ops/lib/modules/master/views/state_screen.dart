@@ -6,7 +6,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/models/master/state_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/modules/master/controllers/state_controller.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
@@ -15,6 +17,14 @@ import 'package:mfresh_ops/widgets/common_sidebar.dart';
 // region View
 class StateScreen extends StatelessWidget {
   const StateScreen({super.key});
+
+  // region RBAC Permissions Helper
+  bool _hasPermission(String key) {
+    if (!Get.isRegistered<AuthRepository>()) return false;
+    final permissions = Get.find<AuthRepository>().rxUserPermissions;
+    return AppPermissions.has(permissions, key);
+  }
+  // endregion
 
   // region Main Build
   @override
@@ -76,6 +86,7 @@ class StateScreen extends StatelessWidget {
       ),
     );
   }
+
   // endregion
 
   // region Header & App Bar
@@ -107,23 +118,21 @@ class StateScreen extends StatelessWidget {
       ),
     );
   }
+
   // endregion
 
   // region Section Builders
   Widget _buildActionBar(BuildContext context, StateController controller) {
+    final canManage = _hasPermission(AppPermissions.masterPanel);
+
     return Row(
       children: [
-        AppCommonButton(
-          text: '+ State',
-          variant: ButtonVariant.primary,
-          buttonColor: AppColors.primaryBlue,
-          height: 26.h,
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
-          borderRadius: 6.r,
-          textSize: 11.sp,
-          onPressed: () => _showAddEditStateDialog(context, controller),
-        ),
-        SizedBox(width: 10.w),
+        if (canManage)
+          AppCommonButton(
+            text: '+ State',
+            onPressed: () => _showAddEditStateDialog(context, controller),
+          ),
+        if (canManage) SizedBox(width: 10.w),
         Obx(
           () => AppCommonExportButton(
             onExportExcel: () => controller.exportToExcel(),
@@ -150,6 +159,8 @@ class StateScreen extends StatelessWidget {
   }
 
   Widget _buildTableSection(BuildContext context, StateController controller) {
+    final canManage = _hasPermission(AppPermissions.masterPanel);
+
     return Obx(() {
       final items = controller.paginatedStates;
 
@@ -205,7 +216,6 @@ class StateScreen extends StatelessWidget {
             );
           },
         ),
-
         AppTableColumn<StateItem>(
           key: 'status',
           title: 'Status',
@@ -240,72 +250,58 @@ class StateScreen extends StatelessWidget {
             );
           },
         ),
-        AppTableColumn<StateItem>(
-          key: 'action',
-          title: 'Action',
-          sortable: false,
-          alignment: Alignment.centerLeft,
-          cellBuilder: (context, item, index, isExpanded) {
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InkWell(
-                  onTap: () => _showAddEditStateDialog(
-                    context,
-                    controller,
-                    stateItem: item,
-                  ),
-                  borderRadius: BorderRadius.circular(4.r),
-                  child: Padding(
-                    padding: EdgeInsets.all(3.r),
-                    child: Icon(
-                      Icons.edit_outlined,
-                      size: 14.sp,
-                      color: AppColors.blue500,
+        if (canManage)
+          AppTableColumn<StateItem>(
+            key: 'action',
+            title: 'Action',
+            sortable: false,
+            alignment: Alignment.centerLeft,
+            cellBuilder: (context, item, index, isExpanded) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: () => _showAddEditStateDialog(
+                      context,
+                      controller,
+                      stateItem: item,
+                    ),
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(3.r),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 14.sp,
+                        color: AppColors.blue500,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(width: 4.w),
-                InkWell(
-                  onTap: () => _handleDeleteState(context, controller, item),
-                  borderRadius: BorderRadius.circular(4.r),
-                  child: Padding(
-                    padding: EdgeInsets.all(3.r),
-                    child: Icon(
-                      Icons.delete_outline,
-                      size: 14.sp,
-                      color: AppColors.red,
+                  SizedBox(width: 4.w),
+                  InkWell(
+                    onTap: () => _handleDeleteState(context, controller, item),
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: Padding(
+                      padding: EdgeInsets.all(3.r),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 14.sp,
+                        color: AppColors.red,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
-        ),
+                ],
+              );
+            },
+          ),
       ];
 
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: AppColors.borderColor),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8.r),
-          child: AppCommonTable<StateItem>(
-            columns: columns,
-            items: items,
-            isLoading:
-                controller.isLoading.value || controller.isSubmitting.value,
-            onSort: (colKey, order) => controller.onSort(colKey, order),
-            currentSortColumn: controller.sortColumn.value,
-            currentSortOrder: controller.sortOrder.value,
-            headingRowHeight: 24.h,
-            headingRowColor: AppColors.blue50,
-            headingTextStyle: AppTextStyle.style_11_700(color: AppColors.black),
-            dataTextStyle: AppTextStyle.style_11_400(color: AppColors.black87),
-          ),
-        ),
+      return AppCommonTable<StateItem>(
+        columns: columns,
+        items: items,
+        isLoading: controller.isLoading.value || controller.isSubmitting.value,
+        onSort: (colKey, order) => controller.onSort(colKey, order),
+        currentSortColumn: controller.sortColumn.value,
+        currentSortOrder: controller.sortOrder.value,
       );
     });
   }
@@ -331,6 +327,7 @@ class StateScreen extends StatelessWidget {
       );
     });
   }
+
   // endregion
 
   // region Dialogs & Action Handlers
@@ -339,6 +336,14 @@ class StateScreen extends StatelessWidget {
     StateController controller,
     StateItem item,
   ) async {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     if (item.isActive) {
       final confirmed = await AppCommonDialogBox.showConfirm(
         context,
@@ -360,6 +365,14 @@ class StateScreen extends StatelessWidget {
     StateController controller,
     StateItem item,
   ) async {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     final confirmed = await AppCommonDialogBox.showConfirm(
       context,
       title: 'Delete State',
@@ -379,6 +392,14 @@ class StateScreen extends StatelessWidget {
     StateController controller, {
     StateItem? stateItem,
   }) {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to perform this action.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     final isEdit = stateItem != null;
     controller.stateNameCtrl.text = stateItem?.stateName ?? '';
     controller.selectedZoneId.value = stateItem?.zoneId;
@@ -439,87 +460,89 @@ class StateScreen extends StatelessWidget {
                         labelText: 'State Name',
                         isRequired: true,
                         hintText: 'Enter state name',
-                        height: 32.h,
                       ),
                       SizedBox(height: 12.h),
                       // 2. Zone Dropdown and Status in the same row
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Expanded(
-                            child: SizedBox(
-                              height: 32.h,
-                              child: Obx(
-                                () => AppCommonMultiSelectDropdown<int>(
-                                  label: 'Select Zone *',
-                                  hint: 'Select Zone',
-                                  isSingleSelect: true,
-                                  showSearch: true,
-                                  selectedValues:
-                                      controller.selectedZoneId.value == null
-                                          ? {}
-                                          : {controller.selectedZoneId.value!},
-                                  items: controller.zones
-                                      .map(
-                                        (zone) => DropdownMenuItem<int>(
-                                          value: zone.id,
-                                          child: Text(
-                                            zone.zone,
-                                            style: AppTextStyle.style_12_400(
-                                              color: AppColors.grey900,
-                                            ),
+                            child: Obx(
+                              () => AppCommonMultiSelectDropdown<int>(
+                                label: 'Select Zone *',
+                                hint: 'Select Zone',
+                                isSingleSelect: true,
+                                showSearch: true,
+                                selectedValues:
+                                    controller.selectedZoneId.value == null
+                                    ? {}
+                                    : {controller.selectedZoneId.value!},
+                                items: controller.zones
+                                    .map(
+                                      (zone) => DropdownMenuItem<int>(
+                                        value: zone.id,
+                                        child: Text(
+                                          zone.zone,
+                                          style: AppTextStyle.style_12_400(
+                                            color: AppColors.grey900,
                                           ),
                                         ),
-                                      )
-                                      .toList(),
-                                  onChanged: (val) {
-                                    controller.selectedZoneId.value =
-                                        val.isEmpty ? null : val.first;
-                                  },
-                                ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (val) {
+                                  controller.selectedZoneId.value = val.isEmpty
+                                      ? null
+                                      : val.first;
+                                },
                               ),
                             ),
                           ),
                           SizedBox(width: 14.w),
-                          // Status toggle in same row
-                          Obx(() {
-                            final isActive =
-                                controller.stateStatusValue.value == 1;
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Status: ',
-                                  style: AppTextStyle.style_12_500(
-                                    color: AppColors.black,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 20.h,
-                                  child: FittedBox(
-                                    fit: BoxFit.contain,
-                                    child: CupertinoSwitch(
-                                      value: isActive,
-                                      activeTrackColor: AppColors.blue500,
-                                      onChanged: (val) {
-                                        controller.stateStatusValue.value =
-                                            val ? 1 : 0;
-                                      },
+                          // Status toggle in same row (bottom-aligned to match dropdown input box)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 6.h),
+                            child: Obx(() {
+                              final isActive =
+                                  controller.stateStatusValue.value == 1;
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Status: ',
+                                    style: AppTextStyle.style_12_500(
+                                      color: AppColors.black,
                                     ),
                                   ),
-                                ),
-                                SizedBox(width: 4.w),
-                                Text(
-                                  isActive ? 'Active' : 'Inactive',
-                                  style: AppTextStyle.style_11_500(
-                                    color: isActive
-                                        ? AppColors.black
-                                        : AppColors.grey400,
+                                  SizedBox(
+                                    height: 20.h,
+                                    child: FittedBox(
+                                      fit: BoxFit.contain,
+                                      child: CupertinoSwitch(
+                                        value: isActive,
+                                        activeTrackColor: AppColors.blue500,
+                                        onChanged: (val) {
+                                          controller.stateStatusValue.value = val
+                                              ? 1
+                                              : 0;
+                                        },
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            );
-                          }),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    isActive ? 'Active' : 'Inactive',
+                                    style: AppTextStyle.style_11_500(
+                                      color: isActive
+                                          ? AppColors.black
+                                          : AppColors.grey400,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }),
+                          ),
                         ],
                       ),
                       SizedBox(height: 18.h),
@@ -530,23 +553,13 @@ class StateScreen extends StatelessWidget {
                           AppCommonButton(
                             text: 'Cancel',
                             variant: ButtonVariant.outline,
-                            height: 28.h,
-                            padding: EdgeInsets.symmetric(horizontal: 14.w),
-                            borderRadius: 6.r,
-                            textSize: 11.sp,
                             onPressed: () => Navigator.pop(ctx),
                           ),
                           SizedBox(width: 8.w),
                           Obx(
                             () => AppCommonButton(
                               text: isEdit ? 'Update' : 'Save',
-                              variant: ButtonVariant.primary,
-                              buttonColor: AppColors.primaryBlue,
-                              height: 28.h,
                               isLoading: controller.isSubmitting.value,
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              borderRadius: 6.r,
-                              textSize: 11.sp,
                               onPressed: () async {
                                 final zoneId = controller.selectedZoneId.value;
                                 final stateName = controller.stateNameCtrl.text
