@@ -18,6 +18,11 @@ class PhonePeService extends GetxService {
     _isDevMode = !isProduction;
   }
 
+  Future<bool> setProduction(bool isProduction) async {
+    _isDevMode = !isProduction;
+    return await initSDK();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -33,9 +38,12 @@ class PhonePeService extends GetxService {
       'https://magnetconnects.com/payment/callback/';
 
   // Sandbox (UAT) Credentials
-  static const String _uatSaltKey = '14fa5465-f8a7-443f-8477-f986b8fcfde9';
+  // Standard PhonePe UAT test simulator credentials:
+  // MID: PGTESTPAYUAT or PGTESTPAYUAT86
+  // Salt: 96434309-7796-489d-8924-ab56988a6076 or 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399
+  static const String _uatSaltKey = '96434309-7796-489d-8924-ab56988a6076';
   static const String _uatSaltIndex = '1';
-  static const String _uatMerchantId = 'PGTESTPAYUAT77';
+  static const String _uatMerchantId = 'PGTESTPAYUAT86';
   static const String _uatApiBaseUrl =
       'https://api-preprod.phonepe.com/apis/pg-sandbox';
   static const String _uatCallbackUrl =

@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/selfie_attendance/controllers/selfie_attendance_controller.dart';
 import 'package:mfresh_ops/modules/selfie_attendance/views/widgets/selfie_attendance_filter_bar.dart';
 import 'package:mfresh_ops/modules/selfie_attendance/views/widgets/selfie_attendance_report_table.dart';
+import 'package:mfresh_ops/modules/selfie_attendance/views/widgets/selfie_unit_dashboard_table.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
 // endregion
@@ -34,6 +35,8 @@ class SelfieAttendanceReportScreen extends GetView<SelfieAttendanceController> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SelfieAttendanceFilterBar(),
+                SizedBox(height: 12.h),
+                const SelfieUnitDashboardTable(),
                 SizedBox(height: 14.h),
                 const SelfieAttendanceReportTable(),
               ],

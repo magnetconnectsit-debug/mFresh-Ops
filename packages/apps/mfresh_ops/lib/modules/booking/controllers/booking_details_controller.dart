@@ -1,24 +1,57 @@
-import 'package:get/get.dart';
-import 'package:flutter/material.dart';
-import 'package:mfresh_ops/data/models/booking_details_model.dart';
-import 'package:mfresh_ops/data/repositories/booking_repository.dart';
+// region Imports
 import 'package:core/utils/app_common_toast_message.dart';
-import 'package:mfresh_ops/data/models/unit_model.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/data/models/booking/booking_models.dart';
+import 'package:mfresh_ops/data/repositories/booking_repository.dart';
+// endregion
 
+// region Controller
 class BookingDetailsController extends GetxController {
+  // region Dependencies & Repositories
   final BookingRepository _bookingRepository = Get.find<BookingRepository>();
+  // endregion
 
+  // region Observables & State Variables
   final bookingDetails = Rxn<BookingDetailsModel>();
   final isLoading = false.obs;
-  
+
   // Printer Config
   final printingType = 'thermal'.obs;
   final paperRollSize = 80.obs;
+  // endregion
 
-  Future<void> fetchBookingDetails(String bookingId) async {
+  void setBookingDetails(
+    BookingDetailsModel details, {
+    String? pType,
+    int? rSize,
+  }) {
+    bookingDetails.value = details;
+    if (pType != null && pType.isNotEmpty) {
+      printingType.value = pType;
+    }
+    if (rSize != null && rSize > 0) {
+      paperRollSize.value = rSize;
+    }
+    isLoading.value = false;
+  }
+
+  // region API & Business Logic Operations
+  Future<void> fetchBookingDetails(
+    String bookingId, {
+    String? fallbackUnitNo,
+    String? fallbackAmount,
+    String? encryptId,
+    String? receiptUrl,
+  }) async {
     try {
       isLoading.value = true;
-      
+
+      if (bookingDetails.value != null &&
+          bookingDetails.value!.bookingId == bookingId) {
+        return;
+      }
+
       if (bookingId.startsWith("DUMMY")) {
         bookingDetails.value = BookingDetailsModel(
           bookingId: bookingId,
@@ -28,69 +61,37 @@ class BookingDetailsController extends GetxController {
           totalAmount: "1",
           paymentMode: 1,
           fullAddress: "Puri Beach Road",
-          services: [ServiceItem(servicesName: "Toilet - Male", quantity: "1")],
+          services: [BookingServiceDetailItem(servicesName: "Toilet - Male", quantity: "1")],
         );
         printingType.value = 'thermal';
         paperRollSize.value = 80;
         return;
       }
 
-      var result = await _bookingRepository.getBookingDetails(bookingId: bookingId);
-      if (result != null) {
-        try {
-          UnitModel? unitConfig;
-          
-          unitConfig = UnitModel(
-            id: 0,
-            unitId: result.unitNo,
-            unitImage: '',
-            unitLocation: '',
-            timing: '',
-            printingType: 'thermal', // Default fallback
-            paperRollSize: 80,
-          );
-
-          printingType.value = unitConfig.printingType;
-          paperRollSize.value = unitConfig.paperRollSize;
-          debugPrint("BookingDetailsController: FINAL CONFIG -> Type: ${printingType.value}, Size: ${paperRollSize.value}");
-        } catch (e) {
-          debugPrint("Failed to fetch unit config in BookingDetailsController: $e");
-        }
-        // ENRICHMENT: Match service names with unit services to get accurate prices
-        try {
-          final unitServices = await _bookingRepository.getServices(
-            unitNo: result.unitNo,
-            serviceMode: result.paymentMode == 2 ? '2' : '1',
-            customerMode: '0', // Default to 0 for matching
-          );
-
-          if (unitServices.isNotEmpty) {
-            final List<ServiceItem> enrichedServices = [];
-            for (var item in result.services) {
-              // Only try to find price if it's missing or zero
-              if (item.price.isEmpty || item.price == '0' || item.price == '0.0' || item.price == '0.00') {
-                final match = unitServices.firstWhereOrNull(
-                  (s) => (s.serviceName).trim().toLowerCase() == item.servicesName.trim().toLowerCase(),
-                );
-                if (match != null) {
-                  enrichedServices.add(item.copyWith(price: match.price.toString()));
-                } else {
-                  enrichedServices.add(item);
-                }
-              } else {
-                enrichedServices.add(item);
-              }
-            }
-            result = result.copyWith(services: enrichedServices);
-          }
-        } catch (e) {
-          debugPrint("Enrichment failed: $e");
-        }
-        
-        bookingDetails.value = result;
+      if (fallbackUnitNo != null && fallbackUnitNo.isNotEmpty) {
+        bookingDetails.value = BookingDetailsModel(
+          bookingId: bookingId,
+          unitNo: fallbackUnitNo,
+          bookingTimeDate: DateTime.now().toString(),
+          totalAmount: fallbackAmount ?? '',
+          paymentMode: 1,
+          paymentStatus: 'PAYMENT_SUCCESS',
+          encryptBookingId: encryptId,
+        );
       }
     } catch (e) {
-      AppCommonToastMessage.show(message: 'Failed to fetch booking details', type: ToastType.error);
+      debugPrint("fetchBookingDetails error: $e");
+      if (fallbackUnitNo != null && fallbackUnitNo.isNotEmpty) {
+        bookingDetails.value = BookingDetailsModel(
+          bookingId: bookingId,
+          unitNo: fallbackUnitNo,
+          bookingTimeDate: DateTime.now().toString(),
+          totalAmount: fallbackAmount ?? '',
+          paymentMode: 1,
+          paymentStatus: 'PAYMENT_SUCCESS',
+          encryptBookingId: encryptId,
+        );
+      }
     } finally {
       isLoading.value = false;
     }
@@ -98,13 +99,13 @@ class BookingDetailsController extends GetxController {
 
   Future<void> sendSms(String phone) async {
     if (bookingDetails.value == null) return;
-    
+
     try {
       final success = await _bookingRepository.sendSmsReceipt(
         bookingId: bookingDetails.value!.bookingId,
         phone: phone,
       );
-      
+
       if (success) {
         AppCommonToastMessage.show(message: "sent successfully", type: ToastType.success);
       } else {
@@ -114,4 +115,6 @@ class BookingDetailsController extends GetxController {
       AppCommonToastMessage.show(message: "Error: $e", type: ToastType.error);
     }
   }
+  // endregion
 }
+// endregion

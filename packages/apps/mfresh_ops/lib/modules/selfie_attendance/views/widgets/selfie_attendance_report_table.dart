@@ -56,13 +56,24 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       headingRowColor: AppColors.blue50,
       headingRowHeight: 24.h,
       cellVerticalPadding: 2.h,
-      headingTextStyle: AppTextStyle.style_11_700(
-        color: AppColors.black,
-      ),
-      dataTextStyle: AppTextStyle.style_11_400(
-        color: AppColors.black87,
-      ),
+      headingTextStyle: AppTextStyle.style_11_700(color: AppColors.black),
+      dataTextStyle: AppTextStyle.style_11_400(color: AppColors.black87),
       borderColor: AppColors.borderColor,
+      rowDecorationBuilder: (item, index) {
+        final borderColor = _parseHexColor(item.rowBorderColor);
+        if (borderColor != null) {
+          return BoxDecoration(
+            color: AppColors.white,
+            border: Border.all(color: borderColor, width: 1.5.r),
+          );
+        }
+        return BoxDecoration(
+          color: AppColors.white,
+          border: Border(
+            bottom: BorderSide(color: AppColors.borderColor, width: 1.0.r),
+          ),
+        );
+      },
       columns: _buildColumns(context, controller),
       onSort: (columnKey, sortOrder) {
         controller.sortBy(columnKey);
@@ -79,52 +90,55 @@ class SelfieAttendanceReportTable extends StatelessWidget {
     );
   }
 
+  Color? _parseHexColor(String? hexString) {
+    if (hexString == null || hexString.trim().isEmpty) return null;
+    var hex = hexString.replaceAll('#', '').trim();
+    if (hex.length == 6) {
+      hex = 'FF$hex';
+    }
+    if (hex.length == 8) {
+      final val = int.tryParse(hex, radix: 16);
+      if (val != null) return Color(val);
+    }
+    return null;
+  }
+
   List<AppTableColumn<SelfieAttendanceItem>> _buildColumns(
     BuildContext context,
     SelfieAttendanceController controller,
   ) {
     return [
       AppTableColumn<SelfieAttendanceItem>(
-        key: 'sl_no',
-        title: 'Sl No.',
-        width: 55.w,
-        alignment: Alignment.center,
-        sortable: false,
-        cellBuilder: (context, item, index, isExpanded) {
-          final slNo = controller.fromIndex.value + index;
-          return Text(
-            '$slNo',
-            style: AppTextStyle.style_11_400(color: AppColors.black87),
-            textAlign: TextAlign.center,
-          );
-        },
-      ),
-      AppTableColumn<SelfieAttendanceItem>(
         key: 'employee',
         title: 'Employee',
-        width: 170.w,
+        width: 130.w,
         alignment: Alignment.centerLeft,
         sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
-          return Text(
-            item.userName,
-            style: AppTextStyle.style_11_700(color: AppColors.black),
-            maxLines: isExpanded ? null : 1,
-            overflow: isExpanded ? null : TextOverflow.ellipsis,
+          final displayName = item.userNameWithRole ?? item.userName;
+          return GestureDetector(
+            onTap: () => _navigateToDetail(controller, item),
+            child: Text(
+              displayName,
+              style: AppTextStyle.style_11_500(color: AppColors.blue500),
+              maxLines: isExpanded ? null : 1,
+              overflow:
+                  isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            ),
           );
         },
       ),
       AppTableColumn<SelfieAttendanceItem>(
         key: 'date',
         title: 'Date',
-        width: 110.w,
-        alignment: Alignment.center,
+        width: 85.w,
+        alignment: Alignment.centerLeft,
         sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
           return Text(
             item.date,
             style: AppTextStyle.style_11_400(color: AppColors.black87),
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.left,
             maxLines: isExpanded ? null : 1,
             overflow: isExpanded ? null : TextOverflow.ellipsis,
           );
@@ -133,7 +147,7 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       AppTableColumn<SelfieAttendanceItem>(
         key: 'unit',
         title: 'Unit(s)',
-        width: 110.w,
+        width: 70.w,
         alignment: Alignment.centerLeft,
         sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
@@ -148,7 +162,7 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       AppTableColumn<SelfieAttendanceItem>(
         key: 'first_in',
         title: 'First In',
-        width: 100.w,
+        width: 70.w,
         alignment: Alignment.center,
         sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
@@ -164,7 +178,7 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       AppTableColumn<SelfieAttendanceItem>(
         key: 'last_out',
         title: 'Last Out',
-        width: 100.w,
+        width: 77.w,
         alignment: Alignment.center,
         sortable: true,
         cellBuilder: (context, item, index, isExpanded) {
@@ -196,7 +210,7 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       AppTableColumn<SelfieAttendanceItem>(
         key: 'break',
         title: 'Break',
-        width: 105.w,
+        width: 65.w,
         alignment: Alignment.center,
         sortable: true,
         cellColorGetter: (_) => AppColors.yellow.withValues(alpha: 0.15),
@@ -229,45 +243,14 @@ class SelfieAttendanceReportTable extends StatelessWidget {
       AppTableColumn<SelfieAttendanceItem>(
         key: 'sessions',
         title: 'Sessions',
-        width: 80.w,
-        alignment: Alignment.center,
-        sortable: true,
+        width: 67.w,
+        alignment: Alignment.centerLeft,
+        sortable: false,
         cellBuilder: (context, item, index, isExpanded) {
           return Text(
             '${item.totalSessions}',
             style: AppTextStyle.style_11_400(color: AppColors.black87),
             textAlign: TextAlign.center,
-          );
-        },
-      ),
-      AppTableColumn<SelfieAttendanceItem>(
-        key: 'action',
-        title: 'Action',
-        width: 85.w,
-        alignment: Alignment.center,
-        sortable: false,
-        cellBuilder: (context, item, index, isExpanded) {
-          return InkWell(
-            onTap: () => _navigateToDetail(controller, item),
-            borderRadius: BorderRadius.circular(4.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.visibility_outlined,
-                    size: 13.sp,
-                    color: AppColors.primary,
-                  ),
-                  SizedBox(width: 3.w),
-                  Text(
-                    'Logs',
-                    style: AppTextStyle.style_11_600(color: AppColors.primary),
-                  ),
-                ],
-              ),
-            ),
           );
         },
       ),
@@ -308,6 +291,8 @@ class SelfieAttendanceReportTable extends StatelessWidget {
   ) {
     controller.openDetail(item);
   }
+
   // endregion
 }
+
 // endregion

@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter_thermal_printer/flutter_thermal_printer.dart';
 import 'package:flutter_thermal_printer/utils/printer.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:mfresh_ops/data/models/booking_details_model.dart';
+import 'package:mfresh_ops/data/models/booking/booking_details_model.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'print_util.dart';
 import 'package:core/widgets/custom_app_loader.dart';

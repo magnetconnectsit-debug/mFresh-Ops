@@ -9,9 +9,10 @@ import 'package:mfresh_ops/modules/booking/views/widgets/unit_card.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/user.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:services/plutus_service.dart';
 
 class BookingUnitSelectionScreen extends StatefulWidget {
@@ -63,27 +64,20 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
           return Scaffold(
             backgroundColor: AppColors.background,
             drawer: const CommonSidebar(),
-            appBar: PreferredSize(
-              preferredSize: const AppCommonAppBar(
-                topHeader: CommonShortcutHeader(),
-              ).preferredSize,
-              child: AppCommonAppBar(
-                title: const Text('Booking'),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.history),
-                    onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.account_circle),
-                    onPressed: () {
-                      Get.toNamed(AppRoutes.profile);
-                    },
-                  ),
-                ],
-              ),
+            appBar: AppCommonAppBar(
+              hasBackButton: false,
+              title: const Text('Booking'),
+              actions: [
+                IconButton(
+                  tooltip: 'Profile',
+                  icon: const Icon(Icons.account_circle),
+                  onPressed: () {
+                    Get.toNamed(AppRoutes.profile);
+                  },
+                ),
+              ],
             ),
-            body: RefreshIndicator(
+            body: AppRefreshIndicator(
               onRefresh: () async {
                 await controller.fetchUnits();
                 await profileController.fetchProfile();
@@ -96,15 +90,17 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                     // Banner
                     Container(
                       width: double.infinity,
-                      height: isDesktop ? 270 : (isTablet ? 150 : 120),
+                      height: isDesktop ? 160.h : (isTablet ? 120.h : 110.h),
+                      margin: EdgeInsets.symmetric(horizontal: isTablet ? 16.w : 0),
                       decoration: BoxDecoration(
-                        image: DecorationImage(
+                        borderRadius: isTablet ? BorderRadius.circular(12.r) : BorderRadius.zero,
+                        image: const DecorationImage(
                           image: AssetImage(AppImages.dashboardBanner),
                           fit: BoxFit.contain,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 6.h),
                     // Heading & Scanner Button
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -137,57 +133,46 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                               ],
                             ),
                           ),
-                          Obx(() {
-                            final user = profileController.user.value;
-                            final bool canScan =
-                                user?.appPermissions?.scannerAccess ?? false;
-
-                            if (user != null && canScan) {
-                              return Align(
-                                alignment: Alignment.centerRight,
-                                child: InkWell(
-                                  onTap: () => _openScanner(),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                          blurRadius: 5,
-                                          spreadRadius: 1,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: () => _openScanner(),
+                              child: Container(
+                                padding: EdgeInsets.all(6.r),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white,
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.grey500.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      blurRadius: 5.r,
+                                      spreadRadius: 1.r,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Image.asset(
-                                          AppImages.scanIcon,
-                                          width: 20,
-                                          height: 20,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          'Scan',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.orange,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  ],
                                 ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          }),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      AppImages.scanIcon,
+                                      width: 20.w,
+                                      height: 20.h,
+                                    ),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      'Scan',
+                                      style: AppTextStyle.style_14_700(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -233,16 +218,7 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
                               image: unit.unitImage,
                               date: unit.timing,
                               onTap: () {
-                                Get.toNamed(
-                                  AppRoutes.serviceDetails,
-                                  arguments: {
-                                    'unitNo': unit.unitId,
-                                    'location': unit.unitLocation,
-                                    'unitImage': unit.unitImage,
-                                    'printingType': unit.printingType,
-                                    'paperRollSize': unit.paperRollSize,
-                                  },
-                                );
+                                controller.selectAndEnterUnit(unit);
                               },
                             );
                           },
@@ -327,9 +303,20 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
   Future<void> _openScanner() async {
     if (_isProcessingScan) return;
 
-    final int cameraCount = await plutusService.getCameraCount();
+    // Check camera permission first
+    PermissionStatus status = await Permission.camera.status;
+    if (!status.isGranted) {
+      status = await Permission.camera.request();
+    }
 
-    if (cameraCount > 0) {
+    int cameraCount = await plutusService.getCameraCount();
+
+    // If getCameraCount reported 0 or failed, fallback to camera permission status on mobile/tablet devices
+    if (cameraCount == 0 && status.isGranted) {
+      cameraCount = 1;
+    }
+
+    if (cameraCount > 0 && status.isGranted) {
       final MobileScannerController scannerController = MobileScannerController(
         facing: CameraFacing.back,
         torchEnabled: false,
@@ -500,6 +487,42 @@ class _BookingUnitSelectionScreenState extends State<BookingUnitSelectionScreen>
       } finally {
         _isProcessingScan = false;
       }
+    }
+  }
+
+  void _handleLogout(BuildContext context) async {
+    final bool confirm = await AppCommonDialogBox.showConfirm(
+      context,
+      title: 'Logout',
+      message: 'Are you sure you want to logout from Booking mode?',
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      isDanger: true,
+    );
+
+    if (!confirm) return;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: Center(child: CustomAppLoader()),
+      ),
+    );
+
+    try {
+      if (Get.isRegistered<AuthRepository>()) {
+        await Get.find<AuthRepository>().logout();
+      }
+    } catch (e) {
+      debugPrint('Logout error: $e');
+    } finally {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      Get.offAllNamed(AppRoutes.login);
     }
   }
 }

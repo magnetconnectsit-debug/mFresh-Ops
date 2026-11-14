@@ -114,6 +114,7 @@ class AuthInterceptor extends Interceptor {
 
   void _handleLogout(dynamic responseData) async {
     if (_isLoggingOut) return;
+    if (Get.currentRoute == '/login') return;
     _isLoggingOut = true;
 
     final message = responseData is Map ? responseData['message']?.toString() : null;
@@ -125,10 +126,12 @@ class AuthInterceptor extends Interceptor {
     
     await _storageService.clearAllStorage();
     
-    // Using a small delay to ensure the UI can handle the transition
-    Future.delayed(const Duration(milliseconds: 100), () {
+    if (Get.currentRoute != '/login') {
       Get.offAllNamed('/login');
-      // Reset after redirect to allow future logins
+    }
+    
+    // Hold lock to allow in-flight requests to complete without triggering duplicate logouts
+    Future.delayed(const Duration(seconds: 3), () {
       _isLoggingOut = false;
     });
   }

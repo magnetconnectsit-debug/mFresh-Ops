@@ -1,6 +1,8 @@
 // region Imports
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/config/app_config.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:services/services.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
@@ -14,6 +16,7 @@ class SplashController extends GetxController {
   final StorageService _storageService = Get.find<StorageService>();
   final AppUpdateService _updateService = Get.find<AppUpdateService>();
   final TrackingService _trackingService = Get.find<TrackingService>();
+  final BiometricAuthService _biometricService = Get.find<BiometricAuthService>();
   // endregion
 
   // region Lifecycle Methods
@@ -39,36 +42,72 @@ class SplashController extends GetxController {
     // Show splash for 2 seconds to ensure visibility
     await Future.delayed(const Duration(seconds: 2));
 
-    // 2. Check and enforce location permissions
-    bool isLocationValid = false;
-    try {
-      final fgGranted = await Permission.location.isGranted;
-      final bgGranted = await Permission.locationAlways.isGranted;
-
-      if (fgGranted && bgGranted) {
-        isLocationValid = true;
-      }
-    } catch (e) {
-      debugPrint("Splash Location Check Error: $e");
-    }
-
-    if (!isLocationValid) {
-      Get.offAllNamed(AppRoutes.locationPermission);
-      return;
-    }
-
+    // 2. Check login state & mode
     final token = _storageService.getToken();
 
     if (token != null && token.isNotEmpty) {
-      // Proactively fetch latest profile and permissions on startup
-      final user = await Get.find<AuthRepository>().fetchProfile();
+      final loginMode = _storageService.getLoginMode();
+      final cachedUser = _storageService.getUser();
+      final bool isCashierUser =
+          cachedUser?.roleName?.toString().toLowerCase().contains('cashier') == true;
+
+      // ── Booking Mode Flow ──
+      if (loginMode == 'booking' || isCashierUser) {
+        if (loginMode != 'booking') {
+          await _storageService.saveLoginMode('booking');
+        }
+
+        // Check if Biometric App Lock should lock on cold start
+        if (AppConfig.enableBiometricAuth) {
+          _biometricService.lockApp();
+        }
+
+        Get.offAllNamed(AppRoutes.bookingUnitSelection);
+        return;
+      }
+
+      // ── Operation Mode Flow ──
+      // Check and enforce location permissions for operations mode
+      bool isLocationValid = false;
+      try {
+        final fgGranted = await Permission.location.isGranted;
+        final bgGranted = await Permission.locationAlways.isGranted;
+
+        if (fgGranted && bgGranted) {
+          isLocationValid = true;
+        }
+      } catch (e) {
+        debugPrint("Splash Location Check Error: $e");
+      }
+
+      if (!isLocationValid) {
+        Get.offAllNamed(AppRoutes.locationPermission);
+        return;
+      }
+
+      // Proactively fetch latest profile and permissions on startup with a reasonable timeout
+      // so a slow connection does not freeze the user on the splash screen
+      User? user;
+      try {
+        user = await Get.find<AuthRepository>()
+            .fetchProfile()
+            .timeout(const Duration(seconds: 4));
+      } catch (e) {
+        debugPrint("Splash fetchProfile timed out or failed: $e, falling back to cached user");
+        user = cachedUser;
+      }
+
       if (user == null) {
-        final cachedUser = _storageService.getUser();
         final bool isOnDuty = cachedUser?.isOnDuty == 1;
         await _trackingService.syncDutyStatus(isOnDuty);
       }
 
-      final roleId = user?.role ?? _storageService.getUser()?.role;
+      // Check if Biometric App Lock should lock on cold start
+      if (AppConfig.enableBiometricAuth) {
+        _biometricService.lockApp();
+      }
+
+      final roleId = user?.role ?? cachedUser?.role;
       if (roleId == '1' || roleId == 1) {
         Get.offAllNamed(AppRoutes.home);
       } else {
@@ -80,6 +119,24 @@ class SplashController extends GetxController {
         _trackingService.didChangeAppLifecycleState(AppLifecycleState.resumed);
       });
     } else {
+      // 3. Unauthenticated flow: check location permissions before login
+      bool isLocationValid = false;
+      try {
+        final fgGranted = await Permission.location.isGranted;
+        final bgGranted = await Permission.locationAlways.isGranted;
+
+        if (fgGranted && bgGranted) {
+          isLocationValid = true;
+        }
+      } catch (e) {
+        debugPrint("Splash Location Check Error: $e");
+      }
+
+      if (!isLocationValid) {
+        Get.offAllNamed(AppRoutes.locationPermission);
+        return;
+      }
+
       Get.offAllNamed(AppRoutes.login);
     }
   }

@@ -1,24 +1,22 @@
+// region Imports
 import 'dart:convert';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:mfresh_ops/modules/booking/controllers/booking_details_controller.dart';
-
-import 'package:mfresh_ops/data/models/booking_details_model.dart';
+import 'package:mfresh_ops/data/models/booking/booking_models.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:services/plutus_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-
-import 'package:core/widgets/app_common_textfield.dart';
 import 'package:mfresh_ops/core/utils/print_util.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
-import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/storage_service.dart';
-import 'package:core/widgets/custom_app_loader.dart';
+// endregion
 
+// region View
 class BookingConfirmedScreen extends StatefulWidget {
   const BookingConfirmedScreen({super.key});
 
@@ -27,22 +25,42 @@ class BookingConfirmedScreen extends StatefulWidget {
 }
 
 class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
+  // region Dependencies & Controllers
   final controller = Get.put(BookingDetailsController());
   final plutusService = Get.find<PlutusService>();
   final profileController = Get.put(ProfileController());
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void initState() {
     super.initState();
-    final String? bookingId =
-        Get.arguments?['bookingId'] ?? Get.parameters['bookingId'];
-    if (bookingId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        controller.fetchBookingDetails(bookingId);
-      });
+    final dynamic rawBooking = Get.arguments?['bookingModel'];
+    if (rawBooking is BookingDetailsModel) {
+      controller.setBookingDetails(
+        rawBooking,
+        pType: Get.arguments?['printingType']?.toString(),
+        rSize: int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? ''),
+      );
+    } else {
+      final String? bookingId =
+          Get.arguments?['bookingId'] ?? Get.parameters['bookingId'];
+      if (bookingId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          controller.fetchBookingDetails(
+            bookingId,
+            fallbackUnitNo: Get.arguments?['unitNo']?.toString(),
+            fallbackAmount: Get.arguments?['totalAmount']?.toString(),
+            encryptId: Get.arguments?['encryptBookingId']?.toString(),
+            receiptUrl: Get.arguments?['receiptUrl']?.toString(),
+          );
+        });
+      }
     }
   }
+  // endregion
 
+  // region Action Handlers & Helpers
   Future<void> _handlePrint(BookingDetailsModel booking) async {
     final encryptId =
         booking.encryptBookingId ??
@@ -87,7 +105,9 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       return dateString;
     }
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -98,23 +118,21 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text('Booking Confirmed'),
-          centerTitle: true,
+        appBar: AppCommonAppBar(
+          title: Text(
+            'Booking Confirmed',
+            style: AppTextStyle.style_16_600(color: AppColors.black),
+          ),
           backgroundColor: AppColors.background,
           elevation: 0,
+          hasBackButton: true,
+          onBackButtonPressed: () => Get.back(),
           actions: [
             IconButton(
               icon: const Icon(Icons.history, color: AppColors.black),
               onPressed: () => Get.toNamed(AppRoutes.bookingHistory),
             ),
           ],
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: AppColors.black),
-            onPressed: () {
-              Get.back();
-            },
-          ),
         ),
         body: Stack(
           children: [
@@ -141,14 +159,15 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                       ),
                     ]);
                   },
-                  child: Center(
+                  child: Align(
+                    alignment: Alignment.topCenter,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 600),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: EdgeInsets.symmetric(
                           horizontal: 20.w,
-                          vertical: 10.h,
+                          vertical: 16.h,
                         ),
                         child: Column(
                           children: [
@@ -264,7 +283,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                     ),
                                   ),
                                   Text(
-                                    booking.fullAddress,
+                                    booking.displayAddress,
                                     style: AppTextStyle.style_13_600(
                                       color: AppColors.black,
                                     ),
@@ -403,6 +422,41 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                         isUnderline: true,
                                                       ),
                                                 ),
+                                                Builder(
+                                                  builder: (context) {
+                                                    final String? receiptUrl =
+                                                        Get.arguments?['receiptUrl']?.toString();
+                                                    if (receiptUrl == null || receiptUrl.isEmpty) {
+                                                      return const SizedBox.shrink();
+                                                    }
+                                                    return GestureDetector(
+                                                      onTap: () async {
+                                                        final uri = Uri.tryParse(receiptUrl);
+                                                        if (uri != null && await canLaunchUrl(uri)) {
+                                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                                        }
+                                                      },
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.open_in_new,
+                                                            size: 12.sp,
+                                                            color: const Color(0xFFF15A22),
+                                                          ),
+                                                          SizedBox(width: 2.w),
+                                                          Text(
+                                                            'Receipt',
+                                                            style: AppTextStyle.style_10_600(
+                                                              color: const Color(0xFFF15A22),
+                                                              isUnderline: true,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
                                                 GestureDetector(
                                                   onTap: () {
                                                     final encryptId =
@@ -498,19 +552,20 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                                   SizedBox(
                                                                     width: 8.w,
                                                                   ),
-                                                                  ElevatedButton(
-                                                                    style: ElevatedButton.styleFrom(
-                                                                      backgroundColor:
-                                                                          const Color(
-                                                                            0xFFF15A22,
-                                                                          ),
-                                                                      shape: RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              8.r,
-                                                                            ),
-                                                                      ),
-                                                                    ),
+                                                                  AppCommonButton(
+                                                                    text: 'Send',
+                                                                    buttonColor:
+                                                                        const Color(
+                                                                          0xFFF15A22,
+                                                                        ),
+                                                                    textColor:
+                                                                        AppColors
+                                                                            .white,
+                                                                    height: 36.h,
+                                                                    borderRadius:
+                                                                        8.r,
+                                                                    textSize:
+                                                                        12.sp,
                                                                     onPressed: () async {
                                                                       final phone = smsPhoneController
                                                                           .text
@@ -531,13 +586,6 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                                         );
                                                                       }
                                                                     },
-                                                                    child: Text(
-                                                                      'Send',
-                                                                      style: AppTextStyle.style_12_600(
-                                                                        color: AppColors
-                                                                            .white,
-                                                                      ),
-                                                                    ),
                                                                   ),
                                                                 ],
                                                               ),
@@ -547,26 +595,13 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                       ),
                                                     );
                                                   },
-                                                  child: Obx(() {
-                                                    final canResend =
-                                                        profileController
-                                                            .user
-                                                            .value
-                                                            ?.permissions
-                                                            ?.contains(
-                                                              'resendReceiptCustomer',
-                                                            ) ??
-                                                        false;
-                                                    if (!canResend)
-                                                      return const SizedBox.shrink();
-                                                    return Icon(
-                                                      Icons.sms_outlined,
-                                                      color: const Color(
-                                                        0xFFF15A22,
-                                                      ),
-                                                      size: 18.sp,
-                                                    );
-                                                  }),
+                                                  child: Icon(
+                                                    Icons.sms_outlined,
+                                                    color: const Color(
+                                                      0xFFF15A22,
+                                                    ),
+                                                    size: 18.sp,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -687,99 +722,52 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                       ),
                                     ],
                                   ),
-                                  Obx(() {
-                                    final canPrint =
-                                        profileController
-                                            .user
-                                            .value
-                                            ?.permissions
-                                            ?.contains('receiptPrint') ??
-                                        false;
-                                    final canReset =
-                                        profileController
-                                            .user
-                                            .value
-                                            ?.permissions
-                                            ?.contains('resetPrint') ??
-                                        false;
-                                    return Padding(
-                                      padding: EdgeInsets.only(top: 16.h),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          if (canReset)
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.red.shade400,
-                                                foregroundColor:
-                                                    AppColors.white,
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 16.w,
-                                                  vertical: 8.h,
-                                                ),
-                                                minimumSize: Size(120.w, 36.h),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        8.r,
-                                                      ),
-                                                ),
-                                                elevation: 0,
-                                              ),
-                                              onPressed: () {
-                                                Get.find<StorageService>()
-                                                    .clearDefaultPrinter();
-                                                AppCommonToastMessage.show(
-                                                  message:
-                                                      "Default printer cleared",
-                                                  type: ToastType.success,
-                                                );
-                                              },
-                                              child: Text(
-                                                'Reset Print',
-                                                style:
-                                                    AppTextStyle.style_12_600(
-                                                      color: AppColors.white,
-                                                    ),
-                                              ),
-                                            ),
-                                          if (canPrint)
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(
-                                                  0xFF1A9FD9,
-                                                ),
-                                                foregroundColor:
-                                                    AppColors.white,
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 16.w,
-                                                  vertical: 8.h,
-                                                ),
-                                                minimumSize: Size(120.w, 36.h),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        8.r,
-                                                      ),
-                                                ),
-                                                elevation: 0,
-                                              ),
-                                              onPressed: () =>
-                                                  _handlePrint(booking),
-                                              child: Text(
-                                                'Print',
-                                                style:
-                                                    AppTextStyle.style_12_600(
-                                                      color: AppColors.white,
-                                                    ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 16.h),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        AppCommonButton(
+                                          text: 'Reset Print',
+                                          buttonColor: Colors.red.shade400,
+                                          textColor: AppColors.white,
+                                          height: 36.h,
+                                          width: 120.w,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 16.w,
+                                            vertical: 8.h,
+                                          ),
+                                          borderRadius: 8.r,
+                                          textSize: 12.sp,
+                                          onPressed: () {
+                                            Get.find<StorageService>()
+                                                .clearDefaultPrinter();
+                                            AppCommonToastMessage.show(
+                                              message:
+                                                  "Default printer cleared",
+                                              type: ToastType.success,
+                                            );
+                                          },
+                                        ),
+                                        AppCommonButton(
+                                          text: 'Print',
+                                          buttonColor: const Color(0xFF1A9FD9),
+                                          textColor: AppColors.white,
+                                          height: 36.h,
+                                          width: 120.w,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 16.w,
+                                            vertical: 8.h,
+                                          ),
+                                          borderRadius: 8.r,
+                                          textSize: 12.sp,
+                                          onPressed: () =>
+                                              _handlePrint(booking),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -793,48 +781,14 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
               }),
             ),
 
-            // Left-Center Back Arrow Button
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Get.back();
-                  },
-                  child: Container(
-                    width: 40.w,
-                    height: 60.h,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF15A22).withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(30.r),
-                        bottomRight: Radius.circular(30.r),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(2, 0),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
+  // endregion
 
+  // region Section Builders
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: EdgeInsets.only(bottom: 2.h),
@@ -878,4 +832,6 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
       },
     );
   }
+  // endregion
 }
+// endregion

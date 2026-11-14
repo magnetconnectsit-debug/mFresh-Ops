@@ -8,7 +8,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/modules/authentication/views/widgets/guest_flow_bottom_sheet.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:pinput/pinput.dart';
 import 'package:services/services.dart';
@@ -19,6 +21,9 @@ class LoginController extends GetxController {
   // region Dependencies & Repositories
   final AuthRepository _authRepository = Get.find<AuthRepository>();
   final StorageService _storageService = Get.find<StorageService>();
+  final BiometricAuthService _biometricService =
+      Get.find<BiometricAuthService>();
+
   // endregion
 
   // region Observables & State Variables
@@ -27,10 +32,12 @@ class LoginController extends GetxController {
   final isLoading = false.obs;
   final isOtpLogin = true.obs;
   final selectedTab = 1.obs; // 0 for Booking, 1 for Operation
+  final isBiometricAvailable = false.obs;
   int _logoTapCount = 0;
   DateTime? _lastTapTime;
 
   String get loginMode => selectedTab.value == 0 ? 'booking' : 'operation';
+
   // endregion
 
   // region Text Controllers & Focus Nodes
@@ -41,6 +48,7 @@ class LoginController extends GetxController {
   final mobileFocusNode = FocusNode();
   final passwordFocusNode = FocusNode();
   final otpFocusNode = FocusNode();
+
   // endregion
 
   // region Lifecycle Methods
@@ -48,6 +56,7 @@ class LoginController extends GetxController {
   void onInit() {
     super.onInit();
     _loadSavedCredentials();
+    _checkBiometricAvailability();
   }
 
   @override
@@ -55,38 +64,71 @@ class LoginController extends GetxController {
     FocusManager.instance.primaryFocus?.unfocus();
     super.onClose();
   }
+
   // endregion
 
   // region API & Network Operations
   Future<void> handleLoginAction() async {
-    // 1. Mobile number validation check
-    final mobileError = validateMobileNumber(usernameController.text);
-    if (mobileError != null) {
+    // 1. Username / Mobile validation check
+    final loginId = usernameController.text.trim();
+    if (loginId.isEmpty) {
       AppCommonToastMessage.show(
-        message: mobileError,
+        message: selectedTab.value == 0
+            ? 'Please enter Mobile Number, Email or User ID'
+            : 'Please enter mobile number',
         type: ToastType.warning,
       );
       mobileFocusNode.requestFocus();
       return;
     }
 
+    // In OTP mode, mobile must be 10 digits
     if (isOtpLogin.value) {
+      final mobileError = validateMobileNumber(loginId);
+      if (mobileError != null) {
+        AppCommonToastMessage.show(
+          message: mobileError,
+          type: ToastType.warning,
+        );
+        mobileFocusNode.requestFocus();
+        return;
+      }
+
       isLoading.value = true;
       try {
-        final success = await _authRepository.sendOtp(
-          mobile: usernameController.text.trim(),
-        );
-        if (success) {
-          AppCommonToastMessage.show(
-            message: 'OTP Sent Successfully',
-            type: ToastType.success,
+        if (selectedTab.value == 0) {
+          // Employee Booking Send OTP
+          final res = await _authRepository.employeeBookingSendOtp(
+            mobile: loginId,
           );
-          showOtpBottomSheet();
+          if (res['status'] == true || res['otp_sent'] == true) {
+            AppCommonToastMessage.show(
+              message:
+                  res['message']?.toString() ?? 'Booking OTP sent successfully',
+              type: ToastType.success,
+            );
+            showOtpBottomSheet();
+          } else {
+            AppCommonToastMessage.show(
+              message: res['message']?.toString() ?? 'Failed to send OTP',
+              type: ToastType.error,
+            );
+          }
         } else {
-          AppCommonToastMessage.show(
-            message: 'Failed to send OTP',
-            type: ToastType.error,
-          );
+          // Operation Send OTP
+          final success = await _authRepository.sendOtp(mobile: loginId);
+          if (success) {
+            AppCommonToastMessage.show(
+              message: 'OTP Sent Successfully',
+              type: ToastType.success,
+            );
+            showOtpBottomSheet();
+          } else {
+            AppCommonToastMessage.show(
+              message: 'Failed to send OTP',
+              type: ToastType.error,
+            );
+          }
         }
       } catch (e) {
         String errorMessage = 'Failed to send OTP';
@@ -108,18 +150,17 @@ class LoginController extends GetxController {
   }
 
   Future<void> login() async {
-    // 1. Mobile number validation check
-    final mobileError = validateMobileNumber(usernameController.text);
-    if (mobileError != null) {
+    final loginId = usernameController.text.trim();
+    if (loginId.isEmpty) {
       AppCommonToastMessage.show(
-        message: mobileError,
+        message: 'Please enter User ID, Mobile or Email',
         type: ToastType.warning,
       );
       mobileFocusNode.requestFocus();
       return;
     }
 
-    // 2. Password validation check
+    // Password validation check
     if (passwordController.text.trim().isEmpty) {
       AppCommonToastMessage.show(
         message: 'Please enter password',
@@ -131,37 +172,88 @@ class LoginController extends GetxController {
 
     isLoading.value = true;
     try {
-      final user = await _authRepository.login(
-        mobile: usernameController.text.trim(),
-        password: passwordController.text.trim(),
-        loginMode: loginMode,
-      );
+      if (selectedTab.value == 0) {
+        // ── Booking Mode Login (Employee or Guest Parent) ──
+        final result = await _authRepository.bookingPasswordLogin(
+          loginId: loginId,
+          password: passwordController.text.trim(),
+        );
 
-      if (user != null) {
-        // Handle Remember Me
-        await _storageService.saveRememberMe(rememberMe.value);
-        if (rememberMe.value) {
-          await _storageService.saveCredentials(
-            mobile: usernameController.text.trim(),
-            password: passwordController.text.trim(),
-          );
-        } else {
-          await _storageService.clearCredentials();
+        if (result['status'] == true) {
+          final userType = (result['user_type'] ?? '').toString();
+
+          // Case 1: Guest Parent login detected -> Open Guest Cashier bottom sheet
+          if (userType == 'GUEST_LOGIN') {
+            final guestFlowToken = result['guest_flow_token']?.toString();
+            if (guestFlowToken != null && guestFlowToken.isNotEmpty) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              AppCommonToastMessage.show(
+                message:
+                    result['message']?.toString() ??
+                    'Parent login successful. Enter Cashier mobile.',
+                type: ToastType.info,
+              );
+              final ctx = Get.context;
+              if (ctx != null) {
+                await GuestFlowBottomSheet.show(
+                  ctx,
+                  guestFlowToken: guestFlowToken,
+                );
+              }
+            } else {
+              AppCommonToastMessage.show(
+                message: 'Guest flow token missing from server response',
+                type: ToastType.error,
+              );
+            }
+            return;
+          }
+
+          // Case 2: Employee Booking login detected -> Direct JWT login
+          if (result['token'] != null) {
+            await _handleSuccessfulLoginState(
+              loginId,
+              passwordController.text.trim(),
+            );
+            FocusManager.instance.primaryFocus?.unfocus();
+            Get.offAllNamed(AppRoutes.bookingUnitSelection);
+            return;
+          }
         }
 
-        FocusManager.instance.primaryFocus?.unfocus();
-        final updatedUser = await _authRepository.fetchProfile() ?? user;
-        final roleId = updatedUser.role;
-        if (roleId?.toString() == '1') {
-          Get.offAllNamed(AppRoutes.home);
-        } else {
-          Get.offAllNamed(AppRoutes.dailyTasks);
-        }
-      } else {
         AppCommonToastMessage.show(
-          message: 'Login failed. Please check your credentials.',
+          message:
+              result['message']?.toString() ??
+              'Login failed. Please check your credentials.',
           type: ToastType.error,
         );
+      } else {
+        // ── Operation Mode Login ──
+        final user = await _authRepository.login(
+          mobile: loginId,
+          password: passwordController.text.trim(),
+          loginMode: 'operation',
+        );
+
+        if (user != null) {
+          await _handleSuccessfulLoginState(
+            loginId,
+            passwordController.text.trim(),
+          );
+          FocusManager.instance.primaryFocus?.unfocus();
+          final updatedUser = await _authRepository.fetchProfile() ?? user;
+          final roleId = updatedUser.role;
+          if (roleId?.toString() == '1') {
+            Get.offAllNamed(AppRoutes.home);
+          } else {
+            Get.offAllNamed(AppRoutes.dailyTasks);
+          }
+        } else {
+          AppCommonToastMessage.show(
+            message: 'Login failed. Please check your credentials.',
+            type: ToastType.error,
+          );
+        }
       }
     } catch (e) {
       String errorMessage = 'An error occurred. Please try again.';
@@ -198,38 +290,54 @@ class LoginController extends GetxController {
   Future<void> verifyOtp(String otp) async {
     isLoading.value = true;
     try {
-      final user = await _authRepository.verifyOtp(
-        mobile: usernameController.text.trim(),
-        otp: otp.trim(),
-        loginMode: loginMode,
-      );
+      final mob = usernameController.text.trim();
 
-      if (user != null) {
-        FocusManager.instance.primaryFocus?.unfocus();
-        Get.back(); // close bottom sheet
+      if (selectedTab.value == 0) {
+        // ── Booking OTP Verification ──
+        final res = await _authRepository.employeeBookingVerifyOtp(
+          mobile: mob,
+          otp: otp.trim(),
+        );
 
-        await _storageService.saveRememberMe(rememberMe.value);
-        if (rememberMe.value) {
-          await _storageService.saveCredentials(
-            mobile: usernameController.text.trim(),
-            password: '',
+        if (res['status'] == true && res['token'] != null) {
+          FocusManager.instance.primaryFocus?.unfocus();
+          Get.back(); // close bottom sheet
+
+          await _handleSuccessfulLoginState(mob, '');
+          Get.offAllNamed(AppRoutes.bookingUnitSelection);
+        } else {
+          AppCommonToastMessage.show(
+            message: res['message']?.toString() ?? 'OTP Verification failed.',
+            type: ToastType.error,
           );
-        } else {
-          await _storageService.clearCredentials();
-        }
-
-        final updatedUser = await _authRepository.fetchProfile() ?? user;
-        final roleId = updatedUser.role;
-        if (roleId?.toString() == '1') {
-          Get.offAllNamed(AppRoutes.home);
-        } else {
-          Get.offAllNamed(AppRoutes.dailyTasks);
         }
       } else {
-        AppCommonToastMessage.show(
-          message: 'OTP Verification failed.',
-          type: ToastType.error,
+        // ── Operation OTP Verification ──
+        final user = await _authRepository.verifyOtp(
+          mobile: mob,
+          otp: otp.trim(),
+          loginMode: 'operation',
         );
+
+        if (user != null) {
+          FocusManager.instance.primaryFocus?.unfocus();
+          Get.back(); // close bottom sheet
+
+          await _handleSuccessfulLoginState(mob, '');
+
+          final updatedUser = await _authRepository.fetchProfile() ?? user;
+          final roleId = updatedUser.role;
+          if (roleId?.toString() == '1') {
+            Get.offAllNamed(AppRoutes.home);
+          } else {
+            Get.offAllNamed(AppRoutes.dailyTasks);
+          }
+        } else {
+          AppCommonToastMessage.show(
+            message: 'OTP Verification failed.',
+            type: ToastType.error,
+          );
+        }
       }
     } catch (e) {
       String errorMessage = 'Verification failed';
@@ -243,6 +351,135 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<void> _handleSuccessfulLoginState(
+    String mobile,
+    String password,
+  ) async {
+    await _storageService.saveLoginMode(loginMode);
+    await _storageService.saveRememberMe(rememberMe.value);
+    if (rememberMe.value) {
+      await _storageService.saveCredentials(mobile: mobile, password: password);
+    } else {
+      await _storageService.clearCredentials();
+    }
+
+    // Biometric opt-in prompt check
+    if (AppConfig.enableBiometricAuth &&
+        password.isNotEmpty &&
+        _biometricService.canCheckBiometrics.value &&
+        !_biometricService.isBiometricEnabled.value &&
+        !_biometricService.hasPromptedBiometrics.value) {
+      await _promptEnableBiometrics(userId: mobile, password: password);
+    }
+  }
+
+  Future<void> _promptEnableBiometrics({
+    required String userId,
+    required String password,
+  }) async {
+    final ctx = Get.context;
+    if (ctx == null) return;
+
+    await _biometricService.markBiometricPrompted();
+
+    final confirmed = await AppCommonDialogBox.showConfirm(
+      ctx,
+      title: 'Enable Biometric Login',
+      message:
+          'Would you like to enable Fingerprint / Face ID for faster login next time?',
+      confirmText: 'Enable',
+      cancelText: 'Skip',
+      icon: Icons.fingerprint_rounded,
+      confirmButtonColor: AppColors.primary,
+    );
+
+    if (confirmed) {
+      await _biometricService.saveBiometricCredentials(
+        userId: userId,
+        password: password,
+        loginMode: loginMode,
+      );
+      _checkBiometricAvailability();
+      AppCommonToastMessage.show(
+        message: 'Biometric login enabled successfully',
+        type: ToastType.success,
+      );
+    }
+  }
+
+  void _checkBiometricAvailability() {
+    if (!AppConfig.enableBiometricAuth) {
+      isBiometricAvailable.value = false;
+      return;
+    }
+
+    final hasBios = _biometricService.canCheckBiometrics.value;
+    final isEnabled = _biometricService.isBiometricEnabled.value;
+    final hasCreds = _biometricService.hasSavedCredentials.value;
+
+    isBiometricAvailable.value = hasBios && isEnabled && hasCreds;
+  }
+
+  Future<void> loginWithBiometrics() async {
+    if (!AppConfig.enableBiometricAuth || !isBiometricAvailable.value) {
+      return;
+    }
+
+    final creds = await _biometricService.getSavedCredentials();
+    if (creds == null) {
+      _checkBiometricAvailability();
+      AppCommonToastMessage.show(
+        message: 'No biometric credentials found. Please login with password.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final status = await _biometricService.authenticate(
+      localizedReason: 'Authenticate to login to mFresh Ops',
+    );
+
+    switch (status) {
+      case BiometricAuthStatus.success:
+        usernameController.text = creds['userId'] ?? '';
+        passwordController.text = creds['password'] ?? '';
+        if (creds['loginMode'] == 'booking') {
+          selectedTab.value = 0;
+        } else {
+          selectedTab.value = 1;
+        }
+        isOtpLogin.value = false;
+        await login();
+        break;
+      case BiometricAuthStatus.lockedOut:
+        AppCommonToastMessage.show(
+          message:
+              'Biometric authentication is locked out. Please use password.',
+          type: ToastType.error,
+        );
+        break;
+      case BiometricAuthStatus.userCanceled:
+        // User voluntarily canceled the biometric prompt, no toast needed
+        break;
+      case BiometricAuthStatus.notAvailable:
+      case BiometricAuthStatus.notEnrolled:
+        AppCommonToastMessage.show(
+          message: 'Biometrics not configured on this device.',
+          type: ToastType.warning,
+        );
+        break;
+      case BiometricAuthStatus.failed:
+      case BiometricAuthStatus.otherError:
+        AppCommonToastMessage.show(
+          message:
+              'Biometric authentication failed. Please enter your password.',
+          type: ToastType.error,
+        );
+        break;
+    }
+  }
+
   // endregion
 
   // region Dialogs & Bottom Sheets
@@ -280,9 +517,7 @@ class LoginController extends GetxController {
               defaultPinTheme: PinTheme(
                 width: 48.w,
                 height: 48.h,
-                textStyle: AppTextStyle.style_20_600(
-                  color: AppColors.black,
-                ),
+                textStyle: AppTextStyle.style_20_600(color: AppColors.black),
                 decoration: BoxDecoration(
                   color: AppColors.blue500.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12.r),
@@ -292,9 +527,7 @@ class LoginController extends GetxController {
               focusedPinTheme: PinTheme(
                 width: 48.w,
                 height: 48.h,
-                textStyle: AppTextStyle.style_20_600(
-                  color: AppColors.black,
-                ),
+                textStyle: AppTextStyle.style_20_600(color: AppColors.black),
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(12.r),
@@ -338,6 +571,7 @@ class LoginController extends GetxController {
     // Clean up focus after modal closes
     FocusManager.instance.primaryFocus?.unfocus();
   }
+
   // endregion
 
   // region Business Logic & Helpers
@@ -423,6 +657,8 @@ class LoginController extends GetxController {
     FocusManager.instance.primaryFocus?.unfocus();
     isOtpLogin.value = !isOtpLogin.value;
   }
+
   // endregion
 }
+
 // endregion

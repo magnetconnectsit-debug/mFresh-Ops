@@ -12,8 +12,15 @@ enum LoginTabType { booking, operation }
 // endregion
 
 // region LoginScreen View
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // region Main Build
   @override
@@ -21,6 +28,8 @@ class LoginScreen extends StatelessWidget {
     final controller = Get.isRegistered<LoginController>()
         ? Get.find<LoginController>()
         : Get.put(LoginController(), permanent: true);
+
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -30,37 +39,65 @@ class LoginScreen extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: Form(
-            key: controller.formKey,
+            key: _formKey,
             autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: CustomScrollView(
-              physics: const ClampingScrollPhysics(),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: 360.w),
+            child: isTablet
+                ? Center(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        child: Column(
-                          children: [
-                            SizedBox(height: 28.h),
-                            _buildLogo(controller),
-                            SizedBox(height: 20.h),
-                            _buildCard(context, controller),
-                            const Spacer(),
-                            _buildFooter(),
-                            SizedBox(height: 16.h),
-                          ],
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 20.h,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 580.w),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildLogo(controller, isTablet: true),
+                              SizedBox(height: 28.h),
+                              _buildCard(context, controller),
+                              SizedBox(height: 32.h),
+                              _buildFooter(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
+                  )
+                : CustomScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    slivers: [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: 360.w),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w),
+                              child: Column(
+                                children: [
+                                  SizedBox(height: 28.h),
+                                  _buildLogo(controller),
+                                  SizedBox(height: 20.h),
+                                  _buildCard(context, controller),
+                                  const Spacer(),
+                                  _buildFooter(),
+                                  SizedBox(height: 16.h),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -69,13 +106,14 @@ class LoginScreen extends StatelessWidget {
   // endregion
 
   // region Header & Logo
-  Widget _buildLogo(LoginController controller) {
+  Widget _buildLogo(LoginController controller, {bool isTablet = false}) {
     return Center(
       child: GestureDetector(
         onTap: controller.handleLogoTap,
         child: Image.asset(
           AppImages.appLogo,
-          fit: BoxFit.fill,
+          width: isTablet ? 220.w : null,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -84,7 +122,8 @@ class LoginScreen extends StatelessWidget {
 
   // region Section Builders
   Widget _buildCard(BuildContext context, LoginController controller) {
-    final tabHeight = 88.h;
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    final tabHeight = isTablet ? 104.h : 88.h;
 
     final cardContent = Column(
       mainAxisSize: MainAxisSize.min,
@@ -95,7 +134,10 @@ class LoginScreen extends StatelessWidget {
 
         // ── Form Content ──
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24.w : 18.w,
+            vertical: isTablet ? 26.h : 20.h,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -103,6 +145,7 @@ class LoginScreen extends StatelessWidget {
               _buildPasswordSection(controller),
               SizedBox(height: 18.h),
               _buildActionButton(controller),
+              _buildBiometricSection(controller),
               SizedBox(height: 14.h),
               _buildModeSwitcher(controller),
             ],
@@ -198,26 +241,29 @@ class LoginScreen extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => controller.selectTab(tabIndex),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: 12.h, bottom: 6.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LoginTabAnimationWidget(
-                  type: type,
-                  isSelected: isSelected,
-                  size: 46.r,
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: 8.h),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LoginTabAnimationWidget(
+                      type: type,
+                      isSelected: isSelected,
+                      size: 44.r,
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      title,
+                      style: isSelected
+                          ? AppTextStyle.style_14_700(color: AppColors.primary)
+                          : AppTextStyle.style_14_600(color: AppColors.iconPrimary),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 3.h),
-                Text(
-                  title,
-                  style: isSelected
-                      ? AppTextStyle.style_14_700(color: AppColors.primary)
-                      : AppTextStyle.style_14_600(color: AppColors.iconPrimary),
-                ),
-              ],
+              ),
             ),
           ),
           AnimatedContainer(
@@ -244,42 +290,48 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildMobileField(LoginController controller) {
-    return Obx(
-      () => AppCommonTextField(
-        key: const ValueKey('login_mobile_field'),
+    return Obx(() {
+      final isOtp = controller.isOtpLogin.value;
+      // In password mode (Booking or Operation), user can enter User ID, Mobile, or Email.
+      final isFreeTextLoginId = !isOtp;
+
+      return AppCommonTextField(
+        key: ValueKey('login_input_${isFreeTextLoginId ? "id" : "mobile"}'),
         controller: controller.usernameController,
         focusNode: controller.mobileFocusNode,
-        titleText: 'Mobile Number',
-        hintText: 'Enter Mobile Number',
+        titleText: isFreeTextLoginId ? 'User ID / Mobile / Email' : 'Mobile Number',
+        hintText: isFreeTextLoginId ? 'Enter User ID, Mobile or Email' : 'Enter Mobile Number',
         useFloatingLabel: true,
-        keyboardType: TextInputType.phone,
-        maxLength: 10,
+        keyboardType: isFreeTextLoginId ? TextInputType.text : TextInputType.phone,
+        maxLength: isFreeTextLoginId ? 50 : 10,
         borderRadius: 8.r,
         fillColor: AppColors.white,
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         prefixIconConstraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
         prefixIcon: Icon(
-          Icons.phone_android_rounded,
+          isFreeTextLoginId ? Icons.account_circle_outlined : Icons.phone_android_rounded,
           size: 18.sp,
           color: AppColors.iconPrimary,
         ),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(10),
-        ],
-        validator: controller.validateMobileNumber,
-        textInputAction: controller.isOtpLogin.value
-            ? TextInputAction.done
-            : TextInputAction.next,
+        inputFormatters: isFreeTextLoginId
+            ? null
+            : [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ],
+        validator: isFreeTextLoginId
+            ? (val) => (val == null || val.trim().isEmpty) ? 'Please enter Login ID' : null
+            : controller.validateMobileNumber,
+        textInputAction: isOtp ? TextInputAction.done : TextInputAction.next,
         onFieldSubmitted: (_) {
-          if (controller.isOtpLogin.value) {
+          if (isOtp) {
             controller.handleLoginAction();
           } else {
             controller.passwordFocusNode.requestFocus();
           }
         },
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildPasswordField(LoginController controller) {
@@ -364,6 +416,34 @@ class LoginScreen extends StatelessWidget {
         onPressed: controller.handleLoginAction,
       ),
     );
+  }
+
+  Widget _buildBiometricSection(LoginController controller) {
+    return Obx(() {
+      if (!controller.isBiometricAvailable.value) {
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: AppCommonButton(
+          width: double.infinity,
+          height: 36.h,
+          textSize: 13.sp,
+          borderRadius: 8.r,
+          useGradient: false,
+          variant: ButtonVariant.outline,
+          borderColor: AppColors.primary,
+          textColor: AppColors.primary,
+          icon: Icons.fingerprint_rounded,
+          iconSize: 20.sp,
+          iconColor: AppColors.primary,
+          text: 'Login with Biometrics',
+          isLoading: controller.isLoading.value,
+          onPressed: controller.loginWithBiometrics,
+        ),
+      );
+    });
   }
 
   Widget _buildModeSwitcher(LoginController controller) {

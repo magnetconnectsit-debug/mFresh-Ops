@@ -361,26 +361,9 @@ class UserAdapter extends TypeAdapter<User> {
 }
 // endregion
 
-// region User Permissions
-class UserPermissions {
-  final List<String> _permissions;
-  UserPermissions(this._permissions);
-
-  bool get customerMemberRadio => _permissions.contains('customerMemberRadio');
-  bool get scannerAccess => _permissions.contains('scannerAccess');
-  bool get userProfileFilter => _permissions.contains('userProfileFilter');
-  bool get resendReceiptCustomer => _permissions.contains('resendReceiptCustomer');
-  bool get onlineOfflineToggle => _permissions.contains('onlineOfflineToggle');
-  bool get externalQr => _permissions.contains('externalQr');
-  bool get additionalPhoneNo => _permissions.contains('additionalPhoneNo');
-  bool get receiptPrint => _permissions.contains('receiptPrint');
-  bool get paymentGateway => _permissions.contains('paymentGateway');
-  bool get cashCollectionAccess => _permissions.contains('cashCollectionAccess');
-  bool get resetPrint => _permissions.contains('resetPrint');
-}
-
-extension UserPermissionsExtension on User {
-  UserPermissions get appPermissions => UserPermissions(permissions ?? []);
+// region User Extensions
+extension UserExtension on User {
   String get customeUserID => id.toString(); // Map customUserID to id.toString()
 }
 // endregion
+

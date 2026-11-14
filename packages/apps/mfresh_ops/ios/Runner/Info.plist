@@ -38,6 +38,8 @@
 	<string>This app requires access to your microphone when recording video for support tickets.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app requires access to your location when in use to track duty status.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app requires Face ID / Touch ID authentication for quick and secure login.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

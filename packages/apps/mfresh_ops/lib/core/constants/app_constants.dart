@@ -23,6 +23,36 @@ class AppConstants {
   static const String sendOtp = 'adminsend-otp';
   static const String verifyOtp = 'adminverify-otp';
 
+  // Booking & Guest Authentication
+  static const String bookingSendOtp = 'booking/send-otp';
+  static const String bookingVerifyOtp = 'booking/verify-otp';
+  static const String bookingGuestCheckMobile = 'booking-guest/check-mobile';
+  static const String bookingGuestRegister = 'booking-guest/register';
+  static const String bookingGuestSendOtp = 'booking-guest/send-otp';
+  static const String bookingGuestVerifyOtp = 'booking-guest/verify-otp';
+  static const String adminBookingUnits = 'admin-booking/units';
+  static const String adminBookingUnitEnter = 'admin-booking/unit/enter';
+  static const String adminBookingUnitServices = 'admin-booking/unit/services';
+  static const String adminBookingRecentBookings =
+      'admin-booking/unit/recent-bookings';
+  static const String adminBookingInitiate = 'admin-booking/booking/initiate';
+  static const String adminBookingPaymentSuccess =
+      'admin-booking/booking/payment-success';
+  static const String refreshToken = 'refresh';
+
+  // Cash Management & Handover
+  static const String adminHandoverUsers = 'admin-booking/handover/users';
+  static const String adminHandoverOverview = 'admin-booking/handover/overview';
+  static const String adminHandoverCtodDates =
+      'admin-booking/handover/ctod-dates';
+  static const String adminHandoverCreate = 'admin-booking/handover/create';
+  static const String adminHandoverResendOtp =
+      'admin-booking/handover/resend-otp';
+  static const String adminHandoverVerifyOtp =
+      'admin-booking/handover/verify-otp';
+  static const String adminHandoverExitCheck =
+      'admin-booking/handover/exit-check';
+
   // Attendance
   static const String attendanceCheckIn = 'attendance/check-in';
   static const String attendanceCheckOut = 'attendance/check-out';
@@ -34,17 +64,13 @@ class AppConstants {
   static const String comparisonDashboardData = 'comparison-dashboard-data';
 
   // Booking Module
-  static const String customerBookingDetails =
-      'customer/customerbookingdetails';
   static const String resendBookingSms = 'customer/resend-booking-sms';
   static const String allUnitServices = 'customer/Api-get-Unit-services';
   static const String bookingHistory = 'customer/bookinghistory';
   static const String allUnits = 'customer/All-Units';
-  static const String initiateBooking = 'customer/Api-initiateBooking';
-  static const String successBooking = 'customer/Api-SuccessBooking';
-  static const String validateMemPhone = 'customer/validate-mem-phone';
-  static const String sendOtpMember = 'customer/send-otp-member';
-  static const String verifyOtpMember = 'customer/verify-otp-member';
+  static const String validateMemPhone = 'validate-mem-phone';
+  static const String sendOtpMember = 'send-otp-member';
+  static const String verifyOtpMember = 'verify-otp-member';
   static const String kioskScan = 'customer/kiosk-scan';
 
   // Support Tickets
@@ -253,6 +279,28 @@ class AppConstants {
   static const String responsibilitiesUpdate = 'responsibilities-update';
   static const String responsibilitiesDelete = 'responsibilities-delete';
   static const String responsibilitiesView = 'responsibilities-view';
+
+  // Master Module (Zones, States, Districts & Services)
+  static const String zoneIndex = 'zone-index';
+  static const String zoneCreate = 'zone-create';
+  static const String zoneUpdate = 'zone-update';
+  static const String zoneDelete = 'zone-delete';
+  static const String stateIndex = 'state-index';
+  static const String stateCreate = 'state-create';
+  static const String stateUpdate = 'state-update';
+  static const String stateDelete = 'state-delete';
+  static const String districtIndex = 'district-index';
+  static const String districtCreate = 'district-create';
+  static const String districtUpdate = 'district-update';
+  static const String districtDelete = 'district-delete';
+  static const String serviceIndex = 'service-index';
+  static const String serviceCreate = 'service-create';
+  static const String serviceUpdate = 'service-update';
+  static const String serviceDelete = 'service-delete';
+  static const String amenityIndex = 'amenity-index';
+  static const String amenityCreate = 'amenity-create';
+  static const String amenityUpdate = 'amenity-update';
+  static const String amenityDelete = 'amenity-delete';
   // endregion
 
   // region Hive Keys

@@ -1,18 +1,21 @@
+// region Imports
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_images.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/custom_app_loader.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/modules/service_details/controllers/service_details_controller.dart';
 import 'package:mfresh_ops/modules/service_details/views/widgets/service_card.dart';
+import 'package:mfresh_ops/modules/service_details/views/widgets/handover_dialog_helper.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+// endregion
 
 class ServiceDetailsScreen extends StatelessWidget {
+  // region Constructor
   const ServiceDetailsScreen({super.key});
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ServiceDetailsController());
@@ -25,701 +28,694 @@ class ServiceDetailsScreen extends StatelessWidget {
           onRefresh: () => controller.refreshData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Column(
+            child: Column(
               children: [
-                // Top Banner
-                Builder(
-                  builder: (context) {
-                    final bool isDesktop =
-                        MediaQuery.of(context).size.width > 1000;
-                    final double bannerHeight = isDesktop ? 150.h : 120.h;
-
-                    return Container(
-                      width: double.infinity,
-                      height: bannerHeight,
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage(AppImages.unitCard),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: Stack(
-                        children: [
-                          // Unit Image (Overlays the fallback decoration)
-                          Obx(
-                            () => controller.unitImage.value.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: controller.unitImage.value,
-                                    width: double.infinity,
-                                    height: bannerHeight,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(),
-                                    // Falls back to decoration
-                                    errorWidget: (context, url, error) =>
-                                        Container(), // Falls back to decoration
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          // Dark overlay
-                          Container(
-                            color: AppColors.black.withValues(alpha: 0.5),
-                          ),
-                          // Unit info
-                          Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Obx(
-                                  () => Text(
-                                    controller.unitNo.value,
-                                    style: AppTextStyle.style_32_700(
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 6.h),
-                                Obx(
-                                  () => Text(
-                                    controller.location.value,
-                                    style: AppTextStyle.style_20_400(
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Back button
-                          Positioned(
-                            left: 8.w,
-                            top: 0,
-                            bottom: 0,
-                            child: GestureDetector(
-                              onTap: () => Get.back(),
-                              child: Container(
-                                padding: EdgeInsets.all(8.w),
-                                color: Colors.transparent,
-                                child: Icon(
-                                  Icons.arrow_back_ios,
-                                  size: 18.sp,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                          // History button
-                          Positioned(
-                            right: 8.w,
-                            top: 0,
-                            bottom: 0,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  Get.toNamed(AppRoutes.bookingHistory),
-                              child: Container(
-                                padding: EdgeInsets.all(8.w),
-                                color: Colors.transparent,
-                                child: Icon(
-                                  Icons.history,
-                                  size: 22.sp,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-
-                // Customer / Membership toggle + Online toggle
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 3.h,
-                  ),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      // Customer / Membership radio toggle
-                      Obx(() {
-                        final canToggle =
-                            controller.appPermissions?.customerMemberRadio ??
-                            false;
-                        if (!canToggle) return const SizedBox.shrink();
-
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: () => controller.toggleCustomerType(true),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    controller.isCustomer.value
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_off,
-                                    size: 16.sp,
-                                    color: AppColors.primaryVariant,
-                                  ),
-                                  SizedBox(width: 4.w),
-                                  Text(
-                                    'Customer',
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.black,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 20.w),
-                            GestureDetector(
-                              onTap: () => controller.toggleCustomerType(false),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    !controller.isCustomer.value
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_off,
-                                    size: 16.sp,
-                                    color: AppColors.primaryVariant,
-                                  ),
-                                  SizedBox(width: 4.w),
-                                  Text(
-                                    'Membership',
-                                    style: AppTextStyle.style_12_600(
-                                      color: AppColors.black,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 20.w),
-                          ],
-                        );
-                      }),
-                      const Spacer(),
-                      // Online toggle
-                      Obx(() {
-                        final canToggle =
-                            controller.appPermissions?.onlineOfflineToggle ??
-                            false;
-                        if (!canToggle) return const SizedBox.shrink();
-
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              controller.isOnline.value ? 'Online' : 'Offline',
-                              style: AppTextStyle.style_14_600(
-                                color: controller.isOnline.value
-                                    ? AppColors.green
-                                    : AppColors.red,
-                              ),
-                            ),
-                            SizedBox(height: 2.h),
-                            GestureDetector(
-                              onTap: () => controller.toggleOnline(),
-                              child: Container(
-                                width: 50.w,
-                                height: 25.h,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12.5.r),
-                                  color: controller.isOnline.value
-                                      ? AppColors.green
-                                      : AppColors.red,
-                                ),
-                                child: AnimatedAlign(
-                                  duration: const Duration(milliseconds: 200),
-                                  alignment: controller.isOnline.value
-                                      ? Alignment.centerRight
-                                      : Alignment.centerLeft,
-                                  child: Container(
-                                    width: 20.w,
-                                    height: 20.h,
-                                    margin: EdgeInsets.symmetric(
-                                      horizontal: 2.w,
-                                    ),
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-
-                // Services List / Grid
-                Obx(() {
-                  if (controller.isLoading.value) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40.h),
-                      child: const Center(child: CustomAppLoader(size: 60)),
-                    );
-                  }
-                  if (controller.services.isEmpty) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40.h),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              size: 48.sp,
-                              color: AppColors.grey200,
-                            ),
-                            SizedBox(height: 12.h),
-                            Text(
-                              'No services available for this unit',
-                              style: AppTextStyle.style_14_600(
-                                color: AppColors.grey300,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Services Grid
-                        Builder(
-                          builder: (context) {
-                            final bool isDesktop =
-                                MediaQuery.of(context).size.width > 1000;
-                            return GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: controller.services.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: isDesktop
-                                        ? 4
-                                        : (MediaQuery.of(context).size.shortestSide >= 600
-                                            ? 3
-                                            : 2),
-                                    crossAxisSpacing: 10.w,
-                                    mainAxisSpacing: 10.h,
-                                    childAspectRatio: isDesktop ? 2.4 : 1.7,
-                                  ),
-                              itemBuilder: (context, index) {
-                                return ServiceCard(
-                                  controller: controller,
-                                  index: index,
-                                );
-                              },
-                            );
-                          },
-                        ),
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
-                  );
-                }),
+                _buildTopBanner(context, controller),
+                _buildTogglesBar(context, controller),
+                _buildServicesSection(context, controller),
               ],
             ),
           ),
         ),
       ),
-    ),
-  ),
-  bottomNavigationBar: Obx(
-    () => controller.total > 0
-        ? Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+      bottomNavigationBar: _buildBottomSummaryBar(context, controller),
+    );
+  }
+  // endregion
+
+  // region Section Builders
+  Widget _buildTopBanner(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
+    return Builder(
+      builder: (context) {
+        final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+        final bool isDesktop = MediaQuery.of(context).size.width > 1000;
+        final double bannerHeight = isDesktop ? 160.h : (isTablet ? 130.h : 124.h);
+
+        return Container(
+          width: double.infinity,
+          height: bannerHeight,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(AppImages.unitCard),
+              fit: BoxFit.cover,
             ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 10.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, -4),
+          ),
+          child: Stack(
+            children: [
+              // Unit Image (Overlays the fallback decoration)
+              Obx(
+                () => controller.unitImage.value.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: controller.unitImage.value,
+                        width: double.infinity,
+                        height: bannerHeight,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(),
+                        errorWidget: (context, url, error) => Container(),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              // Dark overlay
+              Container(color: AppColors.black.withValues(alpha: 0.5)),
+              // Unit info
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Obx(
+                      () => Text(
+                        controller.unitNo.value,
+                        style: AppTextStyle.style_32_700(
+                          color: AppColors.white,
+                        ),
                       ),
-                    ],
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20.r),
-                      topRight: Radius.circular(20.r),
                     ),
-                  ),
-                  child: SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Contact Details Section
-                        Text(
-                          'Contact Details',
-                          style: AppTextStyle.style_12_600(
-                            color: AppColors.primary,
-                          ),
+                    SizedBox(height: 6.h),
+                    Obx(
+                      () => Text(
+                        controller.location.value,
+                        style: AppTextStyle.style_20_400(
+                          color: AppColors.white,
                         ),
-                        SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.grey50.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: TextField(
-                                  controller: controller.mobileController,
-                                  keyboardType: TextInputType.phone,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.black,
-                                  ),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    hintText: 'Mobile Number*',
-                                    hintStyle: AppTextStyle.style_12_400(
-                                      color: AppColors.grey200,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.grey50.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: TextField(
-                                  controller: controller.nameController,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.black,
-                                  ),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    hintText: 'Full Name',
-                                    hintStyle: AppTextStyle.style_12_400(
-                                      color: AppColors.grey200,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Obx(() {
-                          final canShowAddPhone =
-                              controller.appPermissions?.additionalPhoneNo ??
-                              false;
-                          if (!canShowAddPhone) return const SizedBox.shrink();
-
-                          return Column(
-                            children: [
-                              SizedBox(height: 6.h),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.grey50.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: TextField(
-                                  controller: controller.addPhoneController,
-                                  keyboardType: TextInputType.phone,
-                                  maxLength: 10,
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.black,
-                                  ),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    counterText: "",
-                                    hintText: 'Additional Phone',
-                                    hintStyle: AppTextStyle.style_12_400(
-                                      color: AppColors.grey200,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-
-                        // Membership Verification (Restored from old project)
-                        Obx(
-                          () => !controller.isCustomer.value
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: 8.h),
-                                    Text(
-                                      'Membership Details',
-                                      style: AppTextStyle.style_12_600(
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    SizedBox(height: 6.h),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 12.w,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.grey50
-                                                  .withValues(alpha: 0.5),
-                                              borderRadius:
-                                                  BorderRadius.circular(8.r),
-                                            ),
-                                            child: TextField(
-                                              controller: controller
-                                                  .memberMobileController,
-                                              keyboardType: TextInputType.phone,
-                                              maxLength: 10,
-                                              style: AppTextStyle.style_12_400(
-                                                color: AppColors.black,
-                                              ),
-                                              decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                                isDense: true,
-                                                counterText: "",
-                                                hintText:
-                                                    'Member Mobile Number',
-                                                hintStyle:
-                                                    AppTextStyle.style_12_400(
-                                                      color: AppColors.grey200,
-                                                    ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                        SizedBox(height: 8.h),
-
-                        // Dashed Divider
-                        Row(
-                          children: List.generate(
-                            150,
-                            (index) => Expanded(
-                              child: Container(
-                                color: index % 2 == 0
-                                    ? Colors.transparent
-                                    : AppColors.grey100,
-                                height: 1,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 6.h),
-
-                        // Total Amount Display
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'TOTAL',
-                              style: AppTextStyle.style_12_600(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            Text(
-                              '₹ ${controller.total}',
-                              style: AppTextStyle.style_14_700(
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 6.h),
-
-                        // Payment Buttons
-                        Obx(
-                          () => !controller.isOnline.value
-                              ? SizedBox(
-                                  width: double.infinity,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.green.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton(
-                                      onPressed: () => controller
-                                          .initiateBooking(isExternalQr: false),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.green,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 8.h,
-                                        ),
-                                        // Decreased size further
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10.r,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'PAY CASH',
-                                        style: AppTextStyle.style_14_700(
-                                          color: AppColors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.blue.withValues(
-                                                alpha: 0.3,
-                                              ),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ElevatedButton(
-                                          onPressed: () =>
-                                              controller.initiateBooking(
-                                                isExternalQr: false,
-                                              ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.blue,
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: 12.h,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10.r),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            'PAY',
-                                            style: AppTextStyle.style_14_700(
-                                              color: AppColors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Obx(() {
-                                      final canShowExternalQr =
-                                          (controller
-                                                  .appPermissions
-                                                  ?.externalQr ??
-                                              false) &&
-                                          controller.isOnline.value;
-                                       if (!canShowExternalQr) {
-                                         return const SizedBox.shrink();
-                                       }
-
-                                      return Expanded(
-                                        child: Container(
-                                          margin: EdgeInsets.only(left: 12.w),
-                                          decoration: BoxDecoration(
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppColors.black
-                                                    .withValues(alpha: 0.1),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: ElevatedButton(
-                                            onPressed: () =>
-                                                controller.initiateBooking(
-                                                  isExternalQr: true,
-                                                ),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  AppColors.grey400,
-                                              padding: EdgeInsets.symmetric(
-                                                vertical: 12.h,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10.r),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              'External QR Payment',
-                                              style: AppTextStyle.style_12_600(
-                                                color: AppColors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                        ),
-                      ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Back button
+              Positioned(
+                left: 8.w,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  onTap: () => Get.back(),
+                  child: Container(
+                    padding: EdgeInsets.all(8.w),
+                    color: Colors.transparent,
+                    child: Icon(
+                      Icons.arrow_back_ios,
+                      size: 18.sp,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
               ),
+              // Top Right Action: History Button (Positioned at Top-Right)
+              Positioned(
+                right: isTablet ? 16.w : 10.w,
+                top: isTablet ? 12.h : 6.h,
+                child: Builder(
+                  builder: (context) {
+                    final double btnWidth = isTablet ? 120.w : 86.w;
+                    final double btnHeight = isTablet ? 36.h : 24.h;
+                    final double fontSize = isTablet ? 13.sp : 9.5.sp;
+                    final double iconSize = isTablet ? 17.sp : 12.sp;
+
+                    return AppCommonButton(
+                      text: 'History',
+                      width: btnWidth,
+                      height: btnHeight,
+                      textSize: fontSize,
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      buttonColor: AppColors.primary,
+                      prefixIcon: Icons.history,
+                      iconSize: iconSize,
+                      iconColor: AppColors.white,
+                      textColor: AppColors.white,
+                      onPressed: () => Get.toNamed(
+                        AppRoutes.bookingHistory,
+                        arguments: {
+                          'unitId': controller.unitNo.value,
+                          'cashierSessionId': controller.cashierSessionId.value,
+                          'location': controller.location.value,
+                          'paperRollSize': controller.paperRollSize.value,
+                          'printingType': controller.printingType.value,
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Bottom Right Action: Handover Button (Positioned at Bottom-Right)
+              Positioned(
+                right: isTablet ? 16.w : 10.w,
+                bottom: isTablet ? 12.h : 6.h,
+                child: Builder(
+                  builder: (context) {
+                    final double btnWidth = isTablet ? 120.w : 86.w;
+                    final double btnHeight = isTablet ? 36.h : 24.h;
+                    final double fontSize = isTablet ? 13.sp : 9.5.sp;
+                    final double iconSize = isTablet ? 17.sp : 12.sp;
+
+                    return AppCommonButton(
+                      text: 'Handover',
+                      width: btnWidth,
+                      height: btnHeight,
+                      textSize: fontSize,
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      buttonColor: AppColors.primary,
+                      prefixIcon: Icons.payments_outlined,
+                      iconSize: iconSize,
+                      iconColor: AppColors.white,
+                      textColor: AppColors.white,
+                      onPressed: () {
+                        HandoverDialogHelper.showHandoverDialog(
+                          context: context,
+                          unitNo: controller.unitNo.value,
+                          cashierSessionId: controller.cashierSessionId.value,
+                          onSuccess: () {},
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTogglesBar(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
+    final double tabHeight = isTablet ? 38.h : 30.h;
+    final double toggleWidth = isTablet ? 110.w : 76.w;
+    final double toggleHeight = isTablet ? 38.h : 30.h;
+    final double thumbSize = isTablet ? 30.h : 22.h;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: isTablet ? 10.h : 6.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Customer / Membership Tab Switch (Takes available width, never clipped)
+          Expanded(
+            child: Obx(() {
+              return AppCommonConnectedTabBar(
+                tabs: const ['Customer', 'Membership'],
+                selectedIndex: controller.isCustomer.value ? 0 : 1,
+                height: tabHeight,
+                isPillStyle: true,
+                borderColor: const Color(0xFFE2E8F0),
+                backgroundColor: const Color(0xFFEEF2F6),
+                activeTabColor: AppColors.white,
+                activeTextColor: AppColors.primary,
+                inactiveTextColor: const Color(0xFF64748B),
+                activeTextStyle: isTablet
+                    ? AppTextStyle.style_14_600(color: AppColors.primary)
+                    : AppTextStyle.style_11_600(color: AppColors.primary),
+                inactiveTextStyle: isTablet
+                    ? AppTextStyle.style_14_500(color: const Color(0xFF64748B))
+                    : AppTextStyle.style_11_500(color: const Color(0xFF64748B)),
+                borderRadius: BorderRadius.circular(isTablet ? 10.r : 8.r),
+                onTabChanged: (index) {
+                  controller.toggleCustomerType(index == 0);
+                },
+              );
+            }),
+          ),
+          SizedBox(width: isTablet ? 16.w : 8.w),
+
+          // Right-aligned Online / Offline Animated Switch
+          Obx(() {
+            final isOnline = controller.isOnline.value;
+            final activeColor =
+                isOnline ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+            final labelText = isOnline ? 'Online' : 'Offline';
+
+            return GestureDetector(
+              onTap: () => controller.toggleOnline(),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                width: toggleWidth,
+                height: toggleHeight,
+                padding: EdgeInsets.symmetric(horizontal: isTablet ? 4.5.w : 3.w),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(toggleHeight / 2),
+                  color: activeColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Animated text fade and slide transition
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      left: isOnline ? (isTablet ? 12.w : 6.w) : (isTablet ? 40.w : 24.w),
+                      right: isOnline ? (isTablet ? 40.w : 24.w) : (isTablet ? 12.w : 6.w),
+                      child: Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Text(
+                            labelText,
+                            key: ValueKey<String>(labelText),
+                            style: isTablet
+                                ? AppTextStyle.style_13_600(color: AppColors.white)
+                                : AppTextStyle.style_10_700(color: AppColors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Animated sliding thumb
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      alignment:
+                          isOnline ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        width: thumbSize,
+                        height: thumbSize,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 3,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServicesSection(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          child: const Center(child: CustomAppLoader(size: 60)),
+        );
+      }
+      if (controller.services.isEmpty) {
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: 40.h),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 48.sp,
+                  color: AppColors.grey200,
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  'No services available for this unit',
+                  style: AppTextStyle.style_14_600(color: AppColors.grey300),
+                ),
+              ],
             ),
-          )
-        : const SizedBox.shrink(),
-  ),
-);
-}
+          ),
+        );
+      }
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Builder(
+              builder: (context) {
+                final double screenWidth = MediaQuery.of(context).size.width;
+                final bool isTabletLandscape = screenWidth > 800;
+                final bool isTabletPortrait = MediaQuery.of(context).size.shortestSide >= 600;
+
+                // 4 in a row for tablet landscape, 3 in a row for tablet portrait, 2 for mobile
+                final int crossAxisCount = isTabletLandscape
+                    ? 4
+                    : (isTabletPortrait ? 3 : 2);
+
+                // Higher aspect ratio = more compact, smaller vertical height
+                final double childAspectRatio = isTabletLandscape
+                    ? 2.8
+                    : (isTabletPortrait ? 2.6 : 1.7);
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: controller.services.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 10.w,
+                    mainAxisSpacing: 10.h,
+                    childAspectRatio: childAspectRatio,
+                  ),
+                  itemBuilder: (context, index) {
+                    return ServiceCard(controller: controller, index: index);
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 20.h),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildBottomSummaryBar(
+    BuildContext context,
+    ServiceDetailsController controller,
+  ) {
+    return Obx(
+      () => controller.total > 0
+          ? Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16.w,
+                  vertical: 10.h,
+                ),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.r),
+                        topRight: Radius.circular(20.r),
+                      ),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Contact Details Section
+                          Text(
+                            'Contact Details',
+                            style: AppTextStyle.style_12_600(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AppCommonTextField(
+                                  controller: controller.mobileController,
+                                  labelText: 'Mobile Number',
+                                  hintText: 'Enter Mobile Number',
+                                  isRequired: true,
+                                  readOnly: true,
+                                  useFloatingLabel: true,
+                                  keyboardType: TextInputType.phone,
+                                  borderRadius: 8.r,
+                                  fillColor: AppColors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: AppCommonTextField(
+                                  controller: controller.nameController,
+                                  labelText: 'Full Name',
+                                  hintText: 'Enter Full Name',
+                                  readOnly: true,
+                                  useFloatingLabel: true,
+                                  borderRadius: 8.r,
+                                  fillColor: AppColors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AppCommonTextField(
+                                  controller: controller.addPhoneController,
+                                  labelText: 'Additional Phone',
+                                  hintText: 'Enter Additional Phone',
+                                  useFloatingLabel: true,
+                                  keyboardType: TextInputType.phone,
+                                  maxLength: 10,
+                                  borderRadius: 8.r,
+                                  fillColor: AppColors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: AppCommonTextField(
+                                  controller: controller.referralController,
+                                  labelText: 'Referral ID',
+                                  hintText: 'Enter Referral ID',
+                                  useFloatingLabel: true,
+                                  borderRadius: 8.r,
+                                  fillColor: AppColors.white,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // Membership Verification
+                          Obx(
+                            () => !controller.isCustomer.value
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(height: 8.h),
+                                      Text(
+                                        'Membership Details',
+                                        style: AppTextStyle.style_12_600(
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      SizedBox(height: 6.h),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: AppCommonTextField(
+                                              controller: controller
+                                                  .memberMobileController,
+                                              labelText: 'Member Mobile Number',
+                                              hintText:
+                                                  'Enter Member Mobile Number',
+                                              useFloatingLabel: true,
+                                              keyboardType: TextInputType.phone,
+                                              maxLength: 10,
+                                              borderRadius: 8.r,
+                                              fillColor: AppColors.white,
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                    horizontal: 12.w,
+                                                    vertical: 6.h,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                          SizedBox(height: 8.h),
+
+                          // Dashed Divider
+                          Row(
+                            children: List.generate(
+                              150,
+                              (index) => Expanded(
+                                child: Container(
+                                  color: index % 2 == 0
+                                      ? Colors.transparent
+                                      : AppColors.grey100,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 6.h),
+
+                          // Total Amount Display
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'TOTAL',
+                                style: AppTextStyle.style_12_600(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              Text(
+                                '₹ ${controller.total}',
+                                style: AppTextStyle.style_14_700(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 6.h),
+
+                          // Payment Buttons
+                          _buildPaymentButtons(controller),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildPaymentButtons(ServiceDetailsController controller) {
+    return Obx(
+      () => !controller.isOnline.value
+          ? SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () =>
+                      controller.initiateBooking(isExternalQr: false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                  child: Text(
+                    'PAY CASH',
+                    style: AppTextStyle.style_14_700(color: AppColors.white),
+                  ),
+                ),
+              ),
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          controller.initiateBooking(isExternalQr: false),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.blue,
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      child: Text(
+                        'PAY',
+                        style: AppTextStyle.style_14_700(
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          controller.initiateBooking(isExternalQr: true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.grey400,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 12.h,
+                          horizontal: 4.w,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'External QR Payment',
+                          maxLines: 1,
+                          style: AppTextStyle.style_12_600(
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // endregion
 }

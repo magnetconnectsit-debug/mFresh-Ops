@@ -8,7 +8,7 @@ import 'package:core/utils/app_common_toast_message.dart';
 import 'package:flutter_thermal_printer/flutter_thermal_printer.dart';
 import 'package:flutter_thermal_printer/utils/printer.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:mfresh_ops/data/models/booking_details_model.dart';
+import 'package:mfresh_ops/data/models/booking/booking_details_model.dart';
 import 'dart:async';
 import 'two_inch_receipt.dart';
 import 'three_inch_receipt.dart';
@@ -26,7 +26,7 @@ class PrintUtil {
   static String? lastFailedAddress;
 
   /// Silent/Direct Print for Internal Hardware (PineLabs / Udyama / etc.)
-  static Future<void> printInternal(BookingDetailsModel booking, ServiceItem service, {String? encryptedBookingId}) async {
+  static Future<void> printInternal(BookingDetailsModel booking, BookingServiceDetailItem service, {String? encryptedBookingId}) async {
     try {
       debugPrint("Attempting internal print via Plutus...");
       await _plutusService.bindToService();
@@ -305,7 +305,7 @@ class PrintUtil {
 
   static Future<List<int>> _generateEscPosBytes(
     BookingDetailsModel booking,
-    ServiceItem service, {
+    BookingServiceDetailItem service, {
     int rollSize = 80,
     String? encryptedBookingId,
   }) async {
@@ -340,7 +340,7 @@ class PrintUtil {
   }
 
 
-  static Map<String, dynamic> _buildPlutusPrintData(BookingDetailsModel booking, ServiceItem service, String? encryptedBookingId) {
+  static Map<String, dynamic> _buildPlutusPrintData(BookingDetailsModel booking, BookingServiceDetailItem service, String? encryptedBookingId) {
     return {
       "bookingId": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
       "unitNo": booking.unitNo,

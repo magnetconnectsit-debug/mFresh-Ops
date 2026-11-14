@@ -1,5 +1,14 @@
 # Info Directory Module Specification & Living Architecture
 
+> **Status:** Active / Living Specification  
+> **Package:** `packages/apps/mfresh_ops`  
+> **Module Path:** `lib/modules/info_directory/`  
+> **Documentation Location:** `documentation/info_directory/INFO_DIRECTORY.md`  
+> **Last Updated:** October 2026  
+> **Maintainer:** Banamali Nayak
+
+---
+
 ## Overview
 The **Info Directory** module provides centralized contact management, vendor tracking, asset/product inventory, and software/service account subscription management for the organization.
 

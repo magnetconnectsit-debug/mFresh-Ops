@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:mfresh_ops/data/models/assignee_model.dart';
 import 'package:mfresh_ops/data/models/selfie_attendance/selfie_attendance_report_model.dart';
-import 'package:mfresh_ops/data/models/unit_model.dart';
+import 'package:mfresh_ops/data/models/booking/unit_model.dart';
 import 'package:mfresh_ops/data/repositories/booking_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/selfie_attendance_repository.dart';
@@ -55,6 +55,9 @@ class SelfieAttendanceController extends GetxController {
   // Filter Options
   final usersList = <AssigneeModel>[].obs;
   final unitsList = <UnitModel>[].obs;
+
+  // Unit Dashboard
+  final unitDashboard = Rxn<SelfieUnitDashboard>();
 
   // Table Sorting
   final sortColumn = ''.obs;
@@ -145,9 +148,11 @@ class SelfieAttendanceController extends GetxController {
         fromIndex.value = data.from ?? ((targetPage - 1) * data.perPage + 1);
         toIndex.value = data.to ?? (fromIndex.value + data.items.length - 1);
         items.assignAll(data.items);
+        unitDashboard.value = response.unitDashboard;
       } else {
         items.clear();
         totalRecords.value = 0;
+        unitDashboard.value = null;
       }
     } catch (e) {
       debugPrint('SelfieAttendanceController.fetchReport Error: $e');
@@ -207,6 +212,28 @@ class SelfieAttendanceController extends GetxController {
     fromDate.value = null;
     toDate.value = null;
     dateRangeText.value = 'Select From - To Date';
+    applyFilters();
+  }
+
+  void filterToday() {
+    final now = DateTime.now();
+    final formatter = DateFormat('yyyy-MM-dd');
+    final displayFormatter = DateFormat('dd-MMM-yyyy');
+    final formatted = formatter.format(now);
+    fromDate.value = formatted;
+    toDate.value = formatted;
+    dateRangeText.value = displayFormatter.format(now);
+    applyFilters();
+  }
+
+  void filterYesterday() {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final formatter = DateFormat('yyyy-MM-dd');
+    final displayFormatter = DateFormat('dd-MMM-yyyy');
+    final formatted = formatter.format(yesterday);
+    fromDate.value = formatted;
+    toDate.value = formatted;
+    dateRangeText.value = displayFormatter.format(yesterday);
     applyFilters();
   }
 

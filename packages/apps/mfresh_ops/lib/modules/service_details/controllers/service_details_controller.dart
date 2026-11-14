@@ -3,19 +3,18 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
 import 'package:mfresh_ops/data/repositories/booking_repository.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
+import 'package:mfresh_ops/data/models/booking/booking_models.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
-import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/modules/booking/controllers/booking_unit_selection_controller.dart';
 
+import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:services/phonepe_service.dart';
 import 'package:services/plutus_service.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
+import 'package:core/core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pinput/pinput.dart';
-import 'package:core/widgets/custom_app_loader.dart';
 
 class ServiceItem {
   final String assignServiceId;
@@ -45,6 +44,7 @@ class ServiceDetailsController extends GetxController {
   final unitImage = ''.obs;
   final printingType = 'thermal'.obs;
   final paperRollSize = 80.obs;
+  final cashierSessionId = Rxn<int>();
 
   // Observable strings for UI summary
   final customerName = ''.obs;
@@ -59,6 +59,7 @@ class ServiceDetailsController extends GetxController {
   final mobileController = TextEditingController();
   final nameController = TextEditingController();
   final addPhoneController = TextEditingController();
+  final referralController = TextEditingController();
 
   // Member flow
   final memberMobileController = TextEditingController();
@@ -70,9 +71,9 @@ class ServiceDetailsController extends GetxController {
   // Services list
   final services = <ServiceItem>[].obs;
 
-  // Permissions from User object
-  UserPermissions? get appPermissions =>
-      _profileController.user.value?.appPermissions;
+  // Recent 6 Cashier Bookings
+  final recentBookings = <RecentBookingItemModel>[].obs;
+  final isLoadingRecentBookings = false.obs;
 
   @override
   void onInit() {
@@ -86,6 +87,12 @@ class ServiceDetailsController extends GetxController {
       printingType.value = args['printingType']?.toString() ?? 'thermal';
       paperRollSize.value =
           int.tryParse(args['paperRollSize']?.toString() ?? '80') ?? 80;
+      final rawSessionId = args['cashierSessionId'];
+      if (rawSessionId != null) {
+        cashierSessionId.value = rawSessionId is int
+            ? rawSessionId
+            : int.tryParse(rawSessionId.toString());
+      }
     }
 
 
@@ -96,12 +103,6 @@ class ServiceDetailsController extends GetxController {
       mobileController.text = user.mob ?? '';
       customerName.value = user.name ?? '';
       customerPhone.value = user.mob ?? '';
-
-      // If online_offline_toggle is false, force Online mode
-      final canToggle = user.appPermissions.onlineOfflineToggle;
-      if (!canToggle) {
-        isOnline.value = true;
-      }
     }
 
     fetchServices();
@@ -138,9 +139,9 @@ class ServiceDetailsController extends GetxController {
   }
 
   void resetAll() {
-    final canToggle = appPermissions?.onlineOfflineToggle ?? false;
-    isOnline.value = !canToggle ? true : false;
-    isCustomer.value = true;
+    final modeChanged = isOnline.value || !isCustomer.value;
+    isOnline.value = false; // Default is Offline
+    isCustomer.value = true; // Default is Customer
     isOtpSent.value = false;
     isOtpVerified.value = false;
 
@@ -151,6 +152,7 @@ class ServiceDetailsController extends GetxController {
 
     // Clear controllers
     addPhoneController.clear();
+    referralController.clear();
     otpController.clear();
     memberMobileController.clear();
 
@@ -167,6 +169,30 @@ class ServiceDetailsController extends GetxController {
       customerName.value = '';
       customerPhone.value = '';
     }
+
+    // If online/customer modes changed, re-fetch default catalog
+    if (modeChanged) {
+      fetchServices();
+    }
+  }
+
+
+  Future<void> fetchRecentBookings() async {
+    if (unitNo.value.isEmpty) return;
+    try {
+      isLoadingRecentBookings.value = true;
+      final effectiveSessionId = cashierSessionId.value ??
+          _bookingRepository.rxActiveCashierSessionId.value;
+      final results = await _bookingRepository.getRecentBookings(
+        unitId: unitNo.value,
+        cashierSessionId: effectiveSessionId,
+      );
+      recentBookings.assignAll(results.take(6).toList());
+    } catch (e) {
+      debugPrint('Error fetching recent bookings: ');
+    } finally {
+      isLoadingRecentBookings.value = false;
+    }
   }
 
   Future<void> fetchServices() async {
@@ -180,14 +206,16 @@ class ServiceDetailsController extends GetxController {
         customerMode: isCustomer.value ? '0' : '1',
         unitNo: unitNo.value,
         serviceMode: isOnline.value ? '2' : '1',
+        cashierSessionId: cashierSessionId.value,
       );
 
-      // Deduplicate by assignServiceId to avoid duplicates in UI/Cart
+      // Deduplicate by assignServiceId / id to avoid duplicates in UI/Cart
       final Map<String, ServiceItem> uniqueServices = {};
       for (var s in fetchedServices) {
-        if (!uniqueServices.containsKey(s.assignServiceId)) {
-          uniqueServices[s.assignServiceId] = ServiceItem(
-            assignServiceId: s.assignServiceId,
+        final key = s.assignServiceId.isNotEmpty ? s.assignServiceId : s.id.toString();
+        if (!uniqueServices.containsKey(key)) {
+          uniqueServices[key] = ServiceItem(
+            assignServiceId: key,
             name: s.serviceName,
             price: s.price.toInt(),
             image: s.imagePath,
@@ -213,19 +241,24 @@ class ServiceDetailsController extends GetxController {
 
     try {
       isVerifyingMember.value = true;
-      final isValid = await _bookingRepository.validateMemberPhone(phone: phone);
-      if (isValid) {
-        final sent = await _bookingRepository.sendMemberOtp(phone: phone);
-        isOtpSent.value = sent;
-        if (sent) {
+      final validateResult = await _bookingRepository.validateMemberPhone(phone: phone);
+      if (validateResult.isValid) {
+        final sendResult = await _bookingRepository.sendMemberOtp(phone: phone);
+        isOtpSent.value = sendResult.isSuccess;
+        if (sendResult.isSuccess) {
           AppCommonToastMessage.show(
-            message: "OTP sent successfully",
+            message: sendResult.message,
             type: ToastType.success,
+          );
+        } else {
+          AppCommonToastMessage.show(
+            message: sendResult.message,
+            type: ToastType.error,
           );
         }
       } else {
         AppCommonToastMessage.show(
-          message: "Member phone number not found",
+          message: validateResult.message,
           type: ToastType.error,
         );
       }
@@ -247,23 +280,23 @@ class ServiceDetailsController extends GetxController {
 
     try {
       if (showLoading) isLoading.value = true;
-      final verified = await _bookingRepository.verifyMemberOtp(
+      final verifyResult = await _bookingRepository.verifyMemberOtp(
         phone: phone ?? memberMobileController.text.trim(),
         otp: targetOtp,
       );
-      isOtpVerified.value = verified;
-      if (verified) {
+      isOtpVerified.value = verifyResult.isVerified;
+      if (verifyResult.isVerified) {
         AppCommonToastMessage.show(
-          message: "OTP verified successfully",
+          message: verifyResult.message,
           type: ToastType.success,
         );
       } else {
         AppCommonToastMessage.show(
-          message: "Invalid OTP",
+          message: verifyResult.message,
           type: ToastType.error,
         );
       }
-      return verified;
+      return verifyResult.isVerified;
     } finally {
       isLoading.value = false;
     }
@@ -329,27 +362,27 @@ class ServiceDetailsController extends GetxController {
       // Automatically send OTP and show bottomsheet
       try {
         isVerifyingMember.value = true;
-        final isValid = await _bookingRepository.validateMemberPhone(
+        final validateResult = await _bookingRepository.validateMemberPhone(
           phone: memberPhone,
         );
-        if (!isValid) {
+        if (!validateResult.isValid) {
           AppCommonToastMessage.show(
-            message: "Member phone number not found",
+            message: validateResult.message,
             type: ToastType.error,
           );
           return;
         }
 
-        final sent = await _bookingRepository.sendMemberOtp(phone: memberPhone);
-        isOtpSent.value = sent;
-        if (sent) {
+        final sendResult = await _bookingRepository.sendMemberOtp(phone: memberPhone);
+        isOtpSent.value = sendResult.isSuccess;
+        if (sendResult.isSuccess) {
           debugPrint("OTP Sent, showing bottomsheet...");
           final verified = await _showOtpBottomSheet(memberPhone);
           debugPrint("BottomSheet Result: $verified");
           if (!verified) return; // User cancelled or failed OTP
         } else {
           AppCommonToastMessage.show(
-            message: "Failed to send OTP",
+            message: sendResult.message,
             type: ToastType.error,
           );
           return;
@@ -367,67 +400,126 @@ class ServiceDetailsController extends GetxController {
     try {
       isLoading.value = true;
 
-      String paymentMode = "1"; // Cash
-      if (isOnline.value) paymentMode = "2"; // Online
-      if (isExternalQr) paymentMode = "3"; // External QR
+      // Payment Mode and Service Type mapping according to Complete Booking API flow:
+      // Mode 1: Offline Cash -> payment_mode = 1, service_type = 1, Payment_status = PAYMENT_SUCCESS
+      // Mode 2: PhonePe SDK  -> payment_mode = 2, service_type = 2, Payment_status = Pending
+      // Mode 3: External QR  -> payment_mode = 3, service_type = 2, Payment_status = PAYMENT_SUCCESS, external_payment_confirmed = true
+      int paymentMode = 1;
+      int serviceType = 1;
+      String initialPaymentStatus = "PAYMENT_SUCCESS";
+      bool externalPaymentConfirmed = false;
+
+      if (isExternalQr) {
+        paymentMode = 3;
+        serviceType = 2;
+        initialPaymentStatus = "PAYMENT_SUCCESS";
+        externalPaymentConfirmed = true;
+      } else if (isOnline.value) {
+        paymentMode = 2;
+        serviceType = 2;
+        initialPaymentStatus = "Pending";
+      } else {
+        paymentMode = 1;
+        serviceType = 1;
+        initialPaymentStatus = "PAYMENT_SUCCESS";
+      }
 
       final cartItems = services
           .where((s) => s.quantity.value > 0)
           .map(
-            (s) => {
-              "Assign_Service_Id": s.assignServiceId,
-              "service_quantity": s.quantity.value.toString(),
-              "Price": s.price.toString(),
-              "Total_price": (s.price * s.quantity.value).toString(),
-            },
+            (s) => CartItemPayload(
+              assignServiceId: s.assignServiceId,
+              serviceQuantity: s.quantity.value,
+              price: s.price.toDouble(),
+              totalPrice: (s.price * s.quantity.value).toDouble(),
+            ),
           )
           .toList();
 
-      final body = {
-        "Unit_no": unitNo.value,
-        "User_Id": _profileController.user.value?.id.toString() ?? "",
-        "phone_no": phone,
-        "Membership_No": !isCustomer.value
-            ? memberMobileController.text.trim()
-            : "",
-        "User_name": name,
-        "total_amount": total.toString(),
-        "Payment_status": "Pending",
-        "payment_mode": paymentMode,
-        "Add_phone_no": addPhoneController.text.trim(),
-        "cart": cartItems,
-      };
+      final actorUserId = _bookingRepository.rxBookingActorUserId.value ??
+          _profileController.user.value?.id ??
+          0;
+      final effectiveSessionId = cashierSessionId.value ??
+          _bookingRepository.rxActiveCashierSessionId.value ??
+          0;
 
-      final response = await _bookingRepository.initiateBooking(data: body);
-      debugPrint("Initiate Booking Response: $response");
+      final initiateResult = await _bookingRepository.initiateAdminBooking(
+        unitNo: unitNo.value,
+        userId: actorUserId.toString(),
+        cashierSessionId: effectiveSessionId,
+        phoneNo: phone,
+        addPhoneNo: addPhoneController.text.trim(),
+        userName: name,
+        totalAmount: total.toDouble(),
+        paymentStatus: initialPaymentStatus,
+        paymentMode: paymentMode,
+        serviceType: serviceType,
+        memStatus: !isCustomer.value ? 1 : 0,
+        externalPaymentConfirmed: externalPaymentConfirmed,
+        cart: cartItems,
+      );
 
-      if (response != null) {
-        final bookingId = response['booking_id'];
-        final encryptBookingId = response['encrypt_booking_id'];
+      debugPrint("Initiate Booking Result: ${initiateResult.status}, ID: ${initiateResult.bookingId}");
 
-        AppCommonToastMessage.show(
-          message: "Booking initiated successfully",
-          type: ToastType.success,
-        );
+      if (initiateResult.status && initiateResult.bookingId != null) {
+        final bookingId = initiateResult.bookingId!;
+        final encryptBookingId = initiateResult.encryptBookingId ?? bookingId;
 
-        // Handle Cash or External QR auto-success
-        debugPrint("User Role: ${_profileController.user.value?.role}");
-        if (!isOnline.value || isExternalQr) {
-          debugPrint("Calling _confirmSuccess for direct confirmation...");
-          await _confirmSuccess(bookingId, encryptBookingId);
-        } else if (isOnline.value && !isExternalQr) {
-          // Use PineLabs if payment_gateway is true, else use PhonePe
-          final usePineLabs = appPermissions?.paymentGateway ?? false;
+        // Mode 1 (Cash) & Mode 3 (External QR): Immediate Confirmation Screen
+        if (paymentMode == 1 || paymentMode == 3) {
+          AppCommonToastMessage.show(
+            message: initiateResult.message.isNotEmpty
+                ? initiateResult.message
+                : "Booking Successful",
+            type: ToastType.success,
+          );
+
+          final selectedServiceItems = services
+              .where((s) => s.quantity.value > 0)
+              .map(
+                (s) => BookingServiceDetailItem(
+                  servicesName: s.name,
+                  quantity: s.quantity.value.toString(),
+                  price: s.price.toString(),
+                ),
+              )
+              .toList();
+
+          final bookingDetailsModel = initiateResult.toBookingDetailsModel(
+            fallbackServices: selectedServiceItems,
+            fallbackLocation: location.value,
+          );
+
+          fetchRecentBookings();
+          resetAll();
+          Get.toNamed(
+            AppRoutes.bookingConfirmed,
+            arguments: {
+              'bookingModel': bookingDetailsModel,
+              'bookingId': bookingId,
+              'encryptBookingId': encryptBookingId,
+              'paperRollSize': paperRollSize.value,
+              'printingType': printingType.value,
+              'receiptUrl': initiateResult.receiptUrl,
+            },
+          );
+          return;
+        }
+
+        // Mode 2 (PhonePe SDK / Gateway):
+        if (paymentMode == 2) {
+          final usePineLabs = Get.isRegistered<AuthRepository>() &&
+              Get.find<AuthRepository>()
+                  .rxUserPermissions
+                  .contains('payment_gateway');
 
           if (usePineLabs) {
-            // Handle PineLabs Payment
             await _handlePineLabsPayment(
               bookingId,
               encryptBookingId,
               total.toDouble(),
             );
           } else {
-            // Handle PhonePe Payment
             await _handlePhonePePayment(
               bookingId,
               encryptBookingId,
@@ -436,6 +528,13 @@ class ServiceDetailsController extends GetxController {
             );
           }
         }
+      } else {
+        AppCommonToastMessage.show(
+          message: initiateResult.message.isNotEmpty
+              ? initiateResult.message
+              : "Failed to initiate booking",
+          type: ToastType.error,
+        );
       }
     } catch (e) {
       AppCommonToastMessage.show(
@@ -517,35 +616,68 @@ class ServiceDetailsController extends GetxController {
     String encryptBookingId, {
     Map<String, dynamic>? phonePeData,
   }) async {
-    final successData = {
-      "userId": _profileController.user.value?.id.toString() ?? "",
-      "bookingId": bookingId,
-      "Payment_status": phonePeData?['code'] ?? "PAYMENT_SUCCESS",
-      "provider_reference_id":
-          phonePeData?['providerReferenceId'] ?? "ADMIN_MANUAL_CONFIRM",
-      "check_sum": phonePeData != null
-          ? jsonEncode(phonePeData)
-          : "VERIFIED_DIRECT",
-    };
+    final String userId = _profileController.user.value?.id.toString() ?? "";
+    final String paymentStatus =
+        phonePeData?['code']?.toString() ?? "PAYMENT_SUCCESS";
+    final String providerRefId =
+        phonePeData?['providerReferenceId']?.toString() ??
+            "ADMIN_MANUAL_CONFIRM";
+    final String checkSum =
+        phonePeData != null ? jsonEncode(phonePeData) : "VERIFIED_DIRECT";
 
-    final confirmed = await _bookingRepository.confirmSuccessBooking(
-      data: successData,
+    final result = await _bookingRepository.submitPaymentSuccess(
+      userId: userId,
+      bookingId: bookingId,
+      paymentStatus: paymentStatus,
+      providerReferenceId: providerRefId,
+      checkSum: checkSum,
     );
-    debugPrint("Booking Confirmation API Result: $confirmed");
-    if (confirmed) {
+    debugPrint("Booking Confirmation API Result: ${result.status}");
+    if (result.status) {
       debugPrint("Navigating to Booking Confirmed Screen...");
+      final selectedServiceItems = services
+          .where((s) => s.quantity.value > 0)
+          .map(
+            (s) => BookingServiceDetailItem(
+              servicesName: s.name,
+              quantity: s.quantity.value.toString(),
+              price: s.price.toString(),
+            ),
+          )
+          .toList();
+
+      final bookingDetailsModel = BookingDetailsModel(
+        bookingId: bookingId,
+        unitNo: unitNo.value,
+        bookingTimeDate: DateTime.now().toString(),
+        unitLocation: location.value,
+        totalAmount: total.toString(),
+        serviceIcon: '',
+        fullAddress: location.value,
+        services: selectedServiceItems,
+        paymentMode: 2,
+        paymentStatus: paymentStatus,
+        encryptBookingId: encryptBookingId,
+      );
+
+      fetchRecentBookings();
+      resetAll();
       Get.toNamed(
         AppRoutes.bookingConfirmed,
         arguments: {
+          'bookingModel': bookingDetailsModel,
           'bookingId': bookingId,
           'encryptBookingId': encryptBookingId,
           'paperRollSize': paperRollSize.value,
           'printingType': printingType.value,
+          'receiptUrl': result.receiptUrl,
         },
       );
     } else {
       AppCommonToastMessage.show(
-        message: "Failed to confirm booking on server",
+        message: result.message.isNotEmpty
+            ? result.message
+            : "Failed to confirm booking on server",
         type: ToastType.error,
       );
     }
@@ -558,6 +690,10 @@ class ServiceDetailsController extends GetxController {
     String phone,
   ) async {
     try {
+      final isInitialized =
+          await _phonePeService.setProduction(AppConfig.isPhonePeProduction);
+      debugPrint("PhonePe setProduction initialized: $isInitialized (Prod: ${AppConfig.isPhonePeProduction})");
+
       final sdkResponse = await _phonePeService.startSDKTransaction(
         bookingId: bookingId,
         encryptedBookingId: encryptBookingId,
@@ -601,25 +737,10 @@ class ServiceDetailsController extends GetxController {
                 },
               );
             } else {
-              // Fallback to Server check
-              final bookingDetails = await _bookingRepository.getBookingDetails(
-                bookingId: bookingId,
+              AppCommonToastMessage.show(
+                message: "Payment Status: ${realData['state'] ?? code}",
+                type: ToastType.error,
               );
-              if (bookingDetails != null &&
-                  (bookingDetails.paymentStatus.toLowerCase() == 'paid' ||
-                      bookingDetails.paymentStatus.toLowerCase() ==
-                          'success')) {
-                await _confirmSuccess(
-                  bookingId,
-                  encryptBookingId,
-                  phonePeData: {'code': 'PAYMENT_SUCCESS'},
-                );
-              } else {
-                AppCommonToastMessage.show(
-                  message: "Payment Status: ${realData['state'] ?? code}",
-                  type: ToastType.error,
-                );
-              }
             }
           }
         } else {
@@ -681,16 +802,9 @@ class ServiceDetailsController extends GetxController {
   }
 
   void toggleOnline() {
-    final canToggle = appPermissions?.onlineOfflineToggle ?? false;
-    if (!canToggle) {
-      AppCommonToastMessage.show(
-        message: "Offline mode is not allowed by your permissions",
-        type: ToastType.warning,
-      );
-      return;
-    }
     isOnline.value = !isOnline.value;
     fetchServices();
+    fetchRecentBookings();
   }
 
   Future<bool> _showOtpBottomSheet(String phone) async {
@@ -897,6 +1011,27 @@ class ServiceDetailsController extends GetxController {
                 showLabel: false,
                 icon: Icons.person_outline,
               ),
+              SizedBox(height: 12.h),
+
+              // Additional Phone
+              buildBottomSheetField(
+                controller: addPhoneController,
+                label: 'Additional Phone',
+                hintText: 'Additional Phone',
+                showLabel: false,
+                keyboardType: TextInputType.phone,
+                icon: Icons.phone_android,
+              ),
+              SizedBox(height: 12.h),
+
+              // Referral ID
+              buildBottomSheetField(
+                controller: referralController,
+                label: 'Referral ID',
+                hintText: 'Referral ID',
+                showLabel: false,
+                icon: Icons.person_add_alt,
+              ),
 
               SizedBox(height: 30.h),
               SizedBox(
@@ -936,6 +1071,7 @@ class ServiceDetailsController extends GetxController {
     required IconData icon,
     String? hintText,
     bool showLabel = true,
+    bool readOnly = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
@@ -948,33 +1084,19 @@ class ServiceDetailsController extends GetxController {
           ),
           SizedBox(height: 6.h),
         ],
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          decoration: BoxDecoration(
-            color: AppColors.grey50.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: AppColors.grey100),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 14.sp, color: AppColors.grey300),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  style: AppTextStyle.style_12_400(color: AppColors.black),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    hintText: hintText,
-                    hintStyle: AppTextStyle.style_12_400(
-                      color: AppColors.grey200,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+        AppCommonTextField(
+          controller: controller,
+          labelText: label,
+          hintText: hintText ?? 'Enter $label',
+          useFloatingLabel: true,
+          keyboardType: keyboardType,
+          readOnly: readOnly,
+          prefixIcon: Icon(icon, size: 16.sp, color: AppColors.iconPrimary),
+          borderRadius: 8.r,
+          fillColor: AppColors.white,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 12.w,
+            vertical: 8.h,
           ),
         ),
       ],

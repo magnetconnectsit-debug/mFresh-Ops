@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
+import 'package:mfresh_ops/data/models/booking/booking_guest_auth_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -152,6 +153,8 @@ class AuthRepository extends GetxService {
         AppConstants.login,
         data: {
           'mobile': mobile,
+          'login_id': mobile,
+          'user_id': mobile,
           'password': password,
           'device_id': devInfo['device_id'],
           'is_dev': devInfo['is_dev'],
@@ -168,6 +171,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(response);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode(loginMode);
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -201,14 +205,18 @@ class AuthRepository extends GetxService {
 
       if (response != null) {
         // Direct permission extraction to guarantee permissions refresh even if response payload format varies
-        final permissionsSource = response['permissions'] ??
-            (response['data'] is Map ? response['data']['permissions'] : null) ??
+        final permissionsSource =
+            response['permissions'] ??
+            (response['data'] is Map
+                ? response['data']['permissions']
+                : null) ??
             (response['user'] is Map ? response['user']['permissions'] : null);
 
         final List<String> extractedPermissions = [];
         if (permissionsSource is Map) {
           permissionsSource.forEach((key, value) {
-            final bool isGranted = value == true ||
+            final bool isGranted =
+                value == true ||
                 value == 1 ||
                 value == 'true' ||
                 value == '1' ||
@@ -225,7 +233,8 @@ class AuthRepository extends GetxService {
             } else if (item is Map) {
               final name = item['name'] ?? item['permission'] ?? item['title'];
               final val = item['value'] ?? item['status'] ?? item['is_active'];
-              final bool isGranted = val == true ||
+              final bool isGranted =
+                  val == true ||
                   val == 1 ||
                   val == 'true' ||
                   val == '1' ||
@@ -242,7 +251,8 @@ class AuthRepository extends GetxService {
             response['id'] != null ||
             response['data'] != null) {
           final user = User.fromJson(response);
-          final userToSave = (extractedPermissions.isNotEmpty || permissionsSource is Map)
+          final userToSave =
+              (extractedPermissions.isNotEmpty || permissionsSource is Map)
               ? user.copyWith(permissions: extractedPermissions)
               : user;
           await _storageService.saveUser(userToSave);
@@ -250,6 +260,9 @@ class AuthRepository extends GetxService {
             rxUserPermissions.assignAll(userToSave.permissions!);
           }
           rxIsCheckedIn.value = userToSave.isCheckedIn ?? false;
+
+          // If is_checked_in wasn't present in profile, check employees endpoint
+          _syncCheckedInFromEmployees();
 
           final bool isOnDuty = userToSave.isOnDuty == 1;
           try {
@@ -271,6 +284,36 @@ class AuthRepository extends GetxService {
   /// Explicit refresh method for pull-to-refresh to reload permissions and user state
   Future<void> refreshPermissions() async {
     await fetchProfile();
+    await _syncCheckedInFromEmployees();
+  }
+
+  Future<void> _syncCheckedInFromEmployees() async {
+    try {
+      final user = _storageService.getUser();
+      if (user == null || user.id == 0) return;
+      final response = await _apiService.post(AppConstants.staffEmployees);
+      if (response != null && response is Map && response['status'] == true) {
+        final List emps = response['employees'] ?? [];
+        final emp = emps.firstWhereOrNull((e) {
+          if (e is! Map) return false;
+          final empId = (e['id'] ?? e['user_id'])?.toString();
+          return empId != null && empId == user.id.toString();
+        });
+        if (emp != null && emp['is_checked_in'] != null) {
+          final raw = emp['is_checked_in'];
+          final bool isCheckedIn = raw == true ||
+              raw == 1 ||
+              raw == '1' ||
+              raw == 'true';
+          rxIsCheckedIn.value = isCheckedIn;
+          if (user.isCheckedIn != isCheckedIn) {
+            await _storageService.saveUser(user.copyWith(isCheckedIn: isCheckedIn));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error syncing checked-in status from employees: $e');
+    }
   }
 
   Future<bool> logout() async {
@@ -353,6 +396,7 @@ class AuthRepository extends GetxService {
           final user = User.fromJson(response);
 
           await _storageService.saveToken(token);
+          await _storageService.saveLoginMode(loginMode);
           if (refreshToken != null) {
             await _storageService.saveRefreshToken(refreshToken);
           }
@@ -381,10 +425,252 @@ class AuthRepository extends GetxService {
   }
   // endregion
 
+  // region Booking & Guest Authentication Operations
+  Future<Map<String, dynamic>> bookingPasswordLogin({
+    required String loginId,
+    required String password,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.login,
+        data: {
+          'login_id': loginId,
+          'password': password,
+          'login_mode': 'booking',
+        },
+      );
+
+          if (response != null && response is Map) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(response);
+
+        // If Employee direct JWT login
+        if (data['status'] == true && data['token'] != null) {
+          final String token = data['token'];
+          final String? refreshToken = data['refresh_token'];
+          final user = User.fromJson(data);
+
+          await _storageService.saveToken(token);
+          await _storageService.saveLoginMode('booking');
+          if (refreshToken != null) {
+            await _storageService.saveRefreshToken(refreshToken);
+          }
+          await _storageService.saveUser(user);
+          rxUserPermissions.assignAll(user.permissions ?? []);
+          rxIsCheckedIn.value = user.isCheckedIn ?? false;
+        }
+
+        return data;
+      }
+      return {'status': false, 'message': 'Invalid response from server'};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> employeeBookingSendOtp({
+    required String mobile,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bookingSendOtp,
+        data: {'mob': mobile},
+      );
+      if (response != null && response is Map) {
+        return Map<String, dynamic>.from(response);
+      }
+      return {'status': false, 'message': 'Failed to send OTP'};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> employeeBookingVerifyOtp({
+    required String mobile,
+    required String otp,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bookingVerifyOtp,
+        data: {'mob': mobile, 'otp': otp},
+      );
+
+      if (response != null && response is Map) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(response);
+        if (data['status'] == true && data['token'] != null) {
+          final String token = data['token'];
+          final String? refreshToken = data['refresh_token'];
+          final user = User.fromJson(data);
+
+          await _storageService.saveToken(token);
+          await _storageService.saveLoginMode('booking');
+          if (refreshToken != null) {
+            await _storageService.saveRefreshToken(refreshToken);
+          }
+          await _storageService.saveUser(user);
+          rxUserPermissions.assignAll(user.permissions ?? []);
+          rxIsCheckedIn.value = user.isCheckedIn ?? false;
+        }
+        return data;
+      }
+      return {'status': false, 'message': 'Failed to verify OTP'};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<GuestCheckMobileResult> guestCheckMobile({
+    required String mobile,
+    required String guestFlowToken,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bookingGuestCheckMobile,
+        data: {'mob': mobile},
+        options: dio.Options(
+          headers: {'Authorization': 'Bearer $guestFlowToken'},
+        ),
+      );
+
+      if (response != null && response is Map) {
+        return GuestCheckMobileResult.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+      }
+      return GuestCheckMobileResult(
+        status: false,
+        message: 'Invalid response from server',
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<GuestCheckMobileResult> guestRegister({
+    required String mobile,
+    required String name,
+    required String guestFlowToken,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bookingGuestRegister,
+        data: {'mob': mobile, 'name': name},
+        options: dio.Options(
+          headers: {'Authorization': 'Bearer $guestFlowToken'},
+        ),
+      );
+
+      if (response != null && response is Map) {
+        return GuestCheckMobileResult.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+      }
+      return GuestCheckMobileResult(
+        status: false,
+        message: 'Registration failed',
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<GuestSendOtpResult> guestSendOtp({
+    required String mobile,
+    required String guestFlowToken,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bookingGuestSendOtp,
+        data: {'mob': mobile},
+        options: dio.Options(
+          headers: {'Authorization': 'Bearer $guestFlowToken'},
+        ),
+      );
+
+      if (response != null && response is Map) {
+        return GuestSendOtpResult.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+      }
+      return GuestSendOtpResult(
+        status: false,
+        message: 'Failed to send OTP to guest cashier',
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> guestVerifyOtp({
+    required String mobile,
+    required String otp,
+    required String otpVerificationToken,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.bookingGuestVerifyOtp,
+        data: {'mob': mobile, 'otp': otp},
+        options: dio.Options(
+          headers: {'Authorization': 'Bearer $otpVerificationToken'},
+        ),
+      );
+
+      if (response != null && response is Map) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(response);
+
+        if (data['status'] == true && data['token'] != null) {
+          final String token = data['token'];
+          final String? refreshToken = data['refresh_token'];
+          final user = User.fromJson(data);
+
+          await _storageService.saveToken(token);
+          await _storageService.saveLoginMode('booking');
+          if (refreshToken != null) {
+            await _storageService.saveRefreshToken(refreshToken);
+          }
+          await _storageService.saveUser(user);
+          rxUserPermissions.assignAll(user.permissions ?? []);
+          rxIsCheckedIn.value = user.isCheckedIn ?? false;
+        }
+
+        return data;
+      }
+      return {'status': false, 'message': 'Failed to verify guest OTP'};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> refreshToken() async {
+    try {
+      final response = await _apiService.post(
+        AppConstants.refreshToken,
+      );
+
+      if (response != null && response is Map) {
+        final String? newToken =
+            response['access_token']?.toString() ?? response['token']?.toString();
+        if (newToken != null && newToken.isNotEmpty) {
+          await _storageService.saveToken(newToken);
+          final String? newRefreshToken = response['refresh_token']?.toString();
+          if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+            await _storageService.saveRefreshToken(newRefreshToken);
+          }
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      debugPrint("AuthRepository.refreshToken error: $e");
+      return false;
+    }
+  }
+  // endregion
+
   // region Attendance (Check-In & Check-Out)
   Future<bool> attendanceCheckIn({
     required String imagePath,
     String? unitId,
+    String? userId,
     double? latitude,
     double? longitude,
   }) async {
@@ -425,6 +711,7 @@ class AuthRepository extends GetxService {
           filename: fileName,
         ),
         if (unitId != null && unitId.isNotEmpty) 'unit_id': unitId,
+        if (userId != null && userId.isNotEmpty) 'user_id': userId,
         if (lat != null) 'latitude': lat,
         if (lng != null) 'longitude': lng,
         if (lat != null) 'lat': lat,
@@ -441,14 +728,17 @@ class AuthRepository extends GetxService {
           (response['status'] == true ||
               response['status'] == 'success' ||
               response['success'] == true)) {
-        rxIsCheckedIn.value = true;
-
         final currentUser = _storageService.getUser() as User?;
-        if (currentUser != null) {
-          final updatedUser = currentUser.copyWith(
-            isCheckedIn: true,
-          );
-          await _storageService.saveUser(updatedUser);
+        final isForCurrentUser = userId == null ||
+            userId.isEmpty ||
+            (currentUser != null && currentUser.id.toString() == userId);
+
+        if (isForCurrentUser) {
+          rxIsCheckedIn.value = true;
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(isCheckedIn: true);
+            await _storageService.saveUser(updatedUser);
+          }
         }
 
         final msg =
@@ -462,7 +752,10 @@ class AuthRepository extends GetxService {
             response?['message']?.toString() ??
             response?['error']?.toString() ??
             'Failed to check in. Please try again.';
-        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: errorMsg,
+          type: ToastType.error,
+        );
         return false;
       }
     } catch (e) {
@@ -480,6 +773,7 @@ class AuthRepository extends GetxService {
 
   Future<bool> attendanceCheckOut({
     required String imagePath,
+    String? userId,
     double? latitude,
     double? longitude,
   }) async {
@@ -519,6 +813,7 @@ class AuthRepository extends GetxService {
           file.path,
           filename: fileName,
         ),
+        if (userId != null && userId.isNotEmpty) 'user_id': userId,
         if (lat != null) 'latitude': lat,
         if (lng != null) 'longitude': lng,
         if (lat != null) 'lat': lat,
@@ -535,14 +830,17 @@ class AuthRepository extends GetxService {
           (response['status'] == true ||
               response['status'] == 'success' ||
               response['success'] == true)) {
-        rxIsCheckedIn.value = false;
-
         final currentUser = _storageService.getUser() as User?;
-        if (currentUser != null) {
-          final updatedUser = currentUser.copyWith(
-            isCheckedIn: false,
-          );
-          await _storageService.saveUser(updatedUser);
+        final isForCurrentUser = userId == null ||
+            userId.isEmpty ||
+            (currentUser != null && currentUser.id.toString() == userId);
+
+        if (isForCurrentUser) {
+          rxIsCheckedIn.value = false;
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(isCheckedIn: false);
+            await _storageService.saveUser(updatedUser);
+          }
         }
 
         final msg =
@@ -556,7 +854,10 @@ class AuthRepository extends GetxService {
             response?['message']?.toString() ??
             response?['error']?.toString() ??
             'Failed to check out. Please try again.';
-        AppCommonToastMessage.show(message: errorMsg, type: ToastType.error);
+        AppCommonToastMessage.show(
+          message: errorMsg,
+          type: ToastType.error,
+        );
         return false;
       }
     } catch (e) {
@@ -571,8 +872,8 @@ class AuthRepository extends GetxService {
       isSubmittingAttendance.value = false;
     }
   }
-
   // endregion
 }
 
 // endregion
+

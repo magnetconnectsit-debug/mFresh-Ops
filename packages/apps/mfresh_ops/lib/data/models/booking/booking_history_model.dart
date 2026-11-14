@@ -1,3 +1,4 @@
+// region Models
 class BookingHistoryModel {
   final String bookingId;
   final String encryptBookingId;
@@ -15,14 +16,17 @@ class BookingHistoryModel {
     required this.paymentMode,
   });
 
+  // region Factory & Serialization
   factory BookingHistoryModel.fromJson(Map<String, dynamic> json) {
     return BookingHistoryModel(
-      bookingId: json['booking_id'] ?? '',
-      encryptBookingId: json['encrypt_booking_id'] ?? '',
-      unitNo: json['unit_no'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      totalAmount: json['total_amount'] ?? '',
-      paymentMode: json['payment_mode'] ?? 0,
+      bookingId: json['booking_id']?.toString() ?? '',
+      encryptBookingId: json['encrypt_booking_id']?.toString() ?? '',
+      unitNo: json['unit_no']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      totalAmount: json['total_amount']?.toString() ?? '',
+      paymentMode: int.tryParse(json['payment_mode']?.toString() ?? '') ?? 0,
     );
   }
+  // endregion
 }
+// endregion

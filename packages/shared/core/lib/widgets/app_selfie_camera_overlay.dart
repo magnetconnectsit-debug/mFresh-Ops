@@ -51,10 +51,7 @@ class AppSelfieCameraOverlay extends StatelessWidget {
             // 3. Top Signboard Box Guide Label ("[m] mFresh Board")
             if (showLogo) _buildSignboardGuideLabel(signboardRect),
 
-            // 4. Shoulder Guide Label ("Face & shoulders")
-            _buildShoulderGuideLabel(silhouetteData.labelY),
-
-            // 5. Guidance Text Pill ("Face, uniform & board should be visible")
+            // 4. Guidance Text Pill ("Face, uniform & board should be visible")
             if (showInstructionText) _buildInstructionText(silhouetteData.instructionY),
           ],
         );
@@ -120,38 +117,6 @@ class AppSelfieCameraOverlay extends StatelessWidget {
     );
   }
 
-  Widget _buildShoulderGuideLabel(double labelY) {
-    return Positioned(
-      top: labelY,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-          decoration: BoxDecoration(
-            color: AppColors.black.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.25),
-              width: 1.r,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black45,
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Text(
-            'Face & shoulders',
-            style: AppTextStyle.style_12_700(color: AppColors.white),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildInstructionText(double topY) {
     return Positioned(
       top: topY,
@@ -199,7 +164,6 @@ class _SilhouetteData {
   final Path openPath;
   final double shoulderY;
   final double shoulderBottomY;
-  final double labelY;
   final double instructionY;
   final double leftArmX;
   final double rightArmX;
@@ -208,7 +172,6 @@ class _SilhouetteData {
     required this.openPath,
     required this.shoulderY,
     required this.shoulderBottomY,
-    required this.labelY,
     required this.instructionY,
     required this.leftArmX,
     required this.rightArmX,
@@ -221,7 +184,7 @@ class _SelfieGeometry {
     final width = (size.width * 0.70).clamp(260.0, 310.0);
     final height = (width * 0.35).clamp(84.0, 96.0);
     final left = (size.width - width) / 2;
-    final top = (size.height * 0.12).clamp(92.0, 108.0);
+    final top = (size.height * 0.17).clamp(130.0, 155.0);
     return Rect.fromLTWH(left, top, width, height);
   }
 
@@ -229,49 +192,48 @@ class _SelfieGeometry {
   static _SilhouetteData computeSilhouette(Size size, Rect signboardRect) {
     final centerX = size.width / 2;
 
-    // 1. Vertical coordinates calibrated to left reference mockup
-    final headTopY = signboardRect.bottom + 32.h;
-    final earTopY = headTopY + 76.h;
-    final earBottomY = headTopY + 124.h;
-    final neckBaseY = headTopY + 176.h;
-    final shoulderY = headTopY + 220.h;
-    final shoulderBottomY = headTopY + 268.h;
+    // 1. Vertical coordinates calibrated to reference mockup (raised shoulders, flatter and broader stance)
+    final headTopY = signboardRect.bottom + 28.h;
+    final earTopY = headTopY + 84.h;
+    final earBottomY = headTopY + 138.h;
+    final neckBaseY = headTopY + 190.h;
+    final shoulderY = headTopY + 208.h; // Raised and closer to neck as drawn
+    final shoulderBottomY = headTopY + 218.h; // Very short shoulder stub, cut right at outer edge
 
-    final labelY = shoulderBottomY - 14.h;
-    final instructionY = shoulderBottomY + 22.h;
+    final instructionY = shoulderBottomY + 38.h;
 
-    // 2. Horizontal half-widths matching left reference mockup
-    final templeHalfWidth = (size.width * 0.22).clamp(80.0, 94.0);
-    final earHalfWidth = (size.width * 0.255).clamp(95.0, 108.0);
-    final jawHalfWidth = (size.width * 0.215).clamp(80.0, 94.0);
-    final neckHalfWidth = (size.width * 0.175).clamp(65.0, 78.0);
-    final shoulderHalfWidth = (size.width * 0.38).clamp(140.0, 168.0);
-    final armHalfWidth = (size.width * 0.42).clamp(155.0, 185.0);
+    // 2. Horizontal half-widths matching reference mockup (wider shoulders & chest profile)
+    final templeHalfWidth = (size.width * 0.245).clamp(88.0, 105.0);
+    final earHalfWidth = (size.width * 0.285).clamp(105.0, 120.0);
+    final jawHalfWidth = (size.width * 0.238).clamp(88.0, 105.0);
+    final neckHalfWidth = (size.width * 0.192).clamp(72.0, 86.0);
+    final shoulderHalfWidth = (size.width * 0.46).clamp(172.0, 215.0); // Widened shoulders as drawn in red
+    final armHalfWidth = (size.width * 0.485).clamp(182.0, 225.0); // Outer boundary
 
     final leftArmX = centerX - armHalfWidth;
     final rightArmX = centerX + armHalfWidth;
 
     final openPath = Path();
 
-    // 1. Start at bottom of left arm
+    // 1. Start at bottom of left outer shoulder
     openPath.moveTo(leftArmX, shoulderBottomY);
 
-    // 2. Up left arm to left shoulder crest
+    // 2. Up to left shoulder outer crest (broad, horizontal profile)
     openPath.cubicTo(
       leftArmX,
-      shoulderY + 18.h,
-      centerX - shoulderHalfWidth - 8.w,
-      shoulderY + 4.h,
+      shoulderY + 2.h,
+      centerX - shoulderHalfWidth - 4.w,
+      shoulderY,
       centerX - shoulderHalfWidth,
       shoulderY,
     );
 
-    // 3. Across trapezius slope from left shoulder crest to neck base
+    // 3. Across trapezius slope from left shoulder crest to neck base (more horizontal shoulder contour)
     openPath.cubicTo(
-      centerX - shoulderHalfWidth + 28.w,
-      shoulderY - 6.h,
-      centerX - neckHalfWidth - 22.w,
-      neckBaseY + 16.h,
+      centerX - shoulderHalfWidth + 38.w,
+      shoulderY,
+      centerX - neckHalfWidth - 24.w,
+      neckBaseY + 12.h,
       centerX - neckHalfWidth,
       neckBaseY,
     );
@@ -300,7 +262,7 @@ class _SelfieGeometry {
     openPath.cubicTo(
       centerX - templeHalfWidth,
       headTopY + 30.h,
-      centerX - 46.w,
+      centerX - 48.w,
       headTopY,
       centerX,
       headTopY,
@@ -308,7 +270,7 @@ class _SelfieGeometry {
 
     // 7. Down from crown apex through right temple to right ear top (continuous smooth dome)
     openPath.cubicTo(
-      centerX + 46.w,
+      centerX + 48.w,
       headTopY,
       centerX + templeHalfWidth,
       headTopY + 30.h,
@@ -336,22 +298,22 @@ class _SelfieGeometry {
       neckBaseY,
     );
 
-    // 10. Down right trapezius slope to right shoulder crest
+    // 10. Down right trapezius slope to right shoulder crest (more horizontal shoulder contour)
     openPath.cubicTo(
-      centerX + neckHalfWidth + 22.w,
-      neckBaseY + 16.h,
-      centerX + shoulderHalfWidth - 28.w,
-      shoulderY - 6.h,
+      centerX + neckHalfWidth + 24.w,
+      neckBaseY + 12.h,
+      centerX + shoulderHalfWidth - 38.w,
+      shoulderY,
       centerX + shoulderHalfWidth,
       shoulderY,
     );
 
-    // 11. Down right outer arm to shoulder bottom
+    // 11. Down right outer shoulder to shoulder bottom
     openPath.cubicTo(
-      centerX + shoulderHalfWidth + 8.w,
-      shoulderY + 4.h,
+      centerX + shoulderHalfWidth + 4.w,
+      shoulderY,
       rightArmX,
-      shoulderY + 18.h,
+      shoulderY + 2.h,
       rightArmX,
       shoulderBottomY,
     );
@@ -360,7 +322,6 @@ class _SelfieGeometry {
       openPath: openPath,
       shoulderY: shoulderY,
       shoulderBottomY: shoulderBottomY,
-      labelY: labelY,
       instructionY: instructionY,
       leftArmX: leftArmX,
       rightArmX: rightArmX,
@@ -381,30 +342,7 @@ class _SelfieViewfinderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const neonGreen = Color(0xFF22C55E);
-
-    // 1. Signboard Box: White Dashed Border between corners
-    final boardRRect = RRect.fromRectAndRadius(
-      signboardRect,
-      Radius.circular(10.r),
-    );
-
-    final whiteDashedPaint = Paint()
-      ..color = AppColors.white
-      ..strokeWidth = 1.8.r
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final dashPath = Path()..addRRect(boardRRect);
-    _drawDashedPath(
-      canvas,
-      dashPath,
-      whiteDashedPaint,
-      dashWidth: 6.w,
-      dashSpace: 4.w,
-    );
-
-    // 2. Top Rectangular Focus Box: 4 Neon Green Focus Corner Brackets ┌ ┐ └ ┘
+    // 1. Top Rectangular Focus Box: 4 White Focus Corner Brackets ┌ ┐ └ ┘
     final cornerLen = 20.w;
     final cornerRadius = 8.r;
 
@@ -424,8 +362,8 @@ class _SelfieViewfinderPainter extends CustomPainter {
       shadowPaint,
     );
 
-    final greenCornerPaint = Paint()
-      ..color = neonGreen
+    final whiteCornerPaint = Paint()
+      ..color = AppColors.white
       ..strokeWidth = 3.2.r
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
@@ -436,39 +374,8 @@ class _SelfieViewfinderPainter extends CustomPainter {
       signboardRect,
       cornerLen,
       cornerRadius,
-      greenCornerPaint,
+      whiteCornerPaint,
     );
-
-    // 3. Two Neon Green Shoulder Focus Corner Brackets └ and ┘
-    final shoulderCornerPath = Path();
-    final sCornerLen = 18.w;
-    final sRadius = 8.r;
-    final leftX = silhouetteData.leftArmX;
-    final rightX = silhouetteData.rightArmX;
-    final bottomY = silhouetteData.shoulderBottomY;
-
-    // Left shoulder corner └
-    shoulderCornerPath.moveTo(leftX, bottomY - sCornerLen);
-    shoulderCornerPath.lineTo(leftX, bottomY - sRadius);
-    shoulderCornerPath.arcToPoint(
-      Offset(leftX + sRadius, bottomY),
-      radius: Radius.circular(sRadius),
-      clockwise: false,
-    );
-    shoulderCornerPath.lineTo(leftX + sCornerLen, bottomY);
-
-    // Right shoulder corner ┘
-    shoulderCornerPath.moveTo(rightX, bottomY - sCornerLen);
-    shoulderCornerPath.lineTo(rightX, bottomY - sRadius);
-    shoulderCornerPath.arcToPoint(
-      Offset(rightX - sRadius, bottomY),
-      radius: Radius.circular(sRadius),
-      clockwise: true,
-    );
-    shoulderCornerPath.lineTo(rightX - sCornerLen, bottomY);
-
-    canvas.drawPath(shoulderCornerPath, shadowPaint);
-    canvas.drawPath(shoulderCornerPath, greenCornerPaint);
   }
 
   void _drawBoxCorners(

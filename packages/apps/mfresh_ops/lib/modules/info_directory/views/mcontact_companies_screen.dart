@@ -22,20 +22,11 @@ class MContactCompaniesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.white,
       drawer: const CommonSidebar(),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(context, controller),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(16.r),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, controller),
-              SizedBox(height: 10.h),
-              Expanded(
-                child: MContactCompaniesTable(controller: controller),
-              ),
-            ],
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: MContactCompaniesTable(controller: controller),
         ),
       ),
     );
@@ -43,41 +34,37 @@ class MContactCompaniesScreen extends StatelessWidget {
   // endregion
 
   // region App Bar
-  PreferredSizeWidget _buildAppBar() {
-    return const AppCommonAppBar(
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    MContactCompaniesController controller,
+  ) {
+    return AppCommonAppBar(
       backgroundColor: AppColors.white,
       elevation: 0,
       showAppDrawer: true,
       hasBackButton: false,
-      topHeader: CommonShortcutHeader(),
-    );
-  }
-  // endregion
-
-  // region Header & Action Button
-  Widget _buildHeader(
-    BuildContext context,
-    MContactCompaniesController controller,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'All Companies',
-          style: AppTextStyle.style_15_700(color: AppColors.black),
-        ),
-        AppCommonButton(
-          text: 'Create Company',
-          buttonColor: AppColors.primary,
-          textColor: AppColors.white,
-          height: 28.h,
-          textSize: 12.sp,
-          borderRadius: 4.r,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          onPressed: () async {
-            await showMContactCompanyDialog(context, controller);
-            controller.fetchCompanies();
-          },
+      topHeader: const CommonShortcutHeader(),
+      titleSpacing: 16.w,
+      title: Text(
+        'All Companies',
+        style: AppTextStyle.style_15_700(color: AppColors.black),
+      ),
+      actions: [
+        Padding(
+          padding: EdgeInsets.only(right: 16.w),
+          child: AppCommonButton(
+            text: 'Create Company',
+            buttonColor: AppColors.primary,
+            textColor: AppColors.white,
+            height: 28.h,
+            textSize: 12.sp,
+            borderRadius: 4.r,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            onPressed: () async {
+              await showMContactCompanyDialog(context, controller);
+              controller.fetchCompanies();
+            },
+          ),
         ),
       ],
     );

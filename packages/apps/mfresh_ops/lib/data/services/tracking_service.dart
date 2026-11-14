@@ -144,6 +144,9 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
       final token = _storageService.getToken();
       if (token == null || token.isEmpty) return;
 
+      final loginMode = _storageService.getLoginMode();
+      if (loginMode == 'booking') return;
+
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
@@ -285,9 +288,12 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
   // region Core Operations
   Future<void> _restoreTrackingOnResume() async {
     final token = _storageService.getToken();
-    if (token == null || token.isEmpty) return;
+      if (token == null || token.isEmpty) return;
 
-    debugPrint('Restoring tracking state on app resume...');
+      final loginMode = _storageService.getLoginMode();
+      if (loginMode == 'booking') return;
+
+      debugPrint('Restoring tracking state on app resume...');
     final bool isBgOwner =
         await FlutterForegroundTask.getData<bool>(key: 'bg_owner') ?? false;
     final bool isRunning = await FlutterForegroundTask.isRunningService;
@@ -526,6 +532,18 @@ class TrackingService extends GetxService with WidgetsBindingObserver {
           newSessionId = emp['session_id'] != null
               ? int.tryParse(emp['session_id'].toString())
               : null;
+
+          // Sync is_checked_in for current user from employees list
+          final dynamic checkedInRaw = emp['is_checked_in'];
+          if (checkedInRaw != null) {
+            final bool isCheckedIn = checkedInRaw == true ||
+                checkedInRaw == 1 ||
+                checkedInRaw == '1' ||
+                checkedInRaw == 'true';
+            if (Get.isRegistered<AuthRepository>()) {
+              Get.find<AuthRepository>().rxIsCheckedIn.value = isCheckedIn;
+            }
+          }
         } else {
           // Check root or data level for current user's duty status
           final dynamic rootDutyRaw = statusResp['is_on_duty'] ??

@@ -17,6 +17,7 @@ import 'package:core/utils/app_image_compressor.dart';
 import 'widgets/duty_status_card.dart';
 import 'widgets/home_grid.dart';
 import 'unit_selection_screen.dart';
+import 'employee_selection_screen.dart';
 import '../controllers/home_grid_controller.dart';
 // endregion
 
@@ -48,9 +49,17 @@ class _HomeScreenState extends State<HomeScreen> {
   // endregion
 
   // region Navigation & Actions
-  Future<void> _handleCheckInOut(BuildContext context, bool isCheckedIn) async {
+  Future<void> _handleCheckInOut(BuildContext context) async {
     final authRepo = Get.find<AuthRepository>();
 
+    // Step 1: Select Employee
+    final selectedEmp = await EmployeeSelectionScreen.show(context);
+    if (selectedEmp == null) return;
+
+    final bool isCheckedIn = selectedEmp.isCheckedIn;
+    final String targetUserId = selectedEmp.id.toString();
+
+    // Step 2: Select Unit if Checking In
     String? selectedUnitId;
     if (!isCheckedIn) {
       final selectedUnit = await UnitSelectionScreen.show(context);
@@ -61,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedUnitId = selectedUnit.id;
     }
 
+    // Step 3: Capture Face Photo
     final capturedPath = await Get.toNamed(AppRoutes.camera);
     if (capturedPath != null &&
         capturedPath is String &&
@@ -72,11 +82,15 @@ class _HomeScreenState extends State<HomeScreen> {
           capturedPath;
 
       if (isCheckedIn) {
-        await authRepo.attendanceCheckOut(imagePath: compressedPath);
+        await authRepo.attendanceCheckOut(
+          imagePath: compressedPath,
+          userId: targetUserId,
+        );
       } else {
         await authRepo.attendanceCheckIn(
           imagePath: compressedPath,
           unitId: selectedUnitId,
+          userId: targetUserId,
         );
       }
     }
@@ -155,12 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDutySection(BuildContext context) {
     return Obx(() {
       final authRepo = Get.find<AuthRepository>();
-      final isCheckedIn = authRepo.rxIsCheckedIn.value;
       final isSubmitting = authRepo.isSubmittingAttendance.value;
-
-      final buttonColors = isCheckedIn
-          ? [AppColors.red, const Color(0xFFD32F2F)]
-          : [AppColors.secondaryGreen, AppColors.primaryGreen];
 
       return Column(
         children: [
@@ -169,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Duty status card — equal width
               const Expanded(child: DutyStatusCard()),
               SizedBox(width: 10.w),
-              // Premium check-in / check-out button — equal width
+              // White elevated Selfie Attendance button with shadows — equal width
               Expanded(
                 child: Material(
                   color: Colors.transparent,
@@ -177,44 +186,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: InkWell(
                     onTap: isSubmitting
                         ? null
-                        : () => _handleCheckInOut(context, isCheckedIn),
+                        : () => _handleCheckInOut(context),
                     borderRadius: BorderRadius.circular(12.r),
                     child: Ink(
                       height: 35.h,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: buttonColors,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: AppColors.white,
                         borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: AppColors.grey200,
+                          width: 1.r,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: buttonColors.first.withValues(alpha: 0.28),
+                            color: AppColors.black.withValues(alpha: 0.08),
                             blurRadius: 8.r,
                             spreadRadius: 0,
-                            offset: Offset(0, 3.h),
+                            offset: Offset(0, 2.h),
                           ),
                         ],
                       ),
                       child: isSubmitting
                           ? const Center(
                               child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CustomAppLoader(
-                                  color: AppColors.white,
-                                ),
+                                width: 18,
+                                height: 18,
+                                child: CustomAppLoader(),
                               ),
                             )
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 26.r,
-                                  height: 26.r,
+                                  width: 24.r,
+                                  height: 24.r,
                                   decoration: BoxDecoration(
-                                    color: AppColors.white,
+                                    color: AppColors.aliceBlue,
                                     borderRadius: BorderRadius.circular(6.r),
                                   ),
                                   clipBehavior: Clip.antiAlias,
@@ -222,19 +229,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Center(
                                     child: Image.asset(
                                       AppImages.selfieIcon,
-                                      width: 22.r,
-                                      height: 22.r,
+                                      width: 20.r,
+                                      height: 20.r,
                                       fit: BoxFit.contain,
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 8.w),
-                                Text(
-                                  isCheckedIn ? 'Selfie Check Out' : 'Selfie Check In',
-                                  style: AppTextStyle.style_12_600(
-                                    color: AppColors.white,
+                                SizedBox(width: 6.w),
+                                Flexible(
+                                  child: Text(
+                                    'Selfie Attendance',
+                                    style: AppTextStyle.style_12_600(
+                                      color: AppColors.black,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 1,
                                 ),
                               ],
                             ),

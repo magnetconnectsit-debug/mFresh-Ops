@@ -11,6 +11,7 @@ import 'package:dev/views/widgets/floating_logger_button.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -25,6 +26,8 @@ import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:mfresh_ops/core/constants/tracking_constants.dart';
 import 'package:mfresh_ops/core/controllers/duty_monitor_controller.dart';
+import 'package:mfresh_ops/core/widgets/global_connectivity_banner.dart';
+import 'package:mfresh_ops/core/widgets/global_server_error_overlay.dart';
 import 'package:mfresh_ops/data/models/tracking_models.dart';
 import 'package:mfresh_ops/data/models/user.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
@@ -32,6 +35,7 @@ import 'package:mfresh_ops/data/repositories/booking_repository.dart';
 import 'package:mfresh_ops/data/repositories/collection_repository.dart';
 import 'package:mfresh_ops/data/repositories/common_repository.dart';
 import 'package:mfresh_ops/data/repositories/contact_repository.dart';
+import 'package:mfresh_ops/data/repositories/master_repository.dart';
 import 'package:mfresh_ops/data/repositories/deposit_repository.dart';
 import 'package:mfresh_ops/data/repositories/inventory_repository.dart';
 import 'package:mfresh_ops/data/repositories/support_repository.dart';
@@ -40,6 +44,7 @@ import 'package:mfresh_ops/data/repositories/tracking_repository.dart';
 import 'package:mfresh_ops/data/repositories/user_repository.dart';
 import 'package:mfresh_ops/data/services/push_notification_service.dart';
 import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:mfresh_ops/modules/authentication/views/widgets/app_biometric_lock_overlay.dart';
 import 'package:mfresh_ops/routes/app_pages.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:services/phonepe_service.dart';
@@ -69,7 +74,7 @@ class MyTaskHandler extends TaskHandler {
   final Battery _battery = Battery();
   final Connectivity _connectivity = Connectivity();
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin();
   final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 15),
@@ -132,16 +137,16 @@ class MyTaskHandler extends TaskHandler {
 
       // Initialize local notifications inside background isolate
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
       const InitializationSettings initializationSettings =
-          InitializationSettings(
-            android: initializationSettingsAndroid,
-            iOS: DarwinInitializationSettings(
-              requestSoundPermission: false,
-              requestBadgePermission: false,
-              requestAlertPermission: false,
-            ),
-          );
+      InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: DarwinInitializationSettings(
+          requestSoundPermission: false,
+          requestBadgePermission: false,
+          requestAlertPermission: false,
+        ),
+      );
       await _localNotificationsPlugin.initialize(
         settings: initializationSettings,
       );
@@ -149,19 +154,18 @@ class MyTaskHandler extends TaskHandler {
 
     _notificationUpdateTimer = Timer.periodic(
       const Duration(minutes: 5),
-      (_) => _updateNotificationSafely(),
+          (_) => _updateNotificationSafely(),
     );
 
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
-      results,
-    ) {
-      final isOnline = results.any(
-        (result) => result != ConnectivityResult.none,
-      );
-      if (isOnline) {
-        unawaited(_syncOfflineCache());
-      }
-    });
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((results,) {
+          final isOnline = results.any(
+                (result) => result != ConnectivityResult.none,
+          );
+          if (isOnline) {
+            unawaited(_syncOfflineCache());
+          }
+        });
 
     _startLocationStream();
   }
@@ -176,7 +180,7 @@ class MyTaskHandler extends TaskHandler {
             forceLocationManager: _useLocationManagerFallback,
           ),
         ).listen(
-          (Position position) async {
+              (Position position) async {
             _latestPosition = position;
             _latestPositionAt = position.timestamp;
 
@@ -378,14 +382,17 @@ class MyTaskHandler extends TaskHandler {
       final uri = '${AppConfig.baseUrl}${AppConstants.trackingBulkSync}';
 
       // Sort entries by time so oldest locations sync first
-      final entries = box.toMap().entries.toList()
+      final entries = box
+          .toMap()
+          .entries
+          .toList()
         ..sort((a, b) => a.value.locationTime.compareTo(b.value.locationTime));
 
       // Process in batches of bulkSyncBatchSize (matches foreground behaviour)
       for (
-        var i = 0;
-        i < entries.length;
-        i += TrackingConstants.bulkSyncBatchSize
+      var i = 0;
+      i < entries.length;
+      i += TrackingConstants.bulkSyncBatchSize
       ) {
         final end = (i + TrackingConstants.bulkSyncBatchSize > entries.length)
             ? entries.length
@@ -394,18 +401,19 @@ class MyTaskHandler extends TaskHandler {
 
         final locationsPayload = batchEntries
             .map(
-              (e) => {
-                'latitude': e.value.latitude,
-                'longitude': e.value.longitude,
-                'accuracy': e.value.accuracy,
-                'speed': e.value.speed,
-                'heading': e.value.heading,
-                'battery': e.value.battery,
-                'is_charging': e.value.isCharging,
-                'network_type': e.value.networkType,
-                'location_time': e.value.locationTime,
-              },
-            )
+              (e) =>
+          {
+            'latitude': e.value.latitude,
+            'longitude': e.value.longitude,
+            'accuracy': e.value.accuracy,
+            'speed': e.value.speed,
+            'heading': e.value.heading,
+            'battery': e.value.battery,
+            'is_charging': e.value.isCharging,
+            'network_type': e.value.networkType,
+            'location_time': e.value.locationTime,
+          },
+        )
             .toList();
 
         try {
@@ -452,7 +460,7 @@ class MyTaskHandler extends TaskHandler {
       final connectivityResults = await _connectivity.checkConnectivity();
       final isOffline =
           connectivityResults.isEmpty ||
-          connectivityResults.contains(ConnectivityResult.none);
+              connectivityResults.contains(ConnectivityResult.none);
       final locationDataToCache = await _createLocationData(pos);
 
       if (isOffline) {
@@ -472,7 +480,8 @@ class MyTaskHandler extends TaskHandler {
       );
 
       debugPrint(
-        'Upload details - session_id: $sessionId, hasToken: ${token != null}, deviceId: $deviceId',
+        'Upload details - session_id: $sessionId, hasToken: ${token !=
+            null}, deviceId: $deviceId',
       );
 
       if (sessionId == null ||
@@ -624,9 +633,9 @@ class MyTaskHandler extends TaskHandler {
 
     final isFresh =
         latestPosition != null &&
-        latestAt != null &&
-        DateTime.now().difference(latestAt) <=
-            TrackingConstants.stalePositionThreshold;
+            latestAt != null &&
+            DateTime.now().difference(latestAt) <=
+                TrackingConstants.stalePositionThreshold;
 
     if (isFresh &&
         latestPosition.accuracy <=
@@ -668,7 +677,7 @@ class MyTaskHandler extends TaskHandler {
           ).difference(DateTime.parse(last.locationTime));
 
           double accuracyDiff =
-              ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
+          ((last.accuracy ?? 0.0) - (locationData.accuracy ?? 0.0)).abs();
           if (dist < 5.0 &&
               timeDiff < TrackingConstants.stationaryHeartbeatMaxInterval &&
               accuracyDiff < 15.0) {
@@ -686,7 +695,7 @@ class MyTaskHandler extends TaskHandler {
     } catch (_) {}
   }
 
-  // endregion
+// endregion
 }
 // endregion
 
@@ -694,19 +703,23 @@ class MyTaskHandler extends TaskHandler {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
   try {
     await GoogleFonts.pendingFonts([GoogleFonts.poppins()]);
   } catch (_) {}
 
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp();
+  if (!kIsWeb) {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    }
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await Hive.initFlutter();
   if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
@@ -723,8 +736,12 @@ void main() async {
 
 // region Services Dependency Injection
 Future<void> initServices() async {
+  Get.put(ConnectivityService());
+  Get.put(ServerErrorService());
   Get.put(LoggerService());
-  Get.put(PushNotificationService());
+  if (!kIsWeb) {
+    Get.put(PushNotificationService());
+  }
 
   final storageService = await Get.putAsync(() => StorageService().init());
   Get.put(SettingsService());
@@ -736,30 +753,76 @@ Future<void> initServices() async {
   await Get.putAsync(() => DioClient().init(publicPaths: [AppConstants.login]));
   Get.put(ApiService());
   Get.put(AppUpdateService());
+  Get.put(BiometricAuthService());
 
   Get.put(AuthRepository());
   Get.put(UserRepository());
   Get.put(CommonRepository());
   Get.put(BookingRepository());
   Get.put(PlutusService());
-  PhonePeService.init(isProduction: true);
+  if (!kIsWeb) {
+    PhonePeService.init(isProduction: AppConfig.isPhonePeProduction);
+  }
   Get.put(PhonePeService());
   Get.put(SupportRepository());
   Get.put(TaskRepository());
   Get.put(InventoryRepository());
   Get.put(TrackingRepository());
-  Get.put(TrackingService());
+  if (!kIsWeb) {
+    Get.put(TrackingService());
+  }
   Get.put(CollectionRepository());
   Get.put(DepositRepository());
   Get.put(ContactRepository());
-  Get.put(DutyMonitorController(), permanent: true);
+  Get.put(MasterRepository());
+  if (!kIsWeb) {
+    Get.put(DutyMonitorController(), permanent: true);
+  }
 }
 // endregion
 
 // region Material Application Root
-class OpsApp extends StatelessWidget {
+class OpsApp extends StatefulWidget {
   const OpsApp({super.key});
 
+  @override
+  State<OpsApp> createState() => _OpsAppState();
+}
+
+class _OpsAppState extends State<OpsApp> with WidgetsBindingObserver {
+  // region Dependencies
+  final BiometricAuthService _biometricService =
+  Get.find<BiometricAuthService>();
+  final StorageService _storageService = Get.find<StorageService>();
+
+  // endregion
+
+  // region Lifecycle Methods
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (!AppConfig.enableBiometricAuth) return;
+
+    final token = _storageService.getToken();
+    final isUserLoggedIn = token != null && token.isNotEmpty;
+    _biometricService.handleAppLifecycle(state, isUserLoggedIn: isUserLoggedIn);
+  }
+
+  // endregion
+
+  // region Main Build
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -769,11 +832,11 @@ class OpsApp extends StatelessWidget {
             ? view.devicePixelRatio
             : 1.0;
         final double width =
-            constraints.maxWidth.isFinite && constraints.maxWidth > 0
+        constraints.maxWidth.isFinite && constraints.maxWidth > 0
             ? constraints.maxWidth
             : view.physicalSize.width / pixelRatio;
         final double height =
-            constraints.maxHeight.isFinite && constraints.maxHeight > 0
+        constraints.maxHeight.isFinite && constraints.maxHeight > 0
             ? constraints.maxHeight
             : view.physicalSize.height / pixelRatio;
         final shortestSide = width < height ? width : height;
@@ -788,20 +851,68 @@ class OpsApp extends StatelessWidget {
           designSize: designSize,
           minTextAdapt: true,
           splitScreenMode: true,
-          builder: (context, child) => GetMaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'mFresh Ops',
-            theme: ThemeData(primaryColor: AppColors.primary),
-            builder: (context, child) {
-              return Stack(children: [child!, const FloatingLoggerButton()]);
-            },
-            initialRoute: AppRoutes.splash,
-            getPages: AppPages.pages,
-          ),
+          builder: (context, child) =>
+              GetMaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'mFresh Ops',
+                theme: ThemeData(primaryColor: AppColors.primary),
+                routingCallback: (routing) {
+                  if (kIsWeb) return;
+                  final routeName = routing?.current ?? '';
+                  final isBookingMode =
+                      routeName == AppRoutes.bookingUnitSelection ||
+                          routeName == AppRoutes.serviceDetails ||
+                          routeName == AppRoutes.bookingHistory ||
+                          routeName == AppRoutes.bookingConfirmed ||
+                          routeName == AppRoutes.printReceipt ||
+                          routeName.contains('booking') ||
+                          routeName.contains('service-details');
+
+                  if (isBookingMode) {
+                    // Allow all orientations in booking mode
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                      DeviceOrientation.portraitDown,
+                      DeviceOrientation.landscapeLeft,
+                      DeviceOrientation.landscapeRight,
+                    ]);
+                  } else {
+                    // Lock to portrait in operations mode
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                      DeviceOrientation.portraitDown,
+                    ]);
+                  }
+                },
+                builder: (context, child) {
+                  return Stack(
+                    children: [
+                      child!,
+                      const FloatingLoggerButton(),
+                      // Global No-Internet Status Banner
+                      const GlobalConnectivityBanner(),
+                      // Global Server Error Maintenance Overlay
+                      const GlobalServerErrorOverlay(),
+                      // Biometric App Lock Security Overlay
+                      Obx(() {
+                        final isLocked = _biometricService.isAppLocked.value;
+                        if (AppConfig.enableBiometricAuth && isLocked) {
+                          return const AppBiometricLockOverlay();
+                        }
+                        return const SizedBox.shrink();
+                      }),
+                    ],
+                  );
+                },
+                initialRoute: AppRoutes.splash,
+                getPages: AppPages.pages,
+              ),
         );
       },
     );
   }
+
+// endregion
 }
 
 // endregion
