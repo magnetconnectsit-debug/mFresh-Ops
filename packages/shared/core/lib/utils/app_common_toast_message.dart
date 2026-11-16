@@ -16,8 +16,12 @@ class AppCommonToastMessage {
 
   final config = _ToastConfig.fromType(type);
 
-  if (Get.isSnackbarOpen) {
-    Get.closeAllSnackbars();
+  try {
+    if (Get.isSnackbarOpen) {
+      Get.closeCurrentSnackbar();
+    }
+  } catch (e) {
+    debugPrint('Error closing snackbar: $e');
   }
 
   Get.showSnackbar(
@@ -128,7 +132,11 @@ String _cleanMessage(String message) {
   } else if (lowerMsg.contains('user not found')) {
     return "We couldn't find an account with those details.";
   } else if (lowerMsg.contains('internal server error') ||
-      lowerMsg.contains('500')) {
+      lowerMsg.contains('500 error') ||
+      lowerMsg.contains('500 internal') ||
+      lowerMsg.contains('status 500') ||
+      lowerMsg.contains('error 500') ||
+      RegExp(r'\bhttp\s*500\b').hasMatch(lowerMsg)) {
     return "Our servers are having trouble. Please try again later.";
   }
 

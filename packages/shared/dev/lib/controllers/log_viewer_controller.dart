@@ -1,9 +1,10 @@
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Response, FormData;
 import 'package:share_plus/share_plus.dart';
 import 'package:core/utils/app_common_toast_message.dart';
 import 'package:services/log_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 
 class LogViewerController extends GetxController {
   final LoggerService _loggerService = Get.find<LoggerService>();
@@ -55,10 +56,10 @@ class LogViewerController extends GetxController {
       buffer.writeln('\n[Request]');
       buffer.writeln('URL: ${log.request.uri}');
       buffer.writeln('Headers: ${log.request.headers}');
-      buffer.writeln('Body: ${log.request.data}');
+      buffer.writeln('Body: ${prettyJson(log.request.data)}');
 
       buffer.writeln('\n[Response]');
-      buffer.writeln('Body: ${log.response?.data ?? log.error?.message}');
+      buffer.writeln('Body: ${prettyJson(log.response?.data ?? log.error?.response?.data ?? log.error?.message)}');
       buffer.writeln('----------------------------------\n');
     }
 
@@ -75,6 +76,8 @@ class LogViewerController extends GetxController {
     String responseText = '';
     if (log.response?.data != null) {
       responseText = prettyJson(log.response!.data);
+    } else if (log.error?.response?.data != null) {
+      responseText = prettyJson(log.error!.response!.data);
     } else if (log.error != null) {
       responseText = log.error.toString();
     }
@@ -107,6 +110,16 @@ class LogViewerController extends GetxController {
 
   String prettyJson(dynamic json) {
     if (json == null) return 'null';
+    if (json is FormData) {
+      final Map<String, dynamic> map = {};
+      for (var field in json.fields) {
+        map[field.key] = field.value;
+      }
+      for (var file in json.files) {
+        map[file.key] = '[File: ${file.value.filename ?? "unnamed"}, Size: ${file.value.length} bytes]';
+      }
+      json = map;
+    }
     try {
       const encoder = JsonEncoder.withIndent('  ');
       return encoder.convert(json);

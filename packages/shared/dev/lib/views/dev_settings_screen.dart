@@ -38,9 +38,11 @@ class DevSettingsScreen extends GetView<DevSettingsController> {
             ),
             SizedBox(height: 8.h),
             _buildToggleTile(
-              'Show Floating Logger',
-              'Displays a floating button to view logs',
-              Icons.bug_report_outlined,
+              'Dev Mode',
+              'Toggle between test and production configurations',
+              Icons.developer_mode_rounded,
+              controller.settingsService.isDevMode,
+              controller.toggleDevMode,
             ),
             SizedBox(height: 16.h),
             ListTile(
@@ -69,7 +71,7 @@ class DevSettingsScreen extends GetView<DevSettingsController> {
     );
   }
 
-  Widget _buildToggleTile(String title, String sub, IconData icon) {
+  Widget _buildToggleTile(String title, String sub, IconData icon, RxBool value, Function(bool) onChanged) {
     return Obx(() => SwitchListTile(
       contentPadding: EdgeInsets.zero,
       secondary: Container(
@@ -82,9 +84,9 @@ class DevSettingsScreen extends GetView<DevSettingsController> {
       ),
       title: Text(title, style: AppTextStyle.style_14_600(color: AppColors.black)),
       subtitle: Text(sub, style: AppTextStyle.style_12_400(color: AppColors.grey300)),
-      value: controller.settingsService.showLogger.value,
-      onChanged: controller.toggleLogger,
-      activeColor: AppColors.primary,
+      value: value.value,
+      onChanged: onChanged,
+      activeThumbColor: AppColors.primary,
     ));
   }
 }

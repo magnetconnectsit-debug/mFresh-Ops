@@ -1,313 +1,257 @@
-import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_images.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
+// region Imports
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:services/storage_service.dart';
-
+import 'widgets/duty_status_card.dart';
 import 'widgets/home_grid.dart';
+import 'unit_selection_screen.dart';
+import '../controllers/home_grid_controller.dart';
+// endregion
 
+// region HomeScreen Widget
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+// endregion
 
+// region HomeScreenState
 class _HomeScreenState extends State<HomeScreen> {
-  DateTime? _lastPressed;
+  // region State Variables
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  // endregion
 
+  // region Lifecycle Methods
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && Get.isRegistered<AuthRepository>()) {
+        Get.find<AuthRepository>().refreshPermissions();
+      }
+    });
+  }
+  // endregion
+
+  // region Navigation & Actions
+  Future<void> _handleCheckInOut(BuildContext context) async {
+    final authRepo = Get.find<AuthRepository>();
+    if (authRepo.rxIsCheckedIn.value) {
+      final capturedPath = await Get.toNamed(
+        AppRoutes.camera,
+        arguments: {'confirmButtonText': 'Check Out'},
+      );
+      if (capturedPath != null &&
+          capturedPath is String &&
+          capturedPath.isNotEmpty) {
+        final compressedPath = await AppImageCompressor.compressPath(
+              capturedPath,
+              quality: 50,
+            ) ??
+            capturedPath;
+        await authRepo.attendanceCheckOut(imagePath: compressedPath);
+      }
+    } else {
+      await UnitSelectionScreen.show(context, isSelfieAttendance: true);
+    }
+  }
+  // endregion
+
+  // region Main Build
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-
-        final now = DateTime.now();
-        if (_lastPressed == null ||
-            now.difference(_lastPressed!) > const Duration(seconds: 2)) {
-          _lastPressed = now;
-          AppCommonToastMessage.show(
-            message: "Please press back again to close",
-            type: ToastType.info,
-          );
-          return;
-        }
-
-        SystemNavigator.pop();
-      },
+    return AppDoubleBackToClose(
+      scaffoldKey: _scaffoldKey,
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppCommonAppBar(
-          title: Text(
-            'mFresh Ops',
-            style: AppTextStyle.style_14_700(color: AppColors.black),
-          ),
-          backgroundColor: Colors.white,
-          actions: [
-            IconButton(
-              onPressed: () => Get.toNamed(AppRoutes.notifications),
-              icon: Icon(
-                Icons.notifications_none_rounded,
-                color: AppColors.primary,
-                size: 22.r,
-              ),
-            ),
-          ],
-          showAppDrawer: true,
-          hasBackButton: false,
-          elevation: 0,
-        ),
+        appBar: const CommonShortcutHeader(),
         drawer: const CommonSidebar(),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildWelcomeHeader(),
-              _buildStatsSection(),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Management Hub',
-                      style: AppTextStyle.style_14_700(color: AppColors.black),
-                    ),
-                    SizedBox(height: 8.h),
-                    const HomeGrid(),
-                    SizedBox(height: 16.h),
-                    _buildQuickActions(),
-                    SizedBox(height: 32.h),
-                  ],
+        body: AppRefreshIndicator(
+          onRefresh: () async {
+            try {
+              await Get.find<AuthRepository>().refreshPermissions();
+              if (Get.isRegistered<HomeGridController>()) {
+                Get.find<HomeGridController>().refreshGrid();
+              }
+            } catch (e) {
+              debugPrint('Error reloading profile & permissions on home refresh: $e');
+            }
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: 20.w,
+                    right: 20.w,
+                    top: 10.h,
+                    bottom: 8.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDutySection(context),
+                      const HomeGrid(),
+                      SizedBox(height: 10.h),
+                      _buildFooterLogo(context),
+                      SizedBox(height: 8.h),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+  // endregion
 
-  Widget _buildWelcomeHeader() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32.r),
-          bottomRight: Radius.circular(32.r),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // region Section Builders
+  Widget _buildDutySection(BuildContext context) {
+    return Obx(() {
+      final authRepo = Get.find<AuthRepository>();
+      final isSubmitting = authRepo.isSubmittingAttendance.value;
+
+      return Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Duty status card — equal width
+              const Expanded(child: DutyStatusCard()),
+              SizedBox(width: 10.w),
+              // White elevated Selfie Attendance button with shadows — equal width
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Hello, ${Get.find<StorageService>().getUser()?.name ?? "Ops Manager"}!',
-                      style: AppTextStyle.style_18_600(color: AppColors.black),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'Here\'s what\'s happening today',
-                      style: AppTextStyle.style_10_400(
-                        color: AppColors.grey300,
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: InkWell(
+                    onTap: isSubmitting
+                        ? null
+                        : () => _handleCheckInOut(context),
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Ink(
+                      height: 35.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: AppColors.grey200,
+                          width: 1.r,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withValues(alpha: 0.08),
+                            blurRadius: 8.r,
+                            spreadRadius: 0,
+                            offset: Offset(0, 2.h),
+                          ),
+                        ],
                       ),
+                      child: isSubmitting
+                          ? const Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CustomAppLoader(),
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 24.r,
+                                  height: 24.r,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.aliceBlue,
+                                    borderRadius: BorderRadius.circular(6.r),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  padding: EdgeInsets.all(2.r),
+                                  child: Center(
+                                    child: Image.asset(
+                                      AppImages.selfieIcon,
+                                      width: 20.r,
+                                      height: 20.r,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 6.w),
+                                Flexible(
+                                  child: Text(
+                                    authRepo.rxIsCheckedIn.value
+                                        ? 'Selfie Check-Out'
+                                        : 'Selfie Punch',
+                                    style: AppTextStyle.style_12_600(
+                                      color: authRepo.rxIsCheckedIn.value
+                                          ? AppColors.red
+                                          : AppColors.black,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.all(8.r),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Image.asset(
-                  AppImages.appLogo,
-                  width: 24.r,
-                  height: 24.r,
-                  fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ],
           ),
+          SizedBox(height: 12.h),
         ],
-      ),
-    );
+      );
+    });
   }
 
-  Widget _buildStatsSection() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard(
-              'Active Tasks',
-              '12',
-              Icons.task_alt_rounded,
-              Colors.blue,
-            ),
+  Widget _buildFooterLogo(BuildContext context) {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          vertical: 14.h,
+          horizontal: 10.w,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: AppColors.black.withValues(alpha: 0.05),
+            width: 1.r,
           ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: _buildStatCard(
-              'New Tickets',
-              '05',
-              Icons.confirmation_number_outlined,
-              Colors.orange,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.04),
+              blurRadius: 10.r,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          children: [
+            Image.asset(
+              AppImages.appLogo,
+              width: 280.w,
+              height: 75.h,
+              fit: BoxFit.contain,
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  Widget _buildStatCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Colors.black.withValues(alpha: 0.05),
-          width: 1.r,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  value,
-                  style: AppTextStyle.style_16_700(color: AppColors.black),
-                ),
-                Text(
-                  label,
-                  style: AppTextStyle.style_10_400(color: AppColors.grey300),
-                ),
-              ],
-            ),
-          ),
-          Icon(icon, color: color.withValues(alpha: 0.5), size: 18.r),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: AppTextStyle.style_14_700(color: AppColors.black),
-        ),
-        SizedBox(height: 8.h),
-        _buildActionTile(
-          Icons.add_task_rounded,
-          'Create New Task',
-          'Assign work to field team',
-          Colors.blue,
-        ),
-        _buildActionTile(
-          Icons.add_moderator_outlined,
-          'Raise Ticket',
-          'Report operational issues',
-          Colors.orange,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionTile(
-    IconData icon,
-    String title,
-    String sub,
-    Color color,
-  ) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: Colors.black.withValues(alpha: 0.05),
-          width: 1.r,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10.r),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Icon(icon, color: color, size: 24.r),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyle.style_12_600(color: AppColors.black),
-                ),
-                Text(
-                  sub,
-                  style: AppTextStyle.style_10_400(color: AppColors.grey300),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            color: AppColors.grey200,
-            size: 16.r,
-          ),
-        ],
-      ),
-    );
-  }
+  // endregion
 }
+// endregion

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "75974088304",
+    "project_id": "mfreshops",
+    "storage_bucket": "mfreshops.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:75974088304:android:b419b441da35c03f0e46b5",
+        "android_client_info": {
+          "package_name": "com.mFreshOps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDuGzASFSkKuV2E7QNeOnzOMHkxgXK1Jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

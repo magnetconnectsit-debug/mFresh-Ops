@@ -1,0 +1,259 @@
+// region Imports
+import 'dart:async';
+
+import 'package:core/constants/app_colors.dart';
+import 'package:dev/routes/dev_routes.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:mfresh_ops/data/services/tracking_service.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
+import 'package:services/storage_service.dart';
+// endregion
+
+// region DutyMonitorController Class
+class DutyMonitorController extends GetxController with WidgetsBindingObserver {
+  // region Observables & State Variables
+  Timer? _timer;
+  Timer? _gracePeriodTimer;
+  bool _isDialogShowing = false;
+  bool _isAppInForeground = true;
+
+  /// Prevents the "off duty" dialog from firing during:
+  /// 1. First 60 seconds after app launch (let user turn on duty themselves)
+  /// 2. 30 seconds after "Turn On Duty" is tapped (wait for API call to complete)
+  /// 3. 30 seconds after the app resumes from background
+  bool _isInGracePeriod = true;
+  // endregion
+
+  // region Lifecycle Methods
+  @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+    // On first launch, give user 60 seconds to turn on duty themselves
+    _gracePeriodTimer = Timer(const Duration(seconds: 60), () {
+      _isInGracePeriod = false;
+    });
+    _startTimer();
+  }
+
+  @override
+  void onClose() {
+    _timer?.cancel();
+    _gracePeriodTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _isAppInForeground = true;
+      // When resuming from background, give a 30-second grace period
+      // so the user can turn on duty themselves without being interrupted
+      _isInGracePeriod = true;
+      _gracePeriodTimer?.cancel();
+      _gracePeriodTimer = Timer(const Duration(seconds: 30), () {
+        _isInGracePeriod = false;
+        _checkDutyState();
+      });
+      _startTimer();
+    } else {
+      _isAppInForeground = false;
+      _timer?.cancel();
+    }
+  }
+  // endregion
+
+  // region Business Logic & Helpers
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_isAppInForeground && !_isInGracePeriod) {
+        _checkDutyState();
+      }
+    });
+  }
+
+  bool _isBookingModeOrRoute() {
+    // 1. Primary check: persisted login mode
+    try {
+      if (Get.isRegistered<StorageService>()) {
+        final loginMode = Get.find<StorageService>().getLoginMode();
+        if (loginMode == 'booking') {
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Secondary check: route inspection
+    final currentRoute = Get.currentRoute;
+    if (currentRoute == AppRoutes.bookingUnitSelection ||
+        currentRoute == AppRoutes.serviceDetails ||
+        currentRoute == AppRoutes.bookingHistory ||
+        currentRoute == AppRoutes.bookingConfirmed ||
+        currentRoute == AppRoutes.printReceipt ||
+        currentRoute == AppRoutes.profile ||
+        currentRoute == DevRoutes.logViewer ||
+        currentRoute == DevRoutes.devSettings ||
+        currentRoute == DevRoutes.devPasscode ||
+        currentRoute.contains('booking') ||
+        currentRoute.contains('service-details') ||
+        currentRoute.contains('log-viewer')) {
+      return true;
+    }
+    return false;
+  }
+
+  void _checkDutyState() {
+    if (_isDialogShowing) return;
+    if (_isInGracePeriod) return;
+
+    // Do not show off-duty dialog in booking mode, on booking screens, or on profile/api log screens
+    if (_isBookingModeOrRoute()) return;
+
+    final user = Get.find<StorageService>().getUser();
+    if (user == null) return; // Not logged in
+
+    final bool isOffDuty =
+        user.isOnDuty == 0 || user.isOnDuty == null || user.isOnDuty == false;
+    if (isOffDuty) {
+      _showDutyDialog();
+    }
+  }
+  // endregion
+
+  void _showDutyDialog() {
+    _isDialogShowing = true;
+
+    Get.dialog(
+      PopScope(
+        canPop: false,
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10.0,
+                  offset: Offset(0.0, 10.0),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'You are off duty',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Please turn on your duty to continue using the app optimally.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Get.back();
+                      _isDialogShowing = false;
+                      // Enter grace period while the duty toggle API call is in progress
+                      // so the periodic timer doesn't immediately re-show the dialog
+                      _isInGracePeriod = true;
+                      _gracePeriodTimer?.cancel();
+                      _gracePeriodTimer = Timer(
+                        const Duration(seconds: 30),
+                        () {
+                          _isInGracePeriod = false;
+                        },
+                      );
+                      if (!TrackingService.to.isTracking.value) {
+                        await TrackingService.to.toggleTracking();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Turn On Duty',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton(
+                    onPressed: () {
+                      Get.back();
+                      _isDialogShowing = false;
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.black54,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Close (Snooze 30s)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    ).then((_) {
+      _isDialogShowing = false;
+    });
+  }
+}

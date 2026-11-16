@@ -1,5 +1,5 @@
 import 'package:core/constants/app_colors.dart';
-import 'package:core/routes/app_routes.dart';
+import 'package:mfresh/routes/app_routes.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

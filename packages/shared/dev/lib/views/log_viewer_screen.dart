@@ -133,7 +133,7 @@ class LogViewerScreen extends GetView<LogViewerController> {
                 SizedBox(height: 12.h),
                 _buildDetailSection(
                   log.isError ? 'Error Response' : 'Response Body',
-                  controller.prettyJson(log.response?.data ?? log.error?.message),
+                  controller.prettyJson(log.response?.data ?? log.error?.response?.data ?? log.error?.message),
                   onCopy: () => controller.copyResponse(log),
                   copyButtonText: 'Copy JSON',
                 ),

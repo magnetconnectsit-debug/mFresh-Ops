@@ -1,15 +1,11 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:core/constants/app_colors.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_common_app_bar.dart';
-import 'package:core/widgets/app_common_button.dart';
-import 'package:core/widgets/app_common_textfield.dart';
-import 'package:core/widgets/app_common_drop_down.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/data/models/models.dart';
 import '../controllers/support_subcategory_controller.dart';
-import '../models/support_subcategory_model.dart';
 
 class SupportSubCategoryScreen extends StatelessWidget {
   const SupportSubCategoryScreen({super.key});
@@ -24,95 +20,182 @@ class SupportSubCategoryScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         hasBackButton: false,
         showAppDrawer: true,
+        topHeader: const CommonShortcutHeader(),
+        showSearchBar: true,
+        searchController: controller.searchController,
         title: Text(
-          'Support\nSub Categories',
-          style: AppTextStyle.style_14_700(color: AppColors.black),
+          'Sub Categories',
+          style: AppTextStyle.style_18_700(color: AppColors.black),
         ),
-        actions: [
-          AppCommonButton(
-            text: 'Add Sub Cat',
-            onPressed: () => _showAddDialog(context, controller),
-            height: 32.h,
-            width: 85.w,
-            textSize: 10.sp,
-          ),
-          SizedBox(width: 8.w),
-        ],
       ),
       drawer: const CommonSidebar(),
       body: Obx(
-        () => ListView.builder(
-          padding: EdgeInsets.all(16.r),
-          itemCount: controller.filteredSubCategories.length,
-          itemBuilder: (context, index) {
-            final sub = controller.filteredSubCategories[index];
-            return _buildSubCategoryCard(context, controller, sub, index);
-          },
-        ),
+        () => controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () => controller.fetchAllData(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    left: 12.w,
+                    right: 12.w,
+                    top: 8.h,
+                    bottom: 16.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Add Sub Categories Button
+                      AppCommonButton(
+                        text: 'Add Sub Categories',
+                        onPressed: () => _showAddDialog(context, controller),
+                      ),
+                      SizedBox(height: 8.h),
+
+                      // Data Table
+                      Obx(() {
+                        final subCategories = controller.paginatedSubCategories;
+
+                        final columns = [
+                          AppTableColumn<SupportSubCategoryModel>(
+                            key: 'sl_no',
+                            title: 'Sl No.',
+                            width: 50.w,
+                            sortable: false,
+                            cellBuilder: (context, sub, index, isExpanded) {
+                              final actualIndex =
+                                  ((controller.currentPage.value - 1) *
+                                      controller.itemsPerPage.value) +
+                                  index;
+                              return Text(
+                                '${actualIndex + 1}',
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.black,
+                                ),
+                              );
+                            },
+                          ),
+                          AppTableColumn<SupportSubCategoryModel>(
+                            key: 'category',
+                            title: 'Category',
+                            width: 85.w,
+                            cellBuilder: (context, sub, index, isExpanded) {
+                              final category = controller.categories
+                                  .firstWhereOrNull((c) => c.id == sub.catId);
+                              return Text(
+                                category?.categoryName ?? 'Unknown',
+                                style: AppTextStyle.style_14_400(
+                                  color: AppColors.black,
+                                ),
+                                maxLines: isExpanded ? null : 1,
+                                overflow: isExpanded
+                                    ? TextOverflow.visible
+                                    : TextOverflow.ellipsis,
+                              );
+                            },
+                          ),
+                          AppTableColumn<SupportSubCategoryModel>(
+                            key: 'sub_category',
+                            title: 'Sub Category',
+                            width: 125.w,
+
+                            cellBuilder: (context, sub, index, isExpanded) {
+                              return Text(
+                                sub.subCategory,
+                                style: AppTextStyle.style_14_400(
+                                  color: AppColors.black,
+                                ),
+                                maxLines: isExpanded ? null : 1,
+                                overflow: isExpanded
+                                    ? TextOverflow.visible
+                                    : TextOverflow.ellipsis,
+                              );
+                            },
+                          ),
+                          AppTableColumn<SupportSubCategoryModel>(
+                            key: 'action',
+                            title: 'Action',
+                            width: 90.w,
+                            sortable: false,
+                            cellBuilder: (context, sub, index, isExpanded) {
+                              return Row(
+                                children: [
+                                  _buildOutlinedIconButton(
+                                    Icons.edit,
+                                    () => _showEditDialog(
+                                      context,
+                                      controller,
+                                      sub,
+                                      index,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6.w),
+                                  _buildOutlinedIconButton(
+                                    Icons.delete_outline,
+                                    () => _showDeleteConfirmation(
+                                      context,
+                                      controller,
+                                      index,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ];
+
+                        return AppCommonTable<SupportSubCategoryModel>(
+                          items: subCategories,
+                          columns: columns,
+                          emptyText: 'No sub categories found',
+                        );
+                      }),
+
+                      SizedBox(height: 24.h),
+                      // Pagination
+                      Obx(() {
+                        final totalItems =
+                            controller.filteredSubCategories.length;
+                        final startItem = totalItems == 0
+                            ? 0
+                            : ((controller.currentPage.value - 1) *
+                                      controller.itemsPerPage.value) +
+                                  1;
+                        final endItem =
+                            (startItem + controller.itemsPerPage.value - 1)
+                                .clamp(0, totalItems);
+
+                        return AppTablePagination(
+                          startItem: startItem,
+                          endItem: endItem,
+                          totalItems: totalItems,
+                          currentPage: controller.currentPage.value,
+                          totalPages: controller.totalPages,
+                          onPageChanged: (page) => controller.goToPage(page),
+                          onPreviousPage: controller.previousPage,
+                          onNextPage: controller.nextPage,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildSubCategoryCard(
-    BuildContext context,
-    SupportSubCategoryController controller,
-    SupportSubCategoryModel sub,
-    int index,
-  ) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8.r),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(
-              sub.siNo.toString(),
-              style: AppTextStyle.style_12_700(color: AppColors.primary),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  sub.subCategory,
-                  style: AppTextStyle.style_14_600(color: AppColors.black),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Category: ${sub.category}',
-                  style: AppTextStyle.style_11_400(color: AppColors.grey300),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => _showEditDialog(context, controller, sub, index),
-            icon: Icon(Icons.edit_outlined, color: AppColors.info, size: 20.r),
-          ),
-          IconButton(
-            onPressed: () =>
-                _showDeleteConfirmation(context, controller, index),
-            icon: Icon(Icons.delete_outline, color: AppColors.red, size: 20.r),
-          ),
-        ],
+  Widget _buildOutlinedIconButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4.r),
+      child: Container(
+        padding: EdgeInsets.all(4.r),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.grey400),
+          borderRadius: BorderRadius.circular(4.r),
+        ),
+        child: Icon(icon, size: 14.r, color: AppColors.grey600),
       ),
     );
   }
@@ -126,50 +209,75 @@ class SupportSubCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Add Sub Category', style: AppTextStyle.style_18_700()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Obx(
-              () => AppCommonDropdown<String>(
-                title: 'Category',
-                hintText: 'Select Category',
-                items: controller.categories
-                    .map(
-                      (cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat, style: AppTextStyle.style_14_400()),
-                      ),
-                    )
-                    .toList(),
-                value: controller.selectedCategory.value,
-                onChanged: (val) => controller.selectedCategory.value = val,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(
+                () => MultiSelectDropdownWidget<SupportCategoryModel>(
+                  label: 'Category*',
+                  hint: 'Select Category',
+                  isSingleSelect: true,
+                  showSearch: true,
+                  selectedValues: controller.selectedCategory.value != null
+                      ? {controller.selectedCategory.value!}
+                      : {},
+                  items: controller.categories
+                      .map(
+                        (cat) => DropdownMenuItem(
+                          value: cat,
+                          child: Text(cat.categoryName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    controller.selectedCategory.value = values.isNotEmpty
+                        ? values.first
+                        : null;
+                  },
+                ),
               ),
-            ),
-            SizedBox(height: 12.h),
-            AppCommonTextField(
-              controller: controller.subCategoryNameController,
-              titleText: 'Sub Category',
-              hintText: 'Enter sub category',
-            ),
-          ],
+              SizedBox(height: 12.h),
+              _buildTextField(
+                controller.subCategoryNameController,
+                label: 'Sub Category*',
+                hint: 'Enter sub category',
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Submit',
-            onPressed: () => controller.addSubCategory(),
-            width: 90.w,
-            height: 36.h,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Cancel',
+                variant: ButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+                width: 85.w,
+                height: 32.h,
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: 'Submit',
+                onPressed: () async {
+                  final success = await controller.addSubCategory();
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                width: 85.w,
+                height: 32.h,
+              ),
+            ],
           ),
         ],
       ),
@@ -183,58 +291,85 @@ class SupportSubCategoryScreen extends StatelessWidget {
     int index,
   ) {
     controller.subCategoryNameController.text = sub.subCategory;
-    controller.selectedCategory.value = sub.category;
+    controller.selectedCategory.value = controller.categories.firstWhereOrNull(
+      (c) => c.id == sub.catId,
+    );
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Edit Sub Category', style: AppTextStyle.style_18_700()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Obx(
-              () => AppCommonDropdown<String>(
-                title: 'Category',
-                hintText: 'Select Category',
-                items: controller.categories
-                    .map(
-                      (cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat, style: AppTextStyle.style_14_400()),
-                      ),
-                    )
-                    .toList(),
-                value: controller.selectedCategory.value,
-                onChanged: (val) => controller.selectedCategory.value = val,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(
+                () => MultiSelectDropdownWidget<SupportCategoryModel>(
+                  label: 'Category*',
+                  hint: 'Select Category',
+                  isSingleSelect: true,
+                  showSearch: true,
+                  selectedValues: controller.selectedCategory.value != null
+                      ? {controller.selectedCategory.value!}
+                      : {},
+                  items: controller.categories
+                      .map(
+                        (cat) => DropdownMenuItem(
+                          value: cat,
+                          child: Text(cat.categoryName),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (values) {
+                    controller.selectedCategory.value = values.isNotEmpty
+                        ? values.first
+                        : null;
+                  },
+                ),
               ),
-            ),
-            SizedBox(height: 12.h),
-            AppCommonTextField(
-              controller: controller.subCategoryNameController,
-              titleText: 'Sub Category',
-              hintText: 'Enter sub category',
-            ),
-          ],
+              SizedBox(height: 12.h),
+              _buildTextField(
+                controller.subCategoryNameController,
+                label: 'Sub Category*',
+                hint: 'Enter sub category',
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          AppCommonButton(
-            text: 'Update',
-            onPressed: () => controller.editSubCategory(
-              index,
-              controller.selectedCategory.value ?? '',
-              controller.subCategoryNameController.text,
-            ),
-            width: 90.w,
-            height: 36.h,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Cancel',
+                variant: ButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+                width: 85.w,
+                height: 32.h,
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: 'Update',
+                onPressed: () async {
+                  final success = await controller.editSubCategory(
+                    index,
+                    controller.selectedCategory.value?.id ?? 0,
+                    controller.subCategoryNameController.text,
+                  );
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                width: 85.w,
+                height: 32.h,
+              ),
+            ],
           ),
         ],
       ),
@@ -249,34 +384,63 @@ class SupportSubCategoryScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
+          side: const BorderSide(color: AppColors.grey300, width: 1),
         ),
         title: Text('Delete Sub Category', style: AppTextStyle.style_18_700()),
-        content: Text(
-          'Are you sure you want to delete this sub-category?',
-          style: AppTextStyle.style_14_400(color: AppColors.black),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(
+            'Are you sure you want to delete this sub-category?',
+            style: AppTextStyle.style_14_400(color: AppColors.black),
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyle.style_14_500(color: AppColors.grey300),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              controller.deleteSubCategory(index);
-            },
-            child: Text(
-              'Delete',
-              style: AppTextStyle.style_14_600(color: AppColors.red),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppCommonButton(
+                text: 'Cancel',
+                variant: ButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+                width: 85.w,
+                height: 32.h,
+              ),
+              SizedBox(width: 8.w),
+              AppCommonButton(
+                text: 'Delete',
+                buttonColor: AppColors.red,
+                onPressed: () async {
+                  final success = await controller.deleteSubCategory(index);
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+                width: 85.w,
+                height: 32.h,
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller, {
+    required String label,
+    String? hint,
+    int maxLines = 1,
+    bool hasError = false,
+  }) {
+    return AppCommonTextField(
+      controller: controller,
+      labelText: label,
+      hintText: hint ?? '',
+      maxLines: maxLines,
     );
   }
 }

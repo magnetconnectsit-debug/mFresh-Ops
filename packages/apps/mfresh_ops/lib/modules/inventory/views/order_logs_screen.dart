@@ -1,0 +1,76 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_text_style.dart';
+import 'package:core/widgets/app_common_search_bar.dart';
+import 'package:core/widgets/app_refresh_indicator.dart';
+import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
+import 'package:mfresh_ops/modules/inventory/controllers/inventory_order_logs_controller.dart';
+import 'package:mfresh_ops/modules/inventory/views/widgets/order_logs_table.dart';
+
+class OrderLogsScreen extends StatefulWidget {
+  const OrderLogsScreen({super.key});
+
+  @override
+  State<OrderLogsScreen> createState() => _OrderLogsScreenState();
+}
+
+class _OrderLogsScreenState extends State<OrderLogsScreen> {
+  late final InventoryOrderLogsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(InventoryOrderLogsController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchOrderLogs();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppCommonAppBar(
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        showAppDrawer: true,
+        hasBackButton: false,
+        topHeader: const CommonShortcutHeader(),
+        toolbarHeight: 45.h,
+        title: Row(
+          children: [
+            Text(
+              'Order Receive Logs',
+              style: AppTextStyle.style_16_700(color: AppColors.black),
+            ),
+            const Spacer(),
+            AppCommonSearchBar(
+              width: 140.w,
+              controller: controller.searchController,
+              hintText: 'Search',
+              onChanged: (v) => controller.allLogs.refresh(),
+            ),
+          ],
+        ),
+      ),
+      drawer: const CommonSidebar(),
+      body: AppRefreshIndicator(
+        onRefresh: controller.onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              SizedBox(height: 12.h),
+              const OrderLogsTable(),
+              SizedBox(height: 40.h),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
