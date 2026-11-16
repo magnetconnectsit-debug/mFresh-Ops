@@ -30,53 +30,24 @@ class CommonSidebar extends StatelessWidget {
   static Future<void> handleCheckInOut([BuildContext? context]) async {
     final effectiveContext = context ?? Get.context;
     if (effectiveContext == null) return;
-
     final authRepo = Get.find<AuthRepository>();
-
-    // 1. First, select the employee (supports taking attendance for oneself or others)
-    final selectedEmp = await EmployeeSelectionScreen.show(effectiveContext);
-    if (selectedEmp == null) {
-      // User dismissed employee selection
-      return;
-    }
-
-    final isCheckedIn = selectedEmp.isCheckedIn;
-    final targetUserId = selectedEmp.id.toString();
-
-    // 2. If checking in, select unit
-    String? selectedUnitId;
-    if (!isCheckedIn) {
-      final selectedUnit = await UnitSelectionScreen.show(effectiveContext);
-      if (selectedUnit == null) {
-        // User dismissed the unit selection
-        return;
+    if (authRepo.rxIsCheckedIn.value) {
+      final capturedPath = await Get.toNamed(
+        AppRoutes.camera,
+        arguments: {'confirmButtonText': 'Check Out'},
+      );
+      if (capturedPath != null &&
+          capturedPath is String &&
+          capturedPath.isNotEmpty) {
+        final compressedPath = await AppImageCompressor.compressPath(
+              capturedPath,
+              quality: 50,
+            ) ??
+            capturedPath;
+        await authRepo.attendanceCheckOut(imagePath: compressedPath);
       }
-      selectedUnitId = selectedUnit.id;
-    }
-
-    // 3. Capture camera photo
-    final capturedPath = await Get.toNamed(AppRoutes.camera);
-    if (capturedPath != null &&
-        capturedPath is String &&
-        capturedPath.isNotEmpty) {
-      final compressedPath = await AppImageCompressor.compressPath(
-            capturedPath,
-            quality: 50,
-          ) ??
-          capturedPath;
-
-      if (isCheckedIn) {
-        await authRepo.attendanceCheckOut(
-          imagePath: compressedPath,
-          userId: targetUserId,
-        );
-      } else {
-        await authRepo.attendanceCheckIn(
-          imagePath: compressedPath,
-          unitId: selectedUnitId,
-          userId: targetUserId,
-        );
-      }
+    } else {
+      await UnitSelectionScreen.show(effectiveContext, isSelfieAttendance: true);
     }
   }
   // endregion
@@ -257,7 +228,7 @@ class CommonSidebar extends StatelessWidget {
                                   'Attendance',
                                 if (hasPerm(AppPermissions.attendanceLog))
                                   'Report',
-                                'Selfie Check-In / Check-Out',
+                                'Selfie Punch',
                                 if (hasPerm(AppPermissions.selfieAttendance))
                                   'Selfie Attendance',
                               ],
@@ -461,10 +432,10 @@ class CommonSidebar extends StatelessWidget {
                     Get.toNamed(AppRoutes.staffTracking);
                   } else if (item == 'Log' || item == 'Report') {
                     Get.toNamed(AppRoutes.attendanceLog);
-                  } else if (item == 'Selfie Check-In / Check-Out' ||
+                  } else if (item == 'Selfie Punch' ||
+                      item == 'Selfie Check-In / Check-Out' ||
                       item == 'Selfie Check-In' ||
                       item == 'Selfie Check-Out') {
-                    Get.back(); // close drawer
                     CommonSidebar.handleCheckInOut();
                   } else if (item == 'Selfie Attendance' ||
                       item == 'Selfie Attendance Report') {
@@ -1101,7 +1072,7 @@ class _CollapsibleDrawerHeaderDelegate extends SliverPersistentHeaderDelegate {
                                             SizedBox(width: 6.w),
                                             Flexible(
                                               child: Text(
-                                                'Selfie',
+                                                'Selfie Punch',
                                                 style: AppTextStyle.style_11_700(
                                                   color: actionColor,
                                                 ),

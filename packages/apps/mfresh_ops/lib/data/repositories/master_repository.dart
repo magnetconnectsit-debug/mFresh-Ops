@@ -1,5 +1,6 @@
 // region Imports
 import 'dart:io';
+import 'package:core/core.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
@@ -37,15 +38,9 @@ class MasterRepository extends GetxService {
   }
 
   /// Create a new zone
-  Future<bool> createZone({
-    required String zoneName,
-    int status = 1,
-  }) async {
+  Future<bool> createZone({required String zoneName, int status = 1}) async {
     try {
-      final payload = {
-        'ZoneNm': zoneName,
-        'zoneStatus': status,
-      };
+      final payload = {'ZoneNm': zoneName, 'zoneStatus': status};
       final response = await _apiService.post(
         AppConstants.zoneCreate,
         data: payload,
@@ -64,11 +59,7 @@ class MasterRepository extends GetxService {
     required int status,
   }) async {
     try {
-      final payload = {
-        'id': id,
-        'ZoneNm': zoneName,
-        'zoneStatus': status,
-      };
+      final payload = {'id': id, 'ZoneNm': zoneName, 'zoneStatus': status};
       final response = await _apiService.put(
         AppConstants.zoneUpdate,
         data: payload,
@@ -94,6 +85,7 @@ class MasterRepository extends GetxService {
       rethrow;
     }
   }
+
   // region State Operations
   /// Fetch all states
   Future<StateListResponse> getStates() async {
@@ -175,6 +167,7 @@ class MasterRepository extends GetxService {
       rethrow;
     }
   }
+
   // region District Operations
   /// Fetch all districts
   Future<DistrictListResponse> getDistricts() async {
@@ -283,14 +276,18 @@ class MasterRepository extends GetxService {
     File? serviceIcon,
   }) async {
     try {
-      final Map<String, dynamic> dataMap = {
-        'serviceNm': serviceName,
-      };
+      final Map<String, dynamic> dataMap = {'serviceNm': serviceName};
 
       if (serviceIcon != null) {
-        final fileName = serviceIcon.path.split(Platform.pathSeparator).last;
+        final compressedFile = await AppImageCompressor.compressFile(
+          serviceIcon,
+          quality: 60,
+          targetWidth: 512,
+          minHeight: 512,
+        );
+        final fileName = compressedFile.path.split(Platform.pathSeparator).last;
         dataMap['serviceIcon'] = await dio.MultipartFile.fromFile(
-          serviceIcon.path,
+          compressedFile.path,
           filename: fileName,
         );
       }
@@ -315,20 +312,26 @@ class MasterRepository extends GetxService {
   }) async {
     try {
       final Map<String, dynamic> dataMap = {
-        'id': id,
+        'id': id.toString(),
         'serviceNm': serviceName,
       };
 
       if (serviceIcon != null) {
-        final fileName = serviceIcon.path.split(Platform.pathSeparator).last;
+        final compressedFile = await AppImageCompressor.compressFile(
+          serviceIcon,
+          quality: 60,
+          targetWidth: 512,
+          minHeight: 512,
+        );
+        final fileName = compressedFile.path.split(Platform.pathSeparator).last;
         dataMap['serviceIcon'] = await dio.MultipartFile.fromFile(
-          serviceIcon.path,
+          compressedFile.path,
           filename: fileName,
         );
       }
 
       final formData = dio.FormData.fromMap(dataMap);
-      final response = await _apiService.put(
+      final response = await _apiService.post(
         AppConstants.serviceUpdate,
         data: formData,
       );
@@ -380,19 +383,20 @@ class MasterRepository extends GetxService {
     File? amenityIcon,
   }) async {
     try {
-      final Map<String, dynamic> dataMap = {
-        'amenityNm': amenityName,
-        'amenity_name': amenityName,
-      };
+      final Map<String, dynamic> dataMap = {'amenitynm': amenityName};
 
       if (amenityIcon != null) {
-        final fileName = amenityIcon.path.split(Platform.pathSeparator).last;
-        final multiPart = await dio.MultipartFile.fromFile(
-          amenityIcon.path,
+        final compressedFile = await AppImageCompressor.compressFile(
+          amenityIcon,
+          quality: 60,
+          targetWidth: 512,
+          minHeight: 512,
+        );
+        final fileName = compressedFile.path.split(Platform.pathSeparator).last;
+        dataMap['amenity_img'] = await dio.MultipartFile.fromFile(
+          compressedFile.path,
           filename: fileName,
         );
-        dataMap['icon'] = multiPart;
-        dataMap['amenityIcon'] = multiPart;
       }
 
       final formData = dio.FormData.fromMap(dataMap);
@@ -415,23 +419,26 @@ class MasterRepository extends GetxService {
   }) async {
     try {
       final Map<String, dynamic> dataMap = {
-        'id': id,
-        'amenityNm': amenityName,
-        'amenity_name': amenityName,
+        'id': id.toString(),
+        'amenitynm': amenityName,
       };
 
       if (amenityIcon != null) {
-        final fileName = amenityIcon.path.split(Platform.pathSeparator).last;
-        final multiPart = await dio.MultipartFile.fromFile(
-          amenityIcon.path,
+        final compressedFile = await AppImageCompressor.compressFile(
+          amenityIcon,
+          quality: 60,
+          targetWidth: 512,
+          minHeight: 512,
+        );
+        final fileName = compressedFile.path.split(Platform.pathSeparator).last;
+        dataMap['amenity_img'] = await dio.MultipartFile.fromFile(
+          compressedFile.path,
           filename: fileName,
         );
-        dataMap['icon'] = multiPart;
-        dataMap['amenityIcon'] = multiPart;
       }
 
       final formData = dio.FormData.fromMap(dataMap);
-      final response = await _apiService.put(
+      final response = await _apiService.post(
         AppConstants.amenityUpdate,
         data: formData,
       );
@@ -456,7 +463,7 @@ class MasterRepository extends GetxService {
       rethrow;
     }
   }
+
   // endregion
 }
 // endregion
-

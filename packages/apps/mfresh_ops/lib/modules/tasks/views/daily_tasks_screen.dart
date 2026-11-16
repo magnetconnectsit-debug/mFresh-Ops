@@ -1,34 +1,45 @@
+// region Imports
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
+import 'package:core/utils/app_common_toast_message.dart';
 import 'package:core/utils/app_text_style.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
-import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
+import 'package:core/widgets/app_common_button.dart';
+import 'package:core/widgets/app_double_back_to_close.dart';
 import 'package:core/widgets/custom_app_loader.dart';
-import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/data/models/models.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:mfresh_ops/modules/tasks/controllers/tasks_controller.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/daily_task_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_filter_card.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_stat_item.dart';
 import 'package:mfresh_ops/modules/tasks/views/widgets/task_tabs.dart';
+import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
+import 'package:mfresh_ops/widgets/common_sidebar.dart';
 import 'package:services/services.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+// endregion
 
+// region DailyTasksScreen Widget
 class DailyTasksScreen extends StatefulWidget {
   const DailyTasksScreen({super.key});
 
   @override
   State<DailyTasksScreen> createState() => _DailyTasksScreenState();
 }
+// endregion
 
+// region _DailyTasksScreenState
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
+  // region State & Properties
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final TasksController controller;
+  // endregion
 
+  // region Lifecycle Methods
   @override
   void initState() {
     super.initState();
@@ -40,352 +51,315 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       controller.refreshData();
     });
   }
+  // endregion
 
+  // region Main Build
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
-      appBar: AppCommonAppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        title: Text(
-          'Daily Task',
-          style: AppTextStyle.style_18_700(color: AppColors.black),
-        ),
-        actions: [
-          Obx(() {
-            if (Get.find<AuthRepository>().rxUserPermissions.contains(
-              'create_new_task',
-            )) {
-              return Padding(
-                padding: EdgeInsets.only(right: 16.w),
-                child: Center(
-                  child: AppCommonButton(
-                    icon: Icons.add,
-                    iconColor: AppColors.white,
-                    text: 'Create Task',
-                    buttonColor: const Color(0xFF16A3B8),
-                    textColor: Colors.white,
-                    height: 22.h,
-                    textSize: 10.sp,
-                    borderRadius: 4.r,
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
-                    useGradient: false,
-                    onPressed: () {
-                      Get.find<TasksController>().formInitialized.value = false;
-                      Get.toNamed(AppRoutes.createTask);
-                    },
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
-        showAppDrawer: true,
-        hasBackButton: false,
-        iconColor: AppColors.black,
-        topHeader: const CommonShortcutHeader(),
+    return AppDoubleBackToClose(
+      scaffoldKey: _scaffoldKey,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: AppColors.background,
+        appBar: _buildAppBar(context),
+        drawer: const CommonSidebar(),
+        body: _buildBody(context),
       ),
-      drawer: const CommonSidebar(),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: () => controller.pullToRefresh(),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Obx(() {
-                  final bool isInitialLoading =
-                      controller.isLoading.value && controller.tasks.isEmpty;
+    );
+  }
+  // endregion
 
-                  final displayTasks = isInitialLoading
-                      ? List.generate(
-                          5,
-                          (index) => TaskItem(
-                            id: index,
-                            taskCode: 'TSK00$index',
-                            projectId: '1',
-                            groupId: '1',
-                            taskType: 'Type',
-                            unitId: '1',
-                            assignTo: '1',
-                            assigneeRole: '1',
-                            title: 'Dummy Task Title $index',
-                            description: '',
-                            frequency: 'Daily',
-                            createdBy: '1',
-                            startDate: '2026-06-04',
-                            endDate: '2026-06-04',
-                            repeatInterval: '1',
-                            photoRequired: '0',
-                            approvalRequired: '0',
-                            approverId: '1',
-                            selectedDays: '',
-                            monthDays: '',
-                            yearDays: '',
-                            occurrences: '',
-                            startTime: '10:00 AM',
-                            endTime: '11:00 AM',
-                            createdAt: '2026-06-04T10:00:00Z',
-                            updatedAt: '2026-06-04T10:00:00Z',
-                            taskInstanceId: index,
-                            scheduleDateTime: '27-Feb-2026',
-                            status: 'pending',
-                            project: 'mFresh',
-                            assigneeName: 'Loading Assignee',
-                            approverName: 'Loading Approver',
-                            createdByName: 'Loading Creator',
-                            completedByName: 'Loading Completer',
-                          ),
-                        )
-                      : (controller.isFiltered
-                                ? controller.tasks
-                                : controller.allDailyTasks)
-                            .where((task) {
-                              final status = task.status.toLowerCase();
-                              final user = Get.find<StorageService>().getUser();
-                              final isApprover =
-                                  task.approverId == user?.id?.toString();
-                              final isReviewStatus =
-                                  status == 'review' ||
-                                  status == 'under_review';
-                              final isCancelReview = status == 'cancel_review';
+  // region Header & App Bar
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppCommonAppBar(
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      title: Text(
+        'Daily Task',
+        style: AppTextStyle.style_18_700(color: AppColors.black),
+      ),
+      actions: [
+        Obx(() {
+          if (Get.find<AuthRepository>().rxUserPermissions.contains(
+            'create_new_task',
+          )) {
+            return Padding(
+              padding: EdgeInsets.only(right: 16.w),
+              child: Center(
+                child: AppCommonButton(
+                  icon: Icons.add,
+                  iconColor: AppColors.white,
+                  text: 'Create Task',
+                  buttonColor: const Color(0xFF16A3B8),
+                  textColor: AppColors.white,
+                  height: 22.h,
+                  textSize: 10.sp,
+                  borderRadius: 4.r,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  useGradient: false,
+                  onPressed: () {
+                    Get.find<TasksController>().formInitialized.value = false;
+                    Get.toNamed(AppRoutes.createTask);
+                  },
+                ),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      ],
+      showAppDrawer: true,
+      hasBackButton: false,
+      iconColor: AppColors.black,
+      topHeader: const CommonShortcutHeader(),
+    );
+  }
+  // endregion
 
-                              if (controller.activeTab.value == 0) {
-                                if (status == 'completed' ||
-                                    status == 'approved' ||
-                                    status == 'cancelled') {
-                                  return false;
-                                }
-                                if (isCancelReview) {
-                                  return true;
-                                }
-                                if (isReviewStatus) {
-                                  return isApprover;
-                                }
-                                return true;
-                              } else {
-                                if (status == 'completed' ||
-                                    status == 'approved' ||
-                                    status == 'cancelled') {
-                                  return true;
-                                }
-                                if (isReviewStatus) {
-                                  return !isApprover;
-                                }
-                                return false;
-                              }
-                            })
-                            .toList();
+  // region Body & Section Builders
+  Widget _buildBody(BuildContext context) {
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: () => controller.pullToRefresh(),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Obx(() {
+                final bool isInitialLoading =
+                    controller.isLoading.value && controller.tasks.isEmpty;
 
-                  final List<TaskItem> overdueTasks = [];
-                  final List<TaskItem> todayTasks = [];
-                  final List<TaskItem> tomorrowTasks = [];
+                final displayTasks = isInitialLoading
+                    ? List.generate(
+                        5,
+                        (index) => TaskItem(
+                          id: index,
+                          taskCode: 'TSK00$index',
+                          projectId: '1',
+                          groupId: '1',
+                          taskType: 'Type',
+                          unitId: '1',
+                          assignTo: '1',
+                          assigneeRole: '1',
+                          title: 'Dummy Task Title $index',
+                          description: '',
+                          frequency: 'Daily',
+                          createdBy: '1',
+                          startDate: '2026-06-04',
+                          endDate: '2026-06-04',
+                          repeatInterval: '1',
+                          photoRequired: '0',
+                          approvalRequired: '0',
+                          approverId: '1',
+                          selectedDays: '',
+                          monthDays: '',
+                          yearDays: '',
+                          occurrences: '',
+                          startTime: '10:00 AM',
+                          endTime: '11:00 AM',
+                          createdAt: '2026-06-04T10:00:00Z',
+                          updatedAt: '2026-06-04T10:00:00Z',
+                          taskInstanceId: index,
+                          scheduleDateTime: '27-Feb-2026',
+                          status: 'pending',
+                          project: 'mFresh',
+                          assigneeName: 'Loading Assignee',
+                          approverName: 'Loading Approver',
+                          createdByName: 'Loading Creator',
+                          completedByName: 'Loading Completer',
+                        ),
+                      )
+                    : (controller.isFiltered
+                            ? controller.tasks
+                            : controller.allDailyTasks)
+                        .where((task) {
+                          final status = task.status.toLowerCase();
+                          final user = Get.find<StorageService>().getUser();
+                          final isApprover =
+                              task.approverId == user?.id?.toString();
+                          final isReviewStatus =
+                              status == 'review' ||
+                              status == 'under_review';
+                          final isCancelReview = status == 'cancel_review';
 
-                  final now = DateTime.now();
-                  final today = DateTime(now.year, now.month, now.day);
+                          if (controller.activeTab.value == 0) {
+                            if (status == 'completed' ||
+                                status == 'approved' ||
+                                status == 'cancelled') {
+                              return false;
+                            }
+                            if (isCancelReview) {
+                              return true;
+                            }
+                            if (isReviewStatus) {
+                              return isApprover;
+                            }
+                            return true;
+                          } else {
+                            if (status == 'completed' ||
+                                status == 'approved' ||
+                                status == 'cancelled') {
+                              return true;
+                            }
+                            if (isReviewStatus) {
+                              return !isApprover;
+                            }
+                            return false;
+                          }
+                        })
+                        .toList();
 
-                  if (isInitialLoading) {
-                    todayTasks.addAll(displayTasks);
-                  } else {
-                    for (final task in displayTasks) {
-                      final dt = _parseDateTime(task.scheduleDateTime);
-                      if (dt != null) {
-                        final taskDate = DateTime(dt.year, dt.month, dt.day);
-                        if (taskDate.isBefore(today)) {
-                          overdueTasks.add(task);
-                        } else if (taskDate.isAtSameMomentAs(today)) {
-                          todayTasks.add(task);
-                        } else {
-                          tomorrowTasks.add(task);
-                        }
-                      } else {
+                final List<TaskItem> overdueTasks = [];
+                final List<TaskItem> todayTasks = [];
+                final List<TaskItem> tomorrowTasks = [];
+
+                final now = DateTime.now();
+                final today = DateTime(now.year, now.month, now.day);
+
+                if (isInitialLoading) {
+                  todayTasks.addAll(displayTasks);
+                } else {
+                  for (final task in displayTasks) {
+                    final dt = _parseDateTime(task.scheduleDateTime);
+                    if (dt != null) {
+                      final taskDate = DateTime(dt.year, dt.month, dt.day);
+                      if (taskDate.isBefore(today)) {
+                        overdueTasks.add(task);
+                      } else if (taskDate.isAtSameMomentAs(today)) {
                         todayTasks.add(task);
+                      } else {
+                        tomorrowTasks.add(task);
                       }
+                    } else {
+                      todayTasks.add(task);
                     }
                   }
+                }
 
-                  return Skeletonizer(
-                    enabled: isInitialLoading,
-                    child: CustomScrollView(
-                      controller: controller.scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverPadding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 4.h,
-                          ),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate([
-                              Wrap(
-                                spacing: 12.w,
-                                runSpacing: 2.h,
-                                children: [
-                                  TaskStatItem(
-                                    count:
-                                        '${controller.taskCounts['active'] ?? 0}',
-                                    label: 'Active',
-                                    color: AppColors.orange1,
-                                  ),
-                                  TaskStatItem(
-                                    count:
-                                        '${controller.taskCounts['upcoming'] ?? 0}',
-                                    label: 'Upcoming',
-                                    color: const Color(0xFFFFB822),
-                                  ),
-                                  TaskStatItem(
-                                    count:
-                                        '${controller.taskCounts['completed'] ?? 0}',
-                                    label: 'Completed',
-                                    color: AppColors.green,
-                                  ),
-                                  TaskStatItem(
-                                    count:
-                                        '${controller.taskCounts['overdue'] ?? 0}',
-                                    label: 'Overdue',
-                                    color: AppColors.error,
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 2.h),
-                              TaskFilterCard(controller: controller),
-                              SizedBox(height: 6.h),
-                              TaskTabs(controller: controller),
-                            ]),
-                          ),
+                return Skeletonizer(
+                  enabled: isInitialLoading,
+                  child: CustomScrollView(
+                    controller: controller.scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 4.h,
                         ),
-                        if (displayTasks.isEmpty && !controller.isLoading.value)
-                          SliverToBoxAdapter(
-                            child: Center(
-                              child: Padding(
-                                padding: EdgeInsets.only(top: 30.h),
-                                child: Text(
-                                  'No tasks found',
-                                  style: AppTextStyle.style_12_400(
-                                    color: AppColors.grey200,
-                                  ),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            Wrap(
+                              spacing: 12.w,
+                              runSpacing: 2.h,
+                              children: [
+                                TaskStatItem(
+                                  count:
+                                      '${controller.taskCounts['active'] ?? 0}',
+                                  label: 'Active',
+                                  color: AppColors.orange1,
+                                ),
+                                TaskStatItem(
+                                  count:
+                                      '${controller.taskCounts['upcoming'] ?? 0}',
+                                  label: 'Upcoming',
+                                  color: const Color(0xFFFFB822),
+                                ),
+                                TaskStatItem(
+                                  count:
+                                      '${controller.taskCounts['completed'] ?? 0}',
+                                  label: 'Completed',
+                                  color: AppColors.green,
+                                ),
+                                TaskStatItem(
+                                  count:
+                                      '${controller.taskCounts['overdue'] ?? 0}',
+                                  label: 'Overdue',
+                                  color: AppColors.error,
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 2.h),
+                            TaskFilterCard(controller: controller),
+                            SizedBox(height: 6.h),
+                            TaskTabs(controller: controller),
+                          ]),
+                        ),
+                      ),
+                      if (displayTasks.isEmpty && !controller.isLoading.value)
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 30.h),
+                              child: Text(
+                                'No tasks found',
+                                style: AppTextStyle.style_12_400(
+                                  color: AppColors.grey200,
                                 ),
                               ),
                             ),
-                          )
-                        else ...[
-                          if (overdueTasks.isNotEmpty) ...[
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.w,
-                                  vertical: 2.h,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.warning_amber_rounded,
-                                          size: 16.r,
+                          ),
+                        )
+                      else ...[
+                        if (overdueTasks.isNotEmpty) ...[
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.w,
+                                vertical: 2.h,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.warning_amber_rounded,
+                                        size: 16.r,
+                                        color: const Color(0xFFE25C5C),
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        'Overdue Tasks',
+                                        style: AppTextStyle.style_14_700(
                                           color: const Color(0xFFE25C5C),
                                         ),
-                                        SizedBox(width: 6.w),
-                                        Text(
-                                          'Overdue Tasks',
-                                          style: AppTextStyle.style_14_700(
-                                            color: const Color(0xFFE25C5C),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4.h),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SliverPadding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 4.h),
-                                    child: DailyTaskCard(
-                                      task: overdueTasks[index],
-                                    ),
-                                  );
-                                }, childCount: overdueTasks.length),
-                              ),
-                            ),
-                          ],
-                          if (todayTasks.isNotEmpty) ...[
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.w,
-                                  vertical: 4.h,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (overdueTasks.isNotEmpty) ...[
-                                      const DashedDivider(
-                                        height: 1.5,
-                                        color: Color(0xFF90CAF9),
-                                        dashWidth: 4,
-                                        dashSpace: 3,
                                       ),
-                                      SizedBox(height: 4.h),
                                     ],
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.today,
-                                          size: 16.r,
-                                          color: AppColors.primary,
-                                        ),
-                                        SizedBox(width: 6.w),
-                                        Text(
-                                          'Today\'s Tasks',
-                                          style: AppTextStyle.style_14_700(
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4.h),
-                                  ],
-                                ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                ],
                               ),
                             ),
-                            SliverPadding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 4.h),
-                                    child: DailyTaskCard(
-                                      task: todayTasks[index],
-                                    ),
-                                  );
-                                }, childCount: todayTasks.length),
-                              ),
+                          ),
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 4.h),
+                                  child: DailyTaskCard(
+                                    task: overdueTasks[index],
+                                  ),
+                                );
+                              }, childCount: overdueTasks.length),
                             ),
-                          ],
-                          if (tomorrowTasks.isNotEmpty) ...[
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.w,
-                                  vertical: 4.h,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
+                          ),
+                        ],
+                        if (todayTasks.isNotEmpty) ...[
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.w,
+                                vertical: 4.h,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (overdueTasks.isNotEmpty) ...[
                                     const DashedDivider(
                                       height: 1.5,
                                       color: Color(0xFF90CAF9),
@@ -393,73 +367,129 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                                       dashSpace: 3,
                                     ),
                                     SizedBox(height: 4.h),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.calendar_month_outlined,
-                                          size: 16.r,
+                                  ],
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.today,
+                                        size: 16.r,
+                                        color: AppColors.primary,
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        'Today\'s Tasks',
+                                        style: AppTextStyle.style_14_700(
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 4.h),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 4.h),
+                                  child: DailyTaskCard(
+                                    task: todayTasks[index],
+                                  ),
+                                );
+                              }, childCount: todayTasks.length),
+                            ),
+                          ),
+                        ],
+                        if (tomorrowTasks.isNotEmpty) ...[
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.w,
+                                vertical: 4.h,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const DashedDivider(
+                                    height: 1.5,
+                                    color: Color(0xFF90CAF9),
+                                    dashWidth: 4,
+                                    dashSpace: 3,
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_month_outlined,
+                                        size: 16.r,
+                                        color: const Color(0xFF0D6EFD),
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        'Tomorrow – Upcoming Tasks',
+                                        style: AppTextStyle.style_14_700(
                                           color: const Color(0xFF0D6EFD),
                                         ),
-                                        SizedBox(width: 6.w),
-                                        Text(
-                                          'Tomorrow – Upcoming Tasks',
-                                          style: AppTextStyle.style_14_700(
-                                            color: const Color(0xFF0D6EFD),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4.h),
-                                  ],
-                                ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 4.h),
+                                ],
                               ),
                             ),
-                            SliverPadding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 4.h),
-                                    child: DailyTaskCard(
-                                      task: tomorrowTasks[index],
-                                    ),
-                                  );
-                                }, childCount: tomorrowTasks.length),
-                              ),
-                            ),
-                          ],
-                          // No bottom spinner — post-action refreshes are now silent (_refreshDailyTasksSilently)
-                        ],
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height:
-                                MediaQuery.of(context).padding.bottom + 12.h,
                           ),
-                        ),
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 4.h),
+                                  child: DailyTaskCard(
+                                    task: tomorrowTasks[index],
+                                  ),
+                                );
+                              }, childCount: tomorrowTasks.length),
+                            ),
+                          ),
+                        ],
                       ],
-                    ),
-                  );
-                }),
-              ),
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height:
+                              MediaQuery.of(context).padding.bottom + 12.h,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ),
           ),
-          Obx(() {
-            if (controller.isFetchingDetails.value) {
-              return Container(
-                color: Colors.black.withValues(alpha: 0.2),
-                child: const Center(child: CustomAppLoader()),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
-      ),
+        ),
+        Obx(() {
+          if (controller.isFetchingDetails.value) {
+            return Container(
+              color: Colors.black.withValues(alpha: 0.2),
+              child: const Center(child: CustomAppLoader()),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      ],
     );
   }
+  // endregion
 
+  // region Helpers
   DateTime? _parseDateTime(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return null;
     try {
@@ -525,8 +555,11 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
     } catch (_) {}
     return null;
   }
+  // endregion
 }
+// endregion
 
+// region DashedDivider Widget
 class DashedDivider extends StatelessWidget {
   final double height;
   final Color color;
@@ -562,3 +595,4 @@ class DashedDivider extends StatelessWidget {
     );
   }
 }
+// endregion

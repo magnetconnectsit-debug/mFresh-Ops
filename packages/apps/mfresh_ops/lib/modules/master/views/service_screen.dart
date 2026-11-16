@@ -193,18 +193,26 @@ class ServiceScreen extends StatelessWidget {
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) {
             if (item.hasValidIcon) {
-              return SizedBox(
-                width: 20.r,
-                height: 20.r,
-                child: AppImageView(
+              return InkWell(
+                onTap: () => AppImageView.showFullScreen(
+                  context,
                   imageUrl: item.imgIconUrl,
+                  title: item.servicesName,
+                ),
+                borderRadius: BorderRadius.circular(4.r),
+                child: SizedBox(
                   width: 20.r,
                   height: 20.r,
-                  fit: BoxFit.contain,
-                  errorWidget: Icon(
-                    Icons.miscellaneous_services_outlined,
-                    size: 16.sp,
-                    color: AppColors.grey400,
+                  child: AppImageView(
+                    imageUrl: item.imgIconUrl,
+                    width: 20.r,
+                    height: 20.r,
+                    fit: BoxFit.contain,
+                    errorWidget: Icon(
+                      Icons.miscellaneous_services_outlined,
+                      size: 16.sp,
+                      color: AppColors.grey400,
+                    ),
                   ),
                 ),
               );
@@ -433,7 +441,14 @@ class ServiceScreen extends StatelessWidget {
                           clipBehavior: Clip.none,
                           children: [
                             InkWell(
-                              onTap: () => _showIconSourcePicker(ctx, controller),
+                              onTap: () => AppImageView.showFullScreen(
+                                ctx,
+                                imageUrl: url,
+                                imageFile: file,
+                                title: controller.serviceNameCtrl.text.trim().isNotEmpty
+                                    ? controller.serviceNameCtrl.text.trim()
+                                    : 'Service Icon',
+                              ),
                               borderRadius: BorderRadius.circular(8.r),
                               child: Container(
                                 width: 60.r,

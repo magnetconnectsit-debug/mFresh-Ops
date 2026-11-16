@@ -66,6 +66,26 @@ class AttendanceEmployeeItem {
       imageUrl: img,
     );
   }
+
+  AttendanceEmployeeItem copyWith({
+    int? id,
+    String? name,
+    String? mobile,
+    String? role,
+    bool? isOnDuty,
+    bool? isCheckedIn,
+    String? imageUrl,
+  }) {
+    return AttendanceEmployeeItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      mobile: mobile ?? this.mobile,
+      role: role ?? this.role,
+      isOnDuty: isOnDuty ?? this.isOnDuty,
+      isCheckedIn: isCheckedIn ?? this.isCheckedIn,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
 }
 // endregion
 

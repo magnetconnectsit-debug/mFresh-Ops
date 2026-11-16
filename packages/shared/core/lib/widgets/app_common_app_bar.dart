@@ -118,13 +118,7 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          color: AppColors.white,
-          child: SafeArea(
-            bottom: false,
-            child: topHeader!,
-          ),
-        ),
+        topHeader!,
         appBar,
       ],
     );
@@ -133,8 +127,19 @@ class AppCommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize {
     final effectiveHeight = toolbarHeight ?? (showSearchBar ? 45.h : 35.h);
-    final topHeight = topHeader?.preferredSize.height ?? 0.0;
-    return Size.fromHeight(effectiveHeight + topHeight);
+    if (topHeader == null) {
+      return Size.fromHeight(effectiveHeight);
+    }
+    double statusBarHeight = 0.0;
+    try {
+      final views = WidgetsBinding.instance.platformDispatcher.views;
+      if (views.isNotEmpty) {
+        statusBarHeight =
+            views.first.padding.top / views.first.devicePixelRatio;
+      }
+    } catch (_) {}
+    final topHeight = topHeader!.preferredSize.height;
+    return Size.fromHeight(effectiveHeight + topHeight + statusBarHeight);
   }
 }
 

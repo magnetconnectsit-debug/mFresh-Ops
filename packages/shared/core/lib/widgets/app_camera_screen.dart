@@ -8,6 +8,7 @@ import 'package:core/widgets/app_common_button.dart';
 import 'package:core/widgets/app_selfie_camera_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 // endregion
 
 // region AppCameraScreen Widget
@@ -17,6 +18,7 @@ class AppCameraScreen extends StatefulWidget {
   final int cameraLens;
   final bool frontCameraOnly;
   final bool isSelfieMode;
+  final String? confirmButtonText;
   // endregion
 
   // region Constructor
@@ -26,6 +28,7 @@ class AppCameraScreen extends StatefulWidget {
     this.cameraLens = 1,
     this.frontCameraOnly = false,
     this.isSelfieMode = true,
+    this.confirmButtonText,
   });
   // endregion
 
@@ -39,6 +42,35 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
   // region State Variables
   String? _capturedImagePath;
   bool _isProcessing = false;
+  // endregion
+
+  // region Dynamic Action Labels
+  String get _effectiveConfirmText {
+    if (widget.confirmButtonText != null &&
+        widget.confirmButtonText!.trim().isNotEmpty) {
+      return widget.confirmButtonText!;
+    }
+    if (Get.arguments is Map) {
+      final map = Get.arguments as Map;
+      if (map['confirmButtonText'] != null &&
+          map['confirmButtonText'].toString().trim().isNotEmpty) {
+        return map['confirmButtonText'].toString();
+      }
+      if (map['actionText'] != null &&
+          map['actionText'].toString().trim().isNotEmpty) {
+        return map['actionText'].toString();
+      }
+    } else if (Get.arguments is String &&
+        (Get.arguments as String).trim().isNotEmpty) {
+      return Get.arguments as String;
+    }
+    return 'Confirm';
+  }
+
+  bool get _isCheckOut {
+    final lower = _effectiveConfirmText.trim().toLowerCase();
+    return lower == 'check out' || lower == 'checkout' || lower.contains('check out');
+  }
   // endregion
 
   // region Image Actions & Compression
@@ -283,12 +315,7 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
             child: SafeArea(
               top: false,
               child: Container(
-                padding: EdgeInsets.only(
-                  left: 20.w,
-                  right: 20.w,
-                  bottom: 24.h,
-                  top: 24.h,
-                ),
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -300,78 +327,66 @@ class _AppCameraScreenState extends State<AppCameraScreen> {
                     end: Alignment.bottomCenter,
                   ),
                 ),
-              child: Row(
-                children: [
-                  // Retake Button
-                  Expanded(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.black.withValues(alpha: 0.3),
-                            blurRadius: 10.r,
-                            offset: Offset(0, 3.h),
-                          ),
-                        ],
-                      ),
+                child: Row(
+                  children: [
+                    // Retake Button
+                    Expanded(
                       child: AppCommonButton(
                         text: 'Retake',
+                        width: double.infinity,
                         icon: Icons.replay_rounded,
-                        iconSize: 18.r,
+                        iconSize: 15.r,
                         iconColor: AppColors.white,
-                        variant: ButtonVariant.primary,
+                        variant: ButtonVariant.outline,
                         useGradient: false,
-                        buttonColor: const Color(0xFF26262A),
-                        borderColor: AppColors.white.withValues(alpha: 0.28),
+                        buttonColor: AppColors.black.withValues(alpha: 0.45),
+                        borderColor: AppColors.white.withValues(alpha: 0.35),
                         textColor: AppColors.white,
-                        height: 48.h,
-                        borderRadius: 24.r,
-                        textSize: 14.sp,
+                        height: 38.h,
+                        borderRadius: 8.r,
+                        textSize: 12.sp,
                         onPressed: _isProcessing ? null : _retakePhoto,
                       ),
                     ),
-                  ),
-                  SizedBox(width: 14.w),
-                  // Confirm Button
-                  Expanded(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.38),
-                            blurRadius: 12.r,
-                            spreadRadius: 1.r,
-                            offset: Offset(0, 4.h),
-                          ),
-                        ],
-                      ),
+                    SizedBox(width: 12.w),
+                    // Action / Confirmation Button (Check In / Check Out / Confirm)
+                    Expanded(
                       child: AppCommonButton(
-                        text: 'Confirm',
-                        icon: Icons.check_circle_rounded,
-                        iconSize: 19.r,
+                        text: _effectiveConfirmText,
+                        width: double.infinity,
+                        icon: _isCheckOut
+                            ? Icons.logout_rounded
+                            : Icons.check_circle_rounded,
+                        iconSize: 16.r,
                         iconColor: AppColors.white,
                         variant: ButtonVariant.primary,
-                        gradientColors: const [
-                          AppColors.secondaryGreen,
-                          AppColors.primaryGreen,
-                        ],
+                        gradientColors: _isCheckOut
+                            ? const [
+                                AppColors.orange500,
+                                AppColors.red,
+                              ]
+                            : const [
+                                AppColors.secondaryGreen,
+                                AppColors.primaryGreen,
+                              ],
                         useGradient: true,
+                        buttonColor: _isCheckOut
+                            ? AppColors.red
+                            : AppColors.primaryGreen,
                         textColor: AppColors.white,
-                        height: 48.h,
-                        borderRadius: 24.r,
-                        textSize: 14.sp,
+                        height: 38.h,
+                        borderRadius: 8.r,
+                        textSize: 12.sp,
                         isLoading: _isProcessing,
                         onPressed: _isProcessing ? null : _confirmPhoto,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-      )],
+        ],
       ),
     );
   }

@@ -182,42 +182,33 @@ class AmenityScreen extends StatelessWidget {
 
       final columns = [
         AppTableColumn<AmenityItem>(
-          key: 'si_no',
-          title: 'SI No.',
-          sortable: true,
-          width: 50.w,
-          alignment: Alignment.centerLeft,
-          cellBuilder: (context, item, index, isExpanded) {
-            final overallIndex =
-                (controller.currentPage.value - 1) * controller.perPage.value +
-                    index +
-                    1;
-            return Text(
-              overallIndex.toString(),
-              style: AppTextStyle.style_11_500(color: AppColors.black),
-            );
-          },
-        ),
-        AppTableColumn<AmenityItem>(
           key: 'icon',
           title: 'Icon',
           sortable: false,
-          width: 60.w,
+          width: 50.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) {
             if (item.hasValidIcon) {
-              return SizedBox(
-                width: 20.r,
-                height: 20.r,
-                child: AppImageView(
+              return InkWell(
+                onTap: () => AppImageView.showFullScreen(
+                  context,
                   imageUrl: item.iconUrl,
+                  title: item.amenityName,
+                ),
+                borderRadius: BorderRadius.circular(4.r),
+                child: SizedBox(
                   width: 20.r,
                   height: 20.r,
-                  fit: BoxFit.contain,
-                  errorWidget: Icon(
-                    Icons.category_outlined,
-                    size: 16.sp,
-                    color: AppColors.grey400,
+                  child: AppImageView(
+                    imageUrl: item.iconUrl,
+                    width: 20.r,
+                    height: 20.r,
+                    fit: BoxFit.contain,
+                    errorWidget: Icon(
+                      Icons.category_outlined,
+                      size: 16.sp,
+                      color: AppColors.grey400,
+                    ),
                   ),
                 ),
               );
@@ -445,7 +436,14 @@ class AmenityScreen extends StatelessWidget {
                           clipBehavior: Clip.none,
                           children: [
                             InkWell(
-                              onTap: () => _showIconSourcePicker(ctx, controller),
+                              onTap: () => AppImageView.showFullScreen(
+                                ctx,
+                                imageUrl: url,
+                                imageFile: file,
+                                title: controller.amenityNameCtrl.text.trim().isNotEmpty
+                                    ? controller.amenityNameCtrl.text.trim()
+                                    : 'Amenity Icon',
+                              ),
                               borderRadius: BorderRadius.circular(8.r),
                               child: Container(
                                 width: 60.r,

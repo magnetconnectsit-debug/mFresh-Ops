@@ -98,16 +98,20 @@ class CommonShortcutHeader extends StatelessWidget implements PreferredSizeWidge
             if (!userPermissions.contains('header_task_btn')) {
               return const SizedBox.shrink();
             }
+            final isTasksActive = Get.currentRoute == AppRoutes.dailyTasks ||
+                Get.currentRoute == AppRoutes.dailyTaskFilter;
             return Padding(
               padding: EdgeInsets.only(right: 8.w),
               child: _buildShortcutButton(
                 label: 'Tasks',
                 onTap: () {
-                  if (Get.currentRoute != AppRoutes.dailyTasks) {
+                  if (!isTasksActive) {
                     Get.toNamed(AppRoutes.dailyTasks);
                   }
                 },
-                color: const Color(0xFFF3E5F5),
+                color: isTasksActive
+                    ? const Color(0xFF7B1FA2).withValues(alpha: 0.18)
+                    : const Color(0xFFF3E5F5),
                 textColor: const Color(0xFF7B1FA2),
               ),
             );

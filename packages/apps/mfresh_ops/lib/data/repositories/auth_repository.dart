@@ -4,6 +4,7 @@ import 'package:android_id/android_id.dart';
 import 'package:core/core.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart' as dio;
+import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -760,6 +761,39 @@ class AuthRepository extends GetxService {
       }
     } catch (e) {
       debugPrint('Error in attendanceCheckIn: $e');
+
+      final currentUser = _storageService.getUser() as User?;
+      final isForCurrentUser = userId == null ||
+          userId.isEmpty ||
+          (currentUser != null && currentUser.id.toString() == userId);
+
+      dynamic responseData;
+      if (e is DioException) {
+        responseData = e.response?.data;
+      }
+      final msg = responseData is Map
+          ? (responseData['message']?.toString() ?? '')
+          : e.toString();
+
+      final isAlreadyCheckedIn = msg.toLowerCase().contains('already checked in') ||
+          (responseData is Map && responseData['is_checked_in'] == true);
+
+      if (isAlreadyCheckedIn) {
+        if (isForCurrentUser) {
+          rxIsCheckedIn.value = true;
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(isCheckedIn: true);
+            await _storageService.saveUser(updatedUser);
+          }
+        }
+        AppCommonToastMessage.show(
+          message: 'Already checked in.',
+          type: ToastType.info,
+        );
+        fetchProfile();
+        return true;
+      }
+
       AppCommonToastMessage.show(
         message:
             'Error during check-in: ${e.toString().replaceAll("Exception: ", "")}',
@@ -862,6 +896,40 @@ class AuthRepository extends GetxService {
       }
     } catch (e) {
       debugPrint('Error in attendanceCheckOut: $e');
+
+      final currentUser = _storageService.getUser() as User?;
+      final isForCurrentUser = userId == null ||
+          userId.isEmpty ||
+          (currentUser != null && currentUser.id.toString() == userId);
+
+      dynamic responseData;
+      if (e is DioException) {
+        responseData = e.response?.data;
+      }
+      final msg = responseData is Map
+          ? (responseData['message']?.toString() ?? '')
+          : e.toString();
+
+      final isAlreadyCheckedOut = msg.toLowerCase().contains('no active check-in') ||
+          msg.toLowerCase().contains('already checked out') ||
+          (responseData is Map && responseData['is_checked_in'] == false);
+
+      if (isAlreadyCheckedOut) {
+        if (isForCurrentUser) {
+          rxIsCheckedIn.value = false;
+          if (currentUser != null) {
+            final updatedUser = currentUser.copyWith(isCheckedIn: false);
+            await _storageService.saveUser(updatedUser);
+          }
+        }
+        AppCommonToastMessage.show(
+          message: 'Already checked out. Ready to check in.',
+          type: ToastType.info,
+        );
+        fetchProfile();
+        return true;
+      }
+
       AppCommonToastMessage.show(
         message:
             'Error during check-out: ${e.toString().replaceAll("Exception: ", "")}',

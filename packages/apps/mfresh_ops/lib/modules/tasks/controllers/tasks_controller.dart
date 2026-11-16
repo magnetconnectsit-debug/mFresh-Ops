@@ -1053,33 +1053,49 @@ class TasksController extends GetxController {
         'folder_path': 'uploads/taskuploads',
       });
 
-      for (var file in attachments) {
-        if (file is XFile) {
-          formData.files.add(
-            MapEntry(
+      final entries = await Future.wait(
+        attachments.map((file) async {
+          if (file is XFile) {
+            String uploadPath = file.path;
+            if (!uploadPath.contains('compressed_')) {
+              uploadPath = await AppImageCompressor.compressPath(
+                    file.path,
+                    quality: 60,
+                    minWidth: 1080,
+                    minHeight: 1080,
+                  ) ??
+                  file.path;
+            }
+            return MapEntry(
               'taskimages[]',
-              await dio.MultipartFile.fromFile(file.path),
-            ),
-          );
-        } else if (file is String) {
-          try {
-            final fileResponse = await dio.Dio().get(
-              file,
-              options: dio.Options(responseType: dio.ResponseType.bytes),
+              await dio.MultipartFile.fromFile(uploadPath),
             );
-            final fileName = file.split('/').last;
-            formData.files.add(
-              MapEntry(
+          } else if (file is String) {
+            try {
+              final fileResponse = await dio.Dio().get(
+                file,
+                options: dio.Options(responseType: dio.ResponseType.bytes),
+              );
+              final fileName = file.split('/').last;
+              return MapEntry(
                 'taskimages[]',
                 dio.MultipartFile.fromBytes(
                   fileResponse.data,
                   filename: fileName,
                 ),
-              ),
-            );
-          } catch (e) {
-            debugPrint('Failed to download existing image: $e');
+              );
+            } catch (e) {
+              debugPrint('Failed to download existing image: $e');
+              return null;
+            }
           }
+          return null;
+        }),
+      );
+
+      for (var entry in entries) {
+        if (entry != null) {
+          formData.files.add(entry);
         }
       }
 
@@ -1090,7 +1106,9 @@ class TasksController extends GetxController {
       if (response != null && response['status'] == true) {
         isLoading.value =
             false; // Clear before closing so list screen never shows spinner
-        Get.back();
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
         AppCommonToastMessage.show(
           message:
               response['message'] ??
@@ -1254,37 +1272,42 @@ class TasksController extends GetxController {
   }
 
   Future<void> approveTask(int instanceId) async {
-    if (approverCommentController.text.trim().isEmpty) {
-      AppCommonToastMessage.show(
-        message: 'Please enter a comment before approving.',
-        type: ToastType.warning,
-      );
-      return;
-    }
+    final comment = approverCommentController.text.trim();
     try {
       isLoading.value = true;
       final formData = dio.FormData.fromMap({
         'task_instance_id': instanceId.toString(),
-        'comment': approverCommentController.text,
+        'comment': comment.isNotEmpty ? comment : 'Approved',
         'folder_path': 'uploads/taskuploads',
       });
 
-      for (var file in attachments) {
-        if (file is XFile) {
-          formData.files.add(
-            MapEntry(
-              'taskimages[]',
-              await dio.MultipartFile.fromFile(file.path),
-            ),
+      final entries = await Future.wait(
+        attachments.whereType<XFile>().map((file) async {
+          String uploadPath = file.path;
+          if (!uploadPath.contains('compressed_')) {
+            uploadPath = await AppImageCompressor.compressPath(
+                  file.path,
+                  quality: 60,
+                  minWidth: 1080,
+                  minHeight: 1080,
+                ) ??
+                file.path;
+          }
+          return MapEntry(
+            'taskimages[]',
+            await dio.MultipartFile.fromFile(uploadPath),
           );
-        }
-      }
+        }),
+      );
+      formData.files.addAll(entries);
 
       final response = await _taskRepository.approveTask(formData);
       if (response != null && response['status'] == true) {
         isLoading.value =
             false; // Clear before closing so list screen never shows spinner
-        Get.back();
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
         AppCommonToastMessage.show(
           message: 'Task approved successfully',
           type: ToastType.success,
@@ -1317,22 +1340,33 @@ class TasksController extends GetxController {
         'folder_path': 'uploads/taskuploads',
       });
 
-      for (var file in attachments) {
-        if (file is XFile) {
-          formData.files.add(
-            MapEntry(
-              'taskimages[]',
-              await dio.MultipartFile.fromFile(file.path),
-            ),
+      final entries = await Future.wait(
+        attachments.whereType<XFile>().map((file) async {
+          String uploadPath = file.path;
+          if (!uploadPath.contains('compressed_')) {
+            uploadPath = await AppImageCompressor.compressPath(
+                  file.path,
+                  quality: 60,
+                  minWidth: 1080,
+                  minHeight: 1080,
+                ) ??
+                file.path;
+          }
+          return MapEntry(
+            'taskimages[]',
+            await dio.MultipartFile.fromFile(uploadPath),
           );
-        }
-      }
+        }),
+      );
+      formData.files.addAll(entries);
 
       final response = await _taskRepository.rejectTask(formData);
       if (response != null && response['status'] == true) {
         isLoading.value =
             false; // Clear before closing so list screen never shows spinner
-        Get.back();
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
         AppCommonToastMessage.show(
           message: 'Task rejected successfully',
           type: ToastType.success,
@@ -1363,7 +1397,9 @@ class TasksController extends GetxController {
       if (response != null && response['status'] == true) {
         isLoading.value =
             false; // Clear before closing so list screen never shows spinner
-        Get.back();
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
         AppCommonToastMessage.show(
           message: response['message'] ?? 'Task deleted successfully',
           type: ToastType.success,
@@ -2190,19 +2226,33 @@ class TasksController extends GetxController {
   Future<void> pickImage([ImageSource source = ImageSource.camera]) async {
     try {
       if (source == ImageSource.gallery) {
-        final List<XFile> images = await _picker.pickMultiImage(
-          imageQuality: 80,
-        );
+        final List<XFile> images = await _picker.pickMultiImage();
         if (images.isNotEmpty) {
-          attachments.addAll(images);
+          final compressedList = await Future.wait(
+            images.map((img) async {
+              final compressedPath = await AppImageCompressor.compressPath(
+                img.path,
+                quality: 60,
+                minWidth: 1080,
+                minHeight: 1080,
+              );
+              return XFile(compressedPath ?? img.path);
+            }),
+          );
+          attachments.addAll(compressedList);
         }
       } else {
         final XFile? image = await _picker.pickImage(
           source: ImageSource.camera,
-          imageQuality: 80,
         );
         if (image != null) {
-          attachments.add(image);
+          final compressedPath = await AppImageCompressor.compressPath(
+            image.path,
+            quality: 60,
+            minWidth: 1080,
+            minHeight: 1080,
+          );
+          attachments.add(XFile(compressedPath ?? image.path));
         }
       }
     } catch (e) {

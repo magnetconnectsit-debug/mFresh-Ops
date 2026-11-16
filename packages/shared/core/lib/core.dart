@@ -45,6 +45,7 @@ export 'widgets/app_common_textfield.dart';
 export 'widgets/app_common_time_field.dart';
 export 'widgets/app_common_video_player.dart';
 export 'widgets/app_common_webview.dart';
+export 'widgets/app_double_back_to_close.dart';
 export 'widgets/app_image_view.dart';
 export 'widgets/app_refresh_indicator.dart';
 export 'widgets/app_table_pagination.dart';

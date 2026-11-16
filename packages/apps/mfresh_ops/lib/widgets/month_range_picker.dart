@@ -1,4 +1,6 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
@@ -290,49 +292,51 @@ class _MonthRangePickerState extends State<MonthRangePicker> {
           children: [
             isSelectingYear ? _buildYearSelector() : _buildMonthGrid(),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Get.back(),
-                  child: Text(
-                    'Cancel',
-                    style: AppTextStyle.style_14_600(color: Colors.grey),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  AppCommonButton(
+                    text: 'Cancel',
+                    height: 32.h,
+                    textSize: 12.sp,
+                    buttonColor: Colors.transparent,
+                    textColor: AppColors.grey600,
+                    useGradient: false,
+                    padding: EdgeInsets.symmetric(horizontal: 14.w),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    if (startMonth == null && endMonth == null) {
-                      startMonth = DateTime(currentYear, 1);
-                      endMonth = DateTime(currentYear, 12);
-                    } else if (startMonth != null && endMonth == null) {
-                      endMonth = startMonth;
-                    }
-                    if (startMonth != null && startMonth!.year != currentYear) {
-                      startMonth = DateTime(currentYear, startMonth!.month);
-                    }
-                    if (endMonth != null && endMonth!.year != currentYear) {
-                      endMonth = DateTime(currentYear, endMonth!.month);
-                    }
-                    Get.back(
-                      result: DateTimeRange(
-                        start: startMonth!,
-                        end: endMonth!,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    elevation: 0,
+                  SizedBox(width: 8.w),
+                  AppCommonButton(
+                    text: 'OK',
+                    height: 32.h,
+                    textSize: 12.sp,
+                    buttonColor: AppColors.primary,
+                    textColor: AppColors.white,
+                    useGradient: false,
+                    padding: EdgeInsets.symmetric(horizontal: 18.w),
+                    onPressed: () {
+                      if (startMonth == null && endMonth == null) {
+                        startMonth = DateTime(currentYear, 1);
+                        endMonth = DateTime(currentYear, 12);
+                      } else if (startMonth != null && endMonth == null) {
+                        endMonth = startMonth;
+                      }
+                      if (startMonth != null && startMonth!.year != currentYear) {
+                        startMonth = DateTime(currentYear, startMonth!.month);
+                      }
+                      if (endMonth != null && endMonth!.year != currentYear) {
+                        endMonth = DateTime(currentYear, endMonth!.month);
+                      }
+                      Navigator.of(context).pop(
+                        DateTimeRange(
+                          start: startMonth!,
+                          end: endMonth!,
+                        ),
+                      );
+                    },
                   ),
-                  child: Text(
-                    'OK',
-                    style: AppTextStyle.style_14_600(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),

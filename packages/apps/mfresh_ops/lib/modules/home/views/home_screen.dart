@@ -1,23 +1,15 @@
 // region Imports
-import 'package:core/constants/app_colors.dart';
-import 'package:core/constants/app_images.dart';
-import 'package:core/utils/app_common_toast_message.dart';
-import 'package:core/utils/app_text_style.dart';
-import 'package:core/widgets/app_refresh_indicator.dart';
-import 'package:core/widgets/custom_app_loader.dart';
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/widgets/common_shortcut_header.dart';
 import 'package:mfresh_ops/widgets/common_sidebar.dart';
-import 'package:core/utils/app_image_compressor.dart';
 import 'widgets/duty_status_card.dart';
 import 'widgets/home_grid.dart';
 import 'unit_selection_screen.dart';
-import 'employee_selection_screen.dart';
 import '../controllers/home_grid_controller.dart';
 // endregion
 
@@ -33,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 // region HomeScreenState
 class _HomeScreenState extends State<HomeScreen> {
   // region State Variables
-  DateTime? _lastPressed;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   // endregion
 
   // region Lifecycle Methods
@@ -51,48 +43,23 @@ class _HomeScreenState extends State<HomeScreen> {
   // region Navigation & Actions
   Future<void> _handleCheckInOut(BuildContext context) async {
     final authRepo = Get.find<AuthRepository>();
-
-    // Step 1: Select Employee
-    final selectedEmp = await EmployeeSelectionScreen.show(context);
-    if (selectedEmp == null) return;
-
-    final bool isCheckedIn = selectedEmp.isCheckedIn;
-    final String targetUserId = selectedEmp.id.toString();
-
-    // Step 2: Select Unit if Checking In
-    String? selectedUnitId;
-    if (!isCheckedIn) {
-      final selectedUnit = await UnitSelectionScreen.show(context);
-      if (selectedUnit == null) {
-        // User dismissed the unit selection
-        return;
+    if (authRepo.rxIsCheckedIn.value) {
+      final capturedPath = await Get.toNamed(
+        AppRoutes.camera,
+        arguments: {'confirmButtonText': 'Check Out'},
+      );
+      if (capturedPath != null &&
+          capturedPath is String &&
+          capturedPath.isNotEmpty) {
+        final compressedPath = await AppImageCompressor.compressPath(
+              capturedPath,
+              quality: 50,
+            ) ??
+            capturedPath;
+        await authRepo.attendanceCheckOut(imagePath: compressedPath);
       }
-      selectedUnitId = selectedUnit.id;
-    }
-
-    // Step 3: Capture Face Photo
-    final capturedPath = await Get.toNamed(AppRoutes.camera);
-    if (capturedPath != null &&
-        capturedPath is String &&
-        capturedPath.isNotEmpty) {
-      final compressedPath = await AppImageCompressor.compressPath(
-            capturedPath,
-            quality: 50,
-          ) ??
-          capturedPath;
-
-      if (isCheckedIn) {
-        await authRepo.attendanceCheckOut(
-          imagePath: compressedPath,
-          userId: targetUserId,
-        );
-      } else {
-        await authRepo.attendanceCheckIn(
-          imagePath: compressedPath,
-          unitId: selectedUnitId,
-          userId: targetUserId,
-        );
-      }
+    } else {
+      await UnitSelectionScreen.show(context, isSelfieAttendance: true);
     }
   }
   // endregion
@@ -100,25 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
   // region Main Build
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-
-        final now = DateTime.now();
-        if (_lastPressed == null ||
-            now.difference(_lastPressed!) > const Duration(seconds: 2)) {
-          _lastPressed = now;
-          AppCommonToastMessage.show(
-            message: "Please press back again to close",
-            type: ToastType.info,
-          );
-          return;
-        }
-
-        SystemNavigator.pop();
-      },
+    return AppDoubleBackToClose(
+      scaffoldKey: _scaffoldKey,
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: const CommonShortcutHeader(),
         drawer: const CommonSidebar(),
@@ -238,9 +190,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 SizedBox(width: 6.w),
                                 Flexible(
                                   child: Text(
-                                    'Selfie Attendance',
+                                    authRepo.rxIsCheckedIn.value
+                                        ? 'Selfie Check-Out'
+                                        : 'Selfie Punch',
                                     style: AppTextStyle.style_12_600(
-                                      color: AppColors.black,
+                                      color: authRepo.rxIsCheckedIn.value
+                                          ? AppColors.red
+                                          : AppColors.black,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

@@ -125,8 +125,7 @@ packages/apps/mfresh_ops/
 - **Core Features:**
   - Standardized dense data table (`AppCommonTable<AmenityItem>`) with default `24.h` row height and compact cell padding (`2.h`).
   - Columns:
-    - `SI No.` (`50.w`, sortable)
-    - `Icon` (`60.w`, non-sortable): renders `AppImageView` with compact `20.r` dimensions and fallback icon `Icons.category_outlined`.
+    - `Icon` (`50.w`, non-sortable): renders `AppImageView` with compact `20.r` dimensions and fallback icon `Icons.category_outlined`.
     - `Amenity Name` (`180.w`, sortable)
     - `Action` (`75.w`, non-sortable): Edit and Delete action icons.
   - Search integrated into `AppCommonAppBar` (`showSearchBar: true`, search by amenity name or ID).
@@ -195,7 +194,7 @@ The repository `MasterRepository` communicates with backend endpoints through `A
 - **Create:** `POST` `AppConstants.serviceCreate` (`public/api/service-create`)
   - Content-Type: `multipart/form-data`
   - Form Fields: `serviceNm`, `serviceIcon` (optional)
-- **Update:** `PUT` `AppConstants.serviceUpdate` (`public/api/service-update`)
+- **Update:** `POST` `AppConstants.serviceUpdate` (`public/api/service-update`)
   - Content-Type: `multipart/form-data`
   - Form Fields: `id`, `serviceNm`, `serviceIcon` (optional)
 - **Delete:** `POST` `AppConstants.serviceDelete` (`public/api/service-delete`)
@@ -207,10 +206,10 @@ The repository `MasterRepository` communicates with backend endpoints through `A
   - Response: List of amenities with `id`, `amenity_name`, `icon`, `created_at`, `updated_at`, `icon_url`.
 - **Create:** `POST` `AppConstants.amenityCreate` (`public/api/amenity-create`)
   - Content-Type: `multipart/form-data`
-  - Form Fields: `amenityNm` / `amenity_name`, `icon` / `amenityIcon` (optional)
-- **Update:** `PUT` `AppConstants.amenityUpdate` (`public/api/amenity-update`)
+  - Form Fields: `amenitynm`, `amenity_img` (optional)
+- **Update:** `POST` `AppConstants.amenityUpdate` (`public/api/amenity-update`)
   - Content-Type: `multipart/form-data`
-  - Form Fields: `id`, `amenityNm` / `amenity_name`, `icon` / `amenityIcon` (optional)
+  - Form Fields: `id`, `amenitynm`, `amenity_img` (optional)
 - **Delete:** `POST` `AppConstants.amenityDelete` (`public/api/amenity-delete`)
   - Content-Type: `application/json`
   - Payload:
@@ -253,4 +252,6 @@ The repository `MasterRepository` communicates with backend endpoints through `A
 | 2026-11-13 | Antigravity AI | Implemented Services Master module: added `ServiceItem` and `ServiceListResponse` models, repository CRUD methods with multipart/form-data upload (`service-index`, `service-create`, `service-update`, `service-delete`), `ServiceController` with reactive search, sorting, pagination, and Excel export, `ServiceScreen` with dense `24.h` table, icon previews (`AppImageView`), image upload picker, and wired route in `app_pages.dart`. |
 | 2026-11-14 | Antigravity AI | Implemented Amenities Master module: added `AmenityItem` and `AmenityListResponse` models, repository CRUD methods (`amenity-index`, `amenity-create`, `amenity-update`, `amenity-delete`), `AmenityController` with reactive search, sorting, pagination, and Excel export, `AmenityScreen` with dense `24.h` table, icon previews (`AppImageView`), single image camera/gallery picker (`AppCommonBottomSheet.showModal`), and wired route in `app_pages.dart`. |
 | 2026-11-14 | Antigravity AI | Fixed Master Panel RBAC enforcement: wrapped Master module in `CommonSidebar` with `hasPerm(AppPermissions.masterPanel)`, added `permissionKey: AppPermissions.masterPanel` to Zones/Master `GridItemData` & subActions in `HomeGridController`, added explicit permission filtering in `_initGridItems()`, and standardized case-insensitive permission checks across all Master screens. |
+| 2026-11-16 | Antigravity AI | Integrated full-screen image viewer (`AppImageView.showFullScreen`) with pinch-to-zoom interactive viewer, dark backdrop, and title header across master sub-modules (`ServiceScreen` & `AmenityScreen` table icons and add/edit preview cards). Synchronized live API contracts for `Amenity` CRUD operations and removed `SI No.` column from Amenity table. |
+| 2026-11-16 | Antigravity AI | Updated `updateService` method to `POST` (from `PUT`) to match live API contract (`service-update`), pass compressed `serviceIcon` via `AppImageCompressor`, and maintain `id` as string in multipart form data. |
 

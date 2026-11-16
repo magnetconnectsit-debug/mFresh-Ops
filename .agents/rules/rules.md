@@ -56,6 +56,7 @@ Every file (Controller, View, Repository, Model, or Utility) must organize its l
 | **Bottom Sheets** | `AppCommonBottomSheet` | `showModalBottomSheet` raw sheets |
 | **Network & Asset Images** | `AppImageView` | `Image.network`, `CachedNetworkImage` directly |
 | **Pull to Refresh** | `AppRefreshIndicator` | `RefreshIndicator` |
+| **Root Back Exit Handling** | `AppDoubleBackToClose` | Inline `PopScope` or unhandled back exits |
 | **Loading Spinners** | `CustomAppLoader` | `CircularProgressIndicator` directly |
 | **Month / Year Picker** | `MonthYearPickerField` | Custom date pickers for month-year |
 | **Date Fields / Date Pickers** | `AppCommonDateField` | Raw text fields with manual `showDatePicker` |

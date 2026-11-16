@@ -204,8 +204,6 @@ class AmenityController extends GetxController {
       final isAsc = order == AppTableSortOrder.ascending;
       list.sort((a, b) {
         switch (column) {
-          case 'si_no':
-            return isAsc ? a.id.compareTo(b.id) : b.id.compareTo(a.id);
           case 'amenity':
             return isAsc
                 ? a.amenityName.toLowerCase().compareTo(b.amenityName.toLowerCase())
@@ -296,11 +294,10 @@ class AmenityController extends GetxController {
         return;
       }
 
-      final columns = ['SI No.', 'Amenity Name', 'Icon URL'];
+      final columns = ['Amenity Name', 'Icon URL'];
       final rows = List<List<dynamic>>.generate(data.length, (index) {
         final item = data[index];
         return [
-          index + 1,
           item.amenityName,
           item.iconUrl ?? 'NA',
         ];
