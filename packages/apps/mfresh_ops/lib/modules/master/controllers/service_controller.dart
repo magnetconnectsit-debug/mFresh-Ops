@@ -193,6 +193,7 @@ class ServiceController extends GetxController {
       final q = searchQuery.value.trim().toLowerCase();
       list = list.where((item) {
         return item.servicesName.toLowerCase().contains(q) ||
+            item.formattedCreatedDate.toLowerCase().contains(q) ||
             item.id.toString().contains(q);
       }).toList();
     }
@@ -206,6 +207,11 @@ class ServiceController extends GetxController {
         switch (column) {
           case 'si_no':
             return isAsc ? a.id.compareTo(b.id) : b.id.compareTo(a.id);
+          case 'created_date':
+          case 'date':
+            final aDate = a.createdDate ?? a.createdAt ?? '';
+            final bDate = b.createdDate ?? b.createdAt ?? '';
+            return isAsc ? aDate.compareTo(bDate) : bDate.compareTo(aDate);
           case 'service':
             return isAsc
                 ? a.servicesName.toLowerCase().compareTo(b.servicesName.toLowerCase())
@@ -296,11 +302,12 @@ class ServiceController extends GetxController {
         return;
       }
 
-      final columns = ['SI No.', 'Service Name', 'Icon URL'];
+      final columns = ['SI No.', 'Created Date', 'Service Name', 'Icon URL'];
       final rows = List<List<dynamic>>.generate(data.length, (index) {
         final item = data[index];
         return [
           index + 1,
+          item.formattedCreatedDate,
           item.servicesName,
           item.imgIconUrl ?? 'NA',
         ];

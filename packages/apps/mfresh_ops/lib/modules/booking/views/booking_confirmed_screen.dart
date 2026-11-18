@@ -13,6 +13,7 @@ import 'package:services/plutus_service.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/core/utils/print_util.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
+import 'package:mfresh_ops/modules/service_details/controllers/service_details_controller.dart';
 import 'package:services/storage_service.dart';
 // endregion
 
@@ -36,11 +37,15 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
   void initState() {
     super.initState();
     final dynamic rawBooking = Get.arguments?['bookingModel'];
+    final String? argPhone = Get.arguments?['phone']?.toString();
+    final String? argAddPhone = Get.arguments?['addPhone']?.toString();
     if (rawBooking is BookingDetailsModel) {
       controller.setBookingDetails(
         rawBooking,
         pType: Get.arguments?['printingType']?.toString(),
         rSize: int.tryParse(Get.arguments?['paperRollSize']?.toString() ?? ''),
+        customerPhone: argPhone,
+        customerAddPhone: argAddPhone,
       );
     } else {
       final String? bookingId =
@@ -113,7 +118,13 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
-          // Do nothing
+          try {
+            if (Get.isRegistered<ServiceDetailsController>()) {
+              Get.find<ServiceDetailsController>().resetAll();
+            }
+          } catch (e) {
+            debugPrint("Could not reset selection on system pop: $e");
+          }
         }
       },
       child: Scaffold(
@@ -126,7 +137,16 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
           backgroundColor: AppColors.background,
           elevation: 0,
           hasBackButton: true,
-          onBackButtonPressed: () => Get.back(),
+          onBackButtonPressed: () {
+            try {
+              if (Get.isRegistered<ServiceDetailsController>()) {
+                Get.find<ServiceDetailsController>().resetAll();
+              }
+            } catch (e) {
+              debugPrint("Could not reset selection: $e");
+            }
+            Get.back();
+          },
           actions: [
             IconButton(
               icon: const Icon(Icons.history, color: AppColors.black),
@@ -487,8 +507,18 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                 ),
                                                 GestureDetector(
                                                   onTap: () {
+                                                    final defaultPhone = controller.phone.value.isNotEmpty
+                                                        ? controller.phone.value
+                                                        : (controller.bookingDetails.value?.phone ?? '');
+                                                    final defaultAddPhone = controller.addPhone.value.isNotEmpty
+                                                        ? controller.addPhone.value
+                                                        : (controller.bookingDetails.value?.addPhone ?? '');
+
                                                     final smsPhoneController =
-                                                        TextEditingController();
+                                                        TextEditingController(text: defaultPhone);
+                                                    final smsAddPhoneController =
+                                                        TextEditingController(text: defaultAddPhone);
+
                                                     Get.dialog(
                                                       Dialog(
                                                         backgroundColor:
@@ -496,7 +526,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                         shape: RoundedRectangleBorder(
                                                           borderRadius:
                                                               BorderRadius.circular(
-                                                                20.r,
+                                                                16.r,
                                                               ),
                                                         ),
                                                         child: Padding(
@@ -508,13 +538,18 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                             mainAxisSize:
                                                                 MainAxisSize
                                                                     .min,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
-                                                              Text(
-                                                                'Send Receipt via SMS',
-                                                                style: AppTextStyle.style_14_600(
-                                                                  color:
-                                                                      AppColors
-                                                                          .black,
+                                                              Center(
+                                                                child: Text(
+                                                                  'Send Receipt via SMS',
+                                                                  style: AppTextStyle.style_14_600(
+                                                                    color:
+                                                                        AppColors
+                                                                            .black,
+                                                                  ),
                                                                 ),
                                                               ),
                                                               SizedBox(
@@ -523,12 +558,37 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                               AppCommonTextField(
                                                                 controller:
                                                                     smsPhoneController,
+                                                                labelText:
+                                                                    'Mobile Number',
                                                                 hintText:
                                                                     'Enter 10 digit phone number',
+                                                                useFloatingLabel:
+                                                                    true,
                                                                 keyboardType:
                                                                     TextInputType
                                                                         .phone,
                                                                 maxLength: 10,
+                                                                borderRadius:
+                                                                    8.r,
+                                                              ),
+                                                              SizedBox(
+                                                                height: 12.h,
+                                                              ),
+                                                              AppCommonTextField(
+                                                                controller:
+                                                                    smsAddPhoneController,
+                                                                labelText:
+                                                                    'Additional Phone (Optional)',
+                                                                hintText:
+                                                                    'Enter additional phone number',
+                                                                useFloatingLabel:
+                                                                    true,
+                                                                keyboardType:
+                                                                    TextInputType
+                                                                        .phone,
+                                                                maxLength: 10,
+                                                                borderRadius:
+                                                                    8.r,
                                                               ),
                                                               SizedBox(
                                                                 height: 16.h,
@@ -545,7 +605,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                                       'Cancel',
                                                                       style: AppTextStyle.style_12_600(
                                                                         color: AppColors
-                                                                            .grey300,
+                                                                            .grey500,
                                                                       ),
                                                                     ),
                                                                   ),
@@ -555,9 +615,8 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                                   AppCommonButton(
                                                                     text: 'Send',
                                                                     buttonColor:
-                                                                        const Color(
-                                                                          0xFFF15A22,
-                                                                        ),
+                                                                        AppColors
+                                                                            .primary,
                                                                     textColor:
                                                                         AppColors
                                                                             .white,
@@ -570,21 +629,36 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
                                                                       final phone = smsPhoneController
                                                                           .text
                                                                           .trim();
-                                                                      if (phone
-                                                                              .length ==
-                                                                          10) {
-                                                                        Get.back();
-                                                                        await controller.sendSms(
-                                                                          phone,
-                                                                        );
-                                                                      } else {
+                                                                      final addPhone = smsAddPhoneController
+                                                                          .text
+                                                                          .trim();
+
+                                                                      if (phone.length != 10) {
                                                                         AppCommonToastMessage.show(
                                                                           message:
-                                                                              "Enter valid 10 digit number",
+                                                                              'Enter valid 10 digit number',
                                                                           type:
                                                                               ToastType.error,
                                                                         );
+                                                                        return;
                                                                       }
+
+                                                                      if (addPhone.isNotEmpty &&
+                                                                          addPhone.length != 10) {
+                                                                        AppCommonToastMessage.show(
+                                                                          message:
+                                                                              'Additional phone must be 10 digits',
+                                                                          type:
+                                                                              ToastType.error,
+                                                                        );
+                                                                        return;
+                                                                      }
+
+                                                                      Get.back();
+                                                                      await controller.sendSms(
+                                                                        phone,
+                                                                        targetAddPhone: addPhone,
+                                                                      );
                                                                     },
                                                                   ),
                                                                 ],
@@ -781,6 +855,49 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen> {
               }),
             ),
 
+            // Left-Center Back Arrow Button
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () {
+                    try {
+                      if (Get.isRegistered<ServiceDetailsController>()) {
+                        Get.find<ServiceDetailsController>().resetAll();
+                      }
+                    } catch (e) {
+                      debugPrint("Could not reset selection: $e");
+                    }
+                    Get.back();
+                  },
+                  child: Container(
+                    width: 40.w,
+                    height: 60.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF15A22).withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(30.r),
+                        bottomRight: Radius.circular(30.r),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(2, 0),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.white,
+                      size: 20.sp,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -98,6 +98,7 @@ class PhonePeService extends GetxService {
     }
   }
 
+  // region Payment Operations
   /// Initiates payment via Native SDK
   Future<Map<String, dynamic>?> startSDKTransaction({
     required String bookingId,
@@ -114,8 +115,8 @@ class PhonePeService extends GetxService {
         "merchantTransactionId": uniqueTxnId,
         "merchantUserId": bookingId,
         "amount": (amount * 100).toInt(),
-        "redirectUrl": "https://magnetconnects.com/booking-success/",
-        "redirectMode": "POST",
+        "redirectUrl": "https://magnetconnects.com/",
+        "redirectMode": "REDIRECT",
         "callbackUrl": _callbackUrl,
         "mobileNumber": phone,
         "paymentInstrument": {"type": "PAY_PAGE"},
@@ -154,12 +155,14 @@ class PhonePeService extends GetxService {
     }
   }
 
-  // Fallback REST Flow (Reliable for QR if SDK fails)
+  /// Initiates payment via PhonePe Payment Gateway Web URL flow (Standard Checkout)
   Future<Map<String, dynamic>?> initiateRESTTransaction({
     required String bookingId,
     required String encryptedBookingId,
     required double amount,
     required String phone,
+    String redirectUrl = "https://magnetconnects.com/",
+    String redirectMode = "REDIRECT",
   }) async {
     try {
       final uniqueTxnId = encryptedBookingId;
@@ -169,8 +172,8 @@ class PhonePeService extends GetxService {
         "merchantTransactionId": uniqueTxnId,
         "merchantUserId": bookingId,
         "amount": (amount * 100).toInt(),
-        "redirectUrl": "https://magnetconnects.com/booking-success/",
-        "redirectMode": "POST",
+        "redirectUrl": redirectUrl,
+        "redirectMode": redirectMode,
         "callbackUrl": _callbackUrl,
         "mobileNumber": phone,
         "paymentInstrument": {"type": "PAY_PAGE"},
@@ -200,11 +203,18 @@ class PhonePeService extends GetxService {
       }
       return null;
     } catch (e) {
-      debugPrint("REST Transaction Failed: $e");
+      if (e is DioException) {
+        debugPrint(
+            "PhonePe REST Transaction Dio Error: ${e.response?.data ?? e.message}");
+      } else {
+        debugPrint("REST Transaction Failed: $e");
+      }
       return null;
     }
   }
+  // endregion
 
+  // region Status Check
   Future<Map<String, dynamic>?> checkPaymentStatus({
     required String merchantTransactionId,
   }) async {
@@ -234,4 +244,5 @@ class PhonePeService extends GetxService {
       return null;
     }
   }
+  // endregion
 }

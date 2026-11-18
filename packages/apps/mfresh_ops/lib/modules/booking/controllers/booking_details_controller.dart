@@ -16,6 +16,10 @@ class BookingDetailsController extends GetxController {
   final bookingDetails = Rxn<BookingDetailsModel>();
   final isLoading = false.obs;
 
+  // Phone numbers
+  final phone = ''.obs;
+  final addPhone = ''.obs;
+
   // Printer Config
   final printingType = 'thermal'.obs;
   final paperRollSize = 80.obs;
@@ -25,6 +29,8 @@ class BookingDetailsController extends GetxController {
     BookingDetailsModel details, {
     String? pType,
     int? rSize,
+    String? customerPhone,
+    String? customerAddPhone,
   }) {
     bookingDetails.value = details;
     if (pType != null && pType.isNotEmpty) {
@@ -33,6 +39,12 @@ class BookingDetailsController extends GetxController {
     if (rSize != null && rSize > 0) {
       paperRollSize.value = rSize;
     }
+    phone.value = (customerPhone != null && customerPhone.isNotEmpty)
+        ? customerPhone
+        : (details.phone ?? '');
+    addPhone.value = (customerAddPhone != null && customerAddPhone.isNotEmpty)
+        ? customerAddPhone
+        : (details.addPhone ?? '');
     isLoading.value = false;
   }
 
@@ -97,13 +109,18 @@ class BookingDetailsController extends GetxController {
     }
   }
 
-  Future<void> sendSms(String phone) async {
+  Future<void> sendSms(String phone, {String? targetAddPhone}) async {
     if (bookingDetails.value == null) return;
+
+    final effectiveAddPhone = targetAddPhone?.trim().isNotEmpty == true
+        ? targetAddPhone!.trim()
+        : addPhone.value.trim();
 
     try {
       final success = await _bookingRepository.sendSmsReceipt(
         bookingId: bookingDetails.value!.bookingId,
-        phone: phone,
+        phone: phone.trim(),
+        addPhone: effectiveAddPhone.isNotEmpty ? effectiveAddPhone : null,
       );
 
       if (success) {

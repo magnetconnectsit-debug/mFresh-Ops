@@ -11,6 +11,8 @@ class BookingDetailsModel {
   final int paymentMode;
   final String paymentStatus;
   final String? encryptBookingId;
+  final String? phone;
+  final String? addPhone;
 
   BookingDetailsModel({
     this.bookingId = '',
@@ -24,6 +26,8 @@ class BookingDetailsModel {
     this.paymentMode = 0,
     this.paymentStatus = '',
     this.encryptBookingId,
+    this.phone,
+    this.addPhone,
   });
 
   String get displayAddress {
@@ -45,6 +49,8 @@ class BookingDetailsModel {
     int? paymentMode,
     String? paymentStatus,
     String? encryptBookingId,
+    String? phone,
+    String? addPhone,
   }) {
     return BookingDetailsModel(
       bookingId: bookingId ?? this.bookingId,
@@ -58,6 +64,8 @@ class BookingDetailsModel {
       paymentMode: paymentMode ?? this.paymentMode,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       encryptBookingId: encryptBookingId ?? this.encryptBookingId,
+      phone: phone ?? this.phone,
+      addPhone: addPhone ?? this.addPhone,
     );
   }
   // endregion
@@ -92,6 +100,12 @@ class BookingDetailsModel {
       paymentMode: int.tryParse(json['payment_mode']?.toString() ?? '') ?? 0,
       paymentStatus: json['payment_status']?.toString() ?? json['Payment_status']?.toString() ?? '',
       encryptBookingId: json['encrypt_booking_id']?.toString(),
+      phone: json['phone_no']?.toString() ??
+          json['phone']?.toString() ??
+          json['mobile_no']?.toString(),
+      addPhone: json['add_phone_no']?.toString() ??
+          json['Add_phone_no']?.toString() ??
+          json['add_phone']?.toString(),
     );
   }
   // endregion

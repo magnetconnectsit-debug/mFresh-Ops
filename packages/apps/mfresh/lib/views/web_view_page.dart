@@ -39,15 +39,10 @@ class _WebViewPageState extends State<WebViewPage> {
     _redirectUrlToCapture =
         widget.redirectUrlToCapture ?? args?['redirectUrlToCapture'];
 
-    // Force Mobile User Agent for better scaling of QR
-    const String mobileUserAgent =
-        "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
-    
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
-      ..setUserAgent(mobileUserAgent)
-      ..enableZoom(true)
+      ..enableZoom(false)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -57,24 +52,32 @@ class _WebViewPageState extends State<WebViewPage> {
             setState(() => _isLoading = true);
             debugPrint("WebView Page Started: $url");
             _checkRedirect(url);
-            
-            // Inject CSS to scale down QR if too large (Optimized for Mobile/POS)
+
+            // Clean non-invasive styling to ensure 100% viewport width without horizontal scroll
             _controller.runJavaScript("""
-              var style = document.createElement('style');
-              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container, .qr-image-wrapper { transform: scale(0.5) !important; transform-origin: top center !important; margin-bottom: -100px !important; }';
-              document.head.appendChild(style);
-              
-              // Force enable user scaling/zoom
-              var meta = document.createElement('meta');
-              meta.name = 'viewport';
-              meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-              var existingMeta = document.querySelector('meta[name="viewport"]');
-              if (existingMeta) {
-                existingMeta.parentNode.replaceChild(meta, existingMeta);
-              } else {
-                document.getElementsByTagName('head')[0].appendChild(meta);
-              }
+              (function() {
+                var styleId = 'phonepe-clean-responsive-style';
+                if (!document.getElementById(styleId)) {
+                  var style = document.createElement('style');
+                  style.id = styleId;
+                  style.innerHTML = `
+                    html, body {
+                      max-width: 100% !important;
+                      overflow-x: hidden !important;
+                      -webkit-text-size-adjust: 100% !important;
+                    }
+                    .qr-image-wrapper img, [data-testid*="qr"] img, img[alt*="qr" i] {
+                      max-width: min(65vw, 220px) !important;
+                      height: auto !important;
+                      margin: 0 auto !important;
+                      display: block !important;
+                    }
+                  `;
+                  document.head.appendChild(style);
+                }
+              })();
             """);
+
             _controller.runJavaScript("""
               if (!Array.prototype.at) {
                 Array.prototype.at = function(n) {
@@ -100,24 +103,6 @@ class _WebViewPageState extends State<WebViewPage> {
             setState(() => _isLoading = false);
             debugPrint("WebView Page Finished: $url");
             _checkRedirect(url);
-            
-            // Re-apply optimized scaling after load
-            _controller.runJavaScript("""
-              var style = document.createElement('style');
-              style.innerHTML = 'img { max-width: 30% !important; height: auto !important; margin: 0 auto !important; display: block !important; } .qr-code-container, .qr-container, .qr-image-wrapper { transform: scale(0.5) !important; transform-origin: top center !important; margin-bottom: -100px !important; }';
-              document.head.appendChild(style);
-              
-              // Force enable user scaling/zoom
-              var meta = document.createElement('meta');
-              meta.name = 'viewport';
-              meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-              var existingMeta = document.querySelector('meta[name="viewport"]');
-              if (existingMeta) {
-                existingMeta.parentNode.replaceChild(meta, existingMeta);
-              } else {
-                document.getElementsByTagName('head')[0].appendChild(meta);
-              }
-            """);
           },
           onUrlChange: (UrlChange change) {
             if (change.url != null) {
@@ -188,22 +173,59 @@ class _WebViewPageState extends State<WebViewPage> {
   bool _checkRedirect(String url) {
     if (_isRedirected) return false;
 
-    final bool matchesRedirect =
-        _redirectUrlToCapture != null && url.contains(_redirectUrlToCapture!);
-    final bool containsSuccess = url.contains('booking-success') ||
+    final uri = Uri.tryParse(url);
+    final params = uri?.queryParameters ?? {};
+    final String code =
+        (params['code'] ?? params['status'] ?? '').toString().toUpperCase();
+
+    // 1. Explicit Failure or Cancellation
+    final bool isExplicitFailure = code.contains('ERROR') ||
+        code.contains('FAIL') ||
+        code.contains('CANCEL') ||
+        code.contains('DECLIN') ||
+        url.contains('PAYMENT_ERROR') ||
+        url.contains('status=FAILED') ||
+        url.contains('payment_status=failed');
+
+    if (isExplicitFailure) {
+      debugPrint("⚠️ FAILURE/CANCEL REDIRECT DETECTED: $url");
+      _isRedirected = true;
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          Get.back(result: {
+            'status': 'FAILURE',
+            'code': code,
+            'url': url,
+            'params': params,
+          });
+        }
+      });
+      return true;
+    }
+
+    // 2. Explicit Success
+    final bool isExplicitSuccess = code == 'PAYMENT_SUCCESS' ||
+        code == 'SUCCESS' ||
+        url.contains('booking-success') ||
         url.contains('PAYMENT_SUCCESS') ||
         url.contains('status=SUCCESS') ||
         url.contains('payment_status=success');
 
-    if (matchesRedirect || containsSuccess) {
-      debugPrint("🎯 SUCCESS REDIRECT DETECTED: $url");
+    // 3. Domain Whitelist match
+    final bool matchesRedirect =
+        _redirectUrlToCapture != null && url.contains(_redirectUrlToCapture!);
+
+    if (isExplicitSuccess || matchesRedirect) {
+      debugPrint("🎯 REDIRECT DETECTED: $url (success: $isExplicitSuccess)");
       _isRedirected = true;
-      final uri = Uri.parse(url);
-      
-      // Delay slightly to ensure user sees the success state if it's a page
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) {
-          Get.back(result: uri.queryParameters);
+          Get.back(result: {
+            'status': isExplicitSuccess ? 'SUCCESS' : 'REDIRECTED',
+            'code': code,
+            'url': url,
+            'params': params,
+          });
         }
       });
       return true;

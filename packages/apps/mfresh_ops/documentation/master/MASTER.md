@@ -23,7 +23,8 @@ packages/apps/mfresh_ops/
 │   │   │       ├── state_model.dart
 │   │   │       ├── district_model.dart
 │   │   │       ├── service_model.dart
-│   │   │       └── amenity_model.dart
+│   │   │       ├── amenity_model.dart
+│   │   │       └── unit_master_model.dart
 │   │   └── repositories/
 │   │       └── master_repository.dart
 │   └── modules/
@@ -33,14 +34,19 @@ packages/apps/mfresh_ops/
 │           │   ├── state_controller.dart
 │           │   ├── district_controller.dart
 │           │   ├── service_controller.dart
-│           │   └── amenity_controller.dart
+│           │   ├── amenity_controller.dart
+│           │   └── unit_controller.dart
 │           └── views/
 │               ├── master_placeholder_screen.dart
 │               ├── zone_screen.dart
 │               ├── state_screen.dart
 │               ├── district_screen.dart
 │               ├── service_screen.dart
-│               └── amenity_screen.dart
+│               ├── amenity_screen.dart
+│               ├── unit_screen.dart
+│               ├── unit_edit_screen.dart
+│               └── widgets/
+│                   └── edit_unit_manager_dialog.dart
 └── documentation/
     └── master/
         └── MASTER.md
@@ -106,11 +112,11 @@ packages/apps/mfresh_ops/
 - **Core Features:**
   - Standardized dense data table (`AppCommonTable<ServiceItem>`) with default `24.h` row height and compact cell padding (`2.h`).
   - Columns:
-    - `SI No.` (`50.w`, sortable)
-    - `Icon` (`60.w`, non-sortable): renders `AppImageView` with compact `20.r` dimensions and fallback icon `Icons.miscellaneous_services_outlined`.
+    - `Icon` (`50.w`, non-sortable): renders `AppImageView` with compact `20.r` dimensions and fallback icon `Icons.miscellaneous_services_outlined`.
+    - `Created Date` (`110.w`, sortable): displays formatted creation date (`formattedCreatedDate`, `dd-MMM-yyyy`).
     - `Service Name` (`180.w`, sortable)
     - `Action` (`75.w`, non-sortable): Edit and Delete action icons.
-  - Search integrated into `AppCommonAppBar` (`showSearchBar: true`, search by service name or ID).
+  - Search integrated into `AppCommonAppBar` (`showSearchBar: true`, search by service name, created date, or ID).
   - Add/Edit Service dialog (`_showAddEditServiceDialog`):
     - **Service Name:** `AppCommonTextField` (`labelText: 'Service Name'`, `isRequired: true`).
     - **Service Icon:** Image picker supporting gallery upload or camera capture, image preview via `AppImageView` / `Image.file`, and clear button.
@@ -137,9 +143,43 @@ packages/apps/mfresh_ops/
   - Full loading state overlays: semi-transparent backdrop with centered `CustomAppLoader` during asynchronous operations.
   - Excel report export via `AppCommonExportButton` utilizing `AppExportUtils.exportToExcel`.
 
-### 2.6 Placeholder Screens (`MasterPlaceholderScreen`)
+### 2.6 Units Master (`UnitScreen`), Unit Manager Details (`EditUnitManagerDialog`) & Unit Edit (`UnitEditScreen`)
+- **Routes:**
+  - Index: `AppRoutes.masterUnits` (`/master-units`) -> `UnitScreen`
+  - Edit: `AppRoutes.masterUnitEdit` (`/master-unit-edit`) -> `UnitEditScreen`
+- **Controller:** `UnitController`
+- **Core Features:**
+  - Standardized dense data table (`AppCommonTable<UnitMasterItem>`) adhering to default `24.h` row height and compact cell padding (`2.h`).
+  - Action Bar: includes `+ Create Unit` button (`AppCommonButton`) guarded by `AppPermissions.masterPanel`, Excel export button (`AppCommonExportButton`), and total units badge.
+  - Columns:
+    - `Unit Image` (`65.w`, non-sortable): renders `AppImageView` with compact `20.r` dimensions and fallback icon `Icons.bathroom_outlined`.
+    - `Unit` (`95.w`, sortable): displays QR code ID / unit name (`qrcodeId`).
+    - `Model` (`140.w`, sortable): displays vehicle/cabin model category (`unitcategory`).
+    - `City` (`75.w`, sortable): displays location city (`unitLocation`).
+    - `Operating Hrs` (`110.w`, sortable): displays daily operational timings (`openTiming`).
+    - `Inauguration Date` (`115.w`, sortable): displays formatted date (`dd-MMM-yyyy`).
+    - `Action` (`95.w`, non-sortable):
+      - **1st Action Button (Icon Button):** Compact bordered button (`22.h x 22.w`) with `Icons.edit_note_outlined`. Opens `EditUnitManagerDialog`.
+      - **2nd Action Button (Edit Button):** Compact bordered button (`22.h`) with `Icons.edit_outlined` and `Edit` text. Navigates to `UnitEditScreen`.
+  - **Edit Unit Manager Details Dialog (`EditUnitManagerDialog`):**
+    - Modal popup with title and close ('X') icon, styled with 2 fields in a row across mobile and tablet.
+    - Fields (2 per row):
+      - Row 1: `Highly Preferred` (`AppCommonMultiSelectDropdown<String>`) | `Timing` (`AppCommonTextField`).
+      - Row 2: `Unit Address` (`AppCommonTextField`) | `Full Address` (`AppCommonTextField`).
+      - Row 3: `Latitude` (`AppCommonTextField`) | `Longitude` (`AppCommonTextField`).
+      - `Get Current Location` button powered by `Geolocator` to capture high-accuracy device GPS coordinates and prefill latitude/longitude.
+      - `Cancel` and `Update` buttons calling `POST /public/api/unit-details-update`.
+  - **Full Unit Create / Edit Screen (`UnitEditScreen`):**
+    - Dynamic title and breadcrumb (`All Unit / Create Unit` or `All Unit / Edit Unit`).
+    - Full-page responsive form with single/multi-image upload, dropdowns, amenities toggle with quantities, and multiline text areas.
+    - `Cancel` and `Submit` / `Update` buttons calling `POST /public/api/unit-create` or `POST /public/api/unit-update` via multipart form data.
+  - Search integrated into `AppCommonAppBar` (`showSearchBar: true`, debounced).
+  - Table pagination powered by `AppTablePagination`.
+  - Excel report export via `AppCommonExportButton` utilizing `AppExportUtils.exportToExcel`.
+  - Full loading state overlays with `CustomAppLoader`.
+
+### 2.7 Placeholder Screens (`MasterPlaceholderScreen`)
 - Placeholders registered for upcoming master sub-modules:
-  - **Units Master:** `AppRoutes.masterUnits` (`/master-units`)
   - **Assign Services:** `AppRoutes.masterAssignServices` (`/master-assign-services`)
   - **All Assign Services:** `AppRoutes.masterAllAssignServices` (`/master-all-assign-services`)
 
@@ -190,7 +230,7 @@ The repository `MasterRepository` communicates with backend endpoints through `A
 
 ### 4.4 Service Endpoints
 - **Index:** `GET` `AppConstants.serviceIndex` (`public/api/service-index`)
-  - Response: List of services with `id`, `services_name`, `img_icon`, `created_at`, `updated_at`, `img_icon_url`.
+  - Response: List of services with `id`, `services_name`, `img_icon`, `created_date`, `created_at`, `updated_at`, `img_icon_url`.
 - **Create:** `POST` `AppConstants.serviceCreate` (`public/api/service-create`)
   - Content-Type: `multipart/form-data`
   - Form Fields: `serviceNm`, `serviceIcon` (optional)
@@ -219,6 +259,21 @@ The repository `MasterRepository` communicates with backend endpoints through `A
     }
     ```
 
+### 4.6 Unit Endpoints
+- **Index:** `GET` `AppConstants.unitIndex` (`public/api/unit-index`)
+  - Response: Units list with `id`, `servicetype`, `unitcategory`, `year_of_delivery`, `qrcodeId`, `latitude`, `longitude`, `unit_location`, `open_timing`, `full_add`, `highly_prefered`, `status`, `amenities`, `unit_img_url`, `gallery_urls`, etc.
+- **Options:** `GET` `AppConstants.unitOptions` (`public/api/unit-options`)
+  - Response: Option dictionaries containing `states`, `districts`, `unit_categories`, `service_types`, and `amenities`.
+- **Unit Create:** `POST` `AppConstants.unitCreate` (`public/api/unit-create`)
+  - Content-Type: `multipart/form-data`
+  - Form Fields: `unitcategory`, `unittype`, `servicetype`, `year_of_delivery`, `unit_state`, `unit_dist`, `unit_location`, `oprntiming`, `full_Address`, `unit_desc`, `unit_spec`, `ingd`, `amenities[]`, `amenity_qty[]`, `unit_img`, `multi_img[]`.
+- **Unit Details Quick Update:** `POST` `AppConstants.unitDetailsUpdate` (`public/api/unit-details-update`)
+  - Content-Type: `multipart/form-data`
+  - Form Fields: `id`, `highprefer`, `opentime`, `fulluAddress`, `uadd`, `uptunitlatitude`, `uptunitlongitude`.
+- **Unit Full Update:** `POST` `AppConstants.unitUpdate` (`public/api/unit-update`)
+  - Content-Type: `multipart/form-data`
+  - Form Fields: `id`, `unitcategory`, `unittype`, `servicetype`, `year_of_delivery`, `unit_state`, `unit_dist`, `unit_location`, `oprntiming`, `full_Address`, `unit_desc`, `unit_spec`, `ingd`, `amenities[]`, `amenity_qty[]`, `unit_img`, `multi_img[]`.
+
 ---
 
 ## 5. Architectural Standards Compliance Checklist
@@ -239,6 +294,9 @@ The repository `MasterRepository` communicates with backend endpoints through `A
 
 | Date | Author | Description |
 |---|---|---|
+| 2026-11-18 | Antigravity AI | Fixed Units Master & Unit Create/Edit form: added `+ Create Unit` button in `UnitScreen` action bar wired to `initCreateUnit()` and `AppRoutes.masterUnitEdit`; added `createUnit` API method and `createUnitSubmit()` / `submitUnit()` in `UnitController`; refined `UnitEditScreen` by adding `topHeader: const CommonShortcutHeader()` to `AppCommonAppBar`, removing the redundant inner breadcrumb and outer card wrapper, enforcing strict 2-in-a-row layout for all form rows, and miniaturizing the Amenities toggles (`26.w x 15.h`) and Qty boxes (`36.w x 24.h`) to prevent text truncation; updated `EditUnitManagerDialog` to strictly render 2 fields in a row. |
+| 2026-11-18 | Antigravity AI | Updated Services Master (`ServiceScreen`, `ServiceItem`, `ServiceController`) to support `created_date` field from `service-index` API: added `createdDate` property and `formattedCreatedDate` getter (`dd-MMM-yyyy`) to `ServiceItem`; inserted sortable `Created Date` column after `Icon` column in `ServiceScreen` table; updated search filtering, column sorting, and Excel export in `ServiceController`. |
+| 2026-11-18 | Antigravity AI | Implemented Units Master module: created `UnitMasterItem`, `UnitMasterListResponse`, and `UnitOptionsResponse` models; added repository methods for `unit-index`, `unit-options`, `unit-details-update`, and `unit-update`; developed `UnitController` with GPS geolocation via `Geolocator`, reactive filtering, sorting, pagination, and Excel export; built `UnitScreen` with dense `24.h` table and dual action buttons (1st: icon button for `EditUnitManagerDialog` quick updates; 2nd: `Edit` button for full `UnitEditScreen` form with single/multi-image upload and amenities configuration); registered routes `AppRoutes.masterUnits` and `AppRoutes.masterUnitEdit` in `app_pages.dart`. |
 | 2026-11-12 | Antigravity AI | Initial module bootstrap: created `MasterRepository`, `ZoneItem` model, `ZoneController`, and `ZoneScreen` with dense data table, search in `AppCommonAppBar`, and Excel export. |
 | 2026-11-12 | Antigravity AI | Integrated Master navigation into Home Grid (`HomeGridController`) and sidebar navigation (`CommonSidebar`) with routes for all 8 master sub-entities. |
 | 2026-11-12 | Antigravity AI | Implemented State module: added `StateItem` model, state API methods in `MasterRepository`, `StateController`, and `StateScreen` with sorting, search, pagination, and Excel export. |

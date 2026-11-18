@@ -20,25 +20,33 @@ class ServiceDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(ServiceDetailsController());
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => controller.refreshData(),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                _buildTopBanner(context, controller),
-                _buildTogglesBar(context, controller),
-                _buildServicesSection(context, controller),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          controller.handleBackExit(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        resizeToAvoidBottomInset: false,
+        body: SafeArea(
+          child: AppRefreshIndicator(
+            onRefresh: () => controller.refreshData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildTopBanner(context, controller),
+                  _buildTogglesBar(context, controller),
+                  _buildServicesSection(context, controller),
+                ],
+              ),
             ),
           ),
         ),
+        bottomNavigationBar: _buildBottomSummaryBar(context, controller),
       ),
-      bottomNavigationBar: _buildBottomSummaryBar(context, controller),
     );
   }
   // endregion
@@ -52,7 +60,13 @@ class ServiceDetailsScreen extends StatelessWidget {
       builder: (context) {
         final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
         final bool isDesktop = MediaQuery.of(context).size.width > 1000;
-        final double bannerHeight = isDesktop ? 160.h : (isTablet ? 130.h : 124.h);
+        final double bannerHeight =
+            isDesktop ? 160.h : (isTablet ? 136.h : 124.h);
+
+        final double btnWidth = isTablet ? 120.w : 88.w;
+        final double btnHeight = isTablet ? 36.h : 25.h;
+        final double fontSize = isTablet ? 13.sp : 9.5.sp;
+        final double iconSize = isTablet ? 17.sp : 12.sp;
 
         return Container(
           width: double.infinity,
@@ -82,42 +96,62 @@ class ServiceDetailsScreen extends StatelessWidget {
               Container(color: AppColors.black.withValues(alpha: 0.5)),
               // Unit info
               Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Obx(
-                      () => Text(
-                        controller.unitNo.value,
-                        style: AppTextStyle.style_32_700(
-                          color: AppColors.white,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 136.w : 94.w,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Obx(
+                        () => Text(
+                          controller.unitNo.value,
+                          style: isTablet
+                              ? AppTextStyle.style_32_700(
+                                  color: AppColors.white,
+                                )
+                              : AppTextStyle.style_22_600(
+                                  color: AppColors.white,
+                                ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Obx(
-                      () => Text(
-                        controller.location.value,
-                        style: AppTextStyle.style_20_400(
-                          color: AppColors.white,
+                      SizedBox(height: isTablet ? 6.h : 4.h),
+                      Obx(
+                        () => Text(
+                          controller.location.value,
+                          style: isTablet
+                              ? AppTextStyle.style_18_500(
+                                  color: AppColors.white,
+                                )
+                              : AppTextStyle.style_14_400(
+                                  color: AppColors.white,
+                                ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              // Back button
+              // Top Left Action: Back button
               Positioned(
-                left: 8.w,
-                top: 0,
-                bottom: 0,
+                left: isTablet ? 16.w : 8.w,
+                top: isTablet ? 14.h : 6.h,
                 child: GestureDetector(
-                  onTap: () => Get.back(),
+                  onTap: () => controller.handleBackExit(context),
                   child: Container(
-                    padding: EdgeInsets.all(8.w),
+                    height: btnHeight,
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
                     color: Colors.transparent,
+                    alignment: Alignment.centerLeft,
                     child: Icon(
                       Icons.arrow_back_ios,
-                      size: 18.sp,
+                      size: isTablet ? 20.sp : 18.sp,
                       color: AppColors.white,
                     ),
                   ),
@@ -126,70 +160,75 @@ class ServiceDetailsScreen extends StatelessWidget {
               // Top Right Action: History Button (Positioned at Top-Right)
               Positioned(
                 right: isTablet ? 16.w : 10.w,
-                top: isTablet ? 12.h : 6.h,
-                child: Builder(
-                  builder: (context) {
-                    final double btnWidth = isTablet ? 120.w : 86.w;
-                    final double btnHeight = isTablet ? 36.h : 24.h;
-                    final double fontSize = isTablet ? 13.sp : 9.5.sp;
-                    final double iconSize = isTablet ? 17.sp : 12.sp;
-
-                    return AppCommonButton(
-                      text: 'History',
-                      width: btnWidth,
-                      height: btnHeight,
-                      textSize: fontSize,
-                      padding: EdgeInsets.symmetric(horizontal: 8.w),
-                      buttonColor: AppColors.primary,
-                      prefixIcon: Icons.history,
-                      iconSize: iconSize,
-                      iconColor: AppColors.white,
-                      textColor: AppColors.white,
-                      onPressed: () => Get.toNamed(
-                        AppRoutes.bookingHistory,
-                        arguments: {
-                          'unitId': controller.unitNo.value,
-                          'cashierSessionId': controller.cashierSessionId.value,
-                          'location': controller.location.value,
-                          'paperRollSize': controller.paperRollSize.value,
-                          'printingType': controller.printingType.value,
-                        },
-                      ),
-                    );
-                  },
+                top: isTablet ? 14.h : 6.h,
+                child: AppCommonButton(
+                  text: 'History',
+                  width: btnWidth,
+                  height: btnHeight,
+                  textSize: fontSize,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 8.w : 4.w,
+                  ),
+                  buttonColor: AppColors.primary,
+                  prefixIcon: Icons.history,
+                  iconSize: iconSize,
+                  iconColor: AppColors.white,
+                  textColor: AppColors.white,
+                  onPressed: () => Get.toNamed(
+                    AppRoutes.bookingHistory,
+                    arguments: {
+                      'unitId': controller.unitNo.value,
+                      'cashierSessionId': controller.cashierSessionId.value,
+                      'location': controller.location.value,
+                      'paperRollSize': controller.paperRollSize.value,
+                      'printingType': controller.printingType.value,
+                    },
+                  ),
                 ),
               ),
-
+              // Bottom Left Action: All Units Button (Positioned at Bottom-Left)
+              Positioned(
+                left: isTablet ? 16.w : 10.w,
+                bottom: isTablet ? 14.h : 6.h,
+                child: AppCommonButton(
+                  text: 'All Units',
+                  width: btnWidth,
+                  height: btnHeight,
+                  textSize: fontSize,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 8.w : 4.w,
+                  ),
+                  buttonColor: AppColors.primary,
+                  prefixIcon: Icons.grid_view_rounded,
+                  iconSize: iconSize,
+                  iconColor: AppColors.white,
+                  textColor: AppColors.white,
+                  onPressed: () => controller.handleBackExit(context),
+                ),
+              ),
               // Bottom Right Action: Handover Button (Positioned at Bottom-Right)
               Positioned(
                 right: isTablet ? 16.w : 10.w,
-                bottom: isTablet ? 12.h : 6.h,
-                child: Builder(
-                  builder: (context) {
-                    final double btnWidth = isTablet ? 120.w : 86.w;
-                    final double btnHeight = isTablet ? 36.h : 24.h;
-                    final double fontSize = isTablet ? 13.sp : 9.5.sp;
-                    final double iconSize = isTablet ? 17.sp : 12.sp;
-
-                    return AppCommonButton(
-                      text: 'Handover',
-                      width: btnWidth,
-                      height: btnHeight,
-                      textSize: fontSize,
-                      padding: EdgeInsets.symmetric(horizontal: 8.w),
-                      buttonColor: AppColors.primary,
-                      prefixIcon: Icons.payments_outlined,
-                      iconSize: iconSize,
-                      iconColor: AppColors.white,
-                      textColor: AppColors.white,
-                      onPressed: () {
-                        HandoverDialogHelper.showHandoverDialog(
-                          context: context,
-                          unitNo: controller.unitNo.value,
-                          cashierSessionId: controller.cashierSessionId.value,
-                          onSuccess: () {},
-                        );
-                      },
+                bottom: isTablet ? 14.h : 6.h,
+                child: AppCommonButton(
+                  text: 'Handover',
+                  width: btnWidth,
+                  height: btnHeight,
+                  textSize: fontSize,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 8.w : 4.w,
+                  ),
+                  buttonColor: AppColors.primary,
+                  prefixIcon: Icons.payments_outlined,
+                  iconSize: iconSize,
+                  iconColor: AppColors.white,
+                  textColor: AppColors.white,
+                  onPressed: () {
+                    HandoverDialogHelper.showHandoverDialog(
+                      context: context,
+                      unitNo: controller.unitNo.value,
+                      cashierSessionId: controller.cashierSessionId.value,
+                      onSuccess: () {},
                     );
                   },
                 ),
@@ -206,119 +245,112 @@ class ServiceDetailsScreen extends StatelessWidget {
     ServiceDetailsController controller,
   ) {
     final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
-    final double tabHeight = isTablet ? 38.h : 30.h;
-    final double toggleWidth = isTablet ? 110.w : 76.w;
-    final double toggleHeight = isTablet ? 38.h : 30.h;
-    final double thumbSize = isTablet ? 30.h : 22.h;
+    final double tabHeight = isTablet ? 38.h : 32.h;
+    final double toggleWidth = isTablet ? 110.w : 80.w;
+    final double toggleHeight = isTablet ? 36.h : 28.h;
+    final double thumbSize = isTablet ? 28.h : 22.h;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: isTablet ? 10.h : 6.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: EdgeInsets.symmetric(
+        horizontal: 16.w,
+        vertical: isTablet ? 8.h : 6.h,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Customer / Membership Tab Switch (Takes available width, never clipped)
-          Expanded(
-            child: Obx(() {
-              return AppCommonConnectedTabBar(
-                tabs: const ['Customer', 'Membership'],
-                selectedIndex: controller.isCustomer.value ? 0 : 1,
-                height: tabHeight,
-                isPillStyle: true,
-                borderColor: const Color(0xFFE2E8F0),
-                backgroundColor: const Color(0xFFEEF2F6),
-                activeTabColor: AppColors.white,
-                activeTextColor: AppColors.primary,
-                inactiveTextColor: const Color(0xFF64748B),
-                activeTextStyle: isTablet
-                    ? AppTextStyle.style_14_600(color: AppColors.primary)
-                    : AppTextStyle.style_11_600(color: AppColors.primary),
-                inactiveTextStyle: isTablet
-                    ? AppTextStyle.style_14_500(color: const Color(0xFF64748B))
-                    : AppTextStyle.style_11_500(color: const Color(0xFF64748B)),
-                borderRadius: BorderRadius.circular(isTablet ? 10.r : 8.r),
-                onTabChanged: (index) {
-                  controller.toggleCustomerType(index == 0);
-                },
-              );
-            }),
-          ),
-          SizedBox(width: isTablet ? 16.w : 8.w),
-
-          // Right-aligned Online / Offline Animated Switch
+          // Customer / Membership Tab Switch (Full width container)
           Obx(() {
-            final isOnline = controller.isOnline.value;
-            final activeColor =
-                isOnline ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
-            final labelText = isOnline ? 'Online' : 'Offline';
+            return AppCommonConnectedTabBar(
+              tabs: const ['Customer', 'Membership'],
+              selectedIndex: controller.isCustomer.value ? 0 : 1,
+              height: tabHeight,
+              isPillStyle: true,
+              borderColor: const Color(0xFFE2E8F0),
+              backgroundColor: const Color(0xFFEEF2F6),
+              activeTabColor: AppColors.white,
+              activeTextColor: AppColors.primary,
+              inactiveTextColor: const Color(0xFF64748B),
+              activeTextStyle: isTablet
+                  ? AppTextStyle.style_14_600(color: AppColors.primary)
+                  : AppTextStyle.style_11_600(color: AppColors.primary),
+              inactiveTextStyle: isTablet
+                  ? AppTextStyle.style_14_500(color: const Color(0xFF64748B))
+                  : AppTextStyle.style_11_500(color: const Color(0xFF64748B)),
+              borderRadius: BorderRadius.circular(isTablet ? 10.r : 8.r),
+              onTabChanged: (index) {
+                controller.toggleCustomerType(index == 0);
+              },
+            );
+          }),
+          SizedBox(height: isTablet ? 8.h : 6.h),
 
-            return GestureDetector(
-              onTap: () => controller.toggleOnline(),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                width: toggleWidth,
-                height: toggleHeight,
-                padding: EdgeInsets.symmetric(horizontal: isTablet ? 4.5.w : 3.w),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(toggleHeight / 2),
-                  color: activeColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: activeColor.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
+          // Centered Online / Offline Switch Row (Below Customer/Membership container)
+          Center(
+            child: Obx(() {
+              final isOnline = controller.isOnline.value;
+              final Color activeColor =
+                  isOnline ? const Color(0xFFF15A24) : const Color(0xFF0288D1);
+              final String labelText = isOnline ? 'Online' : 'Offline';
+
+              return GestureDetector(
+                onTap: () => controller.toggleOnline(),
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Animated text fade and slide transition
-                    AnimatedPositioned(
+                    // Pill Toggle Switch
+                    AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeInOut,
-                      left: isOnline ? (isTablet ? 12.w : 6.w) : (isTablet ? 40.w : 24.w),
-                      right: isOnline ? (isTablet ? 40.w : 24.w) : (isTablet ? 12.w : 6.w),
-                      child: Center(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Text(
-                            labelText,
-                            key: ValueKey<String>(labelText),
-                            style: isTablet
-                                ? AppTextStyle.style_13_600(color: AppColors.white)
-                                : AppTextStyle.style_10_700(color: AppColors.white),
+                      width: isTablet ? 50.w : 42.w,
+                      height: isTablet ? 26.h : 22.h,
+                      padding: EdgeInsets.all(2.5.r),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.r),
+                        color: activeColor,
+                      ),
+                      child: AnimatedAlign(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        // Left for Online (Image 2), Right for Offline (Image 1)
+                        alignment: isOnline
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        child: Container(
+                          width: isTablet ? 21.h : 17.h,
+                          height: isTablet ? 21.h : 17.h,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 2,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    // Animated sliding thumb
-                    AnimatedAlign(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      alignment:
-                          isOnline ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        width: thumbSize,
-                        height: thumbSize,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 3,
-                              offset: Offset(0, 1),
+                    SizedBox(width: 8.w),
+                    // External Label to the Right
+                    Text(
+                      labelText,
+                      style: isTablet
+                          ? AppTextStyle.style_13_600(
+                              color: const Color(0xFF0F172A),
+                            )
+                          : AppTextStyle.style_11_600(
+                              color: const Color(0xFF0F172A),
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                   ],
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ],
       ),
     );

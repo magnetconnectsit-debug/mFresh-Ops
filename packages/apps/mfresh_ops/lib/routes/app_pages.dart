@@ -31,6 +31,8 @@ import 'package:mfresh_ops/modules/master/views/state_screen.dart';
 import 'package:mfresh_ops/modules/master/views/district_screen.dart';
 import 'package:mfresh_ops/modules/master/views/service_screen.dart';
 import 'package:mfresh_ops/modules/master/views/amenity_screen.dart';
+import 'package:mfresh_ops/modules/master/views/unit_screen.dart';
+import 'package:mfresh_ops/modules/master/views/unit_edit_screen.dart';
 import 'package:mfresh_ops/modules/master/views/master_placeholder_screen.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
@@ -390,6 +392,10 @@ class AppPages {
       page: () => const ServiceDetailsScreen(),
     ),
     GetPage(
+      name: AppRoutes.webView,
+      page: () => const AppCommonWebView(),
+    ),
+    GetPage(
       name: AppRoutes.infoDirectory,
       page: () => const InfoDirectoryScreen(),
     ),
@@ -558,7 +564,21 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.masterUnits,
-      page: () => const MasterPlaceholderScreen(title: 'Units Master'),
+      page: () => const UnitScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.masterUnitEdit,
+      page: () => const UnitEditScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+      }),
     ),
     GetPage(
       name: AppRoutes.masterAssignServices,

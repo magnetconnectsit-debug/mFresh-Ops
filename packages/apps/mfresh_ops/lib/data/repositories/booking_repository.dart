@@ -240,6 +240,9 @@ class BookingRepository extends GetxService {
     required String checkSum,
   }) async {
     try {
+      final safeChecksum =
+          checkSum.length > 255 ? checkSum.substring(0, 255) : checkSum;
+
       final response = await _apiService.post(
         AppConstants.adminBookingPaymentSuccess,
         data: {
@@ -247,7 +250,7 @@ class BookingRepository extends GetxService {
           'bookingId': bookingId,
           'Payment_status': paymentStatus,
           'provider_reference_id': providerReferenceId,
-          'check_sum': checkSum,
+          'check_sum': safeChecksum,
         },
       );
 
@@ -270,14 +273,30 @@ class BookingRepository extends GetxService {
 
   // region Booking Details & Receipt Operations
 
-  Future<bool> sendSmsReceipt({required String bookingId, required String phone}) async {
+  Future<bool> sendSmsReceipt({
+    required String bookingId,
+    required String phone,
+    String? addPhone,
+  }) async {
     try {
+      final cleanPhone = phone.trim();
+      final cleanAddPhone = addPhone?.trim() ?? '';
+
+      final payload = <String, dynamic>{
+        'booking_id': bookingId,
+        'mobile_no': cleanPhone,
+        'phone_no': cleanPhone,
+      };
+
+      if (cleanAddPhone.isNotEmpty) {
+        payload['add_phone_no'] = cleanAddPhone;
+        payload['Add_phone_no'] = cleanAddPhone;
+        payload['add_mobile_no'] = cleanAddPhone;
+      }
+
       final response = await _apiService.post(
         AppConstants.resendBookingSms,
-        data: {
-          'booking_id': bookingId,
-          'phone_no': phone,
-        },
+        data: payload,
       );
       if (response != null && response['status'] == 'success') {
         return true;
@@ -488,6 +507,7 @@ class BookingRepository extends GetxService {
         AppConstants.adminHandoverOverview,
         data: {
           'unit_id': unitId,
+          'cashier_session_id': effectiveSessionId,
           'session_id': effectiveSessionId,
         },
       );
@@ -514,14 +534,23 @@ class BookingRepository extends GetxService {
     final int effectiveSessionId =
         sessionId ?? rxActiveCashierSessionId.value ?? 0;
 
+    final now = DateTime.now();
+    final defaultFrom = (fromDate != null && fromDate.isNotEmpty)
+        ? fromDate
+        : '${now.subtract(const Duration(days: 30)).year}-${now.subtract(const Duration(days: 30)).month.toString().padLeft(2, '0')}-${now.subtract(const Duration(days: 30)).day.toString().padLeft(2, '0')}';
+    final defaultTo = (toDate != null && toDate.isNotEmpty)
+        ? toDate
+        : '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
     try {
       final response = await _apiService.post(
         AppConstants.adminHandoverCtodDates,
         data: {
           'unit_id': unitId,
+          'cashier_session_id': effectiveSessionId,
           'session_id': effectiveSessionId,
-          if (fromDate != null && fromDate.isNotEmpty) 'from_date': fromDate,
-          if (toDate != null && toDate.isNotEmpty) 'to_date': toDate,
+          'from_date': defaultFrom,
+          'to_date': defaultTo,
         },
       );
 
@@ -604,6 +633,8 @@ class BookingRepository extends GetxService {
     try {
       final payload = {
         'current_unit': currentUnit,
+        'unit_id': currentUnit,
+        'cashier_session_id': sessionId,
         'session_id': sessionId,
         'next_cashier': nextCashier,
         'handover_action': handoverAction,
@@ -658,7 +689,7 @@ class BookingRepository extends GetxService {
 
       if (response != null && response is Map) {
         final result = HandoverVerifyOtpResult.fromJson(Map<String, dynamic>.from(response));
-        if (result.sessionClosed) {
+        if (result.sessionClosed || result.actionCode == 'HANDOVER_COMPLETED') {
           rxActiveCashierSessionId.value = null;
           rxSelectedUnitId.value = '';
         }
@@ -674,7 +705,7 @@ class BookingRepository extends GetxService {
     }
   }
 
-  Future<bool> exitCheck({required String unitId, int? sessionId}) async {
+  Future<HandoverExitCheckResult> exitCheck({required String unitId, int? sessionId}) async {
     final int effectiveSessionId =
         sessionId ?? rxActiveCashierSessionId.value ?? 0;
 
@@ -683,13 +714,25 @@ class BookingRepository extends GetxService {
         AppConstants.adminHandoverExitCheck,
         data: {
           'unit_id': unitId,
+          'cashier_session_id': effectiveSessionId,
           'session_id': effectiveSessionId,
         },
       );
-      return response != null && (response['status'] == true || response['status'] == 'success');
+      if (response != null && response is Map) {
+        return HandoverExitCheckResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return HandoverExitCheckResult(
+        status: true,
+        canExit: true,
+        message: 'No pending handover',
+      );
     } catch (e) {
       debugPrint('exitCheck error: $e');
-      return false;
+      return HandoverExitCheckResult(
+        status: false,
+        canExit: true,
+        message: 'Exit check skipped due to error: $e',
+      );
     }
   }
   // endregion

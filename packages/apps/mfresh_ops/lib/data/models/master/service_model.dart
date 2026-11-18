@@ -1,4 +1,5 @@
 // region Imports
+import 'package:intl/intl.dart';
 // endregion
 
 // region Models
@@ -7,6 +8,7 @@ class ServiceItem {
   final String servicesName;
   final String? imgIcon;
   final String? imgIconUrl;
+  final String? createdDate;
   final String? createdAt;
   final String? updatedAt;
 
@@ -15,6 +17,7 @@ class ServiceItem {
     required this.servicesName,
     this.imgIcon,
     this.imgIconUrl,
+    this.createdDate,
     this.createdAt,
     this.updatedAt,
   });
@@ -24,6 +27,18 @@ class ServiceItem {
       imgIconUrl!.isNotEmpty &&
       !imgIconUrl!.endsWith('/NA') &&
       imgIcon != 'NA';
+
+  String get formattedCreatedDate {
+    final raw = createdDate ?? createdAt;
+    if (raw == null || raw.isEmpty || raw == 'NA') return 'NA';
+    try {
+      final parsed = DateTime.tryParse(raw);
+      if (parsed != null) {
+        return DateFormat('dd-MMM-yyyy').format(parsed.toLocal());
+      }
+    } catch (_) {}
+    return raw;
+  }
 
   // region Factory & Serialization
   factory ServiceItem.fromJson(Map<String, dynamic> json) {
@@ -42,6 +57,7 @@ class ServiceItem {
           .toString(),
       imgIcon: iconName,
       imgIconUrl: rawUrl,
+      createdDate: (json['created_date'] ?? json['created_at'])?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
@@ -53,6 +69,7 @@ class ServiceItem {
       'services_name': servicesName,
       'img_icon': imgIcon,
       'img_icon_url': imgIconUrl,
+      'created_date': createdDate,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -65,6 +82,7 @@ class ServiceItem {
     String? servicesName,
     String? imgIcon,
     String? imgIconUrl,
+    String? createdDate,
     String? createdAt,
     String? updatedAt,
   }) {
@@ -73,6 +91,7 @@ class ServiceItem {
       servicesName: servicesName ?? this.servicesName,
       imgIcon: imgIcon ?? this.imgIcon,
       imgIconUrl: imgIconUrl ?? this.imgIconUrl,
+      createdDate: createdDate ?? this.createdDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

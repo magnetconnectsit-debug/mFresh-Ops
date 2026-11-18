@@ -192,6 +192,8 @@ class BookingInitiateResult {
     List<BookingServiceDetailItem>? fallbackServices,
     String? fallbackLocation,
     String? fallbackAddress,
+    String? phone,
+    String? addPhone,
   }) {
     List<BookingServiceDetailItem> serviceItems = [];
     if (fallbackServices != null && fallbackServices.isNotEmpty) {
@@ -225,6 +227,8 @@ class BookingInitiateResult {
       paymentMode: paymentMode ?? 1,
       paymentStatus: paymentStatus ?? 'PAYMENT_SUCCESS',
       encryptBookingId: encryptBookingId,
+      phone: phone,
+      addPhone: addPhone,
     );
   }
 
@@ -410,7 +414,12 @@ class RecentBookingItemModel {
     );
   }
 
-  BookingDetailsModel toBookingDetailsModel({String? unitNo, String? location}) {
+  BookingDetailsModel toBookingDetailsModel({
+    String? unitNo,
+    String? location,
+    String? phone,
+    String? addPhone,
+  }) {
     return BookingDetailsModel(
       bookingId: bookingId,
       unitNo: unitNo ?? '',
@@ -423,6 +432,156 @@ class RecentBookingItemModel {
       paymentMode: paymentMode,
       paymentStatus: paymentStatus,
       encryptBookingId: encryptBookingId,
+      phone: phone,
+      addPhone: addPhone,
+    );
+  }
+  // endregion
+}
+
+// region Handover Models
+class ReceivedCashEntry {
+  final String senderName;
+  final double amount;
+  final String handoverCode;
+  final String note;
+  final String date;
+  final String createdAt;
+  final double? pendingFromReceivedCash;
+  final String pendingNote;
+  final int? handoverId;
+
+  ReceivedCashEntry({
+    required this.senderName,
+    required this.amount,
+    this.handoverCode = '',
+    this.note = '',
+    this.date = '',
+    this.createdAt = '',
+    this.pendingFromReceivedCash,
+    this.pendingNote = '',
+    this.handoverId,
+  });
+
+  // region Factory & Serialization
+  factory ReceivedCashEntry.fromJson(Map<String, dynamic> json) {
+    final rawAmount = json['amount'] ?? json['received_amount'] ?? json['cash_received'] ?? 0;
+    final double amt = rawAmount is num
+        ? rawAmount.toDouble()
+        : double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0;
+
+    final sender = (json['sender_name'] ??
+            json['received_from'] ??
+            json['from_cashier'] ??
+            json['cashier_name'] ??
+            json['sender'] ??
+            '')
+        .toString();
+
+    final code = (json['handover_code'] ??
+            json['code'] ??
+            json['reference_no'] ??
+            json['hnd_code'] ??
+            '')
+        .toString();
+
+    final note = (json['note'] ?? json['description'] ?? '').toString();
+
+    final rawPending = json['pending_from_received_cash'] ??
+        json['pending_received_cash'] ??
+        json['pending_cash'];
+    final double? pendingAmt = rawPending != null
+        ? (rawPending is num ? rawPending.toDouble() : double.tryParse(rawPending.toString()))
+        : null;
+
+    String pNote = (json['pending_note'] ?? '').toString();
+    if (pNote.isEmpty && pendingAmt != null && pendingAmt > 0) {
+      pNote = 'Pending from received cash: ₹${pendingAmt.toStringAsFixed(2)}';
+    } else if (pNote.isEmpty && note.toLowerCase().contains('pending')) {
+      pNote = note;
+    }
+
+    final rawCreated = json['created_at'] ?? json['timestamp'] ?? json['date_time'] ?? json['time'] ?? '';
+    final rawDate = json['date'] ?? json['collection_date'] ?? (rawCreated.toString().split(' ').first);
+
+    return ReceivedCashEntry(
+      senderName: sender,
+      amount: amt,
+      handoverCode: code,
+      note: note,
+      date: rawDate.toString(),
+      createdAt: rawCreated.toString(),
+      pendingFromReceivedCash: pendingAmt,
+      pendingNote: pNote,
+      handoverId: json['handover_id'] is int
+          ? json['handover_id']
+          : int.tryParse(json['handover_id']?.toString() ?? ''),
+    );
+  }
+  // endregion
+}
+
+class HandoverCollectionGroup {
+  final String date; // Formatted as "05-11-2026"
+  final String rawDate; // Original e.g. "2026-11-05" or "05-11-2026"
+  final bool hasOwnBookingCash;
+  final bool ownCashInputRequired;
+  final bool ownCashZeroAllowed;
+  final double ownBookingCashDue;
+  final double receivedCashPendingTotal;
+  final List<ReceivedCashEntry> receivedItems;
+
+  HandoverCollectionGroup({
+    required this.date,
+    required this.rawDate,
+    this.hasOwnBookingCash = false,
+    this.ownCashInputRequired = false,
+    this.ownCashZeroAllowed = true,
+    this.ownBookingCashDue = 0.0,
+    this.receivedCashPendingTotal = 0.0,
+    this.receivedItems = const [],
+  });
+
+  // region Factory & Serialization
+  factory HandoverCollectionGroup.fromJson(Map<String, dynamic> json) {
+    final rawDate = (json['date'] ?? json['collection_date'] ?? '').toString();
+    final dispDate = HandoverOverviewResult.normalizeToDisplayDate(rawDate);
+    final hasOwn = json['own_cash_input_required'] == true ||
+        json['has_own_cash'] == true ||
+        json['requires_own_cash'] == true ||
+        json['show_own_cash'] == true ||
+        json['is_pending_date'] == true ||
+        json['has_booking_cash'] == true;
+
+    final rawPendingTotal = json['received_cash_pending_total'];
+    final double pendingTotal = rawPendingTotal is num
+        ? rawPendingTotal.toDouble()
+        : double.tryParse(rawPendingTotal?.toString() ?? '0') ?? 0.0;
+
+    final rawItems = json['received_handovers'] ?? json['received_cash'] ?? json['items'] ?? [];
+    final List<ReceivedCashEntry> items = [];
+    if (rawItems is List) {
+      for (var it in rawItems) {
+        if (it is Map<String, dynamic>) {
+          items.add(ReceivedCashEntry.fromJson(it));
+        } else if (it is Map) {
+          items.add(ReceivedCashEntry.fromJson(Map<String, dynamic>.from(it)));
+        }
+      }
+    }
+
+    final rawDue = json['own_booking_cash'] ?? json['booking_cash'] ?? json['own_cash_due'] ?? 0;
+    final double due = rawDue is num ? rawDue.toDouble() : double.tryParse(rawDue.toString()) ?? 0.0;
+
+    return HandoverCollectionGroup(
+      date: dispDate,
+      rawDate: rawDate,
+      hasOwnBookingCash: hasOwn,
+      ownCashInputRequired: json['own_cash_input_required'] == true,
+      ownCashZeroAllowed: json['own_cash_zero_allowed'] != false,
+      ownBookingCashDue: due,
+      receivedCashPendingTotal: pendingTotal,
+      receivedItems: items,
     );
   }
   // endregion
@@ -436,6 +595,18 @@ class HandoverOverviewResult {
   final double totalShortage;
   final int? cashierSessionId;
   final String? unitId;
+  final String? activeDate;
+  final List<String> pendingDates;
+  final List<ReceivedCashEntry> receivedHandovers;
+  final List<HandoverCollectionGroup> collectionGroups;
+  final double totalReceivedCash;
+  final List<AssigneeModel> receivers;
+  final List<AssigneeModel> ctodUsers;
+  final String? actionCode;
+  final String? pendingCashier;
+  final String? pendingDate;
+  final String? reason;
+  final String cashMode;
   final Map<String, dynamic>? rawJson;
 
   HandoverOverviewResult({
@@ -446,8 +617,57 @@ class HandoverOverviewResult {
     this.totalShortage = 0.0,
     this.cashierSessionId,
     this.unitId,
+    this.activeDate,
+    this.pendingDates = const [],
+    this.receivedHandovers = const [],
+    this.collectionGroups = const [],
+    this.totalReceivedCash = 0.0,
+    this.receivers = const [],
+    this.ctodUsers = const [],
+    this.actionCode,
+    this.pendingCashier,
+    this.pendingDate,
+    this.reason,
+    this.cashMode = 'LEGACY',
     this.rawJson,
   });
+
+  static String normalizeToDisplayDate(String rawDate) {
+    final trimmed = rawDate.trim();
+    if (trimmed.isEmpty) return '';
+    // YYYY-MM-DD
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(trimmed)) {
+      final parts = trimmed.split(' ')[0].split('-');
+      return '${parts[2].padLeft(2, '0')}-${parts[1].padLeft(2, '0')}-${parts[0]}';
+    }
+    // DD-MM-YYYY
+    if (RegExp(r'^\d{2}-\d{2}-\d{4}').hasMatch(trimmed)) {
+      return trimmed.split(' ')[0];
+    }
+    final parsed = DateTime.tryParse(trimmed);
+    if (parsed != null) {
+      final d = parsed.day.toString().padLeft(2, '0');
+      final m = parsed.month.toString().padLeft(2, '0');
+      final y = parsed.year.toString();
+      return '$d-$m-$y';
+    }
+    return trimmed;
+  }
+
+  static DateTime? parseDisplayDate(String dateStr) {
+    try {
+      final trimmed = dateStr.trim();
+      if (RegExp(r'^\d{2}-\d{2}-\d{4}').hasMatch(trimmed)) {
+        final p = trimmed.split('-');
+        return DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
+      }
+      if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(trimmed)) {
+        final p = trimmed.split('-');
+        return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+      }
+    } catch (_) {}
+    return DateTime.tryParse(dateStr);
+  }
 
   // region Factory & Serialization
   factory HandoverOverviewResult.fromJson(Map<String, dynamic> json) {
@@ -456,14 +676,258 @@ class HandoverOverviewResult {
     final rawBalance = data['cash_balance'] ?? data['cashBalance'] ?? 0;
     final rawShortage = data['total_shortage'] ?? data['shortages'] ?? 0;
 
+    final dynamic handoverObj = json['handover'] ?? data['handover'];
+    final Map? handoverMap = handoverObj is Map ? handoverObj : null;
+
+    final dynamic ctodObj = json['ctod'] ?? data['ctod'];
+    final Map? ctodMap = ctodObj is Map ? ctodObj : null;
+
+    // Parse pending dates
+    final rawPendingDates = data['pending_dates'] ?? json['pending_dates'];
+    final List<String> pDates = [];
+    if (rawPendingDates is List) {
+      for (var d in rawPendingDates) {
+        if (d != null) pDates.add(d.toString());
+      }
+    }
+
+    // Parse received handovers and collection groups
+    final List<ReceivedCashEntry> rHandovers = [];
+    final List<HandoverCollectionGroup> cGroups = [];
+
+    double totalReceived = 0.0;
+    if (handoverMap != null) {
+      final rawTotal = handoverMap['received_cash_pending_total'];
+      if (rawTotal is num) {
+        totalReceived = rawTotal.toDouble();
+      } else if (rawTotal != null) {
+        totalReceived = double.tryParse(rawTotal.toString()) ?? 0.0;
+      }
+
+      final rawHandoverDates = handoverMap['dates'];
+      if (rawHandoverDates is List && rawHandoverDates.isNotEmpty) {
+        for (var d in rawHandoverDates) {
+          if (d is Map) {
+            final dMap = Map<String, dynamic>.from(d);
+            final rawDate = (dMap['collection_date'] ?? dMap['date'] ?? '').toString();
+            final dispDate = normalizeToDisplayDate(rawDate);
+            final bool hasOwn = dMap['own_cash_input_required'] == true ||
+                dMap['has_own_cash'] == true ||
+                dMap['requires_own_cash'] == true;
+
+            final rawPendingTotal = dMap['received_cash_pending_total'];
+            final double pendingTotal = rawPendingTotal is num
+                ? rawPendingTotal.toDouble()
+                : double.tryParse(rawPendingTotal?.toString() ?? '0') ?? 0.0;
+
+            final rawSources = dMap['received_sources'] ?? dMap['received_handovers'] ?? dMap['items'] ?? [];
+            final List<ReceivedCashEntry> items = [];
+            if (rawSources is List) {
+              for (int i = 0; i < rawSources.length; i++) {
+                final s = rawSources[i];
+                if (s is Map) {
+                  final sMap = Map<String, dynamic>.from(s);
+                  String? pNote;
+                  if (i == rawSources.length - 1 && pendingTotal > 0) {
+                    pNote = 'Pending from received cash: ₹${pendingTotal.toStringAsFixed(2)}';
+                  }
+                  final rawCreated = sMap['completed_at'] ?? sMap['created_at'] ?? sMap['timestamp'] ?? '';
+                  final entry = ReceivedCashEntry(
+                    senderName: (sMap['cashier_name'] ?? sMap['sender_name'] ?? sMap['sender'] ?? '').toString(),
+                    amount: (sMap['received_amount'] ?? sMap['amount'] ?? 0) is num
+                        ? (sMap['received_amount'] ?? sMap['amount'] as num).toDouble()
+                        : double.tryParse((sMap['received_amount'] ?? sMap['amount']).toString()) ?? 0.0,
+                    handoverCode: (sMap['handover_code'] ?? sMap['handover_id'] ?? '').toString(),
+                    note: (sMap['note'] ?? '').toString(),
+                    date: rawDate,
+                    createdAt: rawCreated.toString(),
+                    pendingFromReceivedCash: pendingTotal > 0 ? pendingTotal : null,
+                    pendingNote: pNote ?? (sMap['pending_note']?.toString() ?? ''),
+                    handoverId: sMap['handover_id'] is int
+                        ? sMap['handover_id']
+                        : int.tryParse(sMap['handover_id']?.toString() ?? ''),
+                  );
+                  items.add(entry);
+                  rHandovers.add(entry);
+                }
+              }
+            }
+
+            final rawDue = dMap['own_booking_cash'] ?? dMap['own_cash_amount'] ?? 0;
+            final double due = rawDue is num ? rawDue.toDouble() : double.tryParse(rawDue.toString()) ?? 0.0;
+
+            cGroups.add(
+              HandoverCollectionGroup(
+                date: dispDate,
+                rawDate: rawDate,
+                hasOwnBookingCash: hasOwn,
+                ownCashInputRequired: dMap['own_cash_input_required'] == true,
+                ownCashZeroAllowed: dMap['own_cash_zero_allowed'] != false,
+                ownBookingCashDue: due,
+                receivedCashPendingTotal: pendingTotal,
+                receivedItems: items,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    // If cGroups is still empty, fallback to synthesize from pendingDates & receivedHandovers
+    if (cGroups.isEmpty) {
+      final rawReceived = data['received_handovers'] ??
+          data['received_cash'] ??
+          data['received_cash_entries'] ??
+          json['received_handovers'];
+      if (rawReceived is List) {
+        for (var r in rawReceived) {
+          if (r is Map<String, dynamic>) {
+            rHandovers.add(ReceivedCashEntry.fromJson(r));
+          } else if (r is Map) {
+            rHandovers.add(ReceivedCashEntry.fromJson(Map<String, dynamic>.from(r)));
+          }
+        }
+      }
+
+      if (rHandovers.isEmpty && (data['received_from'] != null || data['received_amount'] != null)) {
+        rHandovers.add(ReceivedCashEntry.fromJson(Map<String, dynamic>.from(data)));
+      }
+
+      final rawTotalReceived = data['total_received_cash'] ??
+          data['received_amount'] ??
+          data['total_received'];
+      if (totalReceived == 0) {
+        totalReceived = rawTotalReceived is num
+            ? rawTotalReceived.toDouble()
+            : double.tryParse(rawTotalReceived?.toString() ?? '0') ?? 0.0;
+        if (totalReceived == 0 && rHandovers.isNotEmpty) {
+          totalReceived = rHandovers.fold(0.0, (sum, item) => sum + item.amount);
+        }
+      }
+
+      final rawCollections = data['collections'] ??
+          data['collection_groups'] ??
+          json['collections'];
+      if (rawCollections is List && rawCollections.isNotEmpty) {
+        for (var c in rawCollections) {
+          if (c is Map<String, dynamic>) {
+            cGroups.add(HandoverCollectionGroup.fromJson(c));
+          } else if (c is Map) {
+            cGroups.add(HandoverCollectionGroup.fromJson(Map<String, dynamic>.from(c)));
+          }
+        }
+      }
+
+      if (cGroups.isEmpty) {
+        final Map<String, List<ReceivedCashEntry>> dateToItems = {};
+        final Map<String, String> displayToRawDate = {};
+
+        for (var entry in rHandovers) {
+          final dDate = normalizeToDisplayDate(entry.date);
+          if (dDate.isNotEmpty) {
+            dateToItems.putIfAbsent(dDate, () => []).add(entry);
+            displayToRawDate.putIfAbsent(dDate, () => entry.date);
+          }
+        }
+
+        final Set<String> pendingDisplayDates = {};
+        for (var pDate in pDates) {
+          final dDate = normalizeToDisplayDate(pDate);
+          if (dDate.isNotEmpty) {
+            pendingDisplayDates.add(dDate);
+            displayToRawDate.putIfAbsent(dDate, () => pDate);
+          }
+        }
+
+        final activeDisp = normalizeToDisplayDate(
+          (data['active_date'] ?? data['date'] ?? json['date'])?.toString() ?? '',
+        );
+        if (activeDisp.isNotEmpty) {
+          pendingDisplayDates.add(activeDisp);
+          displayToRawDate.putIfAbsent(activeDisp, () => (data['active_date'] ?? data['date'] ?? json['date']).toString());
+        }
+
+        final allDisplayDates = <String>{
+          ...pendingDisplayDates,
+          ...dateToItems.keys,
+        }.toList();
+
+        allDisplayDates.sort((a, b) {
+          final da = parseDisplayDate(a);
+          final db = parseDisplayDate(b);
+          if (da != null && db != null) {
+            return da.compareTo(db);
+          }
+          return a.compareTo(b);
+        });
+
+        for (var dDate in allDisplayDates) {
+          final items = dateToItems[dDate] ?? [];
+          final hasOwn = pendingDisplayDates.contains(dDate);
+          cGroups.add(
+            HandoverCollectionGroup(
+              date: dDate,
+              rawDate: displayToRawDate[dDate] ?? dDate,
+              hasOwnBookingCash: hasOwn,
+              receivedItems: items,
+            ),
+          );
+        }
+      }
+    }
+
+    // Parse receivers if present
+    final rawReceivers = (handoverMap != null ? handoverMap['handover_users'] : null) ??
+        data['receivers'] ??
+        data['receiver_list'] ??
+        data['handover_users'] ??
+        json['receivers'];
+    final List<AssigneeModel> recList = [];
+    if (rawReceivers is List) {
+      for (var u in rawReceivers) {
+        if (u is Map<String, dynamic>) {
+          recList.add(AssigneeModel.fromJson(u));
+        } else if (u is Map) {
+          recList.add(AssigneeModel.fromJson(Map<String, dynamic>.from(u)));
+        }
+      }
+    }
+
+    // Parse C-to-D users if present
+    final List<AssigneeModel> cUsers = [];
+    final rawCtodUsers = (ctodMap != null ? ctodMap['ctod_users'] : null) ??
+        data['ctod_users'] ??
+        json['ctod_users'];
+    if (rawCtodUsers is List) {
+      for (var u in rawCtodUsers) {
+        if (u is Map<String, dynamic>) {
+          cUsers.add(AssigneeModel.fromJson(u));
+        } else if (u is Map) {
+          cUsers.add(AssigneeModel.fromJson(Map<String, dynamic>.from(u)));
+        }
+      }
+    }
+
     return HandoverOverviewResult(
       status: json['status'] == true || json['status'] == 'true',
-      message: (json['message'] ?? '').toString(),
+      message: (json['message'] ?? data['message'] ?? '').toString(),
       cashDue: rawCashDue is num ? rawCashDue.toDouble() : double.tryParse(rawCashDue.toString()) ?? 0.0,
       cashBalance: rawBalance is num ? rawBalance.toDouble() : double.tryParse(rawBalance.toString()) ?? 0.0,
       totalShortage: rawShortage is num ? rawShortage.toDouble() : double.tryParse(rawShortage.toString()) ?? 0.0,
       cashierSessionId: json['session_id'] ?? data['session_id'],
       unitId: json['unit_id']?.toString() ?? data['unit_id']?.toString(),
+      activeDate: (data['active_date'] ?? data['date'] ?? json['date'])?.toString(),
+      pendingDates: pDates,
+      receivedHandovers: rHandovers,
+      collectionGroups: cGroups,
+      totalReceivedCash: totalReceived,
+      receivers: recList,
+      ctodUsers: cUsers,
+      actionCode: json['action']?.toString() ?? json['action_code']?.toString() ?? data['action']?.toString(),
+      pendingCashier: (data['pending_cashier'] ?? json['pending_cashier'])?.toString(),
+      pendingDate: (data['pending_date'] ?? json['pending_date'])?.toString(),
+      reason: (data['reason'] ?? json['reason'])?.toString(),
+      cashMode: (json['cash_mode'] ?? (handoverMap != null ? handoverMap['cash_mode'] : null) ?? data['cash_mode'])?.toString() ?? 'LEGACY',
       rawJson: json,
     );
   }
@@ -506,7 +970,6 @@ class CtodDateEntryModel {
   // endregion
 }
 
-// region Handover Models
 class HandoverUsersResult {
   final bool status;
   final String message;
@@ -520,7 +983,6 @@ class HandoverUsersResult {
     this.ctodUsers = const [],
   });
 }
-// endregion
 
 class HandoverCreateResult {
   final bool status;
@@ -528,6 +990,10 @@ class HandoverCreateResult {
   final int? handoverId;
   final String? handoverAction;
   final bool otpSent;
+  final String? actionCode;
+  final String? pendingCashier;
+  final String? pendingDate;
+  final String? reason;
 
   HandoverCreateResult({
     required this.status,
@@ -535,19 +1001,32 @@ class HandoverCreateResult {
     this.handoverId,
     this.handoverAction,
     this.otpSent = false,
+    this.actionCode,
+    this.pendingCashier,
+    this.pendingDate,
+    this.reason,
   });
 
   // region Factory & Serialization
   factory HandoverCreateResult.fromJson(Map<String, dynamic> json) {
-    final rawId = json['handover_id'] ?? json['id'] ?? (json['data'] is Map ? json['data']['handover_id'] : null);
+    final data = json['data'] is Map ? json['data'] as Map : json;
+    final rawId = json['handover_id'] ?? json['id'] ?? data['handover_id'] ?? data['id'];
     final int? hId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+    final action = (json['action'] ?? json['action_code'] ?? data['action'])?.toString();
 
     return HandoverCreateResult(
-      status: json['status'] == true || json['status'] == 'true',
-      message: (json['message'] ?? '').toString(),
+      status: json['status'] == true || json['status'] == 'true' || action == 'HANDOVER_OTP',
+      message: (json['message'] ?? data['message'] ?? '').toString(),
       handoverId: hId,
-      handoverAction: json['handover_action']?.toString(),
-      otpSent: json['otp_sent'] == true || json['otp_sent'] == 'true' || json['status'] == true,
+      handoverAction: json['handover_action']?.toString() ?? data['handover_action']?.toString(),
+      otpSent: json['otp_sent'] == true ||
+          json['otp_sent'] == 'true' ||
+          action == 'HANDOVER_OTP' ||
+          json['status'] == true,
+      actionCode: action,
+      pendingCashier: (data['pending_cashier'] ?? json['pending_cashier'])?.toString(),
+      pendingDate: (data['pending_date'] ?? json['pending_date'])?.toString(),
+      reason: (data['reason'] ?? json['reason'])?.toString(),
     );
   }
   // endregion
@@ -560,6 +1039,10 @@ class HandoverVerifyOtpResult {
   final bool sessionClosed;
   final double? shortfall;
   final bool whatsappAlertTriggered;
+  final String? actionCode;
+  final String? pendingCashier;
+  final String? pendingDate;
+  final String? reason;
 
   HandoverVerifyOtpResult({
     required this.status,
@@ -568,26 +1051,113 @@ class HandoverVerifyOtpResult {
     this.sessionClosed = false,
     this.shortfall,
     this.whatsappAlertTriggered = false,
+    this.actionCode,
+    this.pendingCashier,
+    this.pendingDate,
+    this.reason,
   });
+
+  bool get isHandoverCompleted =>
+      actionCode == 'HANDOVER_COMPLETED' ||
+      actionCode == 'ALREADY_COMPLETED' ||
+      handoverCompleted;
+
+  bool get isCtodCompleted => actionCode == 'CASH_C_TO_D_COMPLETED';
+  bool get isAlreadyCompleted => actionCode == 'ALREADY_COMPLETED';
+  bool get isInvalidOtp => actionCode == 'INVALID_OTP';
+  bool get isOtpExpired => actionCode == 'OTP_EXPIRED';
+  bool get isCtodPending => actionCode == 'CTOD_HANDOVER_PENDING';
+  bool get isSessionNotActive => actionCode == 'SESSION_NOT_ACTIVE';
 
   // region Factory & Serialization
   factory HandoverVerifyOtpResult.fromJson(Map<String, dynamic> json) {
-    final rawShortfall = json['shortfall'];
+    final data = json['data'] is Map ? json['data'] as Map : json;
+    final rawShortfall = json['shortfall'] ?? data['shortfall'];
     final double? sf = rawShortfall != null
         ? (rawShortfall is num ? rawShortfall.toDouble() : double.tryParse(rawShortfall.toString()))
         : null;
 
+    final action = (json['action'] ?? json['action_code'] ?? data['action'])?.toString();
+    final bool completed = json['handover_completed'] == true ||
+        json['status'] == true ||
+        action == 'HANDOVER_COMPLETED' ||
+        action == 'CASH_C_TO_D_COMPLETED' ||
+        action == 'ALREADY_COMPLETED';
+
+    final bool closed = json['session_closed'] == true ||
+        json['session_status'] == 'CLOSED' ||
+        action == 'HANDOVER_COMPLETED';
+
     return HandoverVerifyOtpResult(
-      status: json['status'] == true || json['status'] == 'true',
-      message: (json['message'] ?? '').toString(),
-      handoverCompleted: json['handover_completed'] == true || json['status'] == true,
-      sessionClosed: json['session_closed'] == true || json['session_status'] == 'CLOSED',
+      status: json['status'] == true || json['status'] == 'true' || completed,
+      message: (json['message'] ?? data['message'] ?? '').toString(),
+      handoverCompleted: completed,
+      sessionClosed: closed,
       shortfall: sf,
       whatsappAlertTriggered: json['whatsapp_alert_triggered'] == true || json['whatsapp_alerts'] != null,
+      actionCode: action,
+      pendingCashier: (data['pending_cashier'] ?? json['pending_cashier'])?.toString(),
+      pendingDate: (data['pending_date'] ?? json['pending_date'])?.toString(),
+      reason: (data['reason'] ?? json['reason'])?.toString(),
     );
   }
   // endregion
 }
+
+class HandoverExitCheckResult {
+  final bool status;
+  final bool canExit;
+  final String message;
+  final double pendingAmount;
+  final String? pendingCashier;
+  final String? pendingDate;
+  final String? reason;
+  final String? actionCode;
+  final Map<String, dynamic>? rawJson;
+
+  HandoverExitCheckResult({
+    required this.status,
+    required this.canExit,
+    required this.message,
+    this.pendingAmount = 0.0,
+    this.pendingCashier,
+    this.pendingDate,
+    this.reason,
+    this.actionCode,
+    this.rawJson,
+  });
+
+  // region Factory & Serialization
+  factory HandoverExitCheckResult.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] is Map ? json['data'] as Map : json;
+    final isSuccess = json['status'] == true || json['status'] == 'success';
+    final hasPending = data['pending_handover'] == true ||
+        data['handover_pending'] == true ||
+        data['pending'] == true ||
+        json['action'] == 'CTOD_HANDOVER_PENDING' ||
+        data['action'] == 'CTOD_HANDOVER_PENDING';
+    final canExit = (data['can_exit'] == true || isSuccess) && !hasPending;
+
+    final rawAmount = data['pending_amount'] ?? data['amount'] ?? data['cash_due'] ?? 0;
+    final double pAmount = rawAmount is num
+        ? rawAmount.toDouble()
+        : double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0;
+
+    return HandoverExitCheckResult(
+      status: isSuccess,
+      canExit: canExit,
+      message: (json['message'] ?? data['message'] ?? '').toString(),
+      pendingAmount: pAmount,
+      pendingCashier: data['pending_cashier']?.toString() ?? data['cashier_name']?.toString(),
+      pendingDate: data['pending_date']?.toString() ?? data['date']?.toString(),
+      reason: data['reason']?.toString(),
+      actionCode: json['action']?.toString() ?? json['action_code']?.toString() ?? data['action']?.toString(),
+      rawJson: json,
+    );
+  }
+  // endregion
+}
+// endregion
 
 
 class MemberValidateResult {

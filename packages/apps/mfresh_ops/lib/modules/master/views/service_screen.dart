@@ -1,5 +1,4 @@
 // region Imports
-import 'dart:io';
 import 'dart:math';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
@@ -221,6 +220,20 @@ class ServiceScreen extends StatelessWidget {
               Icons.miscellaneous_services_outlined,
               size: 16.sp,
               color: AppColors.grey400,
+            );
+          },
+        ),
+        AppTableColumn<ServiceItem>(
+          key: 'created_date',
+          title: 'Created Date',
+          sortable: true,
+          width: 110.w,
+          alignment: Alignment.centerLeft,
+          cellBuilder: (context, item, index, isExpanded) {
+            return Text(
+              item.formattedCreatedDate,
+              style: AppTextStyle.style_11_400(color: AppColors.grey600),
+              overflow: TextOverflow.ellipsis,
             );
           },
         ),

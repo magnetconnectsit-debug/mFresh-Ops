@@ -1,4 +1,6 @@
+// region Imports
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
@@ -8,6 +10,7 @@ import 'package:mfresh_ops/data/models/booking/booking_models.dart';
 import 'package:mfresh_ops/modules/profile/controllers/profile_controller.dart';
 import 'package:mfresh_ops/routes/app_routes.dart';
 import 'package:mfresh_ops/modules/booking/controllers/booking_unit_selection_controller.dart';
+import 'package:mfresh_ops/modules/service_details/views/widgets/handover_dialog_helper.dart';
 
 import 'package:mfresh_ops/core/config/app_config.dart';
 import 'package:services/phonepe_service.dart';
@@ -15,7 +18,9 @@ import 'package:services/plutus_service.dart';
 import 'package:core/core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pinput/pinput.dart';
+// endregion
 
+// region Models
 class ServiceItem {
   final String assignServiceId;
   final String name;
@@ -31,13 +36,17 @@ class ServiceItem {
     int initialQty = 0,
   }) : quantity = initialQty.obs;
 }
+// endregion
 
 class ServiceDetailsController extends GetxController {
+  // region Dependencies & Repositories
   final BookingRepository _bookingRepository = Get.find<BookingRepository>();
   final ProfileController _profileController = Get.find<ProfileController>();
   final PlutusService _plutusService = Get.find<PlutusService>();
   final PhonePeService _phonePeService = Get.find<PhonePeService>();
+  // endregion
 
+  // region Observables & State Variables
   // Unit info
   final unitNo = ''.obs;
   final location = ''.obs;
@@ -55,6 +64,20 @@ class ServiceDetailsController extends GetxController {
   final isOnline = false.obs;
   final isLoading = false.obs;
 
+  // Services list
+  final services = <ServiceItem>[].obs;
+
+  // Recent 6 Cashier Bookings
+  final recentBookings = <RecentBookingItemModel>[].obs;
+  final isLoadingRecentBookings = false.obs;
+
+  // Member flow
+  final isOtpSent = false.obs;
+  final isOtpVerified = false.obs;
+  final isVerifyingMember = false.obs;
+  // endregion
+
+  // region Text Controllers & Focus Nodes
   // Contact details
   final mobileController = TextEditingController();
   final nameController = TextEditingController();
@@ -64,17 +87,9 @@ class ServiceDetailsController extends GetxController {
   // Member flow
   final memberMobileController = TextEditingController();
   final otpController = TextEditingController();
-  final isOtpSent = false.obs;
-  final isOtpVerified = false.obs;
-  final isVerifyingMember = false.obs;
+  // endregion
 
-  // Services list
-  final services = <ServiceItem>[].obs;
-
-  // Recent 6 Cashier Bookings
-  final recentBookings = <RecentBookingItemModel>[].obs;
-  final isLoadingRecentBookings = false.obs;
-
+  // region Lifecycle Methods
   @override
   void onInit() {
     super.onInit();
@@ -95,7 +110,6 @@ class ServiceDetailsController extends GetxController {
       }
     }
 
-
     // Pre-fill user info
     final user = _profileController.user.value;
     if (user != null) {
@@ -108,27 +122,42 @@ class ServiceDetailsController extends GetxController {
     fetchServices();
   }
 
+  @override
+  void onClose() {
+    mobileController.dispose();
+    nameController.dispose();
+    addPhoneController.dispose();
+    referralController.dispose();
+    memberMobileController.dispose();
+    otpController.dispose();
+    super.onClose();
+  }
+
   Future<void> refreshData() async {
     await Future.wait([
       _profileController.fetchProfile(),
-      if (Get.isRegistered<BookingUnitSelectionController>()) Get.find<BookingUnitSelectionController>().fetchUnits(),
+      if (Get.isRegistered<BookingUnitSelectionController>())
+        Get.find<BookingUnitSelectionController>().fetchUnits(),
     ]);
 
     try {
       if (Get.isRegistered<BookingUnitSelectionController>()) {
-         final dashUnits = Get.find<BookingUnitSelectionController>().allUnitsList;
-         final currentUnit = dashUnits.firstWhereOrNull((u) => u.unitId == unitNo.value);
-         if (currentUnit != null) {
-            printingType.value = currentUnit.printingType;
-            paperRollSize.value = currentUnit.paperRollSize;
-         }
+        final dashUnits =
+            Get.find<BookingUnitSelectionController>().allUnitsList;
+        final currentUnit =
+            dashUnits.firstWhereOrNull((u) => u.unitId == unitNo.value);
+        if (currentUnit != null) {
+          printingType.value = currentUnit.printingType;
+          paperRollSize.value = currentUnit.paperRollSize;
+        }
       } else {
-         final units = await _bookingRepository.getAllUnits();
-         final currentUnit = units.firstWhereOrNull((u) => u.unitId == unitNo.value);
-         if (currentUnit != null) {
-            printingType.value = currentUnit.printingType;
-            paperRollSize.value = currentUnit.paperRollSize;
-         }
+        final units = await _bookingRepository.getAllUnits();
+        final currentUnit =
+            units.firstWhereOrNull((u) => u.unitId == unitNo.value);
+        if (currentUnit != null) {
+          printingType.value = currentUnit.printingType;
+          paperRollSize.value = currentUnit.paperRollSize;
+        }
       }
     } catch (e) {
       debugPrint("Failed to update unit config on refresh: $e");
@@ -175,6 +204,80 @@ class ServiceDetailsController extends GetxController {
       fetchServices();
     }
   }
+  // endregion
+
+  // region Exit & Handover Guard
+  Future<void> handleBackExit(BuildContext context) async {
+    final effectiveSessionId = cashierSessionId.value ??
+        _bookingRepository.rxActiveCashierSessionId.value;
+
+    if (effectiveSessionId == null ||
+        effectiveSessionId <= 0 ||
+        unitNo.value.isEmpty) {
+      if (Navigator.of(context).canPop()) {
+        Get.back();
+      } else {
+        Get.offAllNamed(AppRoutes.bookingUnitSelection);
+      }
+      return;
+    }
+
+    try {
+      final res = await _bookingRepository.exitCheck(
+        unitId: unitNo.value,
+        sessionId: effectiveSessionId,
+      );
+
+      if (res.canExit) {
+        if (Navigator.of(context).canPop()) {
+          Get.back();
+        } else {
+          Get.offAllNamed(AppRoutes.bookingUnitSelection);
+        }
+      } else {
+        if (!context.mounted) return;
+        final shouldHandover = await AppCommonDialogBox.showConfirm(
+          context,
+          title: 'Handover Pending',
+          message: res.message.isNotEmpty
+              ? res.message
+              : 'You have pending cash of ₹${res.pendingAmount.toStringAsFixed(2)}. Please complete cash handover before exiting the unit.',
+          confirmText: 'Handover Now',
+          cancelText: 'Stay',
+          icon: Icons.payments_outlined,
+          iconColor: const Color(0xFFF15A24),
+        );
+
+        if (shouldHandover && context.mounted) {
+          HandoverDialogHelper.showHandoverDialog(
+            context: context,
+            unitNo: unitNo.value,
+            cashierSessionId: effectiveSessionId,
+            onSuccess: () {
+              if (context.mounted) {
+                if (Navigator.of(context).canPop()) {
+                  Get.back();
+                } else {
+                  Get.offAllNamed(AppRoutes.bookingUnitSelection);
+                }
+              }
+            },
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        if (Navigator.of(context).canPop()) {
+          Get.back();
+        } else {
+          Get.offAllNamed(AppRoutes.bookingUnitSelection);
+        }
+      }
+    }
+  }
+  // endregion
+
+  // region API & Network Operations
 
 
   Future<void> fetchRecentBookings() async {
@@ -485,9 +588,14 @@ class ServiceDetailsController extends GetxController {
               )
               .toList();
 
+          final customerPhone = phone;
+          final customerAddPhone = addPhoneController.text.trim();
+
           final bookingDetailsModel = initiateResult.toBookingDetailsModel(
             fallbackServices: selectedServiceItems,
             fallbackLocation: location.value,
+            phone: customerPhone,
+            addPhone: customerAddPhone,
           );
 
           fetchRecentBookings();
@@ -501,6 +609,8 @@ class ServiceDetailsController extends GetxController {
               'paperRollSize': paperRollSize.value,
               'printingType': printingType.value,
               'receiptUrl': initiateResult.receiptUrl,
+              'phone': customerPhone,
+              'addPhone': customerAddPhone,
             },
           );
           return;
@@ -621,9 +731,26 @@ class ServiceDetailsController extends GetxController {
         phonePeData?['code']?.toString() ?? "PAYMENT_SUCCESS";
     final String providerRefId =
         phonePeData?['providerReferenceId']?.toString() ??
+            phonePeData?['data']?['transactionId']?.toString() ??
             "ADMIN_MANUAL_CONFIRM";
-    final String checkSum =
-        phonePeData != null ? jsonEncode(phonePeData) : "VERIFIED_DIRECT";
+
+    // Backend validation requires check_sum <= 255 characters
+    String checkSum = "VERIFIED_DIRECT";
+    if (phonePeData != null) {
+      final possibleChecksum = phonePeData['checksum'] ??
+          phonePeData['check_sum'] ??
+          phonePeData['providerReferenceId'] ??
+          phonePeData['data']?['transactionId'];
+
+      if (possibleChecksum != null &&
+          possibleChecksum.toString().isNotEmpty &&
+          possibleChecksum.toString().length <= 255) {
+        checkSum = possibleChecksum.toString();
+      } else {
+        // Standard SHA-256 hash (64 chars) of payment data
+        checkSum = sha256.convert(utf8.encode(jsonEncode(phonePeData))).toString();
+      }
+    }
 
     final result = await _bookingRepository.submitPaymentSuccess(
       userId: userId,
@@ -646,6 +773,9 @@ class ServiceDetailsController extends GetxController {
           )
           .toList();
 
+      final customerPhone = mobileController.text.trim();
+      final customerAddPhone = addPhoneController.text.trim();
+
       final bookingDetailsModel = BookingDetailsModel(
         bookingId: bookingId,
         unitNo: unitNo.value,
@@ -658,6 +788,8 @@ class ServiceDetailsController extends GetxController {
         paymentMode: 2,
         paymentStatus: paymentStatus,
         encryptBookingId: encryptBookingId,
+        phone: customerPhone,
+        addPhone: customerAddPhone,
       );
 
       fetchRecentBookings();
@@ -671,6 +803,8 @@ class ServiceDetailsController extends GetxController {
           'paperRollSize': paperRollSize.value,
           'printingType': printingType.value,
           'receiptUrl': result.receiptUrl,
+          'phone': customerPhone,
+          'addPhone': customerAddPhone,
         },
       );
     } else {
@@ -694,77 +828,108 @@ class ServiceDetailsController extends GetxController {
           await _phonePeService.setProduction(AppConfig.isPhonePeProduction);
       debugPrint("PhonePe setProduction initialized: $isInitialized (Prod: ${AppConfig.isPhonePeProduction})");
 
-      final sdkResponse = await _phonePeService.startSDKTransaction(
+      AppCommonToastMessage.show(
+        message: "Initiating payment gateway...",
+        type: ToastType.info,
+      );
+
+      final restResponse = await _phonePeService.initiateRESTTransaction(
         bookingId: bookingId,
         encryptedBookingId: encryptBookingId,
         amount: amount,
         phone: phone,
+        redirectUrl: "https://magnetconnects.com/",
+        redirectMode: "REDIRECT",
       );
 
-      if (sdkResponse != null) {
-        final String status = sdkResponse['status']?.toString() ?? "";
-        final String actualTxnId =
-            sdkResponse['transactionId']?.toString() ?? "";
+      if (restResponse != null && restResponse['url'] != null) {
+        final String paymentUrl = restResponse['url'].toString();
+        final String txnId =
+            restResponse['transactionId']?.toString() ?? encryptBookingId;
 
-        if (status == 'SUCCESS' || status == 'PENDING') {
-          AppCommonToastMessage.show(
-            message: status == 'SUCCESS'
-                ? "Payment initiated!"
-                : "Payment pending...",
-            type: ToastType.info,
+        debugPrint(
+            "Opening PhonePe Web Payment URL: $paymentUrl (txn: $txnId)");
+
+        final result = await Get.toNamed(
+          AppRoutes.webView,
+          arguments: {
+            'url': paymentUrl,
+            'title': 'PhonePe Payment',
+            'redirectUrlToCapture': 'https://magnetconnects.com/',
+          },
+        );
+
+        debugPrint("Payment WebView closed with result: $result");
+
+        // Verify status after returning from web payment
+        AppCommonToastMessage.show(
+          message: "Checking payment status...",
+          type: ToastType.info,
+        );
+
+        Map<String, dynamic>? phonePeStatus;
+        // Verify with PhonePe API (with small retry to allow backend sync)
+        for (int i = 0; i < 3; i++) {
+          phonePeStatus = await _phonePeService.checkPaymentStatus(
+            merchantTransactionId: txnId,
           );
+          if (phonePeStatus != null &&
+              phonePeStatus['success'] == true &&
+              phonePeStatus['code']?.toString() == 'PAYMENT_SUCCESS') {
+            break;
+          }
+          if (i < 2) {
+            await Future.delayed(const Duration(milliseconds: 1500));
+          }
+        }
 
-          // Always verify the actual status from the server/PhonePe API
-          debugPrint(
-            "Checking PhonePe status for Transaction ID: $actualTxnId",
-          );
-          final phonePeStatus = await _phonePeService.checkPaymentStatus(
-            merchantTransactionId: actualTxnId,
-          );
+        if (phonePeStatus != null) {
+          final String code = phonePeStatus['code']?.toString() ?? "";
+          final realData = phonePeStatus['data'] ?? {};
 
-          if (phonePeStatus != null) {
-            final String code = phonePeStatus['code']?.toString() ?? "";
-            final realData = phonePeStatus['data'] ?? {};
-
-            if (phonePeStatus['success'] == true && code == 'PAYMENT_SUCCESS') {
-              await _confirmSuccess(
-                bookingId,
-                encryptBookingId,
-                phonePeData: {
-                  ...phonePeStatus,
-                  'providerReferenceId': realData['transactionId'],
-                  'code': code,
-                },
-              );
-            } else {
-              AppCommonToastMessage.show(
-                message: "Payment Status: ${realData['state'] ?? code}",
-                type: ToastType.error,
-              );
+          if (phonePeStatus['success'] == true && code == 'PAYMENT_SUCCESS') {
+            await _confirmSuccess(
+              bookingId,
+              encryptBookingId,
+              phonePeData: {
+                ...phonePeStatus,
+                'providerReferenceId': realData['transactionId'] ?? txnId,
+                'code': code,
+              },
+            );
+          } else {
+            // NEVER confirm success if PhonePe status is not PAYMENT_SUCCESS!
+            String errorMsg = "Payment was not completed.";
+            if (code.contains("CANCEL") || code.contains("USER_CANCEL")) {
+              errorMsg = "Payment was cancelled.";
+            } else if (code.contains("FAIL") || code.contains("DECLIN")) {
+              errorMsg = "Payment failed: ${realData['state'] ?? code}";
+            } else if (code.isNotEmpty) {
+              errorMsg = "Payment Status: ${realData['state'] ?? code}";
             }
+
+            AppCommonToastMessage.show(
+              message: errorMsg,
+              type: ToastType.error,
+            );
           }
         } else {
-          String rawError = sdkResponse['error']?.toString() ?? "";
-          String userFriendlyMsg = "Payment failed";
-
-          if (rawError.contains("USER_CANCEL")) {
-            userFriendlyMsg = "Transaction cancelled by user";
-          } else if (rawError.contains("TIMED_OUT")) {
-            userFriendlyMsg = "Payment timed out. Please try again.";
-          } else if (rawError.contains("NETWORK_ERROR")) {
-            userFriendlyMsg = "Network error. Please check your connection.";
-          } else if (rawError.isNotEmpty) {
-            userFriendlyMsg = "Payment Failed: $rawError";
-          }
+          // If status check could not verify with PhonePe, check if webview reported failure or cancel
+          final bool isCancelled = result == null ||
+              (result is Map &&
+                  (result['status'] == 'FAILURE' ||
+                      (result['code']?.toString() ?? '').contains('CANCEL')));
 
           AppCommonToastMessage.show(
-            message: userFriendlyMsg,
-            type: ToastType.error,
+            message: isCancelled
+                ? "Payment was cancelled."
+                : "Unable to verify payment status with gateway. Please check transaction.",
+            type: ToastType.warning,
           );
         }
       } else {
         AppCommonToastMessage.show(
-          message: "Could not initiate SDK payment. Please try again.",
+          message: "Could not initiate payment gateway. Please try again.",
           type: ToastType.error,
         );
       }
@@ -1034,26 +1199,19 @@ class ServiceDetailsController extends GetxController {
               ),
 
               SizedBox(height: 30.h),
-              SizedBox(
+              AppCommonButton(
+                text: 'DONE',
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    customerName.value = nameController.text.trim();
-                    customerPhone.value = mobileController.text.trim();
-                    Get.back();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                  ),
-                  child: Text(
-                    'DONE',
-                    style: AppTextStyle.style_14_600(color: AppColors.white),
-                  ),
-                ),
+                height: 42.h,
+                textSize: 14.sp,
+                buttonColor: AppColors.primary,
+                useGradient: false,
+                borderRadius: 10.r,
+                onPressed: () {
+                  customerName.value = nameController.text.trim();
+                  customerPhone.value = mobileController.text.trim();
+                  Get.back();
+                },
               ),
               SizedBox(height: 10.h),
             ],
@@ -1102,4 +1260,6 @@ class ServiceDetailsController extends GetxController {
       ],
     );
   }
+  // endregion
 }
+// endregion

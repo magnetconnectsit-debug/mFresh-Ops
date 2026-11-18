@@ -64,7 +64,7 @@ class AppConstants {
   static const String comparisonDashboardData = 'comparison-dashboard-data';
 
   // Booking Module
-  static const String resendBookingSms = 'customer/resend-booking-sms';
+  static const String resendBookingSms = 'admin-booking/resend-booking-sms';
   static const String allUnitServices = 'customer/Api-get-Unit-services';
   static const String bookingHistory = 'customer/bookinghistory';
   static const String allUnits = 'customer/All-Units';
@@ -280,27 +280,43 @@ class AppConstants {
   static const String responsibilitiesDelete = 'responsibilities-delete';
   static const String responsibilitiesView = 'responsibilities-view';
 
-  // Master Module (Zones, States, Districts & Services)
+  // Zones
   static const String zoneIndex = 'zone-index';
   static const String zoneCreate = 'zone-create';
   static const String zoneUpdate = 'zone-update';
   static const String zoneDelete = 'zone-delete';
+
+  // States
   static const String stateIndex = 'state-index';
   static const String stateCreate = 'state-create';
   static const String stateUpdate = 'state-update';
   static const String stateDelete = 'state-delete';
+
+  // Districts
   static const String districtIndex = 'district-index';
   static const String districtCreate = 'district-create';
   static const String districtUpdate = 'district-update';
   static const String districtDelete = 'district-delete';
+
+  // Services
   static const String serviceIndex = 'service-index';
   static const String serviceCreate = 'service-create';
   static const String serviceUpdate = 'service-update';
   static const String serviceDelete = 'service-delete';
+
+  // Amenities
   static const String amenityIndex = 'amenity-index';
   static const String amenityCreate = 'amenity-create';
   static const String amenityUpdate = 'amenity-update';
   static const String amenityDelete = 'amenity-delete';
+
+  // Units
+  static const String unitIndex = 'unit-index';
+  static const String unitOptions = 'unit-options';
+  static const String unitCreate = 'unit-create';
+  static const String unitUpdate = 'unit-update';
+  static const String unitDetailsUpdate = 'unit-details-update';
+
   // endregion
 
   // region Hive Keys

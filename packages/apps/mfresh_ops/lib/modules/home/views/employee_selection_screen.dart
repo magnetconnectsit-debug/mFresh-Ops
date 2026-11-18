@@ -3,7 +3,6 @@ import 'package:core/constants/app_colors.dart';
 import 'package:core/utils/app_text_style.dart';
 import 'package:core/widgets/app_common_app_bar.dart';
 import 'package:core/widgets/app_common_search_bar.dart';
-import 'package:core/widgets/app_image_view.dart';
 import 'package:core/widgets/custom_app_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

@@ -56,6 +56,7 @@ abstract class AppRoutes {
   static const String bookingUnitSelection = '/booking-unit-selection';
   static const String serviceDetails = '/service-details';
   static const printReceipt = '/print-receipt';
+  static const webView = '/web-view';
 
   // Info Directory Module
   static const infoDirectory = '/info-directory';
@@ -91,6 +92,7 @@ abstract class AppRoutes {
   static const masterServices = '/master-services';
   static const masterAmenities = '/master-amenities';
   static const masterUnits = '/master-units';
+  static const masterUnitEdit = '/master-unit-edit';
   static const masterAssignServices = '/master-assign-services';
   static const masterAllAssignServices = '/master-all-assign-services';
 }
