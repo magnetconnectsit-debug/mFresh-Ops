@@ -60,6 +60,20 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   // region Lifecycle Methods
   @override
+  void initState() {
+    super.initState();
+    final controller = Get.find<TasksController>();
+    if (Get.arguments is TaskItem) {
+      _task = Get.arguments as TaskItem;
+      controller.initializeFormForEdit(_task!);
+      controller.formInitialized.value = true;
+    } else {
+      controller.resetForm();
+      controller.formInitialized.value = true;
+    }
+  }
+
+  @override
   void dispose() {
     _titleFocusNode.dispose();
     _descriptionFocusNode.dispose();
@@ -154,12 +168,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     TasksController controller,
   ) async {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final initial = controller.selectedStartDate.value ?? today;
+    final nextDay =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final initial = controller.selectedStartDate.value ?? nextDay;
+    final firstAllowed = DateTime(now.year, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isBefore(today) ? today : initial,
-      firstDate: today,
+      initialDate: initial.isBefore(firstAllowed) ? firstAllowed : initial,
+      firstDate: firstAllowed,
       lastDate: DateTime(2100),
       helpText: 'Select Start Date',
       builder: (context, child) => Theme(
@@ -195,8 +211,9 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     TasksController controller,
   ) async {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final start = controller.selectedStartDate.value ?? today;
+    final nextDay =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final start = controller.selectedStartDate.value ?? nextDay;
     final initial = controller.selectedEndDate.value ?? start;
     final picked = await showDatePicker(
       context: context,
@@ -233,7 +250,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     TasksController controller, {
     bool autoProceedToEndTime = false,
   }) async {
-    final initial = controller.selectedStartTime.value ?? TimeOfDay.now();
+    final now = DateTime.now();
+    final initial =
+        controller.selectedStartTime.value ??
+        TimeOfDay(hour: now.hour, minute: 0);
     final time = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -273,14 +293,15 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     BuildContext context,
     TasksController controller,
   ) async {
+    final now = DateTime.now();
     final initial =
         controller.selectedEndTime.value ??
         (controller.selectedStartTime.value != null
             ? TimeOfDay(
                 hour: (controller.selectedStartTime.value!.hour + 1) % 24,
-                minute: controller.selectedStartTime.value!.minute,
+                minute: 0,
               )
-            : TimeOfDay.now());
+            : TimeOfDay(hour: (now.hour + 1) % 24, minute: 0));
     final time = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -386,11 +407,20 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         controller.resetForm();
       }
       controller.formInitialized.value = true;
-    } else if (!isEdit && controller.selectedStartDate.value == null) {
+    } else if (!isEdit &&
+        (controller.selectedStartDate.value == null ||
+            controller.selectedStartTime.value == null ||
+            controller.selectedEndDate.value == null ||
+            controller.selectedEndTime.value == null)) {
       final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      controller.selectedStartDate.value = today;
-      controller.selectedEndDate.value = today;
+      final nextDay =
+          DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+      controller.selectedStartDate.value ??= nextDay;
+      controller.selectedStartTime.value ??=
+          TimeOfDay(hour: now.hour, minute: 0);
+      controller.selectedEndDate.value ??= nextDay;
+      controller.selectedEndTime.value ??=
+          TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
     }
 
     return _FormLifecycleWrapper(
@@ -797,6 +827,15 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                         timeFormatter: (t) => controller.formatTimeOfDay(t),
                         onTimeSelected: (time) {
                           controller.selectedStartTime.value = time;
+                          if (controller.selectedEndTime.value == null ||
+                              controller.selectedEndTime.value!.hour < time.hour ||
+                              (controller.selectedEndTime.value!.hour == time.hour &&
+                                  controller.selectedEndTime.value!.minute <= time.minute)) {
+                            controller.selectedEndTime.value = TimeOfDay(
+                              hour: (time.hour + 1) % 24,
+                              minute: 0,
+                            );
+                          }
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (!context.mounted) return;
                             _jumpToNextUnfilledField(

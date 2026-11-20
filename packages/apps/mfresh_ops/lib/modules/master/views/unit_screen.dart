@@ -130,7 +130,7 @@ class UnitScreen extends StatelessWidget {
             text: '+ Create Unit',
             onPressed: () {
               controller.initCreateUnit();
-              Get.toNamed(AppRoutes.masterUnitEdit);
+              Get.toNamed(AppRoutes.masterUnitCreateEdit);
             },
           ),
         if (canManage) SizedBox(width: 10.w),
@@ -194,30 +194,68 @@ class UnitScreen extends StatelessWidget {
           alignment: Alignment.center,
           cellBuilder: (context, item, index, isExpanded) {
             final imgUrl = item.unitImgUrl;
+            final hasImg = imgUrl != null &&
+                imgUrl.isNotEmpty &&
+                !imgUrl.endsWith('/NA') &&
+                imgUrl != 'NA';
+
+            if (!hasImg) {
+              return Center(
+                child: Container(
+                  width: 20.r,
+                  height: 20.r,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey100,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  child: Icon(
+                    Icons.bathroom_outlined,
+                    size: 13.sp,
+                    color: AppColors.grey300,
+                  ),
+                ),
+              );
+            }
+
+            final gallerySources = <AppGalleryImageSource>[
+              AppGalleryImageSource(
+                url: imgUrl,
+                title: item.qrcodeId.isNotEmpty
+                    ? '${item.qrcodeId} - Unit Image'
+                    : 'Unit Image',
+              ),
+              ...item.galleryUrls
+                  .where((g) =>
+                      g.isNotEmpty && !g.endsWith('/NA') && g != 'NA')
+                  .map((g) => AppGalleryImageSource(
+                        url: g,
+                        title: item.qrcodeId.isNotEmpty
+                            ? '${item.qrcodeId} - Gallery Image'
+                            : 'Gallery Image',
+                      )),
+            ];
+
             return Center(
-              child: (imgUrl != null &&
-                      imgUrl.isNotEmpty &&
-                      !imgUrl.endsWith('/NA'))
-                  ? AppImageView(
-                      imageUrl: imgUrl,
-                      width: 20.r,
-                      height: 20.r,
-                      borderRadius: 4.r,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      width: 20.r,
-                      height: 20.r,
-                      decoration: BoxDecoration(
-                        color: AppColors.grey100,
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: Icon(
-                        Icons.bathroom_outlined,
-                        size: 13.sp,
-                        color: AppColors.grey300,
-                      ),
-                    ),
+              child: InkWell(
+                onTap: () {
+                  AppImageView.showGalleryViewer(
+                    context,
+                    images: gallerySources,
+                    initialIndex: 0,
+                    title: item.qrcodeId.isNotEmpty
+                        ? item.qrcodeId
+                        : 'Unit Image',
+                  );
+                },
+                borderRadius: BorderRadius.circular(4.r),
+                child: AppImageView(
+                  imageUrl: imgUrl,
+                  width: 20.r,
+                  height: 20.r,
+                  borderRadius: 4.r,
+                  fit: BoxFit.cover,
+                ),
+              ),
             );
           },
         ),
@@ -228,7 +266,7 @@ class UnitScreen extends StatelessWidget {
           width: 95.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) => Text(
-            item.qrcodeId,
+            item.qrcodeId.isNotEmpty ? item.qrcodeId : 'NA',
             style: AppTextStyle.style_11_600(color: AppColors.black),
             overflow: TextOverflow.ellipsis,
           ),
@@ -240,8 +278,10 @@ class UnitScreen extends StatelessWidget {
           width: 140.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) => Text(
-            item.unitcategory,
-            style: AppTextStyle.style_11_400(color: AppColors.grey400),
+            item.unitcategory.isNotEmpty
+                ? item.unitcategory
+                : (item.unitType ?? 'NA'),
+            style: AppTextStyle.style_11_400(color: AppColors.grey800),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -249,11 +289,15 @@ class UnitScreen extends StatelessWidget {
           key: 'city',
           title: 'City',
           sortable: true,
-          width: 75.w,
+          width: 100.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) => Text(
-            item.unitLocation,
-            style: AppTextStyle.style_11_400(color: AppColors.grey400),
+            item.unitLocation.isNotEmpty && item.unitLocation != '-'
+                ? item.unitLocation
+                : (item.fullAdd.isNotEmpty && item.fullAdd != '-'
+                    ? item.fullAdd
+                    : 'NA'),
+            style: AppTextStyle.style_11_400(color: AppColors.grey800),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -264,8 +308,8 @@ class UnitScreen extends StatelessWidget {
           width: 110.w,
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) => Text(
-            item.openTiming,
-            style: AppTextStyle.style_11_400(color: AppColors.grey400),
+            item.openTiming.isNotEmpty ? item.openTiming : 'NA',
+            style: AppTextStyle.style_11_400(color: AppColors.grey800),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -277,7 +321,7 @@ class UnitScreen extends StatelessWidget {
           alignment: Alignment.centerLeft,
           cellBuilder: (context, item, index, isExpanded) => Text(
             item.formattedInaugurationDate,
-            style: AppTextStyle.style_11_400(color: AppColors.grey400),
+            style: AppTextStyle.style_11_400(color: AppColors.grey800),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -338,7 +382,7 @@ class UnitScreen extends StatelessWidget {
                     return;
                   }
                   controller.initUnitEdit(item);
-                  Get.toNamed(AppRoutes.masterUnitEdit);
+                  Get.toNamed(AppRoutes.masterUnitCreateEdit);
                 },
                 borderRadius: BorderRadius.circular(4.r),
                 child: Container(

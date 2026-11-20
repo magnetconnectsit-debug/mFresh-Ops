@@ -44,7 +44,7 @@ packages/apps/mfresh_ops/
 │               ├── service_screen.dart
 │               ├── amenity_screen.dart
 │               ├── unit_screen.dart
-│               ├── unit_edit_screen.dart
+│               ├── unit_create_edit_screen.dart
 │               └── widgets/
 │                   └── edit_unit_manager_dialog.dart
 └── documentation/
@@ -143,10 +143,10 @@ packages/apps/mfresh_ops/
   - Full loading state overlays: semi-transparent backdrop with centered `CustomAppLoader` during asynchronous operations.
   - Excel report export via `AppCommonExportButton` utilizing `AppExportUtils.exportToExcel`.
 
-### 2.6 Units Master (`UnitScreen`), Unit Manager Details (`EditUnitManagerDialog`) & Unit Edit (`UnitEditScreen`)
+### 2.6 Units Master (`UnitScreen`), Unit Manager Details (`EditUnitManagerDialog`) & Unit Create / Edit (`UnitCreateEditScreen`)
 - **Routes:**
   - Index: `AppRoutes.masterUnits` (`/master-units`) -> `UnitScreen`
-  - Edit: `AppRoutes.masterUnitEdit` (`/master-unit-edit`) -> `UnitEditScreen`
+  - Create / Edit: `AppRoutes.masterUnitCreateEdit` (`/master-unit-create-edit`) -> `UnitCreateEditScreen` (alias: `AppRoutes.masterUnitEdit`)
 - **Controller:** `UnitController`
 - **Core Features:**
   - Standardized dense data table (`AppCommonTable<UnitMasterItem>`) adhering to default `24.h` row height and compact cell padding (`2.h`).
@@ -160,28 +160,90 @@ packages/apps/mfresh_ops/
     - `Inauguration Date` (`115.w`, sortable): displays formatted date (`dd-MMM-yyyy`).
     - `Action` (`95.w`, non-sortable):
       - **1st Action Button (Icon Button):** Compact bordered button (`22.h x 22.w`) with `Icons.edit_note_outlined`. Opens `EditUnitManagerDialog`.
-      - **2nd Action Button (Edit Button):** Compact bordered button (`22.h`) with `Icons.edit_outlined` and `Edit` text. Navigates to `UnitEditScreen`.
+      - **2nd Action Button (Edit Button):** Compact bordered button (`22.h`) with `Icons.edit_outlined` and `Edit` text. Navigates to `UnitCreateEditScreen`.
   - **Edit Unit Manager Details Dialog (`EditUnitManagerDialog`):**
-    - Modal popup with title and close ('X') icon, styled with 2 fields in a row across mobile and tablet.
-    - Fields (2 per row):
+    - Modal popup with title and close ('X') icon, styled strictly with 2 fields in a row across mobile and tablet:
       - Row 1: `Highly Preferred` (`AppCommonMultiSelectDropdown<String>`) | `Timing` (`AppCommonTextField`).
       - Row 2: `Unit Address` (`AppCommonTextField`) | `Full Address` (`AppCommonTextField`).
       - Row 3: `Latitude` (`AppCommonTextField`) | `Longitude` (`AppCommonTextField`).
       - `Get Current Location` button powered by `Geolocator` to capture high-accuracy device GPS coordinates and prefill latitude/longitude.
       - `Cancel` and `Update` buttons calling `POST /public/api/unit-details-update`.
-  - **Full Unit Create / Edit Screen (`UnitEditScreen`):**
-    - Dynamic title and breadcrumb (`All Unit / Create Unit` or `All Unit / Edit Unit`).
-    - Full-page responsive form with single/multi-image upload, dropdowns, amenities toggle with quantities, and multiline text areas.
+  - **Full Unit Create / Edit Screen (`UnitCreateEditScreen`):**
+    - Standardized `AppCommonAppBar` with `topHeader: const CommonShortcutHeader()` and dynamic title (`Create Unit` or `Edit Unit`).
+    - Zero redundant inner breadcrumbs and zero outer wrapper containers; uses direct responsive layout matching the reference web portal:
+      - Row 1: `Unit Type` (`AppCommonMultiSelectDropdown<String>`, hint: `Select`) | `Service Type` (`AppCommonMultiSelectDropdown<String>`, hint: `Select`).
+      - Row 2: `Service Name` (`AppCommonMultiSelectDropdown<String>`, hint: `Select`) | `Year of Delivery` (`AppCommonMultiSelectDropdown<String>`, hint: `Select`).
+      - Row 3: `State` (`AppCommonMultiSelectDropdown<String>`, hint: `Select State`) | `District` (`AppCommonMultiSelectDropdown<String>`, hint: `Select District`).
+      - Row 4: `Location` (`AppCommonTextField`) | `Timing` (`AppCommonTextField`).
+      - Row 5: `Full Address` (`AppCommonTextField`, multiline).
+      - Row 6: `Inauguration Date` (`AppCommonDateField`, wrapped in `Obx`).
+      - Row 7: Image / Media Pickers: dual camera triggers (`Unit Image` and `Gallery Images`) with camera icons and count badges; tapping opens photo source bottom sheet (`Camera` / `Gallery`) matching the support tickets module pattern, with a horizontal thumbnail preview list and red delete (`X`) badges.
+      - Row 8: **Amenities List:** Full-width vertical rows with toggle switch on the left, full amenity name in the middle (`style_12_500`), and compact right-aligned quantity box (`AppCommonTextField`, `52.w x 24.h`, hint `Qty`). When enabled, the field border highlights in orange (`#F15A24`) and remains empty for the user to specify; turning off clears the field.
+      - Row 9: `Description` (`AppCommonTextField`, multiline) & `Specification` (`AppCommonTextField`, multiline).
+    - Dropdowns default to unselected with placeholder hints during unit creation; district resets on state change.
     - `Cancel` and `Submit` / `Update` buttons calling `POST /public/api/unit-create` or `POST /public/api/unit-update` via multipart form data.
   - Search integrated into `AppCommonAppBar` (`showSearchBar: true`, debounced).
-  - Table pagination powered by `AppTablePagination`.
+  - Table pagination powered by `AppTablePagination` with `startItem`, `endItem`, `totalItems`, `currentPage`, `totalPages`, `onPageChanged`.
   - Excel report export via `AppCommonExportButton` utilizing `AppExportUtils.exportToExcel`.
   - Full loading state overlays with `CustomAppLoader`.
 
-### 2.7 Placeholder Screens (`MasterPlaceholderScreen`)
-- Placeholders registered for upcoming master sub-modules:
-  - **Assign Services:** `AppRoutes.masterAssignServices` (`/master-assign-services`)
-  - **All Assign Services:** `AppRoutes.masterAllAssignServices` (`/master-all-assign-services`)
+### 2.7 Assign Services (`AssignServiceScreen` & `AssignServiceCreateEditScreen`)
+- **Routes:**
+  - Index: `AppRoutes.masterAssignServices` (`/master-assign-services`) -> `AssignServiceScreen`
+  - Create / Edit: `AppRoutes.masterAssignServiceCreateEdit` (`/master-assign-service-create-edit`) -> `AssignServiceCreateEditScreen`
+- **Controller:** `AssignServiceController`
+- **Core Features:**
+  - Standardized dense data table (`AppCommonTable<AssignUnitItem>`) adhering to default `24.h` row height and compact cell padding (`2.h`).
+  - Action Bar: includes `+ Create Assign Service` button (`AppCommonButton`) guarded by `AppPermissions.masterPanel`, Excel export button (`AppCommonExportButton`), and total units badge.
+  - Columns:
+    - `Unit Image` (`75.w`, non-sortable): renders `AppImageView` with compact `22.r` dimensions and fallback icon `Icons.bathroom_outlined`.
+    - `Unit` (`90.w`, sortable): displays QR code ID (`qrcodeId`).
+    - `Model` (`140.w`, sortable): displays model category (`unitcategory`).
+    - `City` (`80.w`, sortable): displays unit location city (`unitLocation`).
+    - `Operating Hrs` (`180.w`, non-sortable): displays unit operating address/hours (`fullAdd`).
+    - `Inauguration Date` (`110.w`, sortable): displays formatted date (`dd-MMM-yyyy`).
+    - `Action` (`65.w`, non-sortable): compact bordered button (`22.h x 22.w`) with `Icons.edit_outlined`. Navigates to `AssignServiceCreateEditScreen` in edit mode.
+  - **Create / Edit Assign Service Screen (`AssignServiceCreateEditScreen`):**
+    - Standardized `AppCommonAppBar` with `topHeader: const CommonShortcutHeader()` and dynamic title (`Create Assign Service` or `Edit Assign Service (<unitQr>)`).
+    - Card container with light shadow, rounded corners (`12.r`), and breadcrumb header (`Assign Services / Create` or `Assign Services / Edit`).
+    - In Create Mode: Unit selector dropdown (`AppCommonMultiSelectDropdown<String>`).
+    - Matrix Pricing Grid:
+      - Light blue table header (`#E4EDF7`) with columns: `Services | Service For | Mode | Gross Price | GST | Net Amt | Charge Type | Order | [Status in Edit] | Action`.
+      - Grouped service blocks: Left column contains service selector dropdown and centered icon preview (`AppImageView`, `44.r`).
+      - 4 default matrix rows per service:
+        - `Customer` | `Offline` (with banknote icon in green)
+        - `Customer` | `Online` (with credit card / POS icon in red)
+        - `Members` | `Offline` (with banknote icon in green)
+        - `Members` | `Online` (with credit card / POS icon in red)
+      - Inputs: Gross Price, GST %, Net Amt (auto-calculated in real time via reverse tax formula: `Net = Gross / (1 + (GST / 100))`), Charge Type (default `Use`), Order number, and Status (`Active` / `Inactive` in edit mode).
+      - Action controls: `+` button to add new service groups in create mode, `-` button to remove service groups in edit mode, plus `+ Add Service` button in edit mode.
+    - Submit actions: Orange `Save` button calling `POST /public/api/assign-service-create` in create mode; orange `Update` button calling `POST /public/api/assign-service-update` in edit mode.
+  - Table pagination powered by `AppTablePagination` with `startItem`, `endItem`, `totalItems`, `currentPage`, `totalPages`, `onPageChanged`.
+  - Excel report export via `AppCommonExportButton` utilizing `AppExportUtils.exportToExcel`.
+  - Full loading state overlays with `CustomAppLoader`.
+
+### 2.8 All Assign Services (`AllAssignServiceScreen`)
+- **Route:** `AppRoutes.masterAllAssignServices` (`/master-all-assign-services`)
+- **Controller:** `AllAssignServiceController`
+- **Core Features:**
+  - Standardized dense data table (`AppCommonTable<AllAssignServiceItem>`) adhering to default `24.h` row height and compact cell padding (`2.h`).
+  - Action Bar: `+ Create Assign Service` button (`AppCommonButton`) guarded by `AppPermissions.masterPanel`, Excel export button (`AppCommonExportButton`), and total records count badge.
+  - Columns:
+    - `Unit ID's` (`75.w`, sortable): QR code identifier (`assqrcodeId`).
+    - `Service name` (`115.w`, sortable): service title (`servicesName`).
+    - `Service For` (`80.w`, sortable): target audience (`Customer` / `Membership`).
+    - `Pay Type` (`75.w`, sortable): payment mode (`Offline` / `Online`).
+    - `Price` (`65.w`, sortable, center): gross price.
+    - `GST (%)` (`65.w`, sortable, center): tax percentage (`gstpercent`).
+    - `Net Price` (`70.w`, sortable, center): net revenue price.
+    - `Uses` (`65.w`, sortable): billing duration/unit (`Use`, `hour`, `30 min`, `Set`).
+    - `Status` (`65.w`, sortable): text indicator (`Active` / `Inactive`).
+    - `Toggle` (`95.w`, center): reactive switch with confirmation guard (`AppCommonDialogBox.showConfirm`) when deactivating active services.
+    - `Action` (`55.w`, center): compact edit icon button calling `controller.editUnitAssignService(item)`, which preloads the unit's complete service configuration into `AssignServiceCreateEditScreen`.
+  - App bar search filtering across unit ID, service name, audience, payment mode, price, and status.
+  - Table pagination powered by `AppTablePagination` with `startItem`, `endItem`, `totalItems`, `currentPage`, `totalPages`, `onPageChanged`.
+  - Excel report export via `AppCommonExportButton` utilizing `AppExportUtils.exportToExcel`.
+  - Full loading state overlays with `CustomAppLoader`.
 
 ---
 
@@ -274,6 +336,54 @@ The repository `MasterRepository` communicates with backend endpoints through `A
   - Content-Type: `multipart/form-data`
   - Form Fields: `id`, `unitcategory`, `unittype`, `servicetype`, `year_of_delivery`, `unit_state`, `unit_dist`, `unit_location`, `oprntiming`, `full_Address`, `unit_desc`, `unit_spec`, `ingd`, `amenities[]`, `amenity_qty[]`, `unit_img`, `multi_img[]`.
 
+### 4.7 Assign Service Endpoints
+- **Index:** `GET` `AppConstants.assignsIndex` (`public/api/assigns-index`)
+  - Response: Retail assigned units with `id`, `qrcodeId`, `unit_img_url`, `unitcategory`, `unit_location`, `ing_date`, `full_add`, `assignments` (nested list of services and row configurations: `row_id`, `services_for`, `pay_type`, `gross_price`, `gst`, `net_amount`, `uses`, `order`, `status`), and `edit_payload` (pre-formatted update payload).
+- **Assign Service Create:** `POST` `AppConstants.assignServiceCreate` (`public/api/assign-service-create`)
+  - Content-Type: `application/json`
+  - Payload:
+    ```json
+    {
+      "assignqrId": "MM25001",
+      "service_id": [25],
+      "services_for": [0, 0, 1, 1],
+      "pay_type": [1, 2, 1, 2],
+      "gross_price": [100, 120, 80, 90],
+      "gst": [5, 5, 5, 5],
+      "uses": ["Use", "hour", "30 min", "Set"],
+      "order": ["1", "2", "3", "4"]
+    }
+    ```
+- **Assign Service Update:** `POST` `AppConstants.assignServiceUpdate` (`public/api/assign-service-update`)
+  - Content-Type: `application/json`
+  - Payload:
+    ```json
+    {
+      "assignqrId": "m2",
+      "service_id": [1, 10],
+      "rows_per_service": [5, 4],
+      "row_id": [9, 46, 109, 188, 189, 29, 53, 202, 203],
+      "services_for": [0, 0, 0, 1, 1, 0, 0, 1, 1],
+      "pay_type": [2, 2, 1, 2, 1, 1, 2, 2, 1],
+      "gross_price": ["50", "80", "50", "30", "30", "120", "120", "100", "100"],
+      "gst": [0, 0, 0, 0, 0, 18, 18, 18, 18],
+      "net_amount": ["50.00", "80.00", "50", "30", "30", "101.69", "101.69", "84.75", "84.75"],
+      "uses": ["Use", "Use", "Use", "Use", "Use", "Use", "Use", "Use", "Use"],
+      "order": ["1", "1", "1", "1", "1", "7", "7", "8", "8"],
+      "status": [1, 0, 1, 1, 1, 1, 1, 1, 1]
+    }
+    ```
+      "services_for": [0, 0, 1, 1],
+      "pay_type": [1, 2, 1, 2],
+      "gross_price": [100, 120, 80, 90],
+      "gst": [5, 5, 5, 5],
+      "net_amount": [95, 114, 76, 85.5],
+      "uses": [1, 1, 1, 1],
+      "order": [1, 2, 3, 4],
+      "status": [1, 1, 1, 0]
+    }
+    ```
+
 ---
 
 ## 5. Architectural Standards Compliance Checklist
@@ -294,6 +404,28 @@ The repository `MasterRepository` communicates with backend endpoints through `A
 
 | Date | Author | Description |
 |---|---|---|
+| 2026-11-20 | Antigravity AI | Resolved interchanged Service Name / Service Type dropdown items in `UnitCreateEditScreen`: wired `Service Name` to `options.serviceNames` (`Movable` / `Fixed`) and `Service Type` to `options.serviceTypes` (`Retail` / `Rental`) with search bar (`showSearch: true`); created dedicated `YearPickerField` (`packages/shared/core/lib/widgets/year_picker_field.dart`) with decade navigation and 12-year grid for pure year selection (eliminating month picker modal); upgraded `Timing` field across `UnitCreateEditScreen` and `EditUnitManagerDialog` to `AppCommonTimeField` matching `CreateTaskScreen` with 12-hour clock format, tap-anywhere trigger, and uniform `aliceBlue` container styling. |
+| 2026-11-20 | Antigravity AI | Resolved interchanged Service Name / Service Type dropdown items in `UnitCreateEditScreen`: wired `Service Name` to `options.serviceNames` (`Movable` / `Fixed`) and `Service Type` to `options.serviceTypes` (`Retail` / `Rental`) with search bar (`showSearch: true`); created dedicated `YearPickerField` (`packages/shared/core/lib/widgets/year_picker_field.dart`) with decade navigation and 12-year grid for pure year selection (eliminating month picker modal); upgraded `Timing` field across `UnitCreateEditScreen` and `EditUnitManagerDialog` to `AppCommonTimeField` matching `CreateTaskScreen` with 12-hour clock format, tap-anywhere trigger, and uniform `aliceBlue` container styling. |
+| 2026-11-20 | Antigravity AI | Eliminated edit navigation delay and redundant network calls in `AllAssignServiceController` and `AssignServiceScreen`: added synchronous in-memory initializers `initForEditFromUnitAssignments` and `initForEditFromAllAssignServiceItems` in `AssignServiceController`, removed blocking `await` on network call before `Get.toNamed`, reused existing in-memory rows from `assignedServices` when editing from `AllAssignServiceScreen`, and ensured immediate screen transition on tap. |
+| 2026-11-20 | Antigravity AI | Enhanced Assign Service models, repositories, and controllers with full `GET /public/api/assigns-index` structure: added `assignments` (nested services with rows: `row_id`, `services_for`, `pay_type`, `gross_price`, `gst`, `net_amount`, `uses`, `order`, `status`) and `edit_payload` to `AssignUnitItem`, added string `usesText` to `AssignedServiceRow` to preserve textual charge types, updated `MasterRepository` create and update methods to support string charge types and orders matching API contracts, and enhanced `AssignServiceController.loadAndInitForEdit` to instantly populate service matrix rows directly from unit assignments without secondary API calls. |
+| 2026-11-19 | Antigravity AI | Implemented `All Assign Services` screen (`AllAssignServiceScreen`) and controller (`AllAssignServiceController`): integrated `GET /public/api/assign-services-index` endpoint, added models `AllAssignServiceItem` and `AllAssignServicesResponse`, constructed dense table with 11 columns matching reference UI (`Unit ID's`, `Service name`, `Service For`, `Pay Type`, `Price`, `GST (%)`, `Net Price`, `Uses`, `Status`, `Toggle`, `Action`), added reactive toggle switch with confirmation dialog on deactivation, wired action button to pre-populate unit services and open `AssignServiceCreateEditScreen`, added Excel export and pagination, and registered route `AppRoutes.masterAllAssignServices`. |
+| 2026-11-19 | Antigravity AI | Cleared default values for `Gross Price`, `GST`, and `Net Amt` fields in `AssignServiceCreateEditScreen` and `AssignServiceController`: changed initial controller values and `hintText` to completely blank (`''`, removing all default `'0'`), updated real-time reverse tax net calculation to remain completely blank when gross price is empty, safely defaulted empty fields during API synchronization, and adjusted service group divider width to full table width (`870.w` in edit mode, `775.w` in create mode). |
+| 2026-11-19 | Antigravity AI | Cleared default values for `Charge Type` and `Order` fields in `AssignServiceCreateEditScreen`: removed prefilled `'Use'` and `'1'`/`'2'`/`'3'`/`'4'` text across matrix rows, leaving them completely blank by default (`initialValue: ''`, `hintText: ''`) in both create mode and dynamic group additions. |
+| 2026-11-19 | Antigravity AI | Implemented Assign Service Module: added `assignsIndex`, `assignServiceCreate`, `assignServiceUpdate` endpoints in `AppConstants`; created models `AssignUnitItem`, `AssignsIndexResponse`, `AssignedServiceRow`, `AssignedServiceGroup` in `assign_service_model.dart`; added repository methods `getAssignsIndex`, `createAssignService`, `updateAssignService` in `MasterRepository`; created `AssignServiceController` with reactive search, sorting, pagination, Excel export, dynamic matrix cell controllers and real-time net amount auto-calculation via reverse tax formula; designed `AssignServiceScreen` with dense `24.h` table and edit action; designed `AssignServiceCreateEditScreen` with responsive service matrix grid matching web reference images for both create and edit modes with icon previews and status toggles; registered routes `AppRoutes.masterAssignServices` and `AppRoutes.masterAssignServiceCreateEdit` in `app_routes.dart` and `app_pages.dart`. |
+| 2026-11-19 | Antigravity AI | Added `Inauguration Date` field (`AppCommonDateField`) to `UnitCreateEditScreen` below Full Address, wired to `editIngDate` in `UnitController`. |
+| 2026-11-19 | Antigravity AI | Updated `AssignServiceCreateEditScreen`: removed duplicate inner `Create Assign Service` header row inside the card (leaving single title in `AppCommonAppBar`), added full-width horizontal divider (`width: tableWidth, height: 2.h, color: Colors.black`) separating assigned service blocks in the table, added delete option (`[-]`) for mistakenly added or additional service groups in Create mode and all groups in Edit mode, and integrated confirmation dialog guard (`AppCommonDialogBox.showConfirm`) before deleting any assigned service group. |
+| 2026-11-20 | Antigravity AI | Updated `UnitCreateEditScreen` and `UnitController`: replaced hardcoded `Year of Delivery` dropdown with mandatory `MonthYearPickerField` supporting 'MMM-yyyy' selection and seamless year parsing; updated `Timing` field to default to `DateTime.now()` formatted ('hh:mm a') on unit creation and added tap-to-pick `showTimePicker` suffix clock icon across `UnitCreateEditScreen` and `EditUnitManagerDialog`. |
+| 2026-11-20 | Antigravity AI | Fixed Units Master data parsing & table rendering: mapped live `unit-index` API payload response keys in `UnitMasterItem.fromJson` (`unit_code` -> `qrcodeId`, `unit_type` -> `unitcategory`, `service_type`/`service_name` -> `servicetype`, `location` -> `unitLocation`, `full_address` -> `fullAdd`, `timing` -> `openTiming`, `image_url` -> `unitImgUrl`, `qr_image_url` -> `qrImageUrl`, `gallery_image_urls` -> `galleryUrls`, `highly_preferred` boolean/string parser), restoring Unit Image thumbnails, Unit Code, Model, City, Operating Hrs, and Inauguration Date cells across `UnitScreen`. |
+| 2026-11-19 | Antigravity AI | Brought `UnitCreateEditScreen` and `UnitController` into 100% compliance with engineering rules: enforced complete `// region` and `// endregion` block structure (Rule 1); strictly eliminated raw colors in favor of `AppColors.*` tokens and ScreenUtil extensions across all dimensions (Rule 2); implemented dual-level RBAC permission enforcement checking `AppPermissions.masterPanel` at UI and action handler execution layers (Rule 3); resolved controller leak in `build()` by delegating quantity controllers to `UnitController.getAmenityQtyController` with lifecycle disposal (Rule 4). |
+| 2026-11-20 | Antigravity AI | Integrated full-view image viewer on tap for table rows: clicking unit image thumbnails in `UnitScreen` opens the interactive gallery viewer (`AppImageView.showGalleryViewer`) enabling full-screen review and horizontal scrolling across the unit's photos and gallery attachments; wired full-screen preview in `AssignServiceScreen`. |
+| 2026-11-20 | Antigravity AI | Separated Unit Image and Gallery Images in `UnitCreateEditScreen` into distinct side-by-side columns; added image stack overlay (`+N`) when more than 2 gallery images are present; built scrollable full-screen interactive gallery viewer (`AppImageView.showGalleryViewer`) with horizontal paging (`PageView`), pinch-to-zoom (`InteractiveViewer`), image counter, previous/next buttons, and delete support; updated amenity initialization to explicitly preserve and display `0` (instead of blank) when quantity is zero. |
+| 2026-11-19 | Antigravity AI | Restored `Description` and `Specification` multiline fields in `UnitCreateEditScreen` below the Amenities section wired to `editDescCtrl` and `editSpecCtrl`. |
+| 2026-11-19 | Antigravity AI | Reduced vertical height and spacing across `UnitCreateEditScreen`: tightened form section gaps from `12.h` to `10.h`, reduced amenities list item separator from `8.h` to `4.h`, and optimized quantity input field height to dense `24.h` standard with `style_11_500`. |
+| 2026-11-19 | Antigravity AI | Updated Amenities quantity field in `UnitCreateEditScreen`: enabled state leaves the field empty with hint `Qty` for user entry (does not autofill `1`) and dynamically highlights the border in orange (`#F15A24`, width 1.4); added `borderColor` and `borderWidth` props to `AppCommonTextField`. |
+| 2026-11-19 | Antigravity AI | Moved image picker section below `Full Address` in `UnitCreateEditScreen` and replaced the large cards with dual camera icon triggers (`Unit Image` & `Gallery Images`) with badges and a camera/gallery bottom sheet selector matching `CreateTicketScreen`; added horizontal preview list with delete buttons; enhanced `UnitController.pickSingleImage` and `pickMultiImages` to support explicit `ImageSource` selection (Camera / Gallery). |
+| 2026-11-19 | Antigravity AI | Aligned `UnitCreateEditScreen` field order and layout strictly with reference UI: ordered fields into Row 1 (`Unit Type` / `Service Type`), Row 2 (`Service Name` / `Year of Delivery`), Row 3 (`Image` / `Images`), Row 4 (`State` / `District`), Row 5 (`Location` / `Timing`), and Row 6 (`Full Address`); removed extraneous `Inauguration Date`, `Description`, and `Specification` fields; converted Amenities section into vertical full-width rows with left toggle switch, un-truncated middle amenity label, and right-aligned `Qty` input box with hint `Qty`. |
+| 2026-11-19 | Antigravity AI | Renamed `UnitEditScreen` to `UnitCreateEditScreen` (`unit_create_edit_screen.dart`), updated routes (`AppRoutes.masterUnitCreateEdit`), verified `AppTablePagination` contracts on `UnitScreen`, enforced strict 2-in-a-row layout in `EditUnitManagerDialog`, removed redundant inner breadcrumb and outer card wrapper in `UnitCreateEditScreen`, restored `topHeader: const CommonShortcutHeader()`, ensured dropdowns default to unselected with placeholder hints during unit creation, and miniaturized amenities switches (`20.w x 12.h`) and quantity boxes (`26.w x 20.h`) with 2-line wrapped text labels to completely eliminate truncation. |
+| 2026-11-19 | Antigravity AI | Updated Create Unit form dropdown defaults: ensure nothing is selected by default in any dropdown (Unit Type/Category, Service Type, Service Name, Year of Delivery, State, District) by initializing state observables to empty strings and clearing fallback selections; updated district cascading to reset whenever state changes. |
 | 2026-11-18 | Antigravity AI | Fixed Units Master & Unit Create/Edit form: added `+ Create Unit` button in `UnitScreen` action bar wired to `initCreateUnit()` and `AppRoutes.masterUnitEdit`; added `createUnit` API method and `createUnitSubmit()` / `submitUnit()` in `UnitController`; refined `UnitEditScreen` by adding `topHeader: const CommonShortcutHeader()` to `AppCommonAppBar`, removing the redundant inner breadcrumb and outer card wrapper, enforcing strict 2-in-a-row layout for all form rows, and miniaturizing the Amenities toggles (`26.w x 15.h`) and Qty boxes (`36.w x 24.h`) to prevent text truncation; updated `EditUnitManagerDialog` to strictly render 2 fields in a row. |
 | 2026-11-18 | Antigravity AI | Updated Services Master (`ServiceScreen`, `ServiceItem`, `ServiceController`) to support `created_date` field from `service-index` API: added `createdDate` property and `formattedCreatedDate` getter (`dd-MMM-yyyy`) to `ServiceItem`; inserted sortable `Created Date` column after `Icon` column in `ServiceScreen` table; updated search filtering, column sorting, and Excel export in `ServiceController`. |
 | 2026-11-18 | Antigravity AI | Implemented Units Master module: created `UnitMasterItem`, `UnitMasterListResponse`, and `UnitOptionsResponse` models; added repository methods for `unit-index`, `unit-options`, `unit-details-update`, and `unit-update`; developed `UnitController` with GPS geolocation via `Geolocator`, reactive filtering, sorting, pagination, and Excel export; built `UnitScreen` with dense `24.h` table and dual action buttons (1st: icon button for `EditUnitManagerDialog` quick updates; 2nd: `Edit` button for full `UnitEditScreen` form with single/multi-image upload and amenities configuration); registered routes `AppRoutes.masterUnits` and `AppRoutes.masterUnitEdit` in `app_pages.dart`. |

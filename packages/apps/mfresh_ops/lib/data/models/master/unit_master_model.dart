@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 class UnitMasterItem {
   final int id;
   final String servicetype;
+  final String? serviceName;
+  final int? serviceTypeId;
   final String unitcategory;
   final String yearOfDelivery;
   final String qrcodeId;
@@ -34,10 +36,13 @@ class UnitMasterItem {
   final String? unitImgUrl;
   final String? qrImageUrl;
   final List<String> galleryUrls;
+  final List<UnitAmenityDetail> amenityDetails;
 
   UnitMasterItem({
     required this.id,
     required this.servicetype,
+    this.serviceName,
+    this.serviceTypeId,
     required this.unitcategory,
     required this.yearOfDelivery,
     required this.qrcodeId,
@@ -66,6 +71,7 @@ class UnitMasterItem {
     this.unitImgUrl,
     this.qrImageUrl,
     this.galleryUrls = const [],
+    this.amenityDetails = const [],
   });
 
   bool get isHighlyPreferred => highlyPrefered == 1;
@@ -86,51 +92,111 @@ class UnitMasterItem {
   // region Factory & Serialization
   factory UnitMasterItem.fromJson(Map<String, dynamic> json) {
     List<String> galleries = [];
-    if (json['gallery_urls'] is List) {
-      galleries = (json['gallery_urls'] as List)
+    final rawGalleries = json['gallery_image_urls'] ?? json['gallery_urls'];
+    if (rawGalleries is List) {
+      galleries = rawGalleries
           .map((e) => e?.toString() ?? '')
           .where((e) => e.isNotEmpty)
           .toList();
+    }
+
+    List<UnitAmenityDetail> parsedAmenityDetails = [];
+    final rawAmenityDetails =
+        json['amenity_details'] ?? json['amenityDetails'];
+    if (rawAmenityDetails is List) {
+      parsedAmenityDetails = rawAmenityDetails
+          .map((e) {
+            if (e is Map<String, dynamic>) {
+              return UnitAmenityDetail.fromJson(e);
+            }
+            if (e is Map) {
+              return UnitAmenityDetail.fromJson(
+                  Map<String, dynamic>.from(e));
+            }
+            return null;
+          })
+          .whereType<UnitAmenityDetail>()
+          .toList();
+    }
+
+    int parseHighlyPreferred(dynamic val) {
+      if (val is bool) return val ? 1 : 0;
+      if (val is int) return val;
+      if (val is String) {
+        if (val.toLowerCase() == 'true') return 1;
+        if (val.toLowerCase() == 'false') return 0;
+        return int.tryParse(val) ?? 0;
+      }
+      return 0;
     }
 
     return UnitMasterItem(
       id: json['id'] is int
           ? json['id']
           : int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      servicetype: (json['servicetype'] ?? '').toString(),
-      unitcategory: (json['unitcategory'] ?? '').toString(),
-      yearOfDelivery: (json['year_of_delivery'] ?? '').toString(),
-      qrcodeId: (json['qrcodeId'] ?? json['qr_code_id'] ?? '').toString(),
+      servicetype: (json['service_type'] ??
+              json['service_name'] ??
+              json['servicetype'] ??
+              '')
+          .toString(),
+      serviceName: (json['service_name'] ?? json['serviceName'])?.toString(),
+      serviceTypeId: json['service_type_id'] is int
+          ? json['service_type_id']
+          : int.tryParse(json['service_type_id']?.toString() ?? ''),
+      unitcategory: (json['unitcategory'] ??
+              json['unit_type'] ??
+              json['unit_category'] ??
+              '')
+          .toString(),
+      yearOfDelivery:
+          (json['year_of_delivery'] ?? json['yearOfDelivery'] ?? '').toString(),
+      qrcodeId: (json['unit_code'] ??
+              json['qrcodeId'] ??
+              json['qr_code_id'] ??
+              json['qrcode_id'] ??
+              '')
+          .toString(),
       latitude: (json['latitude'] ?? '').toString(),
       longitude: (json['longitude'] ?? '').toString(),
-      qrImg: json['qrImg']?.toString(),
-      unitImg: json['unit_img']?.toString(),
-      stateId: json['state_id']?.toString(),
-      districtId: json['district_id']?.toString(),
-      unitLocation: (json['unit_location'] ?? '').toString(),
-      fullAdd: (json['full_add'] ?? json['full_address'] ?? '').toString(),
-      openTiming: (json['open_timing'] ?? json['oprntiming'] ?? '').toString(),
-      highlyPrefered: json['highly_prefered'] is int
-          ? json['highly_prefered']
-          : int.tryParse(json['highly_prefered']?.toString() ?? '') ?? 0,
+      qrImg: (json['qr_image'] ?? json['qrImg'] ?? json['qr_img'])?.toString(),
+      unitImg:
+          (json['image'] ?? json['unit_img'] ?? json['unitImg'])?.toString(),
+      stateId: (json['state_id'] ?? json['stateId'])?.toString(),
+      districtId: (json['district_id'] ?? json['districtId'])?.toString(),
+      unitLocation:
+          (json['location'] ?? json['unit_location'] ?? json['city'] ?? '')
+              .toString(),
+      fullAdd: (json['full_address'] ?? json['full_add'] ?? '').toString(),
+      openTiming: (json['timing'] ??
+              json['open_timing'] ??
+              json['oprntiming'] ??
+              '')
+          .toString(),
+      highlyPrefered: parseHighlyPreferred(
+          json['highly_preferred'] ?? json['highly_prefered']),
       status: json['status'] is int
           ? json['status']
           : int.tryParse(json['status']?.toString() ?? '') ?? 0,
-      createdAt: json['created_at']?.toString(),
-      updatedAt: json['updated_at']?.toString(),
-      unitMultiImg: json['unit_multi_img']?.toString(),
-      unitType: json['unit_type']?.toString(),
+      createdAt: (json['created_at'] ?? json['createdAt'])?.toString(),
+      updatedAt: (json['updated_at'] ?? json['updatedAt'])?.toString(),
+      unitMultiImg:
+          (json['unit_multi_img'] ?? json['unitMultiImg'])?.toString(),
+      unitType: (json['unit_type'] ?? json['unitType'])?.toString(),
       amenities: json['amenities']?.toString(),
-      unitDesc: json['unit_desc']?.toString(),
-      ingDate: (json['ing_date'] ?? json['ingd'])?.toString(),
+      unitDesc: (json['description'] ?? json['unit_desc'])?.toString(),
+      ingDate: (json['inauguration_date'] ??
+              json['ing_date'] ??
+              json['ingd'])
+          ?.toString(),
       specification:
           (json['specification'] ?? json['unit_spec'])?.toString(),
       sequence: json['sequence']?.toString(),
       price: json['price']?.toString(),
       gst: json['gst']?.toString(),
-      unitImgUrl: json['unit_img_url']?.toString(),
-      qrImageUrl: json['qr_image_url']?.toString(),
+      unitImgUrl: (json['image_url'] ?? json['unit_img_url'])?.toString(),
+      qrImageUrl: (json['qr_image_url'] ?? json['qrImageUrl'])?.toString(),
       galleryUrls: galleries,
+      amenityDetails: parsedAmenityDetails,
     );
   }
 
@@ -138,6 +204,8 @@ class UnitMasterItem {
     return {
       'id': id,
       'servicetype': servicetype,
+      'service_name': serviceName,
+      'service_type_id': serviceTypeId,
       'unitcategory': unitcategory,
       'year_of_delivery': yearOfDelivery,
       'qrcodeId': qrcodeId,
@@ -166,6 +234,7 @@ class UnitMasterItem {
       'unit_img_url': unitImgUrl,
       'qr_image_url': qrImageUrl,
       'gallery_urls': galleryUrls,
+      'amenity_details': amenityDetails.map((e) => e.toJson()).toList(),
     };
   }
   // endregion
@@ -174,6 +243,8 @@ class UnitMasterItem {
   UnitMasterItem copyWith({
     int? id,
     String? servicetype,
+    String? serviceName,
+    int? serviceTypeId,
     String? unitcategory,
     String? yearOfDelivery,
     String? qrcodeId,
@@ -202,10 +273,13 @@ class UnitMasterItem {
     String? unitImgUrl,
     String? qrImageUrl,
     List<String>? galleryUrls,
+    List<UnitAmenityDetail>? amenityDetails,
   }) {
     return UnitMasterItem(
       id: id ?? this.id,
       servicetype: servicetype ?? this.servicetype,
+      serviceName: serviceName ?? this.serviceName,
+      serviceTypeId: serviceTypeId ?? this.serviceTypeId,
       unitcategory: unitcategory ?? this.unitcategory,
       yearOfDelivery: yearOfDelivery ?? this.yearOfDelivery,
       qrcodeId: qrcodeId ?? this.qrcodeId,
@@ -234,6 +308,7 @@ class UnitMasterItem {
       unitImgUrl: unitImgUrl ?? this.unitImgUrl,
       qrImageUrl: qrImageUrl ?? this.qrImageUrl,
       galleryUrls: galleryUrls ?? this.galleryUrls,
+      amenityDetails: amenityDetails ?? this.amenityDetails,
     );
   }
   // endregion
@@ -256,8 +331,15 @@ class UnitMasterListResponse {
     List<UnitMasterItem> list = [];
     if (json['data'] is List) {
       list = (json['data'] as List)
-          .whereType<Map<String, dynamic>>()
-          .map((item) => UnitMasterItem.fromJson(item))
+          .map((item) {
+            if (item is Map<String, dynamic>) {
+              return UnitMasterItem.fromJson(item);
+            } else if (item is Map) {
+              return UnitMasterItem.fromJson(Map<String, dynamic>.from(item));
+            }
+            return null;
+          })
+          .whereType<UnitMasterItem>()
           .toList();
     }
 
@@ -371,6 +453,23 @@ class UnitOptionServiceType {
   }
 }
 
+class UnitOptionServiceName {
+  final String value;
+  final String label;
+
+  UnitOptionServiceName({
+    required this.value,
+    required this.label,
+  });
+
+  factory UnitOptionServiceName.fromJson(Map<String, dynamic> json) {
+    return UnitOptionServiceName(
+      value: (json['value'] ?? '').toString(),
+      label: (json['label'] ?? json['value'] ?? '').toString(),
+    );
+  }
+}
+
 class UnitOptionAmenity {
   final int id;
   final String amenityName;
@@ -393,11 +492,50 @@ class UnitOptionAmenity {
   }
 }
 
+class UnitAmenityDetail {
+  final String amenityName;
+  final bool isActive;
+  final int quantity;
+
+  UnitAmenityDetail({
+    required this.amenityName,
+    required this.isActive,
+    required this.quantity,
+  });
+
+  factory UnitAmenityDetail.fromJson(Map<String, dynamic> json) {
+    bool parseBool(dynamic val) {
+      if (val is bool) return val;
+      if (val is int) return val == 1;
+      if (val is String) {
+        return val.toLowerCase() == 'true' || val == '1';
+      }
+      return false;
+    }
+
+    return UnitAmenityDetail(
+      amenityName:
+          (json['amenity_name'] ?? json['amenityName'] ?? '').toString(),
+      isActive: parseBool(json['is_active'] ?? json['isActive']),
+      quantity: json['quantity'] is int
+          ? json['quantity']
+          : int.tryParse(json['quantity']?.toString() ?? '') ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'amenity_name': amenityName,
+        'is_active': isActive,
+        'quantity': quantity,
+      };
+}
+
 class UnitOptionsData {
   final List<UnitOptionState> states;
   final List<UnitOptionDistrict> districts;
   final List<UnitOptionCategory> unitCategories;
   final List<UnitOptionServiceType> serviceTypes;
+  final List<UnitOptionServiceName> serviceNames;
   final List<UnitOptionAmenity> amenities;
 
   UnitOptionsData({
@@ -405,31 +543,27 @@ class UnitOptionsData {
     this.districts = const [],
     this.unitCategories = const [],
     this.serviceTypes = const [],
+    this.serviceNames = const [],
     this.amenities = const [],
   });
 
   factory UnitOptionsData.fromJson(Map<String, dynamic> json) {
+    List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>) fromJson) {
+      if (raw is! List) return [];
+      return raw.map((item) {
+        if (item is Map<String, dynamic>) return fromJson(item);
+        if (item is Map) return fromJson(Map<String, dynamic>.from(item));
+        return null;
+      }).whereType<T>().toList();
+    }
+
     return UnitOptionsData(
-      states: (json['states'] as List? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((e) => UnitOptionState.fromJson(e))
-          .toList(),
-      districts: (json['districts'] as List? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((e) => UnitOptionDistrict.fromJson(e))
-          .toList(),
-      unitCategories: (json['unit_categories'] as List? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((e) => UnitOptionCategory.fromJson(e))
-          .toList(),
-      serviceTypes: (json['service_types'] as List? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((e) => UnitOptionServiceType.fromJson(e))
-          .toList(),
-      amenities: (json['amenities'] as List? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map((e) => UnitOptionAmenity.fromJson(e))
-          .toList(),
+      states: parseList(json['states'], (e) => UnitOptionState.fromJson(e)),
+      districts: parseList(json['districts'], (e) => UnitOptionDistrict.fromJson(e)),
+      unitCategories: parseList(json['unit_categories'], (e) => UnitOptionCategory.fromJson(e)),
+      serviceTypes: parseList(json['service_types'], (e) => UnitOptionServiceType.fromJson(e)),
+      serviceNames: parseList(json['service_name'], (e) => UnitOptionServiceName.fromJson(e)),
+      amenities: parseList(json['amenities'], (e) => UnitOptionAmenity.fromJson(e)),
     );
   }
 }

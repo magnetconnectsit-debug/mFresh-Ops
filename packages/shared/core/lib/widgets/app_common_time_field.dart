@@ -171,12 +171,33 @@ class _AppCommonTimeFieldState extends State<AppCommonTimeField> {
   }
   // endregion
 
+  TimeOfDay _getInitialTime() {
+    if (widget.selectedTime != null) return widget.selectedTime!;
+    final text = _effectiveController.text.trim();
+    if (text.isNotEmpty) {
+      try {
+        final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$', caseSensitive: false)
+            .firstMatch(text);
+        if (match != null) {
+          int hour = int.parse(match.group(1)!);
+          final minute = int.parse(match.group(2)!);
+          final period = match.group(3)?.toUpperCase();
+          if (period == 'PM' && hour < 12) hour += 12;
+          if (period == 'AM' && hour == 12) hour = 0;
+          return TimeOfDay(hour: hour, minute: minute);
+        }
+      } catch (_) {}
+    }
+    final now = TimeOfDay.now();
+    return TimeOfDay(hour: now.hour, minute: 0);
+  }
+
   // region Time Picker Interaction
   Future<void> _handleTap() async {
     final isInteractive = widget.enabled && !widget.readOnly;
     if (!isInteractive) return;
 
-    final initial = widget.selectedTime ?? TimeOfDay.now();
+    final initial = _getInitialTime();
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,

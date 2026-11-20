@@ -176,7 +176,9 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     BuildContext context,
     TasksController controller,
   ) async {
-    final initial = controller.selectedStartTime.value ?? TimeOfDay.now();
+    final now = DateTime.now();
+    final initial = controller.selectedStartTime.value ??
+        TimeOfDay(hour: now.hour, minute: 0);
     final time = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -205,7 +207,14 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     BuildContext context,
     TasksController controller,
   ) async {
-    final initial = controller.selectedEndTime.value ?? TimeOfDay.now();
+    final now = DateTime.now();
+    final initial = controller.selectedEndTime.value ??
+        (controller.selectedStartTime.value != null
+            ? TimeOfDay(
+                hour: (controller.selectedStartTime.value!.hour + 1) % 24,
+                minute: 0,
+              )
+            : TimeOfDay(hour: (now.hour + 1) % 24, minute: 0));
     final time = await showTimePicker(
       context: context,
       initialTime: initial,

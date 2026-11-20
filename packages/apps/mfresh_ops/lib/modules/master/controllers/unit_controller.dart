@@ -7,7 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mfresh_ops/core/constants/app_permissions.dart';
 import 'package:mfresh_ops/data/models/master/unit_master_model.dart';
+import 'package:mfresh_ops/data/repositories/auth_repository.dart';
 import 'package:mfresh_ops/data/repositories/master_repository.dart';
 // endregion
 
@@ -45,9 +47,10 @@ class UnitController extends GetxController {
   // Full Unit Edit State
   final selectedUnitForEdit = Rxn<UnitMasterItem>();
   final editCategory = ''.obs;
-  final editServiceType = 'Movable'.obs;
-  final editUnitType = '1'.obs;
-  final editYearOfDelivery = '26'.obs;
+  final editServiceType = ''.obs;
+  final editServiceName = ''.obs;
+  final editUnitType = ''.obs;
+  final editYearOfDelivery = ''.obs;
   final editStateId = ''.obs;
   final editDistrictId = ''.obs;
   final editIngDate = Rxn<DateTime>();
@@ -139,6 +142,9 @@ class UnitController extends GetxController {
       final response = await _repository.getUnitOptions();
       if (response.status && response.data != null) {
         unitOptions.value = response.data;
+        if (selectedUnitForEdit.value != null) {
+          _populateAmenitiesFromUnit(selectedUnitForEdit.value!);
+        }
       }
     } catch (e) {
       debugPrint('Error fetching unit options: $e');
@@ -204,7 +210,7 @@ class UnitController extends GetxController {
         if (isSelected) {
           activeAmenities.add(item.amenityName);
           final qty = amenityQuantities[item.id]?.text.trim();
-          activeQuantities.add((qty != null && qty.isNotEmpty) ? qty : '1');
+          activeQuantities.add((qty != null && qty.isNotEmpty) ? qty : '0');
         }
       }
 
@@ -219,6 +225,7 @@ class UnitController extends GetxController {
             : unit.unitcategory,
         unitType: editUnitType.value,
         serviceType: editServiceType.value,
+        serviceName: editServiceName.value,
         yearOfDelivery: editYearOfDelivery.value,
         unitState: editStateId.value.isNotEmpty
             ? editStateId.value
@@ -277,7 +284,7 @@ class UnitController extends GetxController {
         if (isSelected) {
           activeAmenities.add(item.amenityName);
           final qty = amenityQuantities[item.id]?.text.trim();
-          activeQuantities.add((qty != null && qty.isNotEmpty) ? qty : '1');
+          activeQuantities.add((qty != null && qty.isNotEmpty) ? qty : '0');
         }
       }
 
@@ -289,6 +296,7 @@ class UnitController extends GetxController {
         unitCategory: editCategory.value,
         unitType: editUnitType.value,
         serviceType: editServiceType.value,
+        serviceName: editServiceName.value,
         yearOfDelivery: editYearOfDelivery.value,
         unitState: editStateId.value,
         unitDist: editDistrictId.value,
@@ -330,7 +338,20 @@ class UnitController extends GetxController {
     }
   }
 
+  bool _hasPermission(String key) {
+    if (!Get.isRegistered<AuthRepository>()) return false;
+    final permissions = Get.find<AuthRepository>().rxUserPermissions;
+    return AppPermissions.has(permissions, key);
+  }
+
   Future<bool> submitUnit() async {
+    if (!_hasPermission(AppPermissions.masterPanel)) {
+      AppCommonToastMessage.show(
+        message: 'You do not have permission to manage units.',
+        type: ToastType.warning,
+      );
+      return false;
+    }
     if (selectedUnitForEdit.value == null) {
       return await createUnitSubmit();
     } else {
@@ -340,6 +361,13 @@ class UnitController extends GetxController {
   // endregion
 
   // region Business Logic & Helpers
+  TextEditingController getAmenityQtyController(int amenityId) {
+    if (!amenityQuantities.containsKey(amenityId)) {
+      amenityQuantities[amenityId] = TextEditingController(text: '');
+    }
+    return amenityQuantities[amenityId]!;
+  }
+
   void onSearchChanged(String query) {
     searchQuery.value = query;
     currentPage.value = 1;
@@ -502,18 +530,17 @@ class UnitController extends GetxController {
   /// Initialize Unit Form for creating a new Unit
   void initCreateUnit() {
     selectedUnitForEdit.value = null;
-    final options = unitOptions.value;
-    editCategory.value = (options?.unitCategories.isNotEmpty ?? false)
-        ? options!.unitCategories.first.unitcategory
-        : '';
-    editServiceType.value = 'Movable';
-    editUnitType.value = '1';
-    editYearOfDelivery.value = '26';
+    editCategory.value = '';
+    editServiceType.value = 'Retail';
+    editServiceName.value = 'Movable';
+    editUnitType.value = '';
+    editYearOfDelivery.value = '';
     editStateId.value = '';
     editDistrictId.value = '';
 
     editLocationCtrl.clear();
-    editTimingCtrl.clear();
+    final now = DateTime.now();
+    editTimingCtrl.text = DateFormat('hh:mm a').format(now);
     editFullAddrCtrl.clear();
     editDescCtrl.clear();
     editSpecCtrl.clear();
@@ -528,9 +555,9 @@ class UnitController extends GetxController {
     for (final opt in optionsAmenities) {
       amenitySelections[opt.id] = false.obs;
       if (amenityQuantities.containsKey(opt.id)) {
-        amenityQuantities[opt.id]!.text = '1';
+        amenityQuantities[opt.id]!.text = '0';
       } else {
-        amenityQuantities[opt.id] = TextEditingController(text: '1');
+        amenityQuantities[opt.id] = TextEditingController(text: '0');
       }
     }
   }
@@ -538,13 +565,29 @@ class UnitController extends GetxController {
   /// Initialize Full Unit Edit Screen state
   void initUnitEdit(UnitMasterItem unit) {
     selectedUnitForEdit.value = unit;
-    editCategory.value = unit.unitcategory;
-    editServiceType.value =
-        unit.servicetype.isNotEmpty ? unit.servicetype : 'Movable';
-    editUnitType.value = (unit.unitType ?? '1').toString();
-    editYearOfDelivery.value = unit.yearOfDelivery.isNotEmpty
-        ? unit.yearOfDelivery
-        : '26';
+    editCategory.value = unit.unitcategory.trim();
+
+    // Service Type: unit.servicetype or by serviceTypeId
+    if (unit.servicetype.isNotEmpty && unit.servicetype.toLowerCase() != 'null') {
+      editServiceType.value = unit.servicetype;
+    } else if (unit.serviceTypeId != null && unit.serviceTypeId! > 0) {
+      final match = unitOptions.value?.serviceTypes.firstWhereOrNull(
+        (t) => t.value == unit.serviceTypeId,
+      );
+      editServiceType.value = match?.label ?? 'Retail';
+    } else {
+      editServiceType.value = 'Retail';
+    }
+
+    // Service Name: unit.serviceName ('Movable' / 'Fixed')
+    editServiceName.value = (unit.serviceName != null &&
+            unit.serviceName!.isNotEmpty &&
+            unit.serviceName!.toLowerCase() != 'null')
+        ? unit.serviceName!
+        : 'Movable';
+
+    editUnitType.value = (unit.unitType ?? '').toString();
+    editYearOfDelivery.value = unit.yearOfDelivery;
     editStateId.value = unit.stateId ?? '';
     editDistrictId.value = unit.districtId ?? '';
 
@@ -566,45 +609,79 @@ class UnitController extends GetxController {
     selectedMultiImgs.clear();
     existingGalleryUrls.assignAll(unit.galleryUrls);
 
-    // Parse existing amenities string (e.g. "Male Toilet (2),Urinals (4),...")
-    final Map<String, String> existingAmenitiesMap = {};
-    if (unit.amenities != null && unit.amenities!.isNotEmpty) {
-      final parts = unit.amenities!.split(',');
-      for (final p in parts) {
-        final trimmed = p.trim();
-        final match = RegExp(r'^(.*?)\s*\((\d+)\)$').firstMatch(trimmed);
-        if (match != null) {
-          final name = match.group(1)?.trim() ?? '';
-          final qty = match.group(2)?.trim() ?? '1';
-          if (name.isNotEmpty) {
-            existingAmenitiesMap[name.toLowerCase()] = qty;
+    _populateAmenitiesFromUnit(unit);
+  }
+
+  /// Populate amenity switches and quantity controllers from unit data (amenity_details or fallback string)
+  void _populateAmenitiesFromUnit(UnitMasterItem unit) {
+    final optionsAmenities = unitOptions.value?.amenities ?? [];
+    if (optionsAmenities.isEmpty) return;
+
+    if (unit.amenityDetails.isNotEmpty) {
+      // 1. Direct population from structured amenity_details
+      for (final opt in optionsAmenities) {
+        final optName = opt.amenityName.trim().toLowerCase();
+        final detail = unit.amenityDetails.firstWhereOrNull(
+          (d) => d.amenityName.trim().toLowerCase() == optName,
+        );
+
+        if (detail != null) {
+          amenitySelections[opt.id] = (detail.isActive).obs;
+          final qtyStr = detail.quantity.toString();
+          if (amenityQuantities.containsKey(opt.id)) {
+            amenityQuantities[opt.id]!.text = qtyStr;
+          } else {
+            amenityQuantities[opt.id] = TextEditingController(text: qtyStr);
           }
-        } else if (trimmed.isNotEmpty) {
-          existingAmenitiesMap[trimmed.toLowerCase()] = '1';
+        } else {
+          amenitySelections[opt.id] = false.obs;
+          if (amenityQuantities.containsKey(opt.id)) {
+            amenityQuantities[opt.id]!.text = '0';
+          } else {
+            amenityQuantities[opt.id] = TextEditingController(text: '0');
+          }
         }
       }
-    }
+    } else {
+      // 2. Fallback: Parse existing amenities string (e.g. "Male Toilet (2),Urinals (4),...")
+      final Map<String, String> existingAmenitiesMap = {};
+      if (unit.amenities != null && unit.amenities!.isNotEmpty) {
+        final parts = unit.amenities!.split(',');
+        for (final p in parts) {
+          final trimmed = p.trim();
+          final match = RegExp(r'^(.*?)\s*\((\d+)\)$').firstMatch(trimmed);
+          if (match != null) {
+            final name = match.group(1)?.trim() ?? '';
+            final qty = match.group(2)?.trim() ?? '1';
+            if (name.isNotEmpty) {
+              existingAmenitiesMap[name.toLowerCase()] = qty;
+            }
+          } else if (trimmed.isNotEmpty) {
+            existingAmenitiesMap[trimmed.toLowerCase()] = '1';
+          }
+        }
+      }
 
-    // Populate amenity selections & quantity controllers from options
-    final optionsAmenities = unitOptions.value?.amenities ?? [];
-    for (final opt in optionsAmenities) {
-      final key = opt.amenityName.trim().toLowerCase();
-      final hasExisting = existingAmenitiesMap.containsKey(key);
-      amenitySelections[opt.id] = (hasExisting).obs;
+      for (final opt in optionsAmenities) {
+        final key = opt.amenityName.trim().toLowerCase();
+        final hasExisting = existingAmenitiesMap.containsKey(key);
+        amenitySelections[opt.id] = (hasExisting).obs;
 
-      final existingQty = existingAmenitiesMap[key] ?? '1';
-      if (amenityQuantities.containsKey(opt.id)) {
-        amenityQuantities[opt.id]!.text = existingQty;
-      } else {
-        amenityQuantities[opt.id] = TextEditingController(text: existingQty);
+        final existingQty = existingAmenitiesMap[key] ?? '1';
+        if (amenityQuantities.containsKey(opt.id)) {
+          amenityQuantities[opt.id]!.text = hasExisting ? existingQty : '';
+        } else {
+          amenityQuantities[opt.id] =
+              TextEditingController(text: hasExisting ? existingQty : '');
+        }
       }
     }
   }
 
-  Future<void> pickSingleImage() async {
+  Future<void> pickSingleImage({ImageSource source = ImageSource.gallery}) async {
     try {
       final XFile? file = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 80,
       );
       if (file != null) {
@@ -618,13 +695,23 @@ class UnitController extends GetxController {
     }
   }
 
-  Future<void> pickMultiImages() async {
+  Future<void> pickMultiImages({ImageSource source = ImageSource.gallery}) async {
     try {
-      final List<XFile> files = await _imagePicker.pickMultiImage(
-        imageQuality: 80,
-      );
-      if (files.isNotEmpty) {
-        selectedMultiImgs.addAll(files.map((x) => File(x.path)));
+      if (source == ImageSource.camera) {
+        final XFile? file = await _imagePicker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 80,
+        );
+        if (file != null) {
+          selectedMultiImgs.add(File(file.path));
+        }
+      } else {
+        final List<XFile> files = await _imagePicker.pickMultiImage(
+          imageQuality: 80,
+        );
+        if (files.isNotEmpty) {
+          selectedMultiImgs.addAll(files.map((x) => File(x.path)));
+        }
       }
     } catch (e) {
       AppCommonToastMessage.show(

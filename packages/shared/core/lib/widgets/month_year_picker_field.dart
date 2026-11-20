@@ -13,6 +13,7 @@ class MonthYearPickerField extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.label = 'Select Month',
+    this.hintText,
     this.showFloatingLabel = true,
   });
 
@@ -24,6 +25,7 @@ class MonthYearPickerField extends StatelessWidget {
   final ValueChanged<String?> onChanged;
 
   final String label;
+  final String? hintText;
   final bool showFloatingLabel;
 
   @override
@@ -63,7 +65,9 @@ class MonthYearPickerField extends StatelessWidget {
             children: [
               Expanded(
               child: Text(
-                value != null ? _displayLabel(value!) : label,
+                value != null
+                    ? _displayLabel(value!)
+                    : (hintText ?? (showFloatingLabel ? 'Select' : label)),
                 style: value != null
                     ? AppTextStyle.style_12_400(color: AppColors.grey900)
                     : AppTextStyle.style_12_400(color: AppColors.grey300),
@@ -101,7 +105,9 @@ class MonthYearPickerField extends StatelessWidget {
     if (value != null) {
       try {
         pickerYear = DateFormat('MMM-yyyy').parse(value!).year;
-      } catch (_) {}
+      } catch (_) {
+        pickerYear = int.tryParse(value!) ?? DateTime.now().year;
+      }
     }
 
     final result = await showDialog<String>(

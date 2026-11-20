@@ -92,7 +92,9 @@ abstract class AppRoutes {
   static const masterServices = '/master-services';
   static const masterAmenities = '/master-amenities';
   static const masterUnits = '/master-units';
-  static const masterUnitEdit = '/master-unit-edit';
+  static const masterUnitCreateEdit = '/master-unit-create-edit';
+  static const masterUnitEdit = masterUnitCreateEdit;
   static const masterAssignServices = '/master-assign-services';
+  static const masterAssignServiceCreateEdit = '/master-assign-service-create-edit';
   static const masterAllAssignServices = '/master-all-assign-services';
 }

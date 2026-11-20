@@ -341,10 +341,11 @@ class PrintUtil {
 
 
   static Map<String, dynamic> _buildPlutusPrintData(BookingDetailsModel booking, BookingServiceDetailItem service, String? encryptedBookingId) {
+    final unitPrice = booking.getFormattedUnitPriceForService(service);
     return {
       "bookingId": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,
       "unitNo": booking.unitNo,
-      "amount": booking.totalAmount,
+      "amount": unitPrice,
       "service": service.servicesName,
       "qrData": jsonEncode({
         "BookingID": encryptedBookingId ?? booking.encryptBookingId ?? booking.bookingId,

@@ -549,10 +549,12 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
   void initState() {
     super.initState();
 
+    final nextDay = DateTime.now().add(const Duration(days: 1));
+    final defaultNextDay = DateTime(nextDay.year, nextDay.month, nextDay.day);
     _startDate =
         widget.defaultStartDate ??
         widget.initialData?.startDate ??
-        DateTime.now();
+        defaultNextDay;
     _endByDate = widget.defaultEndDate ?? widget.initialData?.endByDate;
     _instanceStartDate =
         widget.initialData?.recurrenceStartDate ??
@@ -570,7 +572,7 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
         widget.initialData!.startTime.isNotEmpty) {
       _startTime = _parseTime(widget.initialData!.startTime);
     } else {
-      _startTime = null;
+      _startTime = TimeOfDay(hour: DateTime.now().hour, minute: 0);
     }
 
     if (widget.defaultEndTime != null) {
@@ -579,7 +581,7 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
         widget.initialData!.endTime.isNotEmpty) {
       _endTime = _parseTime(widget.initialData!.endTime);
     } else {
-      _endTime = null;
+      _endTime = TimeOfDay(hour: (DateTime.now().hour + 1) % 24, minute: 0);
     }
 
     if (widget.initialData != null) {
@@ -668,9 +670,10 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
 
   Future<void> _pickStartTimeField() async {
     _startTimeFocusNode.requestFocus();
+    final now = DateTime.now();
     final picked = await showTimePicker(
       context: context,
-      initialTime: _startTime ?? TimeOfDay.now(),
+      initialTime: _startTime ?? TimeOfDay(hour: now.hour, minute: 0),
       helpText: 'Select Start Time',
       builder: (context, child) {
         return MediaQuery(
@@ -688,14 +691,15 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
 
   Future<void> _pickEndTimeField() async {
     _endTimeFocusNode.requestFocus();
+    final now = DateTime.now();
     final initialEnd =
         _endTime ??
         (_startTime != null
             ? TimeOfDay(
                 hour: (_startTime!.hour + 1) % 24,
-                minute: _startTime!.minute,
+                minute: 0,
               )
-            : TimeOfDay.now());
+            : TimeOfDay(hour: (now.hour + 1) % 24, minute: 0));
     final picked = await showTimePicker(
       context: context,
       initialTime: initialEnd,
@@ -1668,7 +1672,10 @@ class _AppointmentRecurrenceFormState extends State<AppointmentRecurrenceForm> {
           : () async {
               final picked = await showTimePicker(
                 context: context,
-                initialTime: time ?? TimeOfDay.now(),
+                initialTime: time ??
+                    (isStart
+                        ? const TimeOfDay(hour: 10, minute: 0)
+                        : const TimeOfDay(hour: 11, minute: 0)),
                 helpText: isStart ? 'Select Start Time' : 'Select End Time',
                 builder: (context, child) {
                   return MediaQuery(

@@ -32,7 +32,12 @@ import 'package:mfresh_ops/modules/master/views/district_screen.dart';
 import 'package:mfresh_ops/modules/master/views/service_screen.dart';
 import 'package:mfresh_ops/modules/master/views/amenity_screen.dart';
 import 'package:mfresh_ops/modules/master/views/unit_screen.dart';
-import 'package:mfresh_ops/modules/master/views/unit_edit_screen.dart';
+import 'package:mfresh_ops/modules/master/views/unit_create_edit_screen.dart';
+import 'package:mfresh_ops/modules/master/controllers/assign_service_controller.dart';
+import 'package:mfresh_ops/modules/master/controllers/all_assign_service_controller.dart';
+import 'package:mfresh_ops/modules/master/views/assign_service_screen.dart';
+import 'package:mfresh_ops/modules/master/views/assign_service_create_edit_screen.dart';
+import 'package:mfresh_ops/modules/master/views/all_assign_service_screen.dart';
 import 'package:mfresh_ops/modules/master/views/master_placeholder_screen.dart';
 import 'package:dev/routes/dev_routes.dart';
 import 'package:dev/views/dev_passcode_screen.dart';
@@ -572,8 +577,8 @@ class AppPages {
       }),
     ),
     GetPage(
-      name: AppRoutes.masterUnitEdit,
-      page: () => const UnitEditScreen(),
+      name: AppRoutes.masterUnitCreateEdit,
+      page: () => const UnitCreateEditScreen(),
       binding: BindingsBuilder(() {
         if (!Get.isRegistered<MasterRepository>()) {
           Get.lazyPut(() => MasterRepository());
@@ -582,11 +587,39 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.masterAssignServices,
-      page: () => const MasterPlaceholderScreen(title: 'Assign Services'),
+      page: () => const AssignServiceScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+        if (!Get.isRegistered<AssignServiceController>()) {
+          Get.lazyPut(() => AssignServiceController());
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.masterAssignServiceCreateEdit,
+      page: () => const AssignServiceCreateEditScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+        if (!Get.isRegistered<AssignServiceController>()) {
+          Get.lazyPut(() => AssignServiceController());
+        }
+      }),
     ),
     GetPage(
       name: AppRoutes.masterAllAssignServices,
-      page: () => const MasterPlaceholderScreen(title: 'All Assign Services'),
+      page: () => const AllAssignServiceScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<MasterRepository>()) {
+          Get.lazyPut(() => MasterRepository());
+        }
+        if (!Get.isRegistered<AllAssignServiceController>()) {
+          Get.lazyPut(() => AllAssignServiceController());
+        }
+      }),
     ),
   ];
 }

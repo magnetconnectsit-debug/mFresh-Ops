@@ -1722,10 +1722,25 @@ class TasksController extends GetxController {
   final selectedUnitForCreate = Rxn<SupportUnit>();
   final selectedAssigneeForCreate = Rxn<AssigneeModel>();
   final selectedApproverForCreate = Rxn<AssigneeModel>();
-  final selectedStartDate = Rxn<DateTime>();
-  final selectedStartTime = Rxn<TimeOfDay>();
-  final selectedEndDate = Rxn<DateTime>();
-  final selectedEndTime = Rxn<TimeOfDay>();
+  static DateTime get _defaultNextDay {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+  }
+
+  static TimeOfDay get _defaultStartTime {
+    final now = DateTime.now();
+    return TimeOfDay(hour: now.hour, minute: 0);
+  }
+
+  static TimeOfDay get _defaultEndTime {
+    final now = DateTime.now();
+    return TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
+  }
+
+  final selectedStartDate = Rxn<DateTime>(_defaultNextDay);
+  final selectedStartTime = Rxn<TimeOfDay>(_defaultStartTime);
+  final selectedEndDate = Rxn<DateTime>(_defaultNextDay);
+  final selectedEndTime = Rxn<TimeOfDay>(_defaultEndTime);
   final recurrenceData = Rxn<RecurrenceData>();
   final formInitialized = false.obs;
   final updateLevel =
@@ -2204,11 +2219,12 @@ class TasksController extends GetxController {
     selectedAssigneeForCreate.value = null;
     selectedApproverForCreate.value = null;
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    selectedStartDate.value = today;
-    selectedStartTime.value = null;
-    selectedEndDate.value = today;
-    selectedEndTime.value = null;
+    final nextDay =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    selectedStartDate.value = nextDay;
+    selectedStartTime.value = TimeOfDay(hour: now.hour, minute: 0);
+    selectedEndDate.value = nextDay;
+    selectedEndTime.value = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
     recurrenceData.value = null;
     formInitialized.value = false;
     titleController.clear();

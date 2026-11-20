@@ -317,6 +317,12 @@ class AppConstants {
   static const String unitUpdate = 'unit-update';
   static const String unitDetailsUpdate = 'unit-details-update';
 
+  // Assign Services
+  static const String assignsIndex = 'assigns-index';
+  static const String assignServicesIndex = 'assign-services-index';
+  static const String assignServiceCreate = 'assign-service-create';
+  static const String assignServiceUpdate = 'assign-service-update';
+
   // endregion
 
   // region Hive Keys

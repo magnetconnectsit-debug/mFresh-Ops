@@ -31,7 +31,7 @@ class EditUnitManagerDialog extends StatelessWidget {
               children: [
                 _buildHeader(context),
                 SizedBox(height: 16.h),
-                _buildFormFields(controller),
+                _buildFormFields(context, controller),
                 SizedBox(height: 12.h),
                 _buildLocationAction(controller),
                 SizedBox(height: 16.h),
@@ -71,7 +71,7 @@ class EditUnitManagerDialog extends StatelessWidget {
   // endregion
 
   // region Form Fields
-  Widget _buildFormFields(UnitController controller) {
+  Widget _buildFormFields(BuildContext context, UnitController controller) {
     return Column(
       children: [
         Row(
@@ -79,7 +79,7 @@ class EditUnitManagerDialog extends StatelessWidget {
           children: [
             Expanded(child: _buildPreferredDropdown(controller)),
             SizedBox(width: 10.w),
-            Expanded(child: _buildTimingField(controller)),
+            Expanded(child: _buildTimingField(context, controller)),
           ],
         ),
         SizedBox(height: 12.h),
@@ -125,11 +125,19 @@ class EditUnitManagerDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildTimingField(UnitController controller) {
-    return AppCommonTextField(
+  Widget _buildTimingField(BuildContext context, UnitController controller) {
+    return AppCommonTimeField(
       controller: controller.timingCtrl,
       labelText: 'Timing',
       hintText: 'e.g. 8 A.M. to 8 P.M.',
+      alwaysUse24HourFormat: false,
+      helpText: 'Select Timing',
+      onTimeSelected: (time) {
+        final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+        final minute = time.minute.toString().padLeft(2, '0');
+        final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+        controller.timingCtrl.text = '$hour:$minute $period';
+      },
     );
   }
 

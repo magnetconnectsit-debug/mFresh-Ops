@@ -584,6 +584,8 @@ class ServiceDetailsController extends GetxController {
                   servicesName: s.name,
                   quantity: s.quantity.value.toString(),
                   price: s.price.toString(),
+                  unitPrice: s.price.toString(),
+                  lineTotal: (s.price * s.quantity.value).toString(),
                 ),
               )
               .toList();
@@ -769,6 +771,8 @@ class ServiceDetailsController extends GetxController {
               servicesName: s.name,
               quantity: s.quantity.value.toString(),
               price: s.price.toString(),
+              unitPrice: s.price.toString(),
+              lineTotal: (s.price * s.quantity.value).toString(),
             ),
           )
           .toList();

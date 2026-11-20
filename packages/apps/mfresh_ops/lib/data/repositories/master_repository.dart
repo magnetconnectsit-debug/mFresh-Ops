@@ -6,6 +6,7 @@ import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart';
 import 'package:mfresh_ops/core/constants/app_constants.dart';
 import 'package:mfresh_ops/data/models/master/amenity_model.dart';
+import 'package:mfresh_ops/data/models/master/assign_service_model.dart';
 import 'package:mfresh_ops/data/models/master/district_model.dart';
 import 'package:mfresh_ops/data/models/master/service_model.dart';
 import 'package:mfresh_ops/data/models/master/state_model.dart';
@@ -548,6 +549,7 @@ class MasterRepository extends GetxService {
     required String unitCategory,
     required String unitType,
     required String serviceType,
+    String? serviceName,
     required String yearOfDelivery,
     required String unitState,
     required String unitDist,
@@ -564,11 +566,18 @@ class MasterRepository extends GetxService {
   }) async {
     try {
       final formData = dio.FormData();
+      final sTypeId = serviceType.toLowerCase() == 'retail'
+          ? '1'
+          : (serviceType.toLowerCase() == 'rental' ? '2' : serviceType);
 
       formData.fields.addAll([
         MapEntry('unitcategory', unitCategory),
-        MapEntry('unittype', unitType),
+        MapEntry('unittype', unitType.isNotEmpty ? unitType : unitCategory),
         MapEntry('servicetype', serviceType),
+        MapEntry('service_type', serviceType),
+        MapEntry('service_type_id', sTypeId),
+        if (serviceName != null && serviceName.isNotEmpty)
+          MapEntry('service_name', serviceName),
         MapEntry('year_of_delivery', yearOfDelivery),
         MapEntry('unit_state', unitState),
         MapEntry('unit_dist', unitDist),
@@ -646,6 +655,7 @@ class MasterRepository extends GetxService {
     required String unitCategory,
     required String unitType,
     required String serviceType,
+    String? serviceName,
     required String yearOfDelivery,
     required String unitState,
     required String unitDist,
@@ -662,12 +672,19 @@ class MasterRepository extends GetxService {
   }) async {
     try {
       final formData = dio.FormData();
+      final sTypeId = serviceType.toLowerCase() == 'retail'
+          ? '1'
+          : (serviceType.toLowerCase() == 'rental' ? '2' : serviceType);
 
       formData.fields.addAll([
         MapEntry('id', id.toString()),
         MapEntry('unitcategory', unitCategory),
-        MapEntry('unittype', unitType),
+        MapEntry('unittype', unitType.isNotEmpty ? unitType : unitCategory),
         MapEntry('servicetype', serviceType),
+        MapEntry('service_type', serviceType),
+        MapEntry('service_type_id', sTypeId),
+        if (serviceName != null && serviceName.isNotEmpty)
+          MapEntry('service_name', serviceName),
         MapEntry('year_of_delivery', yearOfDelivery),
         MapEntry('unit_state', unitState),
         MapEntry('unit_dist', unitDist),
@@ -728,6 +745,126 @@ class MasterRepository extends GetxService {
       final response = await _apiService.post(
         AppConstants.unitUpdate,
         data: formData,
+      );
+
+      if (response is Map<String, dynamic>) {
+        return response;
+      }
+      return {'status': false, 'message': 'Invalid response format'};
+    } catch (e) {
+      rethrow;
+    }
+  }
+  // endregion
+
+  // region Assign Service Operations
+  /// Fetch all retail assignment units
+  Future<AssignsIndexResponse> getAssignsIndex() async {
+    try {
+      final response = await _apiService.get(AppConstants.assignsIndex);
+      if (response is Map<String, dynamic>) {
+        return AssignsIndexResponse.fromJson(response);
+      }
+      return AssignsIndexResponse(
+        status: false,
+        message: 'Invalid response format',
+        data: [],
+        count: 0,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Fetch all assigned services across units
+  Future<AllAssignServicesResponse> getAllAssignServices() async {
+    try {
+      final response = await _apiService.get(AppConstants.assignServicesIndex);
+      if (response is Map<String, dynamic>) {
+        return AllAssignServicesResponse.fromJson(response);
+      }
+      return AllAssignServicesResponse(
+        status: false,
+        message: 'Invalid response format',
+        data: [],
+        count: 0,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Create assigned services for a unit
+  Future<Map<String, dynamic>> createAssignService({
+    required String assignqrId,
+    required List<int> serviceIds,
+    required List<int> servicesFor,
+    required List<int> payTypes,
+    required List<num> grossPrices,
+    required List<num> gsts,
+    required List<dynamic> uses,
+    required List<dynamic> orders,
+  }) async {
+    try {
+      final payload = {
+        'assignqrId': assignqrId,
+        'service_id': serviceIds,
+        'services_for': servicesFor,
+        'pay_type': payTypes,
+        'gross_price': grossPrices,
+        'gst': gsts,
+        'uses': uses,
+        'order': orders,
+      };
+
+      final response = await _apiService.post(
+        AppConstants.assignServiceCreate,
+        data: payload,
+      );
+
+      if (response is Map<String, dynamic>) {
+        return response;
+      }
+      return {'status': false, 'message': 'Invalid response format'};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update assigned services for a unit
+  Future<Map<String, dynamic>> updateAssignService({
+    required String assignqrId,
+    required List<int> serviceIds,
+    required List<int> rowsPerService,
+    required List<int> rowIds,
+    required List<int> servicesFor,
+    required List<int> payTypes,
+    required List<num> grossPrices,
+    required List<num> gsts,
+    required List<num> netAmounts,
+    required List<dynamic> uses,
+    required List<dynamic> orders,
+    required List<int> statuses,
+  }) async {
+    try {
+      final payload = {
+        'assignqrId': assignqrId,
+        'service_id': serviceIds,
+        'rows_per_service': rowsPerService,
+        'row_id': rowIds,
+        'services_for': servicesFor,
+        'pay_type': payTypes,
+        'gross_price': grossPrices,
+        'gst': gsts,
+        'net_amount': netAmounts,
+        'uses': uses,
+        'order': orders,
+        'status': statuses,
+      };
+
+      final response = await _apiService.post(
+        AppConstants.assignServiceUpdate,
+        data: payload,
       );
 
       if (response is Map<String, dynamic>) {

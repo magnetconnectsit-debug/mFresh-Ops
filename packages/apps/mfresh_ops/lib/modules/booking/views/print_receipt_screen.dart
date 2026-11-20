@@ -31,6 +31,7 @@ class PrintReceiptScreen extends StatelessWidget {
   }
 
   Widget _buildReceiptCard(BookingServiceDetailItem service) {
+    final unitPrice = booking.getFormattedUnitPriceForService(service);
     return Center(
       child: Container(
         width: 300.w,
@@ -110,13 +111,13 @@ class PrintReceiptScreen extends StatelessWidget {
                     '${service.servicesName} (QTY: 1)',
                     isBold: true,
                   ),
-                  _buildLeftAlignedRow('Unit Price: ₹ ${service.price}'),
+                  _buildLeftAlignedRow('Unit Price: ₹ $unitPrice'),
 
                   _buildDivider(),
 
                   // Total for THIS receipt
                   _buildLeftAlignedRow(
-                    'TOTAL AMOUNT: ₹ ${service.price}',
+                    'TOTAL AMOUNT: ₹ $unitPrice',
                     isBold: true,
                     fontSize: 16,
                   ),

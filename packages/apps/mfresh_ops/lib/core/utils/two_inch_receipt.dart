@@ -1,3 +1,4 @@
+// region Imports
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_thermal_printer/flutter_thermal_printer.dart';
@@ -6,8 +7,11 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:mfresh_ops/data/models/booking/booking_details_model.dart';
 import 'package:intl/intl.dart';
 import 'package:core/constants/app_images.dart';
+// endregion
 
+// region Receipt Generator
 class TwoInchReceipt {
+  // region Date Formatter
   static String _formatReceiptDate(String dateString) {
     try {
       DateTime date = DateTime.parse(dateString).toLocal();
@@ -16,7 +20,9 @@ class TwoInchReceipt {
       return dateString;
     }
   }
+  // endregion
 
+  // region ESC/POS Generation
   static Future<List<int>> generateEscPosBytes(
     BookingDetailsModel booking,
     BookingServiceDetailItem service,
@@ -57,9 +63,9 @@ class TwoInchReceipt {
     bytes += generator.text("QTY: 1", styles: PosStyles(align: align));
     bytes += generator.text(separator, styles: PosStyles(align: centerAlign));
     
-    final finalPrice = service.price.isNotEmpty ? service.price : booking.totalAmount;
+    final unitPrice = booking.getFormattedUnitPriceForService(service);
     bytes += [27, 32, 2];
-    bytes += generator.text("TOTAL: RS. $finalPrice", styles: PosStyles(bold: true, align: align, height: PosTextSize.size2, width: PosTextSize.size1));
+    bytes += generator.text("TOTAL: RS. $unitPrice", styles: PosStyles(bold: true, align: align, height: PosTextSize.size2, width: PosTextSize.size1));
     bytes += [27, 32, 0];
     bytes += generator.text(separator, styles: PosStyles(align: centerAlign));
 
@@ -82,7 +88,9 @@ class TwoInchReceipt {
 
     return bytes;
   }
+  // endregion
 
+  // region PDF Document Generation
   static Future<pw.Document> generateDocument(
     BookingDetailsModel booking,
     String? encryptedBookingId,
@@ -97,14 +105,15 @@ class TwoInchReceipt {
     for (int i = 0; i < booking.services.length; i++) {
       final service = booking.services[i];
       final int qty = int.tryParse(service.quantity.toString()) ?? 1;
+      final unitPrice = booking.getFormattedUnitPriceForService(service);
+
       for (int q = 0; q < qty; q++) {
-        final finalPrice = service.price.isNotEmpty ? service.price : booking.totalAmount;
         doc.addPage(
           pw.Page(
             pageFormat: rollFormat,
             build: (pw.Context context) {
               return pw.Padding(
-                padding: pw.EdgeInsets.only(left: 0, right: 8, top: 2, bottom: 2),
+                padding: const pw.EdgeInsets.only(left: 0, right: 8, top: 2, bottom: 2),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
@@ -138,7 +147,7 @@ class TwoInchReceipt {
                     ),
 
                     pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
-                    pw.Text("TOTAL: RS. $finalPrice", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13, letterSpacing: 1.5)),
+                    pw.Text("TOTAL: RS. $unitPrice", textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13, letterSpacing: 1.5)),
                     pw.Text(pdfSeparator, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 8)),
                     
                     pw.SizedBox(height: 4),
@@ -168,4 +177,6 @@ class TwoInchReceipt {
     }
     return doc;
   }
+  // endregion
 }
+// endregion

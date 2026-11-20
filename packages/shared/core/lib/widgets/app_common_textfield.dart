@@ -38,6 +38,8 @@ class AppCommonTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final FloatingLabelBehavior floatingLabelBehavior;
   final double? borderRadius;
+  final Color? borderColor;
+  final double? borderWidth;
   final bool useFloatingLabel;
   final BoxConstraints? suffixIconConstraints;
   final BoxConstraints? prefixIconConstraints;
@@ -76,6 +78,8 @@ class AppCommonTextField extends StatelessWidget {
     this.onChanged,
     this.floatingLabelBehavior = FloatingLabelBehavior.always,
     this.borderRadius,
+    this.borderColor,
+    this.borderWidth,
     this.useFloatingLabel = true,
     this.suffixIconConstraints,
     this.prefixIconConstraints,
@@ -192,9 +196,9 @@ class AppCommonTextField extends StatelessWidget {
                   (isFieldDisabled
                       ? const Color(0xFFF1F3F5)
                       : AppColors.aliceBlue),
-              border: _buildBorder(color: AppColors.fieldBorderColor),
-              enabledBorder: _buildBorder(color: AppColors.fieldBorderColor),
-              disabledBorder: _buildBorder(color: AppColors.fieldBorderColor),
+              border: _buildBorder(color: borderColor ?? AppColors.fieldBorderColor, width: borderWidth ?? 1.0),
+              enabledBorder: _buildBorder(color: borderColor ?? AppColors.fieldBorderColor, width: borderWidth ?? 1.0),
+              disabledBorder: _buildBorder(color: borderColor ?? AppColors.fieldBorderColor, width: borderWidth ?? 1.0),
               focusedBorder: _buildBorder(color: AppColors.primary, width: 1.5),
               errorBorder: _buildBorder(color: AppColors.red),
               focusedErrorBorder: _buildBorder(
